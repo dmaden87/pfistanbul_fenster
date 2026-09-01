@@ -336,3 +336,8 @@ a {
 .skip-link:focus-visible {
   transform: translateY(0);
 }
+
+/* Sprungziele nicht unter den klebenden Header laufen lassen. */
+[id] {
+  scroll-margin-top: 5.5rem;
+}
