@@ -2,9 +2,10 @@ import './Footer.css'
 
 interface FooterProps {
   onOpenLegal: (page: 'impressum' | 'datenschutz' | 'agb') => void
+  onNavigate: (anchor: string) => void
 }
 
-export function Footer({ onOpenLegal }: FooterProps) {
+export function Footer({ onOpenLegal, onNavigate }: FooterProps) {
   return (
     <footer className="site-footer">
       <div className="shell site-footer__inner">
@@ -17,16 +18,16 @@ export function Footer({ onOpenLegal }: FooterProps) {
 
         <nav className="site-footer__col" aria-label="Sortiment">
           <h2>Sortiment</h2>
-          <a href="#sortiment">Bauarten</a>
-          <a href="#groessen">Grössen &amp; Preise</a>
-          <a href="#anfrage">Sonderanfertigung</a>
+          <button type="button" onClick={() => onNavigate('sortiment')}>Bauarten</button>
+          <button type="button" onClick={() => onNavigate('groessen')}>Grössen &amp; Preise</button>
+          <button type="button" onClick={() => onNavigate('anfrage')}>Sonderanfertigung</button>
         </nav>
 
         <nav className="site-footer__col" aria-label="Hilfe">
           <h2>Hilfe</h2>
-          <a href="#montage">Montage &amp; Messen</a>
-          <a href="#faq">Häufige Fragen</a>
-          <a href="#anfrage">Kontakt</a>
+          <button type="button" onClick={() => onNavigate('montage')}>Montage &amp; Messen</button>
+          <button type="button" onClick={() => onNavigate('faq')}>Häufige Fragen</button>
+          <button type="button" onClick={() => onNavigate('anfrage')}>Kontakt</button>
         </nav>
 
         <nav className="site-footer__col" aria-label="Rechtliches">

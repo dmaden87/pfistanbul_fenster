@@ -26,10 +26,20 @@ export default function App() {
   const cart = useCart()
   const [cartOpen, setCartOpen] = useState(false)
   const [view, setView] = useState<View>({ name: 'shop' })
+  const [pendingAnchor, setPendingAnchor] = useState<string | null>(null)
 
   useEffect(() => {
     if (view.name !== 'shop') window.scrollTo({ top: 0, behavior: 'auto' })
   }, [view])
+
+  // Der Sprung zu einem Abschnitt wartet, bis die Startseite wieder gerendert
+  // ist - sonst geht der Klick aus der Bestell- oder Rechtsseite ins Leere.
+  useEffect(() => {
+    if (view.name !== 'shop' || !pendingAnchor) return
+    const target = document.getElementById(pendingAnchor)
+    setPendingAnchor(null)
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [view, pendingAnchor])
 
   const goToShop = useCallback(() => setView({ name: 'shop' }), [])
 
@@ -39,10 +49,9 @@ export default function App() {
   }, [])
 
   const goToAnchor = useCallback((anchor: string) => {
+    setCartOpen(false)
     setView({ name: 'shop' })
-    window.requestAnimationFrame(() => {
-      document.getElementById(anchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    })
+    setPendingAnchor(anchor)
   }, [])
 
   return (
@@ -51,7 +60,12 @@ export default function App() {
         Zum Inhalt springen
       </a>
 
-      <Header cartCount={cart.totals.itemCount} onOpenCart={() => setCartOpen(true)} onNavigateHome={goToShop} />
+      <Header
+        cartCount={cart.totals.itemCount}
+        onOpenCart={() => setCartOpen(true)}
+        onNavigateHome={goToShop}
+        onNavigate={goToAnchor}
+      />
 
       <main id="main">
         {view.name === 'shop' && (
@@ -91,7 +105,7 @@ export default function App() {
         {view.name === 'legal' && <LegalPage page={view.page} onBack={goToShop} />}
       </main>
 
-      <Footer onOpenLegal={(page) => setView({ name: 'legal', page })} />
+      <Footer onOpenLegal={(page) => setView({ name: 'legal', page })} onNavigate={goToAnchor} />
 
       <CartDrawer cart={cart} open={cartOpen} onClose={() => setCartOpen(false)} onCheckout={goToCheckout} />
     </>

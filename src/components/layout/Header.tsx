@@ -5,17 +5,18 @@ interface HeaderProps {
   cartCount: number
   onOpenCart: () => void
   onNavigateHome: () => void
+  onNavigate: (anchor: string) => void
 }
 
 const NAV = [
-  { href: '#sortiment', label: 'Sortiment' },
-  { href: '#groessen', label: 'Grössen & Preise' },
-  { href: '#montage', label: 'Montage' },
-  { href: '#anfrage', label: 'Sonderanfertigung' },
-  { href: '#faq', label: 'Fragen' },
+  { anchor: 'sortiment', label: 'Sortiment' },
+  { anchor: 'groessen', label: 'Grössen & Preise' },
+  { anchor: 'montage', label: 'Montage' },
+  { anchor: 'anfrage', label: 'Sonderanfertigung' },
+  { anchor: 'faq', label: 'Fragen' },
 ]
 
-export function Header({ cartCount, onOpenCart, onNavigateHome }: HeaderProps) {
+export function Header({ cartCount, onOpenCart, onNavigateHome, onNavigate }: HeaderProps) {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -41,7 +42,8 @@ export function Header({ cartCount, onOpenCart, onNavigateHome }: HeaderProps) {
         <a
           className="brand"
           href="#top"
-          onClick={() => {
+          onClick={(event) => {
+            event.preventDefault()
             setMenuOpen(false)
             onNavigateHome()
           }}
@@ -63,7 +65,15 @@ export function Header({ cartCount, onOpenCart, onNavigateHome }: HeaderProps) {
 
         <nav className={`site-nav${menuOpen ? ' site-nav--open' : ''}`} aria-label="Hauptnavigation">
           {NAV.map((item) => (
-            <a key={item.href} href={item.href} onClick={() => setMenuOpen(false)}>
+            <a
+              key={item.anchor}
+              href={`#${item.anchor}`}
+              onClick={(event) => {
+                event.preventDefault()
+                setMenuOpen(false)
+                onNavigate(item.anchor)
+              }}
+            >
               {item.label}
             </a>
           ))}
