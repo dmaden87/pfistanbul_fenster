@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { shopConfig } from '../../data/shopConfig'
 import './Faq.css'
 
 interface FaqItem {
@@ -6,20 +7,25 @@ interface FaqItem {
   a: string
 }
 
-const FAQ: FaqItem[] = [
+interface GatedFaqItem extends FaqItem {
+  requiresPollen?: boolean
+}
+
+const FAQ: GatedFaqItem[] = [
   {
     q: 'Muss ich für die Montage bohren – und braucht es die Zustimmung der Verwaltung?',
     a: 'Nein und nein. Unsere Rahmen werden mit Klemmwinkeln in der Fensterlaibung gehalten, es entsteht kein einziges Loch. Damit ist es keine bauliche Veränderung, und Sie können bei einem Umzug alles rückstandslos mitnehmen.',
   },
   {
-    q: 'Woher kennen Sie die Masse meiner Fenster?',
-    a: 'Weil wir selber hier wohnen. Die Siedlung wurde Anfang der Siebzigerjahre als Ganzes gebaut, entsprechend wiederholen sich dieselben Fenstertypen über die Häuser hinweg. Weil seither etappenweise saniert wurde, kann es einzelne Abweichungen geben – deshalb gilt: Wenn ein Mass wider Erwarten nicht passt, tauschen wir kostenlos.',
+    q: 'Woher wissen Sie, welche Grösse zu meiner Wohnung passt?',
+    a: 'Die Siedlung wurde Anfang der Siebzigerjahre als Ganzes gebaut, entsprechend wiederholen sich dieselben Fensterformate über die Häuser hinweg. Unsere Grössenempfehlung pro Wohnungstyp beruht darauf. Weil ab 1993 etappenweise saniert wurde, können die Rahmenprofile aber von Haus zu Haus abweichen – deshalb bitten wir Sie, vor dem Bestellen einmal nachzumessen. Und falls es trotzdem nicht passt: Wir tauschen kostenlos.',
   },
   {
     q: 'Was genau ist der Unterschied zwischen Plissee und Spannrahmen?',
     a: 'Der Spannrahmen ist ein fester Rahmen, der vor dem Fenster hängt – günstig und robust, aber immer im Bild. Das Plissee liegt in Falten in einer schmalen Schiene: Sie ziehen es zu, wenn Sie lüften, und wieder auf, wenn Sie freie Sicht wollen. Für Fenster, die täglich benutzt werden, lohnt sich das Plissee fast immer.',
   },
   {
+    requiresPollen: true,
     q: 'Hilft das wirklich gegen Pollen?',
     a: 'Das kommt aufs Gewebe an. Ein normales Insektengitter hält Pollen praktisch nicht zurück – Blütenpollen sind so klein, dass sie durch jede Insektenschutzmasche passen. Beim Pollenschutzgewebe wirkt nicht die Masche, sondern eine Beschichtung, an der die Pollen hängen bleiben. Das reduziert den Pollenflug ins Zimmer spürbar, aber es ist kein vollständiger Schutz und ersetzt keine medizinische Behandlung. Zwei Dinge gehören zur Ehrlichkeit dazu: Das Gewebe lässt weniger Luft und Licht durch, und die Beschichtung lässt über die Jahre nach.',
   },
@@ -51,6 +57,7 @@ const FAQ: FaqItem[] = [
 
 export function Faq() {
   const [open, setOpen] = useState<number | null>(0)
+  const items = FAQ.filter((item) => !item.requiresPollen || shopConfig.pollenEnabled)
 
   return (
     <section className="section faq" id="faq">
@@ -65,7 +72,7 @@ export function Faq() {
         </div>
 
         <div className="faq__list">
-          {FAQ.map((item, index) => {
+          {items.map((item, index) => {
             const isOpen = open === index
             return (
               <div className={`faq-item${isOpen ? ' faq-item--open' : ''}`} key={item.q}>

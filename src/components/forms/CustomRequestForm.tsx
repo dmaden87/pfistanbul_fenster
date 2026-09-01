@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { CustomRequestLine, CustomerDetails, SubmissionState } from '../../types'
-import { categories } from '../../data/catalog'
+import { buildTypes, orderableMeshes } from '../../data/catalog'
 import { ContactFields } from './ContactFields'
 import { emptyCustomer, hasErrors, validateCustomLines, validateCustomer, type Errors } from '../../lib/validate'
 import { isDemoMode, makeReference, submitToOperator } from '../../lib/submitOrder'
@@ -9,7 +9,8 @@ import './forms.css'
 function newLine(index: number): CustomRequestLine {
   return {
     id: `custom-${index}`,
-    categoryId: categories[0]?.id ?? '',
+    buildId: buildTypes[0]?.id ?? '',
+    meshId: orderableMeshes[0]?.id ?? 'standard',
     widthCm: '',
     heightCm: '',
     quantity: '1',
@@ -126,18 +127,36 @@ export function CustomRequestForm() {
                 <span className="request-row__index">Element {index + 1}</span>
 
                 <div className="field">
-                  <label className="field__label" htmlFor={`${item.id}-category`}>
+                  <label className="field__label" htmlFor={`${item.id}-build`}>
                     Bauart
                   </label>
                   <select
-                    id={`${item.id}-category`}
+                    id={`${item.id}-build`}
                     className="select"
-                    value={item.categoryId}
-                    onChange={(event) => updateItem(item.id, { categoryId: event.target.value })}
+                    value={item.buildId}
+                    onChange={(event) => updateItem(item.id, { buildId: event.target.value })}
                   >
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.shortName}
+                    {buildTypes.map((build) => (
+                      <option key={build.id} value={build.id}>
+                        {build.shortName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="field">
+                  <label className="field__label" htmlFor={`${item.id}-mesh`}>
+                    Gewebe
+                  </label>
+                  <select
+                    id={`${item.id}-mesh`}
+                    className="select"
+                    value={item.meshId}
+                    onChange={(event) => updateItem(item.id, { meshId: event.target.value })}
+                  >
+                    {orderableMeshes.map((mesh) => (
+                      <option key={mesh.id} value={mesh.id}>
+                        {mesh.short}
                       </option>
                     ))}
                   </select>

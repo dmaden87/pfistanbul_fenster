@@ -1,3 +1,4 @@
+import { shopConfig } from '../../data/shopConfig'
 import './Benefits.css'
 
 interface Benefit {
@@ -43,6 +44,10 @@ const BENEFITS: Benefit[] = [
 ]
 
 export function Benefits() {
+  // Der Pollen-Vorteil erscheint erst, wenn ein zertifiziertes Pollenschutz-
+  // gewebe eingekauft ist. Ohne das wäre die Aussage nach UWG angreifbar.
+  const benefits = BENEFITS.filter((benefit) => benefit.id !== 'pollen' || shopConfig.pollenEnabled)
+
   return (
     <section className="section benefits" id="vorteile">
       <div className="shell">
@@ -56,7 +61,7 @@ export function Benefits() {
         </div>
 
         <div className="benefits__grid">
-          {BENEFITS.map((benefit, index) => (
+          {benefits.map((benefit, index) => (
             <article className={`benefit${index === 0 ? ' benefit--lead' : ''}`} key={benefit.id}>
               {benefit.meta && <span className="pill">{benefit.meta}</span>}
               <h3>{benefit.headline}</h3>

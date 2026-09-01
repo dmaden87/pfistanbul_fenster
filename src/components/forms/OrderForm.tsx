@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { CustomerDetails, SubmissionState } from '../../types'
 import type { UseCart } from '../../hooks/useCart'
-import { categoryById, sizeById } from '../../data/catalog'
+import { buildById, meshById, sizeById } from '../../data/catalog'
 import { formatChf, formatSize } from '../../lib/format'
 import { priceForLine } from '../../lib/pricing'
 import { priceNote, shopConfig } from '../../data/shopConfig'
@@ -213,14 +213,15 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
 
               <ul className="review-lines">
                 {lines.map((line) => {
-                  const category = categoryById(line.categoryId)
+                  const build = buildById(line.buildId)
                   const size = sizeById(line.sizeId)
-                  if (!category || !size) return null
+                  const mesh = meshById(line.meshId)
+                  if (!build || !size || !mesh) return null
                   return (
                     <li key={line.id}>
                       <span>
-                        {line.quantity}× {category.shortName} · {size.label} (
-                        {formatSize(size.widthCm, size.heightCm)})
+                        {line.quantity}× {build.shortName} · {size.label} (
+                        {formatSize(size.widthCm, size.heightCm)}, {mesh.short})
                       </span>
                       <span>{formatChf(priceForLine(line))}</span>
                     </li>
@@ -265,17 +266,18 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
         <h3>Ihre Bestellung</h3>
         <ul>
           {lines.map((line) => {
-            const category = categoryById(line.categoryId)
+            const build = buildById(line.buildId)
             const size = sizeById(line.sizeId)
-            if (!category || !size) return null
+            const mesh = meshById(line.meshId)
+            if (!build || !size || !mesh) return null
             return (
               <li key={line.id}>
                 <div>
                   <p className="checkout__item-title">
-                    {line.quantity}× {category.shortName}
+                    {line.quantity}× {build.shortName}
                   </p>
                   <p className="checkout__item-meta">
-                    {size.label} · {formatSize(size.widthCm, size.heightCm)}
+                    {size.label} · {formatSize(size.widthCm, size.heightCm)} · {mesh.short}
                   </p>
                 </div>
                 <span>{formatChf(priceForLine(line))}</span>

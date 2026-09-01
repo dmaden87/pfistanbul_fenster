@@ -1,8 +1,16 @@
 import { useMemo, useState } from 'react'
 import type { UseCart } from '../../hooks/useCart'
-import { apartmentById, apartmentTypes, categories, sizeById, standardSizes } from '../../data/catalog'
+import {
+  apartmentById,
+  apartmentTypes,
+  buildById,
+  buildTypes,
+  orderableMeshes,
+  sizeById,
+  sizesOfKind,
+} from '../../data/catalog'
 import { unitPrice } from '../../lib/pricing'
-import { formatChf, formatSize, roundToRappen } from '../../lib/format'
+import { formatChf, formatSize } from '../../lib/format'
 import { priceNote } from '../../data/shopConfig'
 import './SizeShop.css'
 
@@ -12,12 +20,18 @@ interface SizeShopProps {
   onRequestClick: () => void
 }
 
+/** Für Balkontüren gibt es nur die Türvariante – die wird im Paket automatisch genommen. */
+const DOOR_BUILD = 'plissee-tuer'
+
 export function SizeShop({ cart, onOpenCart, onRequestClick }: SizeShopProps) {
-  const [activeCategory, setActiveCategory] = useState(categories[0]?.id ?? '')
+  const [activeBuild, setActiveBuild] = useState(buildTypes[0]?.id ?? '')
+  const [activeMesh, setActiveMesh] = useState(orderableMeshes[0]?.id ?? 'standard')
   const [apartment, setApartment] = useState<string | null>(null)
   const [justAdded, setJustAdded] = useState<string | null>(null)
 
-  const category = categories.find((item) => item.id === activeCategory) ?? categories[0]
+  const build = buildById(activeBuild) ?? buildTypes[0]
+  const mesh = orderableMeshes.find((option) => option.id === activeMesh) ?? orderableMeshes[0]
+  const visibleSizes = useMemo(() => sizesOfKind(build?.kind ?? 'fenster'), [build])
   const selectedApartment = apartment ? apartmentById(apartment) : undefined
 
   const recommendedIds = useMemo(
@@ -25,20 +39,26 @@ export function SizeShop({ cart, onOpenCart, onRequestClick }: SizeShopProps) {
     [selectedApartment],
   )
 
+  /** Im Paket bekommt jede Öffnung die Bauart, die zu ihr passt. */
+  const buildForSize = (sizeId: string) => {
+    const size = sizeById(sizeId)
+    if (!size) return activeBuild
+    return size.kind === 'tuer' ? DOOR_BUILD : activeBuild
+  }
+
   const packageTotal = useMemo(() => {
     if (!selectedApartment) return 0
-    return roundToRappen(
-      selectedApartment.windows.reduce(
-        (sum, window) => sum + unitPrice(activeCategory, window.sizeId) * window.count,
-        0,
-      ),
+    return selectedApartment.windows.reduce(
+      (sum, item) => sum + unitPrice(buildForSize(item.sizeId), item.sizeId, activeMesh) * item.count,
+      0,
     )
-  }, [selectedApartment, activeCategory])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedApartment, activeBuild, activeMesh])
 
-  const packageCount = selectedApartment?.windows.reduce((sum, window) => sum + window.count, 0) ?? 0
+  const packageCount = selectedApartment?.windows.reduce((sum, item) => sum + item.count, 0) ?? 0
 
   const handleAdd = (sizeId: string) => {
-    cart.add(activeCategory, sizeId)
+    cart.add(activeBuild, sizeId, activeMesh)
     setJustAdded(sizeId)
     window.setTimeout(() => setJustAdded((current) => (current === sizeId ? null : current)), 1600)
   }
@@ -46,7 +66,7 @@ export function SizeShop({ cart, onOpenCart, onRequestClick }: SizeShopProps) {
   const handleAddPackage = () => {
     if (!selectedApartment) return
     for (const item of selectedApartment.windows) {
-      cart.add(activeCategory, item.sizeId, item.count)
+      cart.add(buildForSize(item.sizeId), item.sizeId, activeMesh, item.count)
     }
     onOpenCart()
   }
@@ -56,10 +76,10 @@ export function SizeShop({ cart, onOpenCart, onRequestClick }: SizeShopProps) {
       <div className="shell">
         <div className="section__intro">
           <span className="section__eyebrow">Direkt bestellbar</span>
-          <h2>Die Grössen aus unserer Siedlung – schon ausgemessen.</h2>
+          <h2>Die gängigen Formate – fertig gerechnet statt konfiguriert.</h2>
           <p className="section__lead">
             Sagen Sie uns, welche Wohnung Sie haben. Wir zeigen Ihnen, welche Netze dazugehören, und legen sie auf
-            Wunsch komplett in den Warenkorb. Kein Konfigurator, kein Massband.
+            Wunsch komplett in den Warenkorb. Messen Sie vor dem Bestellen einmal nach – dann passt es.
           </p>
         </div>
 
@@ -87,42 +107,72 @@ export function SizeShop({ cart, onOpenCart, onRequestClick }: SizeShopProps) {
           </div>
         </div>
 
-        <div className="size-shop__tabs" role="tablist" aria-label="Bauart wählen">
-          {categories.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              id={`tab-${item.id}`}
-              aria-selected={item.id === activeCategory}
-              aria-controls="size-panel"
-              className={`size-tab${item.id === activeCategory ? ' size-tab--active' : ''}`}
-              onClick={() => setActiveCategory(item.id)}
-            >
-              <span className="size-tab__name">{item.shortName}</span>
-              <span className="size-tab__hint">{item.tagline}</span>
-            </button>
-          ))}
+        <div className="choices">
+          <div className="choice">
+            <p className="choice__label" id="build-label">
+              Bauart
+            </p>
+            <div className="size-shop__tabs" role="tablist" aria-labelledby="build-label">
+              {buildTypes.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="tab"
+                  id={`tab-${item.id}`}
+                  aria-selected={item.id === activeBuild}
+                  aria-controls="size-panel"
+                  className={`size-tab${item.id === activeBuild ? ' size-tab--active' : ''}`}
+                  onClick={() => setActiveBuild(item.id)}
+                >
+                  <span className="size-tab__name">{item.shortName}</span>
+                  <span className="size-tab__hint">{item.tagline}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="choice">
+            <p className="choice__label" id="mesh-label">
+              Gewebe
+            </p>
+            <div className="mesh-picker" role="group" aria-labelledby="mesh-label">
+              {orderableMeshes.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  className={`mesh-chip${option.id === activeMesh ? ' mesh-chip--active' : ''}`}
+                  aria-pressed={option.id === activeMesh}
+                  onClick={() => setActiveMesh(option.id)}
+                >
+                  <span className="mesh-chip__name">{option.short}</span>
+                  <span className="mesh-chip__price">
+                    {option.surchargePerM2 === 0 ? 'ohne Aufpreis' : `+ CHF ${option.surchargePerM2}/m²`}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {selectedApartment && (
           <div className="size-package">
             <div className="size-package__body">
               <h3>
-                {selectedApartment.label} · {category?.shortName}
+                {selectedApartment.label} · {build?.shortName} · {mesh?.short}
               </h3>
               <p>
-                Nach unserer Erfahrung sind das {packageCount} Fenster. Sie können das Paket komplett nehmen oder unten
-                einzeln zusammenstellen.
+                Nach unserer Erfahrung sind das {packageCount} Öffnungen. Balkontüren rechnen wir automatisch als
+                Türelement. Sie können das Paket komplett nehmen oder unten einzeln zusammenstellen.
               </p>
               <ul>
-                {selectedApartment.windows.map((window) => {
-                  const size = sizeById(window.sizeId)
+                {selectedApartment.windows.map((item) => {
+                  const size = sizeById(item.sizeId)
                   if (!size) return null
                   return (
-                    <li key={window.sizeId}>
+                    <li key={item.sizeId}>
                       <span>
-                        {window.count}× {size.label}
+                        {item.count}× {size.label}
+                        {size.kind === 'tuer' && <span className="pill pill--neutral">Türelement</span>}
                       </span>
                       <span className="size-package__measure">{formatSize(size.widthCm, size.heightCm)}</span>
                     </li>
@@ -130,15 +180,15 @@ export function SizeShop({ cart, onOpenCart, onRequestClick }: SizeShopProps) {
                 })}
               </ul>
               <p className="size-package__hint">
-                Bitte vor dem Bestellen einmal nachmessen – seit dem Bau wurde etappenweise saniert, deshalb kann es
-                Abweichungen geben. Passt etwas nicht, tauschen wir kostenlos.
+                Bitte vor dem Bestellen nachmessen. Seit dem Bau wurde etappenweise saniert, deshalb können die
+                Rahmenprofile von Haus zu Haus abweichen. Passt etwas nicht, tauschen wir kostenlos.
               </p>
             </div>
 
             <div className="size-package__side">
               <p className="size-package__total-label">Komplettpreis</p>
               <p className="size-package__total">{formatChf(packageTotal)}</p>
-              <p className="size-package__note">Rabatt und Lieferung rechnet der Warenkorb dazu.</p>
+              <p className="size-package__note">Der Mengenrabatt kommt im Warenkorb dazu.</p>
               <button type="button" className="btn btn--block btn--lg" onClick={handleAddPackage}>
                 Alle {packageCount} in den Warenkorb
               </button>
@@ -146,14 +196,15 @@ export function SizeShop({ cart, onOpenCart, onRequestClick }: SizeShopProps) {
           </div>
         )}
 
-        <div className="size-shop__panel" id="size-panel" role="tabpanel" aria-labelledby={`tab-${activeCategory}`}>
+        <div className="size-shop__panel" id="size-panel" role="tabpanel" aria-labelledby={`tab-${activeBuild}`}>
           <p className="size-shop__panel-note">
-            <strong>{category?.shortName}</strong> · {category?.mesh} · {category?.bestFor}
+            <strong>{build?.shortName}</strong> mit {mesh?.name}. {build?.bestFor}.{' '}
+            <span className="size-shop__caveat">Ehrlich dazu: {build?.caveat}</span>
           </p>
 
           <ul className="size-list">
-            {standardSizes.map((size) => {
-              const price = unitPrice(activeCategory, size.id)
+            {visibleSizes.map((size) => {
+              const price = unitPrice(activeBuild, size.id, activeMesh)
               const added = justAdded === size.id
               const recommended = recommendedIds.has(size.id)
               return (
@@ -185,8 +236,9 @@ export function SizeShop({ cart, onOpenCart, onRequestClick }: SizeShopProps) {
 
           <div className="size-shop__foot">
             <p>
-              {priceNote} Lieferung innerhalb der Siedlung kostenlos. Ab drei Elementen gibt es 10 %
-              Nachbarschaftsrabatt – der Warenkorb rechnet ihn automatisch ab.
+              {priceNote} Lieferung innerhalb der Siedlung kostenlos. Ab drei Elementen 5 %, ab fünf 8 %, ab acht 12 %
+              Mengenrabatt – der Warenkorb rechnet ihn automatisch ab. Der Preis ist immer Grundpreis plus
+              Quadratmeter, aufgerundet auf fünf Franken. Das ist unsere ganze Preisliste.
             </p>
             <button type="button" className="btn btn--quiet" onClick={onOpenCart}>
               Warenkorb ansehen

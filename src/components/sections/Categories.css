@@ -39,7 +39,7 @@
   background-color: color-mix(in srgb, var(--surface) 60%, transparent);
 }
 
-.category-card__mesh--plissee {
+.category-card__mesh--plissee-fenster {
   background-image:
     repeating-linear-gradient(0deg, var(--mesh-line) 0 1.5px, transparent 1.5px 9px),
     repeating-linear-gradient(90deg, var(--mesh-line) 0 1px, transparent 1px 4px);
@@ -51,18 +51,13 @@
     repeating-linear-gradient(90deg, var(--mesh-line) 0 1px, transparent 1px 5px);
 }
 
-.category-card__mesh--pollenplissee {
+.category-card__mesh--plissee-tuer {
   background-image:
     repeating-linear-gradient(0deg, var(--mesh-line) 0 1.5px, transparent 1.5px 9px),
     repeating-linear-gradient(0deg, var(--mesh-line) 0 0.5px, transparent 0.5px 2px),
     repeating-linear-gradient(90deg, var(--mesh-line) 0 0.5px, transparent 0.5px 2px);
 }
 
-.category-card__mesh--katzenschutz {
-  background-image:
-    repeating-linear-gradient(0deg, var(--mesh-line) 0 2px, transparent 2px 7px),
-    repeating-linear-gradient(90deg, var(--mesh-line) 0 2px, transparent 2px 7px);
-}
 
 .category-card__body {
   flex: 1;

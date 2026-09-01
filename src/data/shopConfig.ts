@@ -1,15 +1,24 @@
 /**
- * Zentrale Stellschrauben, die der Betreiber vor dem Live-Gang setzen muss.
- * Alles hier hat rechtliche oder kaufmännische Konsequenzen – die Werte sind
- * Vorschläge, keine Zusagen.
+ * Zentrale Stellschrauben. Alles hier hat rechtliche oder kaufmännische
+ * Konsequenzen – die Werte sind Vorschläge, keine Zusagen.
  */
 export const shopConfig = {
   /**
    * MwSt-Pflicht besteht in der Schweiz erst ab CHF 100'000 Jahresumsatz.
-   * Wer nicht mehrwertsteuerpflichtig ist, darf "inkl. MwSt." NICHT schreiben.
-   * Auf false setzen, solange keine MWST-Nummer vorliegt.
+   * Wer nicht pflichtig ist, darf "inkl. MwSt." NICHT schreiben.
    */
   vatRegistered: true,
+
+  /**
+   * Pollenschutz bleibt gesperrt, bis Handelsname, Maschenweite und
+   * Herstellerdatenblatt des tatsächlich verbauten Gewebes vorliegen.
+   * Ein normales Insektenschutzgewebe hält keine Pollen zurück – Pollen sind
+   * rund sechzigmal kleiner als die Masche. Ohne zertifiziertes Gewebe wäre
+   * jede Pollenaussage nach UWG angreifbar, und die Beweislast läge bei uns.
+   * Sobald das Datenblatt da ist: auf true setzen, dann erscheinen die
+   * Gewebe-Option, der Vorteilstext und die Tabellenzeile automatisch.
+   */
+  pollenEnabled: false,
 
   /** Freiwilliges Rückgaberecht auf Standardgrössen, in Tagen. */
   returnDays: 14,

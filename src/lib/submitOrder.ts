@@ -1,6 +1,6 @@
 import type { CartLine, CustomRequestLine, CustomerDetails, SubmissionKind } from '../types'
-import { categoryById, sizeById } from '../data/catalog'
-import { cartTotals, priceForLine } from './pricing'
+import { buildById, meshById, sizeById } from '../data/catalog'
+import { cartTotals, customPrice, priceForLine } from './pricing'
 import { formatChf, formatSize } from './format'
 
 const endpoint = import.meta.env.VITE_ORDER_ENDPOINT?.trim()
@@ -33,11 +33,12 @@ function customerBlock(customer: CustomerDetails): string {
 function orderBody(lines: CartLine[], customer: CustomerDetails, reference: string): string {
   const totals = cartTotals(lines)
   const rows = lines.map((line) => {
-    const category = categoryById(line.categoryId)
+    const build = buildById(line.buildId)
     const size = sizeById(line.sizeId)
-    const label = `${category?.name ?? line.categoryId} – ${size?.label ?? line.sizeId}`
+    const mesh = meshById(line.meshId)
+    const label = `${build?.name ?? line.buildId} – ${size?.label ?? line.sizeId}`
     const measures = size ? formatSize(size.widthCm, size.heightCm) : ''
-    return `${line.quantity}× ${label} (${measures}) — ${formatChf(priceForLine(line))}`
+    return `${line.quantity}× ${label} (${measures}, ${mesh?.name ?? line.meshId}) — ${formatChf(priceForLine(line))}`
   })
 
   return [
@@ -49,7 +50,9 @@ function orderBody(lines: CartLine[], customer: CustomerDetails, reference: stri
     ...rows.map((row) => `  ${row}`),
     '',
     `Zwischentotal: ${formatChf(totals.subtotalChf)}`,
-    totals.discountChf > 0 ? `Rabatt:        -${formatChf(totals.discountChf)}${totals.discountLabel ? ` (${totals.discountLabel})` : ''}` : null,
+    totals.discountChf > 0
+      ? `Rabatt:        -${formatChf(totals.discountChf)}${totals.discountLabel ? ` (${totals.discountLabel})` : ''}`
+      : null,
     `Lieferung:     ${totals.shippingChf === 0 ? 'kostenlos' : formatChf(totals.shippingChf)}`,
     `Total:         ${formatChf(totals.totalChf)}`,
   ]
@@ -59,13 +62,22 @@ function orderBody(lines: CartLine[], customer: CustomerDetails, reference: stri
 
 function requestBody(items: CustomRequestLine[], customer: CustomerDetails, reference: string): string {
   const rows = items.map((item, index) => {
-    const category = categoryById(item.categoryId)
+    const build = buildById(item.buildId)
+    const mesh = meshById(item.meshId)
+    const width = Number(item.widthCm)
+    const height = Number(item.heightCm)
+    const estimate =
+      Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0
+        ? formatChf(customPrice(width, height, item.buildId, item.meshId))
+        : null
     return [
       `  Position ${index + 1}:`,
-      `    Bauart: ${category?.name ?? item.categoryId}`,
-      `    Masse:  ${item.widthCm || '?'} × ${item.heightCm || '?'} cm`,
-      `    Anzahl: ${item.quantity || '1'}`,
-      item.room ? `    Raum:   ${item.room}` : null,
+      `    Bauart:    ${build?.name ?? item.buildId}`,
+      `    Gewebe:    ${mesh?.name ?? item.meshId}`,
+      `    Masse:     ${item.widthCm || '?'} × ${item.heightCm || '?'} cm`,
+      `    Anzahl:    ${item.quantity || '1'}`,
+      item.room ? `    Raum:      ${item.room}` : null,
+      estimate ? `    Richtwert: ${estimate} pro Stück (Formel, nicht geprüft)` : null,
     ]
       .filter(Boolean)
       .join('\n')

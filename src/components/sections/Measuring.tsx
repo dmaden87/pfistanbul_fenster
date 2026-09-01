@@ -8,8 +8,8 @@ export function Measuring() {
           <span className="section__eyebrow">Messen &amp; Montage</span>
           <h2>Sie brauchen nur ein Massband – und auch das nur einmal.</h2>
           <p className="section__lead">
-            Für die Standardgrössen müssen Sie gar nichts messen. Wenn Sie trotzdem sichergehen wollen oder ein
-            Sondermass brauchen, geht es so:
+            Einmal nachmessen genügt – und danach nie wieder. Es dauert zwei Minuten und erspart Ihnen die einzige
+            Enttäuschung, die bei so einem Kauf möglich ist:
           </p>
 
           <ol className="measuring__steps">
@@ -24,8 +24,8 @@ export function Measuring() {
               <strong>Auf ganze Zentimeter runden.</strong> Nach unten. Den Rest übernimmt der Klemmspielraum.
             </li>
             <li>
-              <strong>Zweimal messen.</strong> Alte Fenster sind selten exakt rechtwinklig – nehmen Sie das kleinere
-              Mass.
+              <strong>An drei Stellen messen.</strong> Oben, in der Mitte und unten. Alte Fenster sind selten exakt
+              rechtwinklig – es zählt der kleinste Wert.
             </li>
           </ol>
 

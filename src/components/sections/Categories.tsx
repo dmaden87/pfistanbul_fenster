@@ -1,4 +1,4 @@
-import { categories, allSizeIds } from '../../data/catalog'
+import { buildTypes, sizesOfKind } from '../../data/catalog'
 import { lowestPriceFor } from '../../lib/pricing'
 import { formatChf } from '../../lib/format'
 import './Categories.css'
@@ -12,40 +12,40 @@ export function Categories({ onPickSize }: CategoriesProps) {
     <section className="section categories" id="sortiment">
       <div className="shell">
         <div className="section__intro">
-          <span className="section__eyebrow">Vier Bauarten</span>
-          <h2>Welche Art Netz passt zu Ihrem Fenster?</h2>
+          <span className="section__eyebrow">Drei Bauarten</span>
+          <h2>Welche Art Netz passt zu Ihrer Öffnung?</h2>
           <p className="section__lead">
-            Alle vier gibt es in denselben Standardgrössen. Der Unterschied liegt in der Bedienung und im Gewebe – nicht
-            in der Qualität.
+            Der Unterschied liegt in der Bedienung, nicht in der Qualität. Das Gewebe wählen Sie unabhängig davon –
+            jede Bauart gibt es mit jedem Gewebe.
           </p>
         </div>
 
         <div className="categories__grid">
-          {categories.map((category) => (
-            <article className="category-card" key={category.id}>
+          {buildTypes.map((build) => (
+            <article className="category-card" key={build.id}>
               <div className="category-card__visual" aria-hidden="true">
-                <span className={`category-card__mesh category-card__mesh--${category.id}`} />
+                <span className={`category-card__mesh category-card__mesh--${build.id}`} />
               </div>
 
               <div className="category-card__body">
-                <p className="category-card__tagline">{category.tagline}</p>
-                <h3>{category.name}</h3>
-                <p className="category-card__description">{category.description}</p>
+                <p className="category-card__tagline">{build.tagline}</p>
+                <h3>{build.name}</h3>
+                <p className="category-card__description">{build.description}</p>
 
                 <ul className="category-card__features">
-                  {category.features.map((feature) => (
+                  {build.features.map((feature) => (
                     <li key={feature}>{feature}</li>
                   ))}
                 </ul>
 
                 <dl className="category-card__specs">
                   <div>
-                    <dt>Gewebe</dt>
-                    <dd>{category.mesh}</dd>
+                    <dt>Passt zu</dt>
+                    <dd>{build.bestFor}</dd>
                   </div>
                   <div>
-                    <dt>Passt zu</dt>
-                    <dd>{category.bestFor}</dd>
+                    <dt>Ehrlich dazu</dt>
+                    <dd>{build.caveat}</dd>
                   </div>
                 </dl>
               </div>
@@ -53,7 +53,14 @@ export function Categories({ onPickSize }: CategoriesProps) {
               <footer className="category-card__foot">
                 <p className="category-card__price">
                   <span>ab</span>
-                  <strong>{formatChf(lowestPriceFor(category.id, allSizeIds))}</strong>
+                  <strong>
+                    {formatChf(
+                      lowestPriceFor(
+                        build.id,
+                        sizesOfKind(build.kind).map((size) => size.id),
+                      ),
+                    )}
+                  </strong>
                 </p>
                 <button type="button" className="btn btn--ghost" onClick={onPickSize}>
                   Grösse wählen

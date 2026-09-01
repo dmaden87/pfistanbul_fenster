@@ -1,4 +1,7 @@
 import { WindowVisual } from './WindowVisual'
+import { buildTypes, sizesOfKind } from '../../data/catalog'
+import { lowestPriceFor } from '../../lib/pricing'
+import { formatChf } from '../../lib/format'
 import './Hero.css'
 
 interface HeroProps {
@@ -7,6 +10,15 @@ interface HeroProps {
 }
 
 export function Hero({ onShopClick, onRequestClick }: HeroProps) {
+  const cheapest = Math.min(
+    ...buildTypes.map((build) =>
+      lowestPriceFor(
+        build.id,
+        sizesOfKind(build.kind).map((size) => size.id),
+      ),
+    ),
+  )
+
   return (
     <section className="hero" id="top">
       <div className="hero__glow" aria-hidden="true" />
@@ -24,8 +36,8 @@ export function Hero({ onShopClick, onRequestClick }: HeroProps) {
           </h1>
 
           <p className="hero__lead">
-            Insektenschutz, der zu den Fenstern in unserer Siedlung passt – ohne Ausmessen, ohne Wartezeit, ohne
-            Handwerkerrechnung. Grösse anklicken, bestellen, in ein paar Tagen hängt es.
+            Insektenschutz für die gängigen Fensterformate in unserer Siedlung – ohne Konfigurator, ohne Wartezeit auf
+            eine Offerte, ohne Handwerkerrechnung. Wohnung wählen, einmal nachmessen, bestellen.
           </p>
 
           <div className="hero__actions">
@@ -39,7 +51,7 @@ export function Hero({ onShopClick, onRequestClick }: HeroProps) {
 
           <ul className="hero__proof">
             <li>
-              <strong>ab CHF 29</strong>
+              <strong>ab {formatChf(cheapest)}</strong>
               <span>pro Element</span>
             </li>
             <li>

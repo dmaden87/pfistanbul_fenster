@@ -8,7 +8,7 @@
 .mesh-table table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 44rem;
+  min-width: 52rem;
 }
 
 .mesh-table thead th {
@@ -75,7 +75,7 @@
     repeating-linear-gradient(90deg, var(--mesh-line) 0 1px, transparent 1px 5px);
 }
 
-.mesh-swatch--fein {
+.mesh-swatch--feinmasch {
   background-image:
     repeating-linear-gradient(0deg, var(--mesh-line) 0 1px, transparent 1px 2.5px),
     repeating-linear-gradient(90deg, var(--mesh-line) 0 1px, transparent 1px 2.5px);
@@ -87,7 +87,7 @@
     repeating-linear-gradient(90deg, var(--mesh-line) 0 1px, transparent 1px 5px);
 }
 
-.mesh-swatch--katze {
+.mesh-swatch--katzensicher {
   background-image:
     repeating-linear-gradient(0deg, var(--mesh-line) 0 2px, transparent 2px 7px),
     repeating-linear-gradient(90deg, var(--mesh-line) 0 2px, transparent 2px 5px);
@@ -120,4 +120,9 @@
   .mesh-table__notes {
     grid-template-columns: 1fr;
   }
+}
+
+.mesh-table__price {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }

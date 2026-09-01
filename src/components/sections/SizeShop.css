@@ -398,3 +398,105 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* --- Bauart und Gewebe nebeneinander ------------------------------------------ */
+
+.choices {
+  display: grid;
+  grid-template-columns: minmax(0, 2.1fr) minmax(0, 1fr);
+  gap: var(--space-5);
+  margin-bottom: var(--space-6);
+}
+
+.choice__label {
+  margin-bottom: var(--space-3);
+  color: var(--text-subtle);
+  font-size: var(--step--2);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.size-shop__tabs {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 0;
+}
+
+.mesh-picker {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.mesh-chip {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--motion-fast),
+    background-color var(--motion-fast);
+}
+
+.mesh-chip:hover {
+  border-color: var(--accent);
+}
+
+.mesh-chip--active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.mesh-chip__name {
+  font-size: var(--step--1);
+  font-weight: 600;
+}
+
+.mesh-chip__price {
+  color: var(--text-subtle);
+  font-size: var(--step--2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mesh-chip--active .mesh-chip__price {
+  color: color-mix(in srgb, var(--accent-contrast) 78%, transparent);
+}
+
+.size-shop__caveat {
+  display: block;
+  margin-top: var(--space-2);
+}
+
+.size-package li .pill {
+  margin-left: var(--space-2);
+}
+
+@media (max-width: 62rem) {
+  .choices {
+    grid-template-columns: 1fr;
+  }
+  .size-shop__tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .mesh-picker {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .mesh-chip {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.1rem;
+  }
+}
+
+@media (max-width: 40rem) {
+  .mesh-picker {
+    grid-template-columns: 1fr;
+  }
+}

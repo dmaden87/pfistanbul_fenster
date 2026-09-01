@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
 import type { UseCart } from '../../hooks/useCart'
-import { categoryById, sizeById } from '../../data/catalog'
+import { buildById, meshById, sizeById } from '../../data/catalog'
 import { formatChf, formatSize } from '../../lib/format'
-import { unitPrice, BULK_DISCOUNT_THRESHOLD } from '../../lib/pricing'
+import { unitPrice } from '../../lib/pricing'
 import { priceNote } from '../../data/shopConfig'
 import './CartDrawer.css'
 
@@ -58,7 +58,7 @@ export function CartDrawer({ cart, open, onClose, onCheckout }: CartDrawerProps)
   if (!open) return null
 
   const { lines, totals, setQuantity, remove, clear } = cart
-  const missingForDiscount = Math.max(0, BULK_DISCOUNT_THRESHOLD - totals.itemCount)
+  const missingForDiscount = totals.nextTier ? totals.nextTier.elements - totals.itemCount : 0
 
   return (
     <div className="drawer" role="presentation" onClick={onClose}>
@@ -94,27 +94,31 @@ export function CartDrawer({ cart, open, onClose, onCheckout }: CartDrawerProps)
           <>
             <ul className="drawer__lines">
               {lines.map((line) => {
-                const category = categoryById(line.categoryId)
+                const build = buildById(line.buildId)
                 const size = sizeById(line.sizeId)
-                if (!category || !size) return null
+                const mesh = meshById(line.meshId)
+                if (!build || !size || !mesh) return null
                 return (
                   <li key={line.id} className="cart-line">
                     <div className="cart-line__visual" aria-hidden="true">
                       <span className="cart-line__mesh" />
                     </div>
                     <div className="cart-line__body">
-                      <p className="cart-line__title">{category.shortName}</p>
+                      <p className="cart-line__title">{build.shortName}</p>
                       <p className="cart-line__meta">
                         {size.label} · {formatSize(size.widthCm, size.heightCm)}
                       </p>
-                      <p className="cart-line__unit">{formatChf(unitPrice(line.categoryId, line.sizeId))} pro Stück</p>
+                      <p className="cart-line__meta">{mesh.name}</p>
+                      <p className="cart-line__unit">
+                        {formatChf(unitPrice(line.buildId, line.sizeId, line.meshId))} pro Stück
+                      </p>
                     </div>
                     <div className="cart-line__side">
                       <div className="stepper">
                         <button
                           type="button"
                           onClick={() => setQuantity(line.id, line.quantity - 1)}
-                          aria-label={`Menge verringern für ${category.shortName} ${size.label}`}
+                          aria-label={`Menge verringern für ${build.shortName} ${size.label}`}
                         >
                           −
                         </button>
@@ -122,7 +126,7 @@ export function CartDrawer({ cart, open, onClose, onCheckout }: CartDrawerProps)
                         <button
                           type="button"
                           onClick={() => setQuantity(line.id, line.quantity + 1)}
-                          aria-label={`Menge erhöhen für ${category.shortName} ${size.label}`}
+                          aria-label={`Menge erhöhen für ${build.shortName} ${size.label}`}
                         >
                           +
                         </button>
@@ -131,7 +135,7 @@ export function CartDrawer({ cart, open, onClose, onCheckout }: CartDrawerProps)
                         type="button"
                         className="cart-line__remove"
                         onClick={() => remove(line.id)}
-                        aria-label={`${category.shortName} ${size.label} entfernen`}
+                        aria-label={`${build.shortName} ${size.label} entfernen`}
                       >
                         Entfernen
                       </button>
@@ -142,9 +146,10 @@ export function CartDrawer({ cart, open, onClose, onCheckout }: CartDrawerProps)
             </ul>
 
             <footer className="drawer__foot">
-              {missingForDiscount > 0 && (
+              {missingForDiscount > 0 && totals.nextTier && (
                 <p className="drawer__nudge">
-                  Noch {missingForDiscount} Element{missingForDiscount === 1 ? '' : 'e'} bis zum Nachbarschaftsrabatt.
+                  Noch {missingForDiscount} Element{missingForDiscount === 1 ? '' : 'e'} bis{' '}
+                  {Math.round(totals.nextTier.rate * 100)} % Mengenrabatt.
                 </p>
               )}
 
