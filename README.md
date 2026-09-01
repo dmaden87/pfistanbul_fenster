@@ -121,6 +121,34 @@ gehören nie auf die Seite**: Die verbreiteten «bis zu 99 %» sind Bestwerte de
 Hersteller bei schwachem Wind, unabhängige Messungen liegen bei 51–66 %, und
 Art. 13a UWG kehrt die Beweislast um.
 
+## Deployment auf Vercel
+
+Das Repository direkt in Vercel importieren. Der Branch
+`claude/fliegennetze-webshop-planning-hqqsny` ist der Default-Branch und wird
+damit automatisch als Production Branch übernommen.
+
+- **Framework Preset:** Vite (wird erkannt)
+- **Build Command:** `npm run build` · **Output Directory:** `dist`
+- Eine `vercel.json` braucht es nicht: Die Seite ist eine einzelne Route,
+  Rechtsseiten und Bestellstrecke laufen über den Zustand der Anwendung.
+
+**Zwingend vor dem ersten Deploy:** Die beiden Umgebungsvariablen in Vercel
+eintragen (Settings → Environment Variables). `.env` liegt nur lokal und ist
+in `.gitignore`, kommt also nicht mit:
+
+```
+VITE_ORDER_ENDPOINT   = https://api.web3forms.com/submit
+VITE_ORDER_ACCESS_KEY = <Access Key aus dem Web3Forms-Konto>
+```
+
+Fehlen sie, bricht der Bestellabschluss mit einer sichtbaren Fehlermeldung ab
+und der Warenkorb bleibt erhalten – bewusst so: Eine live geschaltete Seite
+darf keine Bestellung bestätigen, die niemand erhält. Nur der ausdrückliche
+Wert `VITE_ORDER_ENDPOINT=demo` simuliert den Versand.
+
+Vite liest `VITE_`-Variablen zur **Build-Zeit**. Nach dem Nachtragen also ein
+Redeploy auslösen, sonst steckt im Bundle noch der alte Stand.
+
 ## Bekanntes Problem: Formularversand noch nicht verifiziert
 
 Der Web3Forms-Schlüssel ist in `.env` hinterlegt und der Code sendet korrekt an
@@ -133,12 +161,16 @@ Antwort sagt also nichts über die Gültigkeit aus.
 
 Nach dem ersten Deployment deshalb zwingend:
 
-1. Die echte Domain im Web3Forms-Konto hinterlegen (der Schlüssel war für
-   «Localhost» aufgesetzt).
+1. Die echte Vercel-Domain im Web3Forms-Konto hinterlegen (der Schlüssel war
+   für «Localhost» aufgesetzt).
 2. Eine Testbestellung über die live geschaltete Seite auslösen.
 3. Prüfen, ob die Mail ankommt – und ob der Autoresponder für die
    Kundenbestätigung eingeschaltet ist. Den verlangt Art. 3 Abs. 1 lit. s
    Ziff. 4 UWG.
+
+Geht dabei etwas schief, steht die Ursache in der Browser-Konsole: eine
+fehlende Konfiguration meldet sich dort im Klartext, eine Domain-Sperre kommt
+als Antwort von Web3Forms zurück.
 
 Bis dahin bleibt der Bestellabschluss unbestätigt. Wer ohne Konfiguration
 testen will, setzt `VITE_ORDER_ENDPOINT=demo`: Dann ist der Ablauf vollständig

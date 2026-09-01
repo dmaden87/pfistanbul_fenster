@@ -6,8 +6,12 @@ import { formatChf, formatSize } from './format'
 const endpoint = import.meta.env.VITE_ORDER_ENDPOINT?.trim()
 const accessKey = import.meta.env.VITE_ORDER_ACCESS_KEY?.trim()
 
-/** True, wenn der Versand nur simuliert wird (Demo- oder Entwicklungsmodus). */
-export const isDemoMode = !endpoint || endpoint === 'demo'
+/**
+ * Demo-Modus nur bei ausdrücklichem VITE_ORDER_ENDPOINT=demo.
+ * Eine fehlende Konfiguration darf NICHT stillschweigend simulieren: sonst
+ * bestätigt eine live geschaltete Seite Bestellungen, die nie jemand erhält.
+ */
+export const isDemoMode = endpoint === 'demo'
 
 /** True, wenn gar kein Formulardienst konfiguriert ist. */
 export const isUnconfigured = !endpoint
@@ -114,11 +118,20 @@ export async function submitToOperator(payload: SubmitPayload): Promise<void> {
     kind === 'bestellung' ? orderBody(lines, customer, reference, montage) : requestBody(items, customer, reference)
 
   if (isDemoMode) {
-    // Ohne konfigurierten Dienst wird nichts verschickt - der Ablauf laesst sich
-    // trotzdem vollstaendig durchklicken.
+    // Ausdrücklich gewünschte Simulation: nichts wird verschickt, der Ablauf
+    // lässt sich trotzdem vollständig durchklicken.
     console.info(`[Demo-Modus] ${subject}\n\n${message}`)
     await new Promise((resolve) => setTimeout(resolve, 700))
     return
+  }
+
+  if (isUnconfigured) {
+    console.error(
+      'VITE_ORDER_ENDPOINT ist nicht gesetzt. Ohne Formulardienst kann keine Bestellung zugestellt werden. ' +
+        'In den Umgebungsvariablen des Hostings eintragen (siehe .env.example) oder für einen reinen Klicktest ' +
+        'VITE_ORDER_ENDPOINT=demo setzen.',
+    )
+    throw new Error('Der Bestellversand ist auf dieser Seite noch nicht eingerichtet')
   }
 
   const body: Record<string, string> = {
