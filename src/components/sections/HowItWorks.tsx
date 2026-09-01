@@ -3,13 +3,13 @@ import './HowItWorks.css'
 const STEPS = [
   {
     n: '01',
-    title: 'Grösse anklicken',
-    text: 'Ihr Fenster ist mit hoher Wahrscheinlichkeit in der Liste. Falls nicht: eine Anfrage genügt.',
+    title: 'Mass wählen oder angeben',
+    text: 'Ist Ihre Überbauung ausgemessen, klicken Sie das Format an. Sonst schicken Sie uns Ihre Masse.',
   },
   {
     n: '02',
     title: 'Wir melden uns',
-    text: 'Innerhalb eines Werktags bestätigen wir die Bestellung und sagen, wann wir vorbeikommen.',
+    text: 'Innerhalb eines Werktags bestätigen wir die Bestellung und nennen Ihnen den Liefertermin.',
   },
   {
     n: '03',
@@ -18,8 +18,8 @@ const STEPS = [
   },
   {
     n: '04',
-    title: 'In fünf Minuten montiert',
-    text: 'Geklemmt statt gebohrt. Wenn Sie möchten, machen wir es gleich selber – ohne Aufpreis.',
+    title: 'Selber montieren – oder nicht',
+    text: 'Geklemmt statt gebohrt, ganz ohne Werkzeug. Beim ersten Fenster braucht es trotzdem etwas Geduld, bis alles sauber sitzt; danach geht es zügig. Wer keine Lust darauf hat, lässt es uns machen.',
   },
 ]
 
@@ -29,7 +29,7 @@ export function HowItWorks() {
       <div className="shell">
         <div className="section__intro">
           <span className="section__eyebrow">So läuft es ab</span>
-          <h2>Von der Bestellung bis zum montierten Netz: meist unter einer Woche.</h2>
+          <h2>Von der Bestellung bis zum montierten Netz.</h2>
         </div>
 
         <ol className="how__steps">

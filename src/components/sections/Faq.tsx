@@ -31,7 +31,7 @@ const FAQ: GatedFaqItem[] = [
   },
   {
     q: 'Wie schnell habe ich das Netz?',
-    a: 'Wir produzieren in Sammelbestellungen, nicht einzeln. Sobald genug Netze für eine Runde zusammengekommen sind, geht sie in Produktion – so bleibt die Fracht bezahlbar, und genau daher kommt der tiefe Preis. Wie viele noch fehlen, sagen wir Ihnen bei der Bestätigung, und den Termin, sobald er steht.',
+    a: 'Wir haben keine Lagerhalle – jedes Netz wird auf Bestellung gefertigt und wir bündeln die Bestellungen zu einer Lieferung. Genau daher kommt der tiefe Preis. Den Liefertermin nennen wir Ihnen mit der Bestätigung und melden uns, falls sich etwas verschiebt.',
   },
   {
     q: 'Wie und wann bezahle ich?',
@@ -51,7 +51,7 @@ const FAQ: GatedFaqItem[] = [
   },
   {
     q: 'Ich wohne nicht im Pfisterhölzli – bekomme ich trotzdem etwas?',
-    a: 'Ja. Die vier Formate sind auf unsere Siedlung ausgemessen, passen aber in viele Wohnungen der Umgebung. Wenn Sie unsicher sind, stellen Sie einfach eine Anfrage mit Ihren Massen – wir rechnen sie in der nächsten Sammelbestellung mit. Die Lieferung ausserhalb der Siedlung sprechen wir individuell ab.',
+    a: 'Ja. Wir fertigen jedes Netz nach Mass – das ausgemessene Sortiment ist nur die Abkürzung für eine Siedlung, die wir kennen. Stellen Sie einfach eine Anfrage mit Ihren Massen. Als Richtwert liegen gängige Fensterformate bei CHF 100 bis 200 pro Stück; den festen Preis nennen wir in der Offerte. Die Lieferung ausserhalb der Siedlung sprechen wir individuell ab.',
   },
 ]
 

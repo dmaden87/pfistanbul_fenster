@@ -19,8 +19,8 @@ export function Footer({ onOpenLegal, onNavigate }: FooterProps) {
 
         <nav className="site-footer__col" aria-label="Sortiment">
           <h2>Sortiment</h2>
-          <button type="button" onClick={() => onNavigate('groessen')}>Netze &amp; Preise</button>
-          <button type="button" onClick={() => onNavigate('groessen')}>Grössen &amp; Preise</button>
+          <button type="button" onClick={() => onNavigate('gewebe')}>Gewebe</button>
+          <button type="button" onClick={() => onNavigate('groessen')}>Sortiment Pfisterhölzli</button>
           <button type="button" onClick={() => onNavigate('anfrage')}>Sonderanfertigung</button>
         </nav>
 

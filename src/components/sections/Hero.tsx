@@ -1,6 +1,5 @@
 import { WindowVisual } from './WindowVisual'
-import { windowTypes } from '../../data/catalog'
-import { formatChf } from '../../lib/format'
+import { priceRange } from '../../data/catalog'
 import './Hero.css'
 
 interface HeroProps {
@@ -9,7 +8,6 @@ interface HeroProps {
 }
 
 export function Hero({ onShopClick, onRequestClick }: HeroProps) {
-  const cheapest = Math.min(...windowTypes.map((type) => type.priceChf))
 
   return (
     <section className="hero" id="top">
@@ -18,7 +16,7 @@ export function Hero({ onShopClick, onRequestClick }: HeroProps) {
         <div className="hero__copy">
           <p className="hero__eyebrow">
             <span className="hero__dot" aria-hidden="true" />
-            Aus dem Pfisterhölzli, für das Pfisterhölzli
+            Insektenschutz-Plissee nach Mass
           </p>
 
           <h1 className="hero__title">
@@ -28,27 +26,30 @@ export function Hero({ onShopClick, onRequestClick }: HeroProps) {
           </h1>
 
           <p className="hero__lead">
-            Wir haben die vier Fensterformate im Pfisterhölzli ausgemessen und lassen die Netze in Sammelbestellungen
-            fertigen. Deshalb gibt es sie hier zum festen Preis – ohne Konfigurator, ohne Handwerkerrechnung.
+            Ein Netz, das in Falten in einer schmalen Schiene liegt: einmal montiert, bleibt es das ganze Jahr. Wir
+            fertigen es auf Ihr Mass, kaufen direkt beim Hersteller und bündeln die Bestellungen der Nachbarschaft –
+            deshalb kostet es einen Bruchteil dessen, was ein Fachbetrieb verlangt.
           </p>
 
           <div className="hero__actions">
             <button type="button" className="btn btn--lg" onClick={onShopClick}>
-              Netze und Preise ansehen
+              Sortiment Pfisterhölzli
             </button>
             <button type="button" className="btn btn--ghost btn--lg" onClick={onRequestClick}>
-              Sondermass anfragen
+              Mein Fenster ausmessen lassen
             </button>
           </div>
 
           <ul className="hero__proof">
             <li>
-              <strong>ab {formatChf(cheapest)}</strong>
-              <span>pro Element</span>
+              <strong>
+                CHF {priceRange.minChf}–{priceRange.maxChf}
+              </strong>
+              <span>pro Fenster, Richtwert</span>
             </li>
             <li>
-              <strong>Vier Formate</strong>
-              <span>schon ausgemessen</span>
+              <strong>Nach Mass</strong>
+              <span>oder ab ausgemessenem Sortiment</span>
             </li>
             <li>
               <strong>Ohne Bohren</strong>

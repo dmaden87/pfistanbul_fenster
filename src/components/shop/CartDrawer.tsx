@@ -194,8 +194,7 @@ export function CartDrawer({ cart, open, onClose, onCheckout }: CartDrawerProps)
                 Warenkorb leeren
               </button>
               <p className="drawer__note">
-                Wir produzieren in Sammelbestellungen. Sobald {shopConfig.minimumBatchNets} Netze zusammen sind, geht die
-                Runde in Produktion – wir melden uns mit dem Termin.
+                Wir fertigen auf Bestellung. Den Liefertermin nennen wir Ihnen mit der Bestätigung.
               </p>
             </footer>
           </>

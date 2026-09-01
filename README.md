@@ -90,32 +90,36 @@ Spaltenüberschrift «B × H». Als Breite × Höhe gelesen wäre die Tür 84 cm
 die Bemerkung «Türhöhe» und die Fläche sprechen dafür, dass 206 cm die Höhe
 ist. Im Code steht deshalb 84 cm breit × 206 cm hoch.
 
-## Sammelbestellung statt Lagerware
+## Sammelbestellung ist intern
 
-Produziert wird in Runden. Erst ab `minimumBatchNets` (aktuell 25 Netzen)
-trägt eine Runde ihre Frachtkosten – bei Kleinstmengen macht der Transport
-über die Hälfte der Kosten aus und das Zimmer-Netz hätte praktisch keine Marge
-mehr. Das ist keine Ausrede, sondern der Grund für den tiefen Preis, und die
-Seite sagt es entsprechend offen: im Warenkorb, in der Bestätigung, in der FAQ
-und in den AGB. Eine feste Lieferfrist ab Bestelleingang wird bewusst nirgends
-zugesichert.
+`minimumBatchNets` (25) steht in `shopConfig.ts`, erscheint aber **bewusst
+nirgends auf der Seite**. Die Schwelle ist eine Kalkulationsgrösse: Erst ab dort
+trägt eine Runde ihre Frachtkosten. Bei Einzelanfragen entscheidet der
+Offertprozess, ob sie in eine laufende Runde passen oder einen höheren Preis
+brauchen.
 
-## Der Pollenschutz ist bewusst abgeschaltet
+Was die Seite stattdessen sagt: Wir fertigen auf Bestellung und bündeln die
+Bestellungen zu einer Lieferung – das ist die Preisbegründung – und den
+Liefertermin nennen wir mit der Bestätigung. Eine feste Frist ab Bestelleingang
+wird nirgends zugesichert.
 
-`shopConfig.pollenEnabled` steht auf `false`. Solange das gilt, erscheinen der
-Vorteilstext und die FAQ-Antwort zum Pollenschutz nirgends auf der Seite.
+## Pollenschutz: Option statt Behauptung
 
-Der Grund: Ein normales Insektenschutzgewebe hält keine Pollen zurück – Pollen
-sind rund sechzigmal kleiner als die Masche. Zurückgehalten werden sie nur von
-einem beschichteten Spezialgewebe, an dem sie haften bleiben. Preis und
-Verfügbarkeit dieses Gewebes sind im Kostenkonzept ausdrücklich noch offen.
-Ohne das wäre jede Pollenaussage nach UWG eine unrichtige Angabe, und
-Art. 13a UWG kehrt die Beweislast um: Im Streitfall müsste der Betreiber die
-Richtigkeit beweisen.
+Der Pollenschutz ist auf der Seite – aber als **Gewebe-Option mit Aufpreis auf
+Anfrage**, nicht als Eigenschaft des Standardnetzes.
 
-Sobald das Gewebe feststeht: Schalter auf `true`. Prozentzahlen gehören auch
-dann nicht auf die Seite – die verbreiteten «bis zu 99 %» sind Bestwerte der
-Hersteller bei schwachem Wind, unabhängige Messungen liegen deutlich darunter.
+Der Grund ist Physik, nicht Juristerei: Ein normales Insektenschutzgewebe hält
+keine Pollen zurück. Blütenpollen sind 10–100 Mikrometer, die Masche 1,4 × 1,6
+Millimeter – rund das Sechzigfache. Zurückgehalten werden Pollen nur von einem
+beschichteten Spezialgewebe, an dem sie haften bleiben. Genau so steht es auf
+der Seite; das ist zugleich das überzeugendere Verkaufsargument, weil es
+erklärt statt zu behaupten.
+
+Preis und Verfügbarkeit des Gewebes sind laut Kostenkonzept noch offen –
+deshalb «auf Anfrage» statt eines bestellbaren Artikels. **Prozentzahlen
+gehören nie auf die Seite**: Die verbreiteten «bis zu 99 %» sind Bestwerte der
+Hersteller bei schwachem Wind, unabhängige Messungen liegen bei 51–66 %, und
+Art. 13a UWG kehrt die Beweislast um.
 
 ## Bekanntes Problem: Formularversand noch nicht verifiziert
 
@@ -211,8 +215,9 @@ src/
 │   ├── shop/        Warenkorb-Panel
 │   └── forms/       Bestellung und Sonderanfertigung
 ├── data/
-│   ├── catalog.ts    Fenstertypen, Masse, Preise, Sets  ← hier pflegen
-│   └── shopConfig.ts MwSt, Montage, Sammelmenge, Pollen ← und hier
+│   ├── catalog.ts    Überbauungen mit Fenstertypen und Sets, Gewebe,
+│   │                 Richtpreisspanne                    ← hier pflegen
+│   └── shopConfig.ts MwSt, Montage, Sammelmenge (intern) ← und hier
 ├── lib/             Preislogik, Formatierung, Validierung, Versand
 ├── hooks/useCart.ts Warenkorb, im Browser gespeichert
 └── styles/          Design-Tokens und Grundlagen

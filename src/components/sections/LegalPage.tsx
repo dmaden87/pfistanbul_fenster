@@ -166,10 +166,9 @@ function Agb() {
 
       <h2>4. Lieferfrist</h2>
       <p>
-        Wir fertigen in Sammelbestellungen. Sobald {shopConfig.minimumBatchNets} Netze zusammengekommen sind, geht
-        die Runde in Produktion; den voraussichtlichen Liefertermin nennen wir Ihnen bei der Bestätigung und halten Sie
-        auf dem Laufenden, wenn sich etwas verschiebt. Eine feste Frist ab Bestelleingang können wir deshalb nicht
-        zusichern.
+        Jedes Netz wird auf Bestellung gefertigt. Den voraussichtlichen Liefertermin nennen wir Ihnen mit der
+        Bestätigung und halten Sie auf dem Laufenden, wenn sich etwas verschiebt. Eine feste Frist ab Bestelleingang
+        können wir deshalb nicht zusichern.
       </p>
 
       <h2>5. Rückgabe und Umtausch</h2>

@@ -76,10 +76,7 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
         <span className="confirmation__reference">Referenz {state.reference}</span>
         <ul className="confirmation__next">
           <li>Wir prüfen die Masse und melden uns, falls etwas unklar ist.</li>
-          <li>
-            Sobald {shopConfig.minimumBatchNets} Netze für die nächste Sammelbestellung zusammen sind, geht sie in
-            Produktion. Wir melden uns mit dem Termin.
-          </li>
+          <li>Wir bestätigen Ihnen den Liefertermin und melden uns, falls sich etwas verschiebt.</li>
           <li>
             Passt ein Netz wider Erwarten nicht, tauschen wir es kostenlos. Zusätzlich gilt unser freiwilliges
             Rückgaberecht von {shopConfig.returnDays} Tagen.
@@ -265,8 +262,7 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
                 {state.status === 'sending' ? 'Wird gesendet …' : 'Jetzt verbindlich bestellen'}
               </button>
               <p className="form-actions__hint">
-                Sie erhalten anschliessend eine Bestätigung per E-Mail. Produziert wird in Sammelbestellungen – sobald{' '}
-                {shopConfig.minimumBatchNets} Netze zusammen sind, geht die Runde los und wir nennen Ihnen den Termin.
+                Sie erhalten anschliessend eine Bestätigung per E-Mail, mit dem Liefertermin.
               </p>
             </div>
           </>

@@ -10,7 +10,8 @@ interface HeaderProps {
 
 const NAV = [
   { anchor: 'vorteile', label: 'Warum' },
-  { anchor: 'groessen', label: 'Netze & Preise' },
+  { anchor: 'gewebe', label: 'Gewebe' },
+  { anchor: 'groessen', label: 'Pfisterhölzli' },
   { anchor: 'montage', label: 'Messen & Montage' },
   { anchor: 'anfrage', label: 'Sondermass' },
   { anchor: 'faq', label: 'Fragen' },

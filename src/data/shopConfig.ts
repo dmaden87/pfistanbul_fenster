@@ -11,19 +11,25 @@ export const shopConfig = {
   vatRegistered: false,
 
   /**
-   * Pollenschutz bleibt gesperrt, bis Preis und Verfügbarkeit des Gewebes
-   * geklärt sind (offener Punkt im Kostenkonzept). Ein normales
-   * Insektenschutzgewebe hält keine Pollen zurück – ohne zertifiziertes
-   * Gewebe wäre jede Pollenaussage nach UWG angreifbar.
+   * Pollenschutz wird als Gewebe-Option mit Aufpreis auf Anfrage angeboten,
+   * nicht als bestellbarer Artikel – Preis und Verfügbarkeit des Gewebes sind
+   * laut Kostenkonzept noch offen. Wichtig bleibt: keine Prozentzahl zur
+   * Rückhalterate, solange kein Datenblatt vorliegt. Die verbreiteten
+   * "bis zu 99 %" sind Bestwerte der Hersteller bei schwachem Wind;
+   * unabhängige Messungen liegen deutlich darunter, und Art. 13a UWG kehrt
+   * die Beweislast um.
    */
-  pollenEnabled: false,
+  pollenEnabled: true,
 
   /** Montage durch uns, Preis pro Fenster in CHF. Gilt auch in Sets. */
   montageChf: 15,
 
   /**
-   * Produziert wird in Sammelbestellungen. Erst ab dieser Anzahl Netze
-   * trägt eine Runde ihre Frachtkosten – darunter wird nicht ausgelöst.
+   * INTERN, bewusst nicht auf der Seite: Erst ab dieser Anzahl Netze trägt
+   * eine Runde ihre Frachtkosten. Für Einzelanfragen wird im Offertprozess
+   * entschieden, ob sie in eine laufende Runde passen oder einen höheren
+   * Preis brauchen. Gegenüber der Kundschaft nennen wir keine Stückzahl,
+   * sondern den Liefertermin mit der Bestätigung.
    */
   minimumBatchNets: 25,
 

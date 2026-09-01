@@ -1,0 +1,119 @@
+.mesh-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+
+.mesh-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition:
+    border-color var(--motion-base),
+    transform var(--motion-base),
+    box-shadow var(--motion-base);
+}
+
+.mesh-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.mesh-card__swatch {
+  height: 6rem;
+  padding: var(--space-4);
+  background: var(--bg-alt);
+  border-bottom: 1px solid var(--border);
+}
+
+.mesh-card__swatch span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background-color: color-mix(in srgb, var(--surface) 60%, transparent);
+}
+
+.mesh-card--standard .mesh-card__swatch span {
+  background-image:
+    repeating-linear-gradient(0deg, var(--mesh-line) 0 1px, transparent 1px 6px),
+    repeating-linear-gradient(90deg, var(--mesh-line) 0 1px, transparent 1px 6px);
+}
+
+.mesh-card--pollen .mesh-card__swatch span {
+  background-image:
+    repeating-linear-gradient(0deg, var(--mesh-line) 0 1px, transparent 1px 2.5px),
+    repeating-linear-gradient(90deg, var(--mesh-line) 0 1px, transparent 1px 6px);
+}
+
+.mesh-card__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-6);
+}
+
+.mesh-card__body header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.mesh-card__body h3 {
+  font-size: var(--step-1);
+}
+
+.mesh-card__body > p {
+  color: var(--text-muted);
+  font-size: var(--step--1);
+}
+
+.mesh-card dl {
+  margin: auto 0 0;
+  padding-top: var(--space-4);
+  border-top: 1px dashed var(--border-strong);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.mesh-card dt {
+  color: var(--text-subtle);
+  font-size: var(--step--2);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mesh-card dd {
+  margin: 0.15rem 0 0;
+  font-size: var(--step--1);
+  color: var(--text-muted);
+}
+
+.meshes__note {
+  max-width: 70ch;
+  margin-top: var(--space-6);
+  padding: var(--space-5);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  font-size: var(--step--1);
+}
+
+.meshes__note strong {
+  color: var(--text);
+}
+
+@media (max-width: 55rem) {
+  .mesh-grid {
+    grid-template-columns: 1fr;
+  }
+}

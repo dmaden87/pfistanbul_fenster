@@ -23,8 +23,8 @@ const BENEFITS: Benefit[] = [
   {
     id: 'pollen',
     headline: 'Ruhigere Nächte in der Pollensaison',
-    body: 'Ein normales Insektengitter hält Pollen nicht auf – dafür sind sie zu klein. Unser beschichtetes Pollenschutzgewebe schon: Die Pollen bleiben daran haften statt ins Zimmer zu ziehen. Ein vollständiger Schutz ist es nicht und eine Behandlung ersetzt es nicht, aber die Nacht bei offenem Fenster wird spürbar erträglicher.',
-    meta: 'Optional',
+    body: 'Ein normales Insektengitter hält Pollen nicht auf – dafür sind sie zu klein. Wer im Frühling schlecht schläft, bekommt das Netz deshalb mit beschichtetem Pollenschutzgewebe: Daran bleiben die Pollen haften, statt ins Zimmer zu ziehen. Kein vollständiger Schutz und kein Ersatz für eine Behandlung, aber die Nacht bei offenem Fenster wird spürbar erträglicher. Aufpreis auf Anfrage.',
+    meta: 'Gewebe-Option',
   },
   {
     id: 'preis',

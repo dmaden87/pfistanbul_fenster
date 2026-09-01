@@ -1,4 +1,4 @@
-import type { NetSet, WindowType } from '../types'
+import type { MeshOption, NetSet, Ueberbauung, WindowType } from '../types'
 
 /**
  * Fenstertypen, Masse und Preise stammen aus dem Detailkonzept
@@ -12,7 +12,7 @@ import type { NetSet, WindowType } from '../types'
  * dass 206 cm die Höhe ist. Hier steht deshalb 84 cm breit × 206 cm hoch.
  * Bitte gegenprüfen.
  */
-export const windowTypes: WindowType[] = [
+const pfisterhoelzliTypes: WindowType[] = [
   {
     id: 'bad',
     label: 'Bad',
@@ -57,7 +57,7 @@ export const windowTypes: WindowType[] = [
  * Set-Preise sind feste Zielpreise. Der ausgewiesene Rabatt ergibt sich aus
  * der Differenz zur Summe der Einzelpreise und wird nicht separat gepflegt.
  */
-export const netSets: NetSet[] = [
+const pfisterhoelzliSets: NetSet[] = [
   {
     id: 'set-mittel',
     label: 'Set Mittel',
@@ -84,8 +84,77 @@ export const netSets: NetSet[] = [
   },
 ]
 
-const typeIndex = new Map(windowTypes.map((type) => [type.id, type]))
-const setIndex = new Map(netSets.map((set) => [set.id, set]))
+/**
+ * Heute gibt es eine ausgemessene Überbauung. Kommt eine zweite dazu, ist das
+ * ein weiterer Eintrag in dieser Liste – die Seite rechnet automatisch damit.
+ */
+export const ueberbauungen: Ueberbauung[] = [
+  {
+    id: 'pfisterhoelzli',
+    name: 'Am Pfisterhölzli',
+    place: 'Greifensee ZH',
+    intro:
+      'Die Siedlung wurde Anfang der Siebzigerjahre als Ganzes gebaut. Entsprechend wiederholen sich vier Fensterformate über alle Wohnungen – wir haben sie ausgemessen.',
+    windowTypes: pfisterhoelzliTypes,
+    sets: pfisterhoelzliSets,
+  },
+]
+
+/** Die Überbauung, deren Sortiment die Seite gerade zeigt. */
+export const activeUeberbauung = ueberbauungen[0]
+
+export const windowTypes = activeUeberbauung.windowTypes
+export const netSets = activeUeberbauung.sets
+
+/**
+ * Produktebene: Das Gewebe gehört zum Produkt, nicht zur Überbauung.
+ *
+ * ACHTUNG: Pollenschutz steht bewusst auf "anfrage". Preis und Verfügbarkeit
+ * des Gewebes sind laut Kostenkonzept noch offen – wir bieten es deshalb als
+ * Option an, nicht als bestellbaren Artikel, und nennen keine Rückhalterate.
+ */
+export const meshOptions: MeshOption[] = [
+  {
+    id: 'standard',
+    name: 'Standardgewebe',
+    short: 'Standard',
+    availability: 'standard',
+    description:
+      'Fiberglasgewebe, grau beschichtet. Viel Luft, viel Licht, sehr langlebig – und von aussen kaum zu sehen. In jedem Preis inbegriffen.',
+    stops: 'Stechmücken, Fliegen, Wespen, Hornissen, Motten',
+    tradeoff: 'Ganz kleine Insekten wie Gnitzen kommen durch, und katzensicher ist es nicht.',
+  },
+  {
+    id: 'pollen',
+    name: 'Pollenschutzgewebe',
+    short: 'Pollenschutz',
+    availability: 'anfrage',
+    description:
+      'Pollen sind zu klein für jede Masche – rund sechzigmal kleiner als die Öffnungen im Standardgewebe. Zurückgehalten werden sie von einer Spezialbeschichtung, an der sie haften bleiben. Wer im Frühling schlecht schläft, merkt den Unterschied zuerst im Schlafzimmer.',
+    stops: 'Insekten und einen erheblichen Teil des Blütenstaubs',
+    tradeoff:
+      'Deutlich weniger Luft und Durchsicht, und die Beschichtung lässt über die Jahre nach. Ein vollständiger Schutz ist es nicht, und eine Behandlung ersetzt es nicht.',
+  },
+]
+
+/**
+ * Richtpreis für Fenster ausserhalb einer ausgemessenen Überbauung.
+ * Bewusst als Spanne mit Gültigkeitsbereich – bei deutlich grösseren Flächen
+ * trägt sie nicht mehr.
+ */
+export const priceRange = {
+  minChf: 100,
+  maxChf: 200,
+  maxAreaM2: 2,
+} as const
+
+const typeIndex = new Map(ueberbauungen.flatMap((u) => u.windowTypes).map((type) => [type.id, type]))
+const setIndex = new Map(ueberbauungen.flatMap((u) => u.sets).map((set) => [set.id, set]))
+const meshIndex = new Map(meshOptions.map((mesh) => [mesh.id, mesh]))
+
+export function meshById(id: string): MeshOption | undefined {
+  return meshIndex.get(id)
+}
 
 export function typeById(id: string): WindowType | undefined {
   return typeIndex.get(id)

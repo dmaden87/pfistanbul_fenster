@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { UseCart } from '../../hooks/useCart'
-import { netSets, netsInSet, regularPriceOfSet, typeById, windowTypes } from '../../data/catalog'
+import { activeUeberbauung, netSets, netsInSet, regularPriceOfSet, typeById, windowTypes } from '../../data/catalog'
 import { priceNote, shopConfig } from '../../data/shopConfig'
 import { formatChf, formatSize } from '../../lib/format'
 import './Shop.css'
@@ -23,11 +23,11 @@ export function Shop({ cart, onOpenCart, onRequestClick }: ShopProps) {
     <section className="section shop" id="groessen">
       <div className="shell">
         <div className="section__intro">
-          <span className="section__eyebrow">Sortiment und Preise</span>
-          <h2>Vier Fenstertypen. Mehr gibt es bei uns nicht – und mehr braucht es nicht.</h2>
+          <span className="section__eyebrow">Ausgemessenes Sortiment</span>
+          <h2>{activeUeberbauung.name}, {activeUeberbauung.place}</h2>
           <p className="section__lead">
-            Wir haben die Fenster in der Überbauung ausgemessen. Es sind vier Formate, die sich über alle Wohnungen
-            wiederholen. Für jedes gibt es einen festen Preis, kein Konfigurator dazwischen.
+            {activeUeberbauung.intro} Für jedes Format gibt es einen festen Preis – kein Konfigurator, keine Wartezeit
+            auf eine Offerte.
           </p>
         </div>
 
@@ -134,7 +134,7 @@ export function Shop({ cart, onOpenCart, onRequestClick }: ShopProps) {
             <h3>Ein Fenster, das nicht dazugehört?</h3>
             <p>
               Ein Estrich- oder Kellerfenster, eine verglaste Loggia oder ein Umbau, der vom Raster abweicht: Sagen Sie
-              uns Anzahl und Masse, wir rechnen es in der nächsten Sammelbestellung mit und schicken Ihnen eine Offerte.
+              uns Anzahl und Masse, wir fertigen es zu und schicken Ihnen vorher eine feste Offerte.
             </p>
           </div>
           <button type="button" className="btn" onClick={onRequestClick}>

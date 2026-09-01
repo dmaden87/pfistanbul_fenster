@@ -24,7 +24,7 @@ const PROMISES = [
   },
   {
     title: 'Offene Karten beim Termin',
-    text: 'Wir produzieren in Sammelbestellungen. Bei der Bestätigung sagen wir Ihnen, wie viele Netze noch fehlen und wann die Runde voraussichtlich losgeht – und melden uns, wenn sich etwas verschiebt.',
+    text: 'Mit der Bestätigung nennen wir Ihnen den Liefertermin – und melden uns von selbst, wenn sich etwas verschiebt. Lieber eine ehrliche Woche mehr als eine Frist, die wir nicht halten.',
   },
 ]
 

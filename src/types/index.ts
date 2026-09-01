@@ -1,4 +1,30 @@
-/** Einer der vier realen Fenstertypen der Überbauung. */
+/** Eine Überbauung, deren Fenster wir ausgemessen haben. */
+export interface Ueberbauung {
+  id: string
+  /** Name der Siedlung, z. B. "Am Pfisterhölzli". */
+  name: string
+  /** Ort, z. B. "Greifensee ZH". */
+  place: string
+  /** Ein Satz zur Siedlung, erscheint über dem Sortiment. */
+  intro: string
+  windowTypes: WindowType[]
+  sets: NetSet[]
+}
+
+/** Ein Gewebe. Nicht jedes ist direkt bestellbar. */
+export interface MeshOption {
+  id: string
+  name: string
+  short: string
+  /** "standard" ist im Preis inbegriffen, "anfrage" gibt es gegen Aufpreis. */
+  availability: 'standard' | 'anfrage'
+  description: string
+  stops: string
+  /** Der Nachteil, den man ehrlicherweise dazusagt. */
+  tradeoff: string
+}
+
+/** Einer der ausgemessenen Fenstertypen einer Überbauung. */
 export interface WindowType {
   id: string
   label: string
