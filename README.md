@@ -141,10 +141,23 @@ VITE_ORDER_ENDPOINT   = https://api.web3forms.com/submit
 VITE_ORDER_ACCESS_KEY = <Access Key aus dem Web3Forms-Konto>
 ```
 
-Fehlen sie, bricht der Bestellabschluss mit einer sichtbaren Fehlermeldung ab
-und der Warenkorb bleibt erhalten – bewusst so: Eine live geschaltete Seite
-darf keine Bestellung bestätigen, die niemand erhält. Nur der ausdrückliche
-Wert `VITE_ORDER_ENDPOINT=demo` simuliert den Versand.
+**Beide als Typ «Config» anlegen, nicht als sensitive Variable.** Vercel legt
+neue Variablen standardmässig als sensitive an – verschlüsselt und nur zur
+Laufzeit auf dem Server lesbar. Eine `VITE_`-Variable muss aber zur Build-Zeit
+gelesen werden und landet per Definition im Browser-Bundle; Vercel weist sie
+deshalb mit dem Hinweis «Remove the public framework prefix to keep this value
+private» ab. Über die CLI ist das Äquivalent `--no-sensitive`.
+
+Das ist hier unbedenklich: Der Endpunkt ist eine öffentliche API-URL, und der
+Web3Forms-Key ist ein *Public Access Key*, der genau dafür gebaut ist, im
+Browser zu stehen. Er erlaubt nur, eine Nachricht an das bei Web3Forms
+hinterlegte Postfach zu senden, und gibt keinen Zugriff aufs Konto. Die
+Mailadresse selbst steht nicht im Bundle.
+
+Fehlen die Variablen, bricht der Bestellabschluss mit einer sichtbaren
+Fehlermeldung ab und der Warenkorb bleibt erhalten – bewusst so: Eine live
+geschaltete Seite darf keine Bestellung bestätigen, die niemand erhält. Nur der
+ausdrückliche Wert `VITE_ORDER_ENDPOINT=demo` simuliert den Versand.
 
 Vite liest `VITE_`-Variablen zur **Build-Zeit**. Nach dem Nachtragen also ein
 Redeploy auslösen, sonst steckt im Bundle noch der alte Stand.
