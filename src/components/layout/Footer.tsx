@@ -11,7 +11,7 @@ export function Footer({ onOpenLegal }: FooterProps) {
         <div className="site-footer__brand">
           <p className="site-footer__name">Pfistanbul Fenster</p>
           <p className="site-footer__claim">
-            Insektenschutz aus der Nachbarschaft – gebaut für die Fenster im Pfisterhölzli, Volketswil.
+            Insektenschutz aus der Nachbarschaft – gebaut für die Fenster im Pfisterhölzli in Greifensee.
           </p>
         </div>
 

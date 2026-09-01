@@ -22,7 +22,7 @@ const BENEFITS: Benefit[] = [
   {
     id: 'pollen',
     headline: 'Ruhigere Nächte in der Pollensaison',
-    body: 'Mit dem feinen Pollenschutzgewebe kommt spürbar weniger Blütenstaub durchs offene Fenster. Wer im Frühling schlecht schläft, merkt den Unterschied zuerst im Schlafzimmer.',
+    body: 'Ein normales Insektengitter hält Pollen nicht auf – dafür sind sie zu klein. Unser beschichtetes Pollenschutzgewebe schon: Die Pollen bleiben daran haften statt ins Zimmer zu ziehen. Ein vollständiger Schutz ist es nicht und eine Behandlung ersetzt es nicht, aber die Nacht bei offenem Fenster wird spürbar erträglicher.',
     meta: 'Optional',
   },
   {
@@ -38,7 +38,7 @@ const BENEFITS: Benefit[] = [
   {
     id: 'kleintiere',
     headline: 'Nicht nur Mücken bleiben draussen',
-    body: 'Wespen an der Fruchtschale, Spinnen im Schlafzimmer, Motten in der Küche – das Gewebe hält alles zurück, was sonst durchs Fenster hereinkommt. Auch der Ahornsamen im Herbst.',
+    body: 'Wespen an der Fruchtschale, Spinnen im Schlafzimmer, Motten in der Küche: Das Standardgewebe hält alles ab, was grösser als rund 1,4 Millimeter ist. Für die ganz kleinen Plagegeister – Gnitzen, Trauermücken, Gewittertierchen – braucht es das feinmaschige Gewebe; sagen Sie uns einfach Bescheid.',
   },
 ]
 

@@ -8,6 +8,7 @@ import { TrustBar } from './components/sections/TrustBar'
 import { Benefits } from './components/sections/Benefits'
 import { Categories } from './components/sections/Categories'
 import { SizeShop } from './components/sections/SizeShop'
+import { MeshTable } from './components/sections/MeshTable'
 import { HowItWorks } from './components/sections/HowItWorks'
 import { Measuring } from './components/sections/Measuring'
 import { CustomRequest } from './components/sections/CustomRequest'
@@ -58,6 +59,7 @@ export default function App() {
             <Benefits />
             <Categories onPickSize={() => goToAnchor('groessen')} />
             <SizeShop cart={cart} onOpenCart={() => setCartOpen(true)} onRequestClick={() => goToAnchor('anfrage')} />
+            <MeshTable />
             <HowItWorks />
             <Measuring />
             <CustomRequest />

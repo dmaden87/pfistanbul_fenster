@@ -13,7 +13,7 @@ const FAQ: FaqItem[] = [
   },
   {
     q: 'Woher kennen Sie die Masse meiner Fenster?',
-    a: 'Weil wir selber hier wohnen. Die Siedlung wurde als Ganzes gebaut, entsprechend wiederholen sich dieselben Fenstertypen über die Häuser hinweg. Trotzdem gilt: Wenn ein Mass wider Erwarten nicht passt, tauschen wir kostenlos.',
+    a: 'Weil wir selber hier wohnen. Die Siedlung wurde Anfang der Siebzigerjahre als Ganzes gebaut, entsprechend wiederholen sich dieselben Fenstertypen über die Häuser hinweg. Weil seither etappenweise saniert wurde, kann es einzelne Abweichungen geben – deshalb gilt: Wenn ein Mass wider Erwarten nicht passt, tauschen wir kostenlos.',
   },
   {
     q: 'Was genau ist der Unterschied zwischen Plissee und Spannrahmen?',
@@ -21,7 +21,7 @@ const FAQ: FaqItem[] = [
   },
   {
     q: 'Hilft das wirklich gegen Pollen?',
-    a: 'Das kommt aufs Gewebe an. Ein normales Insektengitter hält Pollen kaum zurück – die Maschen sind dafür zu grob. Unser Pollenschutzgewebe ist deutlich feiner und hält einen erheblichen Teil des Blütenstaubs ab. Ein Ersatz für Medikamente ist es nicht, aber die Nacht bei offenem Fenster wird spürbar erträglicher.',
+    a: 'Das kommt aufs Gewebe an. Ein normales Insektengitter hält Pollen praktisch nicht zurück – Blütenpollen sind so klein, dass sie durch jede Insektenschutzmasche passen. Beim Pollenschutzgewebe wirkt nicht die Masche, sondern eine Beschichtung, an der die Pollen hängen bleiben. Das reduziert den Pollenflug ins Zimmer spürbar, aber es ist kein vollständiger Schutz und ersetzt keine medizinische Behandlung. Zwei Dinge gehören zur Ehrlichkeit dazu: Das Gewebe lässt weniger Luft und Licht durch, und die Beschichtung lässt über die Jahre nach.',
   },
   {
     q: 'Wie schnell habe ich das Netz?',

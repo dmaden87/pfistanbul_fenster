@@ -16,7 +16,7 @@ interface OrderFormProps {
 }
 
 export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
-  const [customer, setCustomer] = useState<CustomerDetails>({ ...emptyCustomer, zip: '8604', city: 'Volketswil' })
+  const [customer, setCustomer] = useState<CustomerDetails>({ ...emptyCustomer, zip: '8606', city: 'Greifensee' })
   const [errors, setErrors] = useState<Errors<CustomerDetails>>({})
   const [state, setState] = useState<SubmissionState>({ status: 'idle' })
 
