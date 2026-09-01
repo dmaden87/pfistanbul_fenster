@@ -212,3 +212,189 @@
     width: 100%;
   }
 }
+
+/* --- Vorauswahl nach Wohnungstyp ---------------------------------------------- */
+
+.apartment-picker {
+  margin-bottom: var(--space-6);
+  padding: var(--space-5) var(--space-6);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.apartment-picker__label {
+  margin-bottom: var(--space-4);
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.apartment-picker__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.apartment-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--motion-fast),
+    background-color var(--motion-fast),
+    transform var(--motion-fast);
+}
+
+.apartment-chip:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.apartment-chip--active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.apartment-chip__label {
+  font-size: var(--step--1);
+  font-weight: 600;
+}
+
+.apartment-chip__hint {
+  color: var(--text-subtle);
+  font-size: var(--step--2);
+}
+
+.apartment-chip--active .apartment-chip__hint {
+  color: color-mix(in srgb, var(--accent-contrast) 75%, transparent);
+}
+
+.apartment-chip--other {
+  border-style: dashed;
+}
+
+/* --- Paketvorschlag ------------------------------------------------------------ */
+
+.size-package {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(15rem, 1fr);
+  gap: var(--space-6);
+  margin-bottom: var(--space-5);
+  padding: var(--space-6);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-lg);
+  background: var(--accent-soft);
+  animation: package-in var(--motion-base) ease-out;
+}
+
+@keyframes package-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.size-package h3 {
+  font-size: var(--step-1);
+  color: var(--accent-ink);
+}
+
+.size-package__body > p {
+  margin-top: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--step--1);
+}
+
+.size-package ul {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-4) 0 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.size-package li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  max-width: 30rem;
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-ink) 15%, transparent);
+  font-size: var(--step--1);
+}
+
+.size-package__measure {
+  color: var(--text-subtle);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.size-package__hint {
+  margin-top: var(--space-4);
+  color: var(--text-muted);
+  font-size: var(--step--2);
+  max-width: 52ch;
+}
+
+.size-package__side {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.size-package__total-label {
+  color: var(--text-subtle);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.size-package__total {
+  margin-top: var(--space-1);
+  font-family: var(--font-display);
+  font-size: var(--step-3);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em;
+}
+
+.size-package__note {
+  margin: var(--space-2) 0 var(--space-4);
+  color: var(--text-subtle);
+  font-size: var(--step--2);
+}
+
+.size-row--recommended {
+  position: relative;
+}
+
+.size-row--recommended::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--space-4) * -1);
+  top: var(--space-4);
+  bottom: var(--space-4);
+  width: 3px;
+  border-radius: 3px;
+  background: var(--accent);
+}
+
+@media (max-width: 60rem) {
+  .size-package {
+    grid-template-columns: 1fr;
+  }
+}

@@ -151,3 +151,86 @@ export function sizeById(id: string): StandardSize | undefined {
 }
 
 export const allSizeIds = standardSizes.map((size) => size.id)
+
+/**
+ * ACHTUNG – VOM BETREIBER ZU ERHEBEN:
+ * Die Zuordnung Wohnungstyp -> Fenster ist der stärkste Teil des Angebots
+ * ("wir kennen Ihre Fenster") und gleichzeitig der einzige Teil, der real
+ * nachgemessen werden MUSS. Die Wohnungstypen selbst sind belegt (Vermieter-
+ * liste der Gemeinde Greifensee: 2 bis 5.5 Zimmer plus Attika), die Anzahl
+ * und Zuordnung der Fenster ist eine Annahme.
+ */
+export interface ApartmentType {
+  id: string
+  label: string
+  hint: string
+  windows: { sizeId: string; count: number }[]
+}
+
+export const apartmentTypes: ApartmentType[] = [
+  {
+    id: '2-zimmer',
+    label: '2 Zimmer',
+    hint: 'ca. 55 m²',
+    windows: [
+      { sizeId: 'wohnzimmer', count: 1 },
+      { sizeId: 'schlafzimmer', count: 1 },
+      { sizeId: 'kueche', count: 1 },
+      { sizeId: 'bad', count: 1 },
+      { sizeId: 'balkontuer', count: 1 },
+    ],
+  },
+  {
+    id: '3-zimmer',
+    label: '3 Zimmer',
+    hint: 'ca. 70 m²',
+    windows: [
+      { sizeId: 'wohnzimmer', count: 1 },
+      { sizeId: 'schlafzimmer', count: 2 },
+      { sizeId: 'kueche', count: 1 },
+      { sizeId: 'bad', count: 1 },
+      { sizeId: 'balkontuer', count: 1 },
+    ],
+  },
+  {
+    id: '4-zimmer',
+    label: '4 bis 4.5 Zimmer',
+    hint: 'ca. 90 m²',
+    windows: [
+      { sizeId: 'wohnzimmer-gross', count: 1 },
+      { sizeId: 'schlafzimmer', count: 3 },
+      { sizeId: 'kueche', count: 1 },
+      { sizeId: 'bad', count: 1 },
+      { sizeId: 'balkontuer', count: 1 },
+    ],
+  },
+  {
+    id: '5-zimmer',
+    label: '5 bis 5.5 Zimmer',
+    hint: 'ca. 110 m²',
+    windows: [
+      { sizeId: 'wohnzimmer-gross', count: 1 },
+      { sizeId: 'wohnzimmer', count: 1 },
+      { sizeId: 'schlafzimmer', count: 3 },
+      { sizeId: 'kueche', count: 1 },
+      { sizeId: 'bad', count: 1 },
+      { sizeId: 'balkontuer-breit', count: 1 },
+    ],
+  },
+  {
+    id: 'attika',
+    label: 'Attikawohnung',
+    hint: 'mit Dachterrasse',
+    windows: [
+      { sizeId: 'wohnzimmer-gross', count: 2 },
+      { sizeId: 'schlafzimmer', count: 2 },
+      { sizeId: 'kueche', count: 1 },
+      { sizeId: 'bad', count: 1 },
+      { sizeId: 'balkontuer-breit', count: 1 },
+    ],
+  },
+]
+
+export function apartmentById(id: string): ApartmentType | undefined {
+  return apartmentTypes.find((type) => type.id === id)
+}

@@ -6,11 +6,13 @@ import { OrderForm } from './components/forms/OrderForm'
 import { Hero } from './components/sections/Hero'
 import { TrustBar } from './components/sections/TrustBar'
 import { Benefits } from './components/sections/Benefits'
+import { TwoPaths } from './components/sections/TwoPaths'
 import { Categories } from './components/sections/Categories'
 import { SizeShop } from './components/sections/SizeShop'
 import { MeshTable } from './components/sections/MeshTable'
 import { HowItWorks } from './components/sections/HowItWorks'
 import { Measuring } from './components/sections/Measuring'
+import { Promises } from './components/sections/Promises'
 import { CustomRequest } from './components/sections/CustomRequest'
 import { Faq } from './components/sections/Faq'
 import { ClosingCta } from './components/sections/ClosingCta'
@@ -57,11 +59,13 @@ export default function App() {
             <Hero onShopClick={() => goToAnchor('groessen')} onRequestClick={() => goToAnchor('anfrage')} />
             <TrustBar />
             <Benefits />
+            <TwoPaths onStandardClick={() => goToAnchor('groessen')} onCustomClick={() => goToAnchor('anfrage')} />
             <Categories onPickSize={() => goToAnchor('groessen')} />
             <SizeShop cart={cart} onOpenCart={() => setCartOpen(true)} onRequestClick={() => goToAnchor('anfrage')} />
             <MeshTable />
             <HowItWorks />
             <Measuring />
+            <Promises />
             <CustomRequest />
             <Faq />
             <ClosingCta onShopClick={() => goToAnchor('groessen')} onRequestClick={() => goToAnchor('anfrage')} />

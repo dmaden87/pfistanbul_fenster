@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { UseCart } from '../../hooks/useCart'
-import { categories, standardSizes } from '../../data/catalog'
+import { apartmentById, apartmentTypes, categories, sizeById, standardSizes } from '../../data/catalog'
 import { unitPrice } from '../../lib/pricing'
-import { formatChf, formatSize } from '../../lib/format'
+import { formatChf, formatSize, roundToRappen } from '../../lib/format'
 import './SizeShop.css'
 
 interface SizeShopProps {
@@ -13,14 +13,41 @@ interface SizeShopProps {
 
 export function SizeShop({ cart, onOpenCart, onRequestClick }: SizeShopProps) {
   const [activeCategory, setActiveCategory] = useState(categories[0]?.id ?? '')
+  const [apartment, setApartment] = useState<string | null>(null)
   const [justAdded, setJustAdded] = useState<string | null>(null)
 
   const category = categories.find((item) => item.id === activeCategory) ?? categories[0]
+  const selectedApartment = apartment ? apartmentById(apartment) : undefined
+
+  const recommendedIds = useMemo(
+    () => new Set(selectedApartment?.windows.map((window) => window.sizeId) ?? []),
+    [selectedApartment],
+  )
+
+  const packageTotal = useMemo(() => {
+    if (!selectedApartment) return 0
+    return roundToRappen(
+      selectedApartment.windows.reduce(
+        (sum, window) => sum + unitPrice(activeCategory, window.sizeId) * window.count,
+        0,
+      ),
+    )
+  }, [selectedApartment, activeCategory])
+
+  const packageCount = selectedApartment?.windows.reduce((sum, window) => sum + window.count, 0) ?? 0
 
   const handleAdd = (sizeId: string) => {
     cart.add(activeCategory, sizeId)
     setJustAdded(sizeId)
     window.setTimeout(() => setJustAdded((current) => (current === sizeId ? null : current)), 1600)
+  }
+
+  const handleAddPackage = () => {
+    if (!selectedApartment) return
+    for (const item of selectedApartment.windows) {
+      cart.add(activeCategory, item.sizeId, item.count)
+    }
+    onOpenCart()
   }
 
   return (
@@ -30,9 +57,33 @@ export function SizeShop({ cart, onOpenCart, onRequestClick }: SizeShopProps) {
           <span className="section__eyebrow">Direkt bestellbar</span>
           <h2>Die Grössen aus unserer Siedlung – schon ausgemessen.</h2>
           <p className="section__lead">
-            Diese Masse decken die allermeisten Fenster im Pfisterhölzli ab. Bauart wählen, Grösse anklicken, fertig.
-            Kein Konfigurator, keine Wartezeit auf eine Offerte.
+            Sagen Sie uns, welche Wohnung Sie haben. Wir zeigen Ihnen, welche Netze dazugehören, und legen sie auf
+            Wunsch komplett in den Warenkorb. Kein Konfigurator, kein Massband.
           </p>
+        </div>
+
+        <div className="apartment-picker">
+          <p className="apartment-picker__label" id="apartment-label">
+            Welche Wohnung haben Sie?
+          </p>
+          <div className="apartment-picker__options" role="group" aria-labelledby="apartment-label">
+            {apartmentTypes.map((type) => (
+              <button
+                key={type.id}
+                type="button"
+                className={`apartment-chip${apartment === type.id ? ' apartment-chip--active' : ''}`}
+                aria-pressed={apartment === type.id}
+                onClick={() => setApartment((current) => (current === type.id ? null : type.id))}
+              >
+                <span className="apartment-chip__label">{type.label}</span>
+                <span className="apartment-chip__hint">{type.hint}</span>
+              </button>
+            ))}
+            <button type="button" className="apartment-chip apartment-chip--other" onClick={onRequestClick}>
+              <span className="apartment-chip__label">Etwas anderes</span>
+              <span className="apartment-chip__hint">Offerte anfordern</span>
+            </button>
+          </div>
         </div>
 
         <div className="size-shop__tabs" role="tablist" aria-label="Bauart wählen">
@@ -53,6 +104,47 @@ export function SizeShop({ cart, onOpenCart, onRequestClick }: SizeShopProps) {
           ))}
         </div>
 
+        {selectedApartment && (
+          <div className="size-package">
+            <div className="size-package__body">
+              <h3>
+                {selectedApartment.label} · {category?.shortName}
+              </h3>
+              <p>
+                Nach unserer Erfahrung sind das {packageCount} Fenster. Sie können das Paket komplett nehmen oder unten
+                einzeln zusammenstellen.
+              </p>
+              <ul>
+                {selectedApartment.windows.map((window) => {
+                  const size = sizeById(window.sizeId)
+                  if (!size) return null
+                  return (
+                    <li key={window.sizeId}>
+                      <span>
+                        {window.count}× {size.label}
+                      </span>
+                      <span className="size-package__measure">{formatSize(size.widthCm, size.heightCm)}</span>
+                    </li>
+                  )
+                })}
+              </ul>
+              <p className="size-package__hint">
+                Bitte vor dem Bestellen einmal nachmessen – seit dem Bau wurde etappenweise saniert, deshalb kann es
+                Abweichungen geben. Passt etwas nicht, tauschen wir kostenlos.
+              </p>
+            </div>
+
+            <div className="size-package__side">
+              <p className="size-package__total-label">Komplettpreis</p>
+              <p className="size-package__total">{formatChf(packageTotal)}</p>
+              <p className="size-package__note">Rabatt und Lieferung rechnet der Warenkorb dazu.</p>
+              <button type="button" className="btn btn--block btn--lg" onClick={handleAddPackage}>
+                Alle {packageCount} in den Warenkorb
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="size-shop__panel" id="size-panel" role="tabpanel" aria-labelledby={`tab-${activeCategory}`}>
           <p className="size-shop__panel-note">
             <strong>{category?.shortName}</strong> · {category?.mesh} · {category?.bestFor}
@@ -62,12 +154,14 @@ export function SizeShop({ cart, onOpenCart, onRequestClick }: SizeShopProps) {
             {standardSizes.map((size) => {
               const price = unitPrice(activeCategory, size.id)
               const added = justAdded === size.id
+              const recommended = recommendedIds.has(size.id)
               return (
-                <li className="size-row" key={size.id}>
+                <li className={`size-row${recommended ? ' size-row--recommended' : ''}`} key={size.id}>
                   <div className="size-row__label">
                     <p className="size-row__name">
                       {size.label}
-                      {size.note && <span className="pill pill--neutral">{size.note}</span>}
+                      {recommended && <span className="pill">In Ihrer Wohnung</span>}
+                      {!recommended && size.note && <span className="pill pill--neutral">{size.note}</span>}
                     </p>
                     <p className="size-row__room">{size.room}</p>
                   </div>

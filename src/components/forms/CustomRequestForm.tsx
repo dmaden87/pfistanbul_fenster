@@ -78,8 +78,7 @@ export function CustomRequestForm() {
         </div>
         <h3>Ihre Anfrage ist bei uns.</h3>
         <p className="section__lead">
-          Wir rechnen Ihre Masse durch und melden uns mit einer verbindlichen Offerte – in der Regel innerhalb von zwei
-          Werktagen.
+          Wir rechnen Ihre Masse durch und melden uns mit einer verbindlichen Offerte – an Werktagen innert 24 Stunden.
         </p>
         <span className="confirmation__reference">Referenz {state.reference}</span>
         <ul className="confirmation__next">
@@ -237,10 +236,11 @@ export function CustomRequestForm() {
 
       <div className="form-actions">
         <button type="submit" className="btn btn--lg" disabled={state.status === 'sending'}>
-          {state.status === 'sending' ? 'Wird gesendet …' : 'Offerte anfordern'}
+          {state.status === 'sending' ? 'Wird gesendet …' : 'Meine Offerte anfordern'}
         </button>
         <p className="form-actions__hint">
-          Keine Vorauszahlung, keine Verpflichtung. Sie entscheiden erst, wenn der Preis auf dem Tisch liegt.
+          Unverbindlich, keine Anzahlung. Antwort innert 24 Stunden an Werktagen – Sie entscheiden erst, wenn der
+          Preis auf dem Tisch liegt.
         </p>
       </div>
     </form>

@@ -15,7 +15,7 @@ export function ContactFields({ customer, errors, withAddress, notesLabel, notes
     <div className="form-grid">
       <div className="field form-grid__wide">
         <label className="field__label" htmlFor="cf-name">
-          Name *
+          Name
         </label>
         <input
           id="cf-name"
@@ -36,7 +36,7 @@ export function ContactFields({ customer, errors, withAddress, notesLabel, notes
 
       <div className="field">
         <label className="field__label" htmlFor="cf-email">
-          E-Mail *
+          E-Mail
         </label>
         <input
           id="cf-email"
@@ -57,7 +57,7 @@ export function ContactFields({ customer, errors, withAddress, notesLabel, notes
 
       <div className="field">
         <label className="field__label" htmlFor="cf-phone">
-          Telefon
+          Telefon <span className="field__optional">optional</span>
         </label>
         <input
           id="cf-phone"
@@ -75,7 +75,7 @@ export function ContactFields({ customer, errors, withAddress, notesLabel, notes
         <>
           <div className="field form-grid__wide">
             <label className="field__label" htmlFor="cf-street">
-              Strasse und Nummer *
+              Strasse und Nummer
             </label>
             <input
               id="cf-street"
@@ -96,7 +96,7 @@ export function ContactFields({ customer, errors, withAddress, notesLabel, notes
 
           <div className="field field--zip">
             <label className="field__label" htmlFor="cf-zip">
-              PLZ *
+              PLZ
             </label>
             <input
               id="cf-zip"
@@ -119,7 +119,7 @@ export function ContactFields({ customer, errors, withAddress, notesLabel, notes
 
           <div className="field">
             <label className="field__label" htmlFor="cf-city">
-              Ort *
+              Ort
             </label>
             <input
               id="cf-city"
@@ -142,7 +142,7 @@ export function ContactFields({ customer, errors, withAddress, notesLabel, notes
 
       <div className="field form-grid__wide">
         <label className="field__label" htmlFor="cf-notes">
-          {notesLabel}
+          {notesLabel} <span className="field__optional">optional</span>
         </label>
         <textarea
           id="cf-notes"
