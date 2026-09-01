@@ -24,6 +24,10 @@ export function CustomRequestForm() {
   const [lineErrors, setLineErrors] = useState<Record<string, Errors<CustomRequestLine>>>({})
   const [state, setState] = useState<SubmissionState>({ status: 'idle' })
   const [counter, setCounter] = useState(1)
+  // Wer den Ausmesstermin ausdrücklich selbst wünscht, schliesst damit das
+  // Widerrufsrecht nach Art. 40a ff. OR für ein Haustürgeschäft aus. Der Wunsch
+  // muss dokumentiert sein - deshalb wird er hier festgehalten und mitgeschickt.
+  const [wantsVisit, setWantsVisit] = useState(false)
 
   const updateItem = (id: string, patch: Partial<CustomRequestLine>) => {
     setItems((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)))
@@ -55,7 +59,10 @@ export function CustomRequestForm() {
     setState({ status: 'sending' })
 
     try {
-      await submitToOperator({ kind: 'anfrage', customer, items, reference })
+      const notes = wantsVisit
+        ? `${customer.notes}${customer.notes ? '\n' : ''}[Kunde wünscht ausdrücklich einen Ausmesstermin vor Ort.]`
+        : customer.notes
+      await submitToOperator({ kind: 'anfrage', customer: { ...customer, notes }, items, reference })
       setState({ status: 'success', reference })
     } catch (error) {
       setState({
@@ -227,9 +234,21 @@ export function CustomRequestForm() {
           errors={contactErrors}
           withAddress={false}
           notesLabel="Bemerkungen"
-          notesHint="Zum Beispiel: Stockwerk, Fenstertyp, gewünschte Farbe oder ein Wunschtermin fürs Ausmessen."
+          notesHint="Zum Beispiel: Stockwerk, Fenstertyp oder gewünschte Farbe."
           onChange={(patch) => setCustomer((current) => ({ ...current, ...patch }))}
         />
+
+        <label className="checkbox">
+          <input type="checkbox" checked={wantsVisit} onChange={(event) => setWantsVisit(event.target.checked)} />
+          <span>
+            <strong>Bitte kommen Sie zum Ausmessen vorbei.</strong>
+            <span className="checkbox__hint">
+              Kostenlos und unverbindlich. Wir melden uns für einen Termin. Weil Sie den Besuch damit ausdrücklich
+              selbst wünschen, gilt ein danach abgeschlossener Vertrag nicht als Haustürgeschäft – Sie können ihn
+              trotzdem jederzeit vor der Produktion absagen.
+            </span>
+          </span>
+        </label>
       </div>
 
       {state.status === 'error' && <p className="form-status form-status--error">{state.message}</p>}

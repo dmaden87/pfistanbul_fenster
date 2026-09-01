@@ -4,6 +4,7 @@ import type { UseCart } from '../../hooks/useCart'
 import { categoryById, sizeById } from '../../data/catalog'
 import { formatChf, formatSize } from '../../lib/format'
 import { priceForLine } from '../../lib/pricing'
+import { priceNote, shopConfig } from '../../data/shopConfig'
 import { ContactFields } from './ContactFields'
 import { emptyCustomer, hasErrors, validateCustomer, type Errors } from '../../lib/validate'
 import { isDemoMode, makeReference, submitToOperator } from '../../lib/submitOrder'
@@ -15,20 +16,32 @@ interface OrderFormProps {
   onBackToShop: () => void
 }
 
+/**
+ * Die vier Schritte werden sichtbar angezeigt und der letzte Schritt ist eine
+ * Prüfseite mit Korrekturmöglichkeit. Beides verlangt Art. 3 Abs. 1 lit. s UWG
+ * für Schweizer Onlineshops (Hinweis auf die technischen Schritte, technische
+ * Mittel zur Fehlerkorrektur vor Abgabe der Bestellung).
+ */
+const STEPS = ['Grösse wählen', 'Warenkorb', 'Adresse', 'Prüfen & bestellen'] as const
+
 export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
   const [customer, setCustomer] = useState<CustomerDetails>({ ...emptyCustomer, zip: '8606', city: 'Greifensee' })
   const [errors, setErrors] = useState<Errors<CustomerDetails>>({})
   const [state, setState] = useState<SubmissionState>({ status: 'idle' })
+  const [step, setStep] = useState<'adresse' | 'pruefen'>('adresse')
 
   const { lines, totals, clear } = cart
 
-  const handleSubmit = async (event: React.FormEvent) => {
+  const handleContinue = (event: React.FormEvent) => {
     event.preventDefault()
-
     const nextErrors = validateCustomer(customer, true)
     setErrors(nextErrors)
     if (hasErrors(nextErrors)) return
+    setStep('pruefen')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
+  const handleSubmit = async () => {
     const reference = makeReference('bestellung', Math.round(totals.totalChf * 100) + customer.email.length * 977)
     setState({ status: 'sending' })
 
@@ -64,7 +77,10 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
         <ul className="confirmation__next">
           <li>Wir prüfen die Masse und melden uns, falls etwas unklar ist.</li>
           <li>Wir vereinbaren einen Termin für die Übergabe im Pfisterhölzli.</li>
-          <li>Passt das Netz wider Erwarten nicht, tauschen wir es kostenlos aus.</li>
+          <li>
+            Passt das Netz wider Erwarten nicht, tauschen wir es kostenlos. Auf Standardgrössen gilt zusätzlich unser
+            freiwilliges Rückgaberecht von {shopConfig.returnDays} Tagen.
+          </li>
         </ul>
         <button type="button" className="btn btn--ghost" style={{ marginTop: 'var(--space-7)' }} onClick={onBackToShop}>
           Zurück zur Übersicht
@@ -90,63 +106,160 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
     )
   }
 
+  const activeIndex = step === 'adresse' ? 2 : 3
+
   return (
     <div className="checkout">
-      <form className="checkout__form" onSubmit={handleSubmit} noValidate>
-        <div className="form-block">
-          <div className="form-block__head">
-            <h3>
-              <span className="form-step" aria-hidden="true">
-                1
+      <div className="checkout__form">
+        <ol className="checkout-steps" aria-label="Schritte bis zur Bestellung">
+          {STEPS.map((label, index) => (
+            <li
+              key={label}
+              className={
+                index < activeIndex ? 'is-done' : index === activeIndex ? 'is-current' : undefined
+              }
+              aria-current={index === activeIndex ? 'step' : undefined}
+            >
+              <span className="checkout-steps__marker" aria-hidden="true">
+                {index < activeIndex ? '✓' : index + 1}
               </span>
-              Ihre Angaben
-            </h3>
-            <p>Damit wir wissen, an welche Tür wir klopfen dürfen.</p>
-          </div>
+              {label}
+            </li>
+          ))}
+        </ol>
 
-          <ContactFields
-            customer={customer}
-            errors={errors}
-            withAddress
-            notesLabel="Bemerkungen zur Lieferung"
-            notesHint="Zum Beispiel: Stockwerk, Klingelname oder wann Sie am besten erreichbar sind."
-            onChange={(patch) => setCustomer((current) => ({ ...current, ...patch }))}
-          />
-        </div>
+        {step === 'adresse' ? (
+          <form onSubmit={handleContinue} noValidate>
+            <div className="form-block">
+              <div className="form-block__head">
+                <h3>Ihre Angaben</h3>
+                <p>Damit wir wissen, an welche Tür wir klopfen dürfen.</p>
+              </div>
 
-        <div className="form-block">
-          <div className="form-block__head">
-            <h3>
-              <span className="form-step" aria-hidden="true">
-                2
-              </span>
-              Bezahlung
-            </h3>
-            <p>
-              Sie zahlen erst, wenn die Netze bei Ihnen sind – bar bei der Übergabe oder per Rechnung mit TWINT. Es
-              werden hier keine Kartendaten erfasst.
-            </p>
-          </div>
-          <p className="form-status form-status--note">
-            <span aria-hidden="true">🔒</span>
-            <span>
-              Ihre Angaben gehen direkt an uns und werden ausschliesslich für diese Bestellung verwendet. Keine
-              Weitergabe an Dritte, kein Tracking.
-            </span>
-          </p>
-        </div>
+              <ContactFields
+                customer={customer}
+                errors={errors}
+                withAddress
+                notesLabel="Bemerkungen zur Lieferung"
+                notesHint="Zum Beispiel: Stockwerk, Klingelname oder wann Sie am besten erreichbar sind."
+                onChange={(patch) => setCustomer((current) => ({ ...current, ...patch }))}
+              />
+            </div>
 
-        {state.status === 'error' && <p className="form-status form-status--error">{state.message}</p>}
+            <div className="form-actions">
+              <button type="submit" className="btn btn--lg">
+                Weiter zur Prüfung
+              </button>
+              <button type="button" className="btn btn--quiet" onClick={onBackToShop}>
+                Weiter einkaufen
+              </button>
+            </div>
+          </form>
+        ) : (
+          <>
+            <div className="form-block">
+              <div className="form-block__head form-block__head--row">
+                <div>
+                  <h3>Bitte prüfen Sie Ihre Angaben</h3>
+                  <p>Danach ist die Bestellung verbindlich. Korrigieren können Sie jetzt noch alles.</p>
+                </div>
+                <button type="button" className="btn btn--ghost" onClick={() => setStep('adresse')}>
+                  Ändern
+                </button>
+              </div>
 
-        <div className="form-actions">
-          <button type="submit" className="btn btn--lg" disabled={state.status === 'sending'}>
-            {state.status === 'sending' ? 'Wird gesendet …' : 'Bestellung abschicken'}
-          </button>
-          <button type="button" className="btn btn--quiet" onClick={onBackToShop}>
-            Weiter einkaufen
-          </button>
-        </div>
-      </form>
+              <dl className="review">
+                <div>
+                  <dt>Name</dt>
+                  <dd>{customer.name}</dd>
+                </div>
+                <div>
+                  <dt>E-Mail</dt>
+                  <dd>{customer.email}</dd>
+                </div>
+                {customer.phone && (
+                  <div>
+                    <dt>Telefon</dt>
+                    <dd>{customer.phone}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt>Lieferadresse</dt>
+                  <dd>
+                    {customer.street}
+                    <br />
+                    {customer.zip} {customer.city}
+                  </dd>
+                </div>
+                {customer.notes && (
+                  <div>
+                    <dt>Bemerkungen</dt>
+                    <dd>{customer.notes}</dd>
+                  </div>
+                )}
+              </dl>
+            </div>
+
+            <div className="form-block">
+              <div className="form-block__head form-block__head--row">
+                <div>
+                  <h3>Ihre Positionen</h3>
+                  <p>Menge oder Grösse ändern Sie im Warenkorb.</p>
+                </div>
+                <button type="button" className="btn btn--ghost" onClick={onBackToShop}>
+                  Warenkorb ändern
+                </button>
+              </div>
+
+              <ul className="review-lines">
+                {lines.map((line) => {
+                  const category = categoryById(line.categoryId)
+                  const size = sizeById(line.sizeId)
+                  if (!category || !size) return null
+                  return (
+                    <li key={line.id}>
+                      <span>
+                        {line.quantity}× {category.shortName} · {size.label} (
+                        {formatSize(size.widthCm, size.heightCm)})
+                      </span>
+                      <span>{formatChf(priceForLine(line))}</span>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+
+            <div className="form-block">
+              <div className="form-block__head">
+                <h3>Bezahlung</h3>
+                <p>
+                  Sie zahlen erst, wenn die Netze bei Ihnen sind – bar bei der Übergabe oder per Rechnung mit TWINT. Es
+                  werden hier keine Kartendaten erfasst.
+                </p>
+              </div>
+              <p className="form-status form-status--note">
+                <span aria-hidden="true">🔒</span>
+                <span>
+                  Ihre Angaben gehen direkt an uns und werden ausschliesslich für diese Bestellung verwendet. Keine
+                  Weitergabe an Dritte, kein Tracking.
+                </span>
+              </p>
+            </div>
+
+            {state.status === 'error' && <p className="form-status form-status--error">{state.message}</p>}
+
+            <div className="form-actions">
+              <button type="button" className="btn btn--lg" onClick={handleSubmit} disabled={state.status === 'sending'}>
+                {state.status === 'sending' ? 'Wird gesendet …' : 'Jetzt verbindlich bestellen'}
+              </button>
+              <p className="form-actions__hint">
+                Sie erhalten anschliessend eine Bestätigung per E-Mail. Lieferung innerhalb von{' '}
+                {shopConfig.deliveryWorkdays} Werktagen.
+              </p>
+            </div>
+          </>
+        )}
+      </div>
 
       <aside className="checkout__summary" aria-label="Bestellübersicht">
         <h3>Ihre Bestellung</h3>
@@ -191,7 +304,7 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
             <dd>{formatChf(totals.totalChf)}</dd>
           </div>
         </dl>
-        <p className="checkout__vat">Preise in CHF inkl. MwSt.</p>
+        <p className="checkout__vat">{priceNote}</p>
       </aside>
     </div>
   )

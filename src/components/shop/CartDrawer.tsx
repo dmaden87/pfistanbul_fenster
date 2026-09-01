@@ -3,6 +3,7 @@ import type { UseCart } from '../../hooks/useCart'
 import { categoryById, sizeById } from '../../data/catalog'
 import { formatChf, formatSize } from '../../lib/format'
 import { unitPrice, BULK_DISCOUNT_THRESHOLD } from '../../lib/pricing'
+import { priceNote } from '../../data/shopConfig'
 import './CartDrawer.css'
 
 interface CartDrawerProps {
@@ -168,7 +169,7 @@ export function CartDrawer({ cart, open, onClose, onCheckout }: CartDrawerProps)
                 </div>
               </dl>
 
-              <p className="drawer__vat">Alle Preise in CHF, inkl. MwSt.</p>
+              <p className="drawer__vat">{priceNote}</p>
 
               <button type="button" className="btn btn--block btn--lg" onClick={onCheckout}>
                 Zur Bestellung

@@ -3,6 +3,7 @@ import type { UseCart } from '../../hooks/useCart'
 import { apartmentById, apartmentTypes, categories, sizeById, standardSizes } from '../../data/catalog'
 import { unitPrice } from '../../lib/pricing'
 import { formatChf, formatSize, roundToRappen } from '../../lib/format'
+import { priceNote } from '../../data/shopConfig'
 import './SizeShop.css'
 
 interface SizeShopProps {
@@ -184,8 +185,8 @@ export function SizeShop({ cart, onOpenCart, onRequestClick }: SizeShopProps) {
 
           <div className="size-shop__foot">
             <p>
-              Alle Preise in CHF inkl. MwSt. Lieferung innerhalb der Siedlung kostenlos. Ab drei Elementen gibt es
-              10 % Nachbarschaftsrabatt – der Warenkorb rechnet ihn automatisch ab.
+              {priceNote} Lieferung innerhalb der Siedlung kostenlos. Ab drei Elementen gibt es 10 %
+              Nachbarschaftsrabatt – der Warenkorb rechnet ihn automatisch ab.
             </p>
             <button type="button" className="btn btn--quiet" onClick={onOpenCart}>
               Warenkorb ansehen

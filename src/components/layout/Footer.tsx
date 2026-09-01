@@ -1,3 +1,4 @@
+import { priceNote } from '../../data/shopConfig'
 import './Footer.css'
 
 interface FooterProps {
@@ -46,7 +47,7 @@ export function Footer({ onOpenLegal, onNavigate }: FooterProps) {
 
       <div className="shell site-footer__base">
         <p>© {new Date().getFullYear()} Pfistanbul Fenster</p>
-        <p>Preise in CHF inkl. MwSt. · Lieferung im Pfisterhölzli kostenlos</p>
+        <p>{priceNote} · Lieferung im Pfisterhölzli kostenlos</p>
       </div>
     </footer>
   )
