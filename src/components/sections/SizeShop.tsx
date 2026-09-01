@@ -224,7 +224,7 @@ export function SizeShop({ cart, onOpenCart, onRequestClick }: SizeShopProps) {
 
                   <button
                     type="button"
-                    className={`btn size-row__add${added ? ' size-row__add--done' : ''}`}
+                    className={`btn btn--ghost size-row__add${added ? ' size-row__add--done' : ''}`}
                     onClick={() => handleAdd(size.id)}
                   >
                     {added ? 'Hinzugefügt ✓' : 'In den Warenkorb'}
