@@ -1,0 +1,214 @@
+.size-shop {
+  background: var(--bg-alt);
+}
+
+.size-shop__tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.size-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: var(--space-4);
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  cursor: pointer;
+  transition:
+    border-color var(--motion-fast),
+    background-color var(--motion-fast),
+    transform var(--motion-fast);
+}
+
+.size-tab:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.size-tab--active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  box-shadow: var(--shadow-md);
+}
+
+.size-tab__name {
+  font-weight: 600;
+  font-size: var(--step-0);
+}
+
+.size-tab__hint {
+  color: var(--text-subtle);
+  font-size: var(--step--2);
+}
+
+.size-tab--active .size-tab__hint {
+  color: color-mix(in srgb, var(--accent-contrast) 75%, transparent);
+}
+
+/* --- Tabelle ----------------------------------------------------------------- */
+
+.size-shop__panel {
+  padding: var(--space-6);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.size-shop__panel-note {
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-subtle);
+  font-size: var(--step--1);
+}
+
+.size-shop__panel-note strong {
+  color: var(--text);
+}
+
+.size-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.size-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: var(--space-5);
+  padding-block: var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.size-row:last-child {
+  border-bottom: none;
+}
+
+.size-row__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+}
+
+.size-row__room {
+  margin-top: 0.15rem;
+  color: var(--text-subtle);
+  font-size: var(--step--1);
+}
+
+.size-row__measure {
+  color: var(--text-muted);
+  font-size: var(--step--1);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.size-row__price {
+  min-width: 6rem;
+  text-align: right;
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.size-row__add {
+  min-width: 11.5rem;
+  white-space: nowrap;
+}
+
+.size-row__add--done {
+  background: var(--success);
+}
+
+.size-shop__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border);
+}
+
+.size-shop__foot p {
+  max-width: 58ch;
+  color: var(--text-subtle);
+  font-size: var(--step--2);
+}
+
+/* --- Hinweis auf Sonderanfertigung -------------------------------------------- */
+
+.size-shop__custom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  margin-top: var(--space-6);
+  padding: var(--space-6);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
+}
+
+.size-shop__custom h3 {
+  font-size: var(--step-1);
+}
+
+.size-shop__custom p {
+  margin-top: var(--space-2);
+  max-width: 58ch;
+  color: var(--text-muted);
+  font-size: var(--step--1);
+}
+
+@media (max-width: 62rem) {
+  .size-shop__tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 48rem) {
+  .size-shop__panel {
+    padding: var(--space-4);
+  }
+
+  .size-row {
+    grid-template-columns: 1fr auto;
+    gap: var(--space-2) var(--space-4);
+    padding-block: var(--space-5);
+  }
+
+  .size-row__label {
+    grid-column: 1 / -1;
+  }
+
+  .size-row__measure {
+    justify-self: start;
+  }
+
+  .size-row__price {
+    text-align: right;
+    min-width: 0;
+  }
+
+  .size-row__add {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}

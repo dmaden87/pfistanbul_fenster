@@ -1,0 +1,216 @@
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(14px) saturate(1.4);
+  border-bottom: 1px solid transparent;
+  transition:
+    border-color var(--motion-base),
+    box-shadow var(--motion-base),
+    background-color var(--motion-base);
+}
+
+.site-header--scrolled {
+  border-bottom-color: var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.site-header__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  min-height: 4.5rem;
+}
+
+/* --- Marke ----------------------------------------------------------------- */
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--accent-ink);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.brand__mark {
+  display: block;
+  transition: transform var(--motion-base);
+}
+
+.brand:hover .brand__mark {
+  transform: rotate(-4deg) scale(1.04);
+}
+
+.brand__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
+  font-family: var(--font-display);
+  color: var(--text);
+}
+
+.brand__text strong {
+  font-size: var(--step-1);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.brand__text span {
+  font-family: var(--font-sans);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+
+/* --- Navigation ------------------------------------------------------------- */
+
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-inline-end: auto;
+}
+
+.site-nav a {
+  position: relative;
+  padding: 0.5em 0.8em;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: var(--step--1);
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    color var(--motion-fast),
+    background-color var(--motion-fast);
+}
+
+.site-nav a:hover {
+  color: var(--text);
+  background: var(--surface-raised);
+}
+
+/* --- Aktionen --------------------------------------------------------------- */
+
+.site-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.cart-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.6em 1.1em;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  font-size: var(--step--1);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color var(--motion-fast),
+    background-color var(--motion-fast),
+    transform var(--motion-fast);
+}
+
+.cart-button:hover {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  transform: translateY(-1px);
+}
+
+.cart-button__badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  padding-inline: 0.35em;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-size: var(--step--2);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.menu-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0 0.7rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.menu-toggle span {
+  display: block;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--text);
+  transition: transform var(--motion-fast);
+}
+
+.menu-toggle[aria-expanded='true'] span:first-child {
+  transform: translateY(3.5px) rotate(45deg);
+}
+
+.menu-toggle[aria-expanded='true'] span:last-child {
+  transform: translateY(-3.5px) rotate(-45deg);
+}
+
+/* --- Mobil ------------------------------------------------------------------ */
+
+@media (max-width: 62rem) {
+  .site-header__inner {
+    gap: var(--space-3);
+  }
+
+  .menu-toggle {
+    display: flex;
+  }
+
+  .cart-button span:not(.cart-button__badge) {
+    display: none;
+  }
+
+  .cart-button {
+    padding: 0.6em 0.8em;
+  }
+
+  .site-nav {
+    position: absolute;
+    inset-inline: 0;
+    top: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    margin: 0;
+    padding: var(--space-2);
+    background: var(--surface);
+    border-block: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    display: none;
+  }
+
+  .site-nav--open {
+    display: flex;
+  }
+
+  .site-nav a {
+    padding: 0.85em 1em;
+    font-size: var(--step-0);
+  }
+}

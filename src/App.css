@@ -1,0 +1,15 @@
+/* Seitenweite Anpassungen, die keiner einzelnen Komponente gehoeren. */
+
+#main {
+  display: block;
+}
+
+.section + .section {
+  border-top: 1px solid transparent;
+}
+
+/* Zwei helle Abschnitte hintereinander bekommen eine feine Trennlinie,
+   damit sie nicht ineinanderfliessen. */
+.section:not(.size-shop):not(.measuring) + .section:not(.size-shop):not(.measuring) {
+  border-top-color: var(--border);
+}

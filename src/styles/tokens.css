@@ -1,0 +1,196 @@
+/* Design-Tokens: Farben, Typo-Skala, Abstaende, Radien, Schatten, Motion.
+   Light ist die Basis; Dark ueberschreibt nur die Farbwerte. */
+
+:root {
+  color-scheme: light dark;
+
+  /* --- Schrift ------------------------------------------------------------ */
+  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace;
+
+  /* Fluide Typo-Skala, 320px bis 1440px */
+  --step--2: clamp(0.72rem, 0.70rem + 0.10vw, 0.78rem);
+  --step--1: clamp(0.84rem, 0.81rem + 0.15vw, 0.92rem);
+  --step-0: clamp(1rem, 0.96rem + 0.20vw, 1.09rem);
+  --step-1: clamp(1.19rem, 1.12rem + 0.34vw, 1.42rem);
+  --step-2: clamp(1.41rem, 1.30rem + 0.56vw, 1.85rem);
+  --step-3: clamp(1.68rem, 1.50rem + 0.88vw, 2.40rem);
+  --step-4: clamp(2.00rem, 1.72rem + 1.36vw, 3.12rem);
+  --step-5: clamp(2.38rem, 1.95rem + 2.05vw, 4.05rem);
+  --step-6: clamp(2.83rem, 2.20rem + 3.02vw, 5.27rem);
+
+  /* --- Abstaende ---------------------------------------------------------- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 2.5rem;
+  --space-8: 3rem;
+  --space-9: 4rem;
+  --space-10: 5rem;
+  --space-11: 6rem;
+  --space-12: 8rem;
+
+  --gutter: clamp(1.25rem, 4vw, 2.5rem);
+  --section-y: clamp(3.5rem, 8vw, 7rem);
+  --measure-wide: 78rem;
+  --measure-text: 46rem;
+
+  /* --- Radien und Schatten ------------------------------------------------ */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-xl: 32px;
+  --radius-full: 999px;
+
+  --shadow-sm: 0 1px 2px rgb(19 38 34 / 0.05), 0 1px 3px rgb(19 38 34 / 0.04);
+  --shadow-md: 0 8px 20px -6px rgb(19 38 34 / 0.14), 0 3px 8px -4px rgb(19 38 34 / 0.08);
+  --shadow-lg: 0 24px 56px -16px rgb(19 38 34 / 0.22), 0 8px 20px -12px rgb(19 38 34 / 0.12);
+
+  /* --- Motion ------------------------------------------------------------- */
+  --motion-fast: 140ms cubic-bezier(0.2, 0.6, 0.35, 1);
+  --motion-base: 240ms cubic-bezier(0.2, 0.6, 0.35, 1);
+  --motion-slow: 480ms cubic-bezier(0.22, 0.8, 0.3, 1);
+
+  /* --- Farben (Light) ----------------------------------------------------- */
+  --bg: #faf8f4;
+  --bg-alt: #f2eee6;
+  --surface: #ffffff;
+  --surface-raised: #f5f2ec;
+  --surface-invert: #10302b;
+
+  --text: #17211f;
+  --text-muted: #4d5b57;
+  --text-subtle: #7a8783;
+  --text-invert: #f4f7f5;
+
+  --border: #e4ded3;
+  --border-strong: #d2cabb;
+
+  --accent: #0f3b34;
+  --accent-strong: #0a2b26;
+  --accent-ink: #0f3b34;
+  --accent-soft: #dcefe7;
+  --accent-contrast: #f7fbf9;
+
+  --highlight: #d98324;
+  --highlight-soft: #fbeedd;
+
+  --success: #1c7a55;
+  --success-soft: #dff0e7;
+  --danger: #a8352c;
+  --danger-ink: #7d251e;
+  --danger-soft: #fbe6e3;
+
+  --focus: #0f3b34;
+  --scrim: #17211f;
+  --mesh-line: #cfd8d3;
+
+  --footer-bg: #10302b;
+  --footer-text: #e6efeb;
+  --footer-muted: #9fb5ae;
+  --footer-border: #23453e;
+  --footer-accent: #7ee0c4;
+
+  --brand-mark-line: #7ee0c4;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #0e1513;
+    --bg-alt: #131d1a;
+    --surface: #16211e;
+    --surface-raised: #1d2b27;
+    --surface-invert: #eaf2ee;
+
+    --text: #e8efec;
+    --text-muted: #a9bab4;
+    --text-subtle: #7e928c;
+    --text-invert: #10302b;
+
+    --border: #24332e;
+    --border-strong: #33453f;
+
+    --accent: #6fd8bc;
+    --accent-strong: #8ee6ce;
+    --accent-ink: #8ee6ce;
+    --accent-soft: #1b3b34;
+    --accent-contrast: #07211c;
+
+    --highlight: #e9a253;
+    --highlight-soft: #33261a;
+
+    --success: #4cc294;
+    --success-soft: #14332a;
+    --danger: #e58278;
+    --danger-ink: #f0a99f;
+    --danger-soft: #33201d;
+
+    --focus: #8ee6ce;
+    --scrim: #04100d;
+    --mesh-line: #35443f;
+
+    --footer-bg: #0a1412;
+    --footer-text: #dfeae6;
+    --footer-muted: #8ba49c;
+    --footer-border: #1e2f2a;
+    --footer-accent: #7ee0c4;
+
+    --brand-mark-line: #07211c;
+
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-md: 0 8px 20px -6px rgb(0 0 0 / 0.5);
+    --shadow-lg: 0 24px 56px -16px rgb(0 0 0 / 0.6);
+  }
+}
+
+:root[data-theme='dark'] {
+  --bg: #0e1513;
+  --bg-alt: #131d1a;
+  --surface: #16211e;
+  --surface-raised: #1d2b27;
+  --surface-invert: #eaf2ee;
+
+  --text: #e8efec;
+  --text-muted: #a9bab4;
+  --text-subtle: #7e928c;
+  --text-invert: #10302b;
+
+  --border: #24332e;
+  --border-strong: #33453f;
+
+  --accent: #6fd8bc;
+  --accent-strong: #8ee6ce;
+  --accent-ink: #8ee6ce;
+  --accent-soft: #1b3b34;
+  --accent-contrast: #07211c;
+
+  --highlight: #e9a253;
+  --highlight-soft: #33261a;
+
+  --success: #4cc294;
+  --success-soft: #14332a;
+  --danger: #e58278;
+  --danger-ink: #f0a99f;
+  --danger-soft: #33201d;
+
+  --focus: #8ee6ce;
+  --scrim: #04100d;
+  --mesh-line: #35443f;
+
+  --footer-bg: #0a1412;
+  --footer-text: #dfeae6;
+  --footer-muted: #8ba49c;
+  --footer-border: #1e2f2a;
+  --footer-accent: #7ee0c4;
+
+  --brand-mark-line: #07211c;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 8px 20px -6px rgb(0 0 0 / 0.5);
+  --shadow-lg: 0 24px 56px -16px rgb(0 0 0 / 0.6);
+}
