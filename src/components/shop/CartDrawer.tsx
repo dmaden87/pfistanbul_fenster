@@ -1,9 +1,8 @@
 import { useEffect, useRef } from 'react'
 import type { UseCart } from '../../hooks/useCart'
-import { buildById, meshById, sizeById } from '../../data/catalog'
+import { netsInSet, setById, typeById } from '../../data/catalog'
 import { formatChf, formatSize } from '../../lib/format'
-import { unitPrice } from '../../lib/pricing'
-import { priceNote } from '../../data/shopConfig'
+import { priceNote, shopConfig } from '../../data/shopConfig'
 import './CartDrawer.css'
 
 interface CartDrawerProps {
@@ -57,8 +56,7 @@ export function CartDrawer({ cart, open, onClose, onCheckout }: CartDrawerProps)
 
   if (!open) return null
 
-  const { lines, totals, setQuantity, remove, clear } = cart
-  const missingForDiscount = totals.nextTier ? totals.nextTier.elements - totals.itemCount : 0
+  const { lines, totals, montage, setMontage, setQuantity, remove, clear, linePrice } = cart
 
   return (
     <div className="drawer" role="presentation" onClick={onClose}>
@@ -73,7 +71,7 @@ export function CartDrawer({ cart, open, onClose, onCheckout }: CartDrawerProps)
         <header className="drawer__head">
           <div>
             <h2>Warenkorb</h2>
-            <p>{totals.itemCount === 0 ? 'Noch nichts drin' : `${totals.itemCount} Element${totals.itemCount === 1 ? '' : 'e'}`}</p>
+            <p>{totals.netCount === 0 ? 'Noch nichts drin' : `${totals.netCount} Netz${totals.netCount === 1 ? '' : 'e'}`}</p>
           </div>
           <button type="button" className="drawer__close" onClick={onClose} ref={closeRef} aria-label="Warenkorb schliessen">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
@@ -85,7 +83,7 @@ export function CartDrawer({ cart, open, onClose, onCheckout }: CartDrawerProps)
         {lines.length === 0 ? (
           <div className="drawer__empty">
             <p className="drawer__empty-title">Ihr Warenkorb ist leer.</p>
-            <p>Wählen Sie oben eine Grösse aus – oder fragen Sie ein Sondermass an, wenn nichts passt.</p>
+            <p>Wählen Sie ein Set für die ganze Wohnung – oder einzelne Netze, wenn Sie nur ein paar brauchen.</p>
             <button type="button" className="btn btn--ghost" onClick={onClose}>
               Weiter stöbern
             </button>
@@ -94,31 +92,32 @@ export function CartDrawer({ cart, open, onClose, onCheckout }: CartDrawerProps)
           <>
             <ul className="drawer__lines">
               {lines.map((line) => {
-                const build = buildById(line.buildId)
-                const size = sizeById(line.sizeId)
-                const mesh = meshById(line.meshId)
-                if (!build || !size || !mesh) return null
+                const set = line.kind === 'set' ? setById(line.refId) : undefined
+                const type = line.kind === 'einzel' ? typeById(line.refId) : undefined
+                const title = set?.label ?? type?.label
+                if (!title) return null
+                const meta = set
+                  ? `${netsInSet(set)} Netze im Set`
+                  : type
+                    ? `${formatSize(type.widthCm, type.heightCm)} · ${type.room}`
+                    : ''
                 return (
                   <li key={line.id} className="cart-line">
                     <div className="cart-line__visual" aria-hidden="true">
                       <span className="cart-line__mesh" />
                     </div>
                     <div className="cart-line__body">
-                      <p className="cart-line__title">{build.shortName}</p>
-                      <p className="cart-line__meta">
-                        {size.label} · {formatSize(size.widthCm, size.heightCm)}
-                      </p>
-                      <p className="cart-line__meta">{mesh.name}</p>
-                      <p className="cart-line__unit">
-                        {formatChf(unitPrice(line.buildId, line.sizeId, line.meshId))} pro Stück
-                      </p>
+                      <p className="cart-line__title">{title}</p>
+                      <p className="cart-line__meta">{meta}</p>
+                      <p className="cart-line__unit">{formatChf(linePrice(line) / line.quantity)} pro Stück</p>
                     </div>
                     <div className="cart-line__side">
+                      <p className="cart-line__sum">{formatChf(linePrice(line))}</p>
                       <div className="stepper">
                         <button
                           type="button"
                           onClick={() => setQuantity(line.id, line.quantity - 1)}
-                          aria-label={`Menge verringern für ${build.shortName} ${size.label}`}
+                          aria-label={`Menge verringern für ${title}`}
                         >
                           −
                         </button>
@@ -126,7 +125,7 @@ export function CartDrawer({ cart, open, onClose, onCheckout }: CartDrawerProps)
                         <button
                           type="button"
                           onClick={() => setQuantity(line.id, line.quantity + 1)}
-                          aria-label={`Menge erhöhen für ${build.shortName} ${size.label}`}
+                          aria-label={`Menge erhöhen für ${title}`}
                         >
                           +
                         </button>
@@ -135,7 +134,7 @@ export function CartDrawer({ cart, open, onClose, onCheckout }: CartDrawerProps)
                         type="button"
                         className="cart-line__remove"
                         onClick={() => remove(line.id)}
-                        aria-label={`${build.shortName} ${size.label} entfernen`}
+                        aria-label={`${title} entfernen`}
                       >
                         Entfernen
                       </button>
@@ -146,22 +145,34 @@ export function CartDrawer({ cart, open, onClose, onCheckout }: CartDrawerProps)
             </ul>
 
             <footer className="drawer__foot">
-              {missingForDiscount > 0 && totals.nextTier && (
-                <p className="drawer__nudge">
-                  Noch {missingForDiscount} Element{missingForDiscount === 1 ? '' : 'e'} bis{' '}
-                  {Math.round(totals.nextTier.rate * 100)} % Mengenrabatt.
-                </p>
-              )}
+              <label className="montage-toggle">
+                <input type="checkbox" checked={montage} onChange={(event) => setMontage(event.target.checked)} />
+                <span>
+                  <strong>Montage durch uns</strong>
+                  <span className="montage-toggle__hint">
+                    {formatChf(shopConfig.montageChf)} pro Fenster. Ohne Haken montieren Sie selbst – geklemmt, ohne
+                    Bohren, in wenigen Minuten.
+                  </span>
+                </span>
+              </label>
 
               <dl className="totals">
                 <div>
-                  <dt>Zwischentotal</dt>
-                  <dd>{formatChf(totals.subtotalChf)}</dd>
+                  <dt>Netze ({totals.netCount})</dt>
+                  <dd>{formatChf(totals.netsChf)}</dd>
                 </div>
-                {totals.discountChf > 0 && (
+                {totals.savingsChf > 0 && (
                   <div className="totals__discount">
-                    <dt>{totals.discountLabel}</dt>
-                    <dd>−{formatChf(totals.discountChf)}</dd>
+                    <dt>Im Set gespart</dt>
+                    <dd>−{formatChf(totals.savingsChf)}</dd>
+                  </div>
+                )}
+                {montage && (
+                  <div>
+                    <dt>
+                      Montage {totals.netCount} × {formatChf(shopConfig.montageChf)}
+                    </dt>
+                    <dd>{formatChf(totals.montageChf)}</dd>
                   </div>
                 )}
                 <div>
@@ -182,6 +193,10 @@ export function CartDrawer({ cart, open, onClose, onCheckout }: CartDrawerProps)
               <button type="button" className="btn btn--quiet drawer__clear" onClick={clear}>
                 Warenkorb leeren
               </button>
+              <p className="drawer__note">
+                Wir produzieren in Sammelbestellungen. Sobald {shopConfig.minimumBatchNets} Netze zusammen sind, geht die
+                Runde in Produktion – wir melden uns mit dem Termin.
+              </p>
             </footer>
           </>
         )}

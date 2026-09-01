@@ -1,5 +1,4 @@
-import { buildTypes, sizesOfKind } from '../../data/catalog'
-import { customPrice, lowestPriceFor } from '../../lib/pricing'
+import { netSets, windowTypes } from '../../data/catalog'
 import { formatChf } from '../../lib/format'
 import './TwoPaths.css'
 
@@ -9,16 +8,8 @@ interface TwoPathsProps {
 }
 
 export function TwoPaths({ onStandardClick, onCustomClick }: TwoPathsProps) {
-  const cheapest = Math.min(
-    ...buildTypes.map((build) =>
-      lowestPriceFor(
-        build.id,
-        sizesOfKind(build.kind).map((size) => size.id),
-      ),
-    ),
-  )
-  // Preisanker für den Anfrageweg, sonst wird er als teurer Sonderfall gelesen.
-  const cheapestCustom = customPrice(60, 40, 'spannrahmen', 'standard')
+  const cheapest = Math.min(...windowTypes.map((type) => type.priceChf))
+  const cheapestSet = Math.min(...netSets.map((set) => set.priceChf))
 
   return (
     <section className="section two-paths" id="wege">
@@ -34,18 +25,18 @@ export function TwoPaths({ onStandardClick, onCustomClick }: TwoPathsProps) {
         <div className="two-paths__grid">
           <article className="path path--primary">
             <span className="pill">Sofort bestellbar</span>
-            <h3>Mein Fenster hat ein gängiges Format</h3>
+            <h3>Ich wohne im Pfisterhölzli</h3>
             <p>
-              Dann geht es direkt: Wählen Sie Ihren Wohnungstyp, wir legen die üblichen Grössen in den Warenkorb.
-              Fester Preis, keine Wartezeit auf eine Offerte.
+              Dann geht es direkt: Nehmen Sie das Set für Ihre Wohnung oder einzelne Netze. Fester Preis, keine
+              Wartezeit auf eine Offerte.
             </p>
             <ul className="path__list">
-              <li>Preis sofort sichtbar, ab {formatChf(cheapest)}</li>
+              <li>Einzelnes Netz ab {formatChf(cheapest)}, ganze Wohnung ab {formatChf(cheapestSet)}</li>
               <li>Lieferung gratis an die Wohnungstür</li>
               <li>Passgarantie: passt es nicht, tauschen wir</li>
             </ul>
             <button type="button" className="btn btn--lg" onClick={onStandardClick}>
-              Wohnungstyp wählen
+              Netze und Preise ansehen
             </button>
           </article>
 
@@ -57,7 +48,7 @@ export function TwoPaths({ onStandardClick, onCustomClick }: TwoPathsProps) {
               der Reihe fällt: Sagen Sie uns Anzahl und Masse, wir rechnen es durch.
             </p>
             <ul className="path__list">
-              <li>Sonderanfertigung ab {formatChf(cheapestCustom)} pro Element</li>
+              <li>Preis nach Fläche, wir rechnen es Ihnen aus</li>
               <li>Wir messen auf Wunsch kostenlos nach</li>
               <li>Unverbindlich, keine Anzahlung</li>
             </ul>

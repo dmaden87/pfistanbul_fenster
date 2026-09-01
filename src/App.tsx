@@ -7,9 +7,7 @@ import { Hero } from './components/sections/Hero'
 import { TrustBar } from './components/sections/TrustBar'
 import { Benefits } from './components/sections/Benefits'
 import { TwoPaths } from './components/sections/TwoPaths'
-import { Categories } from './components/sections/Categories'
-import { SizeShop } from './components/sections/SizeShop'
-import { MeshTable } from './components/sections/MeshTable'
+import { Shop } from './components/sections/Shop'
 import { HowItWorks } from './components/sections/HowItWorks'
 import { Measuring } from './components/sections/Measuring'
 import { Promises } from './components/sections/Promises'
@@ -61,7 +59,7 @@ export default function App() {
       </a>
 
       <Header
-        cartCount={cart.totals.itemCount}
+        cartCount={cart.totals.netCount}
         onOpenCart={() => setCartOpen(true)}
         onNavigateHome={goToShop}
         onNavigate={goToAnchor}
@@ -74,9 +72,7 @@ export default function App() {
             <TrustBar />
             <Benefits />
             <TwoPaths onStandardClick={() => goToAnchor('groessen')} onCustomClick={() => goToAnchor('anfrage')} />
-            <Categories onPickSize={() => goToAnchor('groessen')} />
-            <SizeShop cart={cart} onOpenCart={() => setCartOpen(true)} onRequestClick={() => goToAnchor('anfrage')} />
-            <MeshTable />
+            <Shop cart={cart} onOpenCart={() => setCartOpen(true)} onRequestClick={() => goToAnchor('anfrage')} />
             <HowItWorks />
             <Measuring />
             <Promises />

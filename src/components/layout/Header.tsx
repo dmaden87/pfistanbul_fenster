@@ -9,10 +9,10 @@ interface HeaderProps {
 }
 
 const NAV = [
-  { anchor: 'sortiment', label: 'Sortiment' },
-  { anchor: 'groessen', label: 'Grössen & Preise' },
-  { anchor: 'montage', label: 'Montage' },
-  { anchor: 'anfrage', label: 'Sonderanfertigung' },
+  { anchor: 'vorteile', label: 'Warum' },
+  { anchor: 'groessen', label: 'Netze & Preise' },
+  { anchor: 'montage', label: 'Messen & Montage' },
+  { anchor: 'anfrage', label: 'Sondermass' },
   { anchor: 'faq', label: 'Fragen' },
 ]
 

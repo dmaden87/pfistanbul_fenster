@@ -14,12 +14,12 @@ export function ClosingCta({ onShopClick, onRequestClick }: ClosingCtaProps) {
           <div className="closing__content">
             <h2>Der nächste warme Abend kommt bestimmt.</h2>
             <p>
-              Bis dahin hängt das Netz. Standardgrössen sind sofort bestellbar, alles andere rechnen wir Ihnen
+              Bis dahin hängt das Netz. Die vier Formate sind direkt bestellbar, alles andere rechnen wir Ihnen
               unverbindlich aus.
             </p>
             <div className="closing__actions">
               <button type="button" className="btn btn--lg closing__primary" onClick={onShopClick}>
-                Grösse aussuchen
+                Netze aussuchen
               </button>
               <button type="button" className="btn btn--ghost btn--lg closing__secondary" onClick={onRequestClick}>
                 Sondermass anfragen

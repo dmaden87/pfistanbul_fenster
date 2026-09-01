@@ -1,6 +1,5 @@
 import { WindowVisual } from './WindowVisual'
-import { buildTypes, sizesOfKind } from '../../data/catalog'
-import { lowestPriceFor } from '../../lib/pricing'
+import { windowTypes } from '../../data/catalog'
 import { formatChf } from '../../lib/format'
 import './Hero.css'
 
@@ -10,14 +9,7 @@ interface HeroProps {
 }
 
 export function Hero({ onShopClick, onRequestClick }: HeroProps) {
-  const cheapest = Math.min(
-    ...buildTypes.map((build) =>
-      lowestPriceFor(
-        build.id,
-        sizesOfKind(build.kind).map((size) => size.id),
-      ),
-    ),
-  )
+  const cheapest = Math.min(...windowTypes.map((type) => type.priceChf))
 
   return (
     <section className="hero" id="top">
@@ -36,13 +28,13 @@ export function Hero({ onShopClick, onRequestClick }: HeroProps) {
           </h1>
 
           <p className="hero__lead">
-            Insektenschutz für die gängigen Fensterformate in unserer Siedlung – ohne Konfigurator, ohne Wartezeit auf
-            eine Offerte, ohne Handwerkerrechnung. Wohnung wählen, einmal nachmessen, bestellen.
+            Wir haben die vier Fensterformate im Pfisterhölzli ausgemessen und lassen die Netze in Sammelbestellungen
+            fertigen. Deshalb gibt es sie hier zum festen Preis – ohne Konfigurator, ohne Handwerkerrechnung.
           </p>
 
           <div className="hero__actions">
             <button type="button" className="btn btn--lg" onClick={onShopClick}>
-              Grössen und Preise ansehen
+              Netze und Preise ansehen
             </button>
             <button type="button" className="btn btn--ghost btn--lg" onClick={onRequestClick}>
               Sondermass anfragen
@@ -55,8 +47,8 @@ export function Hero({ onShopClick, onRequestClick }: HeroProps) {
               <span>pro Element</span>
             </li>
             <li>
-              <strong>Lieferung gratis</strong>
-              <span>im Pfisterhölzli</span>
+              <strong>Vier Formate</strong>
+              <span>schon ausgemessen</span>
             </li>
             <li>
               <strong>Ohne Bohren</strong>

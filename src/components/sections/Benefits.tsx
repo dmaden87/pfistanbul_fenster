@@ -29,7 +29,7 @@ const BENEFITS: Benefit[] = [
   {
     id: 'preis',
     headline: 'Ehrlich gerechnet statt teuer verkauft',
-    body: 'Wir haben keinen Showroom, keine Aussendienstprovision und keinen Anfahrtsweg – wir wohnen hier. Was wir dadurch sparen, steht direkt im Preis statt in der Marge.',
+    body: 'Wir kaufen direkt beim Hersteller und bündeln die Bestellungen der Nachbarschaft zu einer Fracht. Kein Zwischenhandel, kein Showroom, kein Anfahrtsweg – wir wohnen hier. Ein Fachbetrieb verlangt für vergleichbare Plissees nach Mass ein Mehrfaches.',
   },
   {
     id: 'bohren',
@@ -39,7 +39,7 @@ const BENEFITS: Benefit[] = [
   {
     id: 'kleintiere',
     headline: 'Nicht nur Mücken bleiben draussen',
-    body: 'Wespen an der Fruchtschale, Spinnen im Schlafzimmer, Motten in der Küche: Das Standardgewebe hält alles ab, was grösser als rund 1,4 Millimeter ist. Für die ganz kleinen Plagegeister – Gnitzen, Trauermücken, Gewittertierchen – braucht es das feinmaschige Gewebe; sagen Sie uns einfach Bescheid.',
+    body: 'Wespen an der Fruchtschale, Spinnen im Schlafzimmer, Motten in der Küche – das Gewebe hält alles zurück, was in dieser Grössenordnung durchs Fenster kommt. Für die ganz kleinen Plagegeister wie Gnitzen oder Gewittertierchen bräuchte es ein feineres Gewebe; fragen Sie uns, wenn das bei Ihnen ein Thema ist.',
   },
 ]
 

@@ -1,36 +1,37 @@
 /**
  * Zentrale Stellschrauben. Alles hier hat rechtliche oder kaufmännische
- * Konsequenzen – die Werte sind Vorschläge, keine Zusagen.
+ * Konsequenzen.
  */
 export const shopConfig = {
   /**
    * MwSt-Pflicht besteht in der Schweiz erst ab CHF 100'000 Jahresumsatz.
-   * Wer nicht pflichtig ist, darf "inkl. MwSt." NICHT schreiben.
+   * Wer nicht pflichtig ist, darf "inkl. MwSt." NICHT schreiben. Die
+   * Einfuhrsteuer auf der Ware ist davon unabhängig und steckt im Preis.
    */
-  vatRegistered: true,
+  vatRegistered: false,
 
   /**
-   * Pollenschutz bleibt gesperrt, bis Handelsname, Maschenweite und
-   * Herstellerdatenblatt des tatsächlich verbauten Gewebes vorliegen.
-   * Ein normales Insektenschutzgewebe hält keine Pollen zurück – Pollen sind
-   * rund sechzigmal kleiner als die Masche. Ohne zertifiziertes Gewebe wäre
-   * jede Pollenaussage nach UWG angreifbar, und die Beweislast läge bei uns.
-   * Sobald das Datenblatt da ist: auf true setzen, dann erscheinen die
-   * Gewebe-Option, der Vorteilstext und die Tabellenzeile automatisch.
+   * Pollenschutz bleibt gesperrt, bis Preis und Verfügbarkeit des Gewebes
+   * geklärt sind (offener Punkt im Kostenkonzept). Ein normales
+   * Insektenschutzgewebe hält keine Pollen zurück – ohne zertifiziertes
+   * Gewebe wäre jede Pollenaussage nach UWG angreifbar.
    */
   pollenEnabled: false,
+
+  /** Montage durch uns, Preis pro Fenster in CHF. Gilt auch in Sets. */
+  montageChf: 15,
+
+  /**
+   * Produziert wird in Sammelbestellungen. Erst ab dieser Anzahl Netze
+   * trägt eine Runde ihre Frachtkosten – darunter wird nicht ausgelöst.
+   */
+  minimumBatchNets: 25,
 
   /** Freiwilliges Rückgaberecht auf Standardgrössen, in Tagen. */
   returnDays: 14,
 
   /** Zugesagte Garantie auf Rahmen, Gewebe und Mechanik, in Jahren. */
   warrantyYears: 2,
-
-  /** Zugesagte Lieferfrist für Standardgrössen, in Werktagen. */
-  deliveryWorkdays: 5,
-
-  /** Zugesagte Produktionszeit für Sonderanfertigungen, in Wochen. */
-  customWeeks: 2,
 
   /** Ort des Gerichtsstands, erscheint in den AGB. */
   jurisdiction: 'Greifensee ZH',
@@ -39,4 +40,4 @@ export const shopConfig = {
 /** Preiszusatz, der zur MwSt-Situation passt. */
 export const priceNote = shopConfig.vatRegistered
   ? 'Alle Preise in CHF inkl. MwSt.'
-  : 'Alle Preise in CHF. Wir sind nicht mehrwertsteuerpflichtig, es fällt keine MwSt. an.'
+  : 'Alle Preise in CHF. Wir sind nicht mehrwertsteuerpflichtig, es kommt nichts dazu.'

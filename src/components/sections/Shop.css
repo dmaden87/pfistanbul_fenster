@@ -1,0 +1,271 @@
+.shop {
+  background: var(--bg-alt);
+}
+
+.shop__group-title {
+  margin-bottom: var(--space-4);
+  font-size: var(--step-1);
+  color: var(--text-muted);
+}
+
+.shop__group-title + * {
+  margin-bottom: var(--space-8);
+}
+
+/* --- Sets ---------------------------------------------------------------- */
+
+.set-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+
+.set-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color var(--motion-base),
+    transform var(--motion-base),
+    box-shadow var(--motion-base);
+}
+
+.set-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.set-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.set-card h4 {
+  font-family: var(--font-display);
+  font-size: var(--step-2);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.set-card__description {
+  color: var(--text-muted);
+  font-size: var(--step--1);
+}
+
+.set-card__items {
+  list-style: none;
+  padding: var(--space-4) 0;
+  margin: 0;
+  border-block: 1px dashed var(--border-strong);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.set-card__items li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  font-size: var(--step--1);
+}
+
+.set-card__items li > span:last-child {
+  color: var(--text-subtle);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.set-card footer {
+  margin-top: auto;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.set-card__amount {
+  font-family: var(--font-display);
+  font-size: var(--step-4);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.set-card__saving {
+  margin-top: var(--space-2);
+  color: var(--success);
+  font-size: var(--step--1);
+  font-weight: 500;
+}
+
+.btn--done {
+  background: var(--success);
+}
+
+/* --- Einzelne Typen -------------------------------------------------------- */
+
+.shop__panel {
+  padding: var(--space-6);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.type-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.type-row {
+  /* Feste Spalten, damit Masse, Fläche und Preise über alle Zeilen fluchten. */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 9rem 5.5rem 7rem 11.5rem;
+  align-items: center;
+  gap: var(--space-5);
+  padding-block: var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.type-row:last-child {
+  border-bottom: none;
+}
+
+.type-row__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+}
+
+.type-row__room {
+  margin-top: 0.15rem;
+  color: var(--text-subtle);
+  font-size: var(--step--1);
+}
+
+.type-row__measure,
+.type-row__area {
+  color: var(--text-muted);
+  font-size: var(--step--1);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.type-row__area {
+  color: var(--text-subtle);
+}
+
+.type-row__price {
+  text-align: right;
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.type-row__add {
+  white-space: nowrap;
+}
+
+.type-row__add:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.type-row__add--done,
+.type-row__add--done:hover:not(:disabled) {
+  background: var(--success);
+  border-color: var(--success);
+  color: #ffffff;
+}
+
+.shop__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border);
+}
+
+.shop__foot p {
+  max-width: 62ch;
+  color: var(--text-subtle);
+  font-size: var(--step--2);
+}
+
+/* --- Hinweis auf Sonderanfertigung ----------------------------------------- */
+
+.shop__custom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  margin-top: var(--space-6);
+  padding: var(--space-6);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
+}
+
+.shop__custom h3 {
+  font-size: var(--step-1);
+}
+
+.shop__custom p {
+  margin-top: var(--space-2);
+  max-width: 58ch;
+  color: var(--text-muted);
+  font-size: var(--step--1);
+}
+
+@media (max-width: 62rem) {
+  .set-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 56rem) {
+  .shop__panel {
+    padding: var(--space-4);
+  }
+
+  .type-row {
+    grid-template-columns: 1fr auto;
+    gap: var(--space-2) var(--space-4);
+    padding-block: var(--space-5);
+  }
+
+  .type-row__label {
+    grid-column: 1 / -1;
+  }
+
+  .type-row__measure {
+    justify-self: start;
+    text-align: left;
+  }
+
+  .type-row__area {
+    display: none;
+  }
+
+  .type-row__add {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}

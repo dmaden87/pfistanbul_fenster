@@ -1,6 +1,6 @@
 import type { CartLine, CustomRequestLine, CustomerDetails, SubmissionKind } from '../types'
-import { buildById, meshById, sizeById } from '../data/catalog'
-import { cartTotals, customPrice, priceForLine } from './pricing'
+import { netsInSet, setById, typeById } from '../data/catalog'
+import { cartTotals, priceForLine } from './pricing'
 import { formatChf, formatSize } from './format'
 
 const endpoint = import.meta.env.VITE_ORDER_ENDPOINT?.trim()
@@ -30,15 +30,21 @@ function customerBlock(customer: CustomerDetails): string {
     .join('\n')
 }
 
-function orderBody(lines: CartLine[], customer: CustomerDetails, reference: string): string {
-  const totals = cartTotals(lines)
+function orderBody(lines: CartLine[], customer: CustomerDetails, reference: string, montage: boolean): string {
+  const totals = cartTotals(lines, montage)
   const rows = lines.map((line) => {
-    const build = buildById(line.buildId)
-    const size = sizeById(line.sizeId)
-    const mesh = meshById(line.meshId)
-    const label = `${build?.name ?? line.buildId} – ${size?.label ?? line.sizeId}`
-    const measures = size ? formatSize(size.widthCm, size.heightCm) : ''
-    return `${line.quantity}× ${label} (${measures}, ${mesh?.name ?? line.meshId}) — ${formatChf(priceForLine(line))}`
+    if (line.kind === 'set') {
+      const set = setById(line.refId)
+      const contents = set
+        ? set.items
+            .map((item) => `${item.count}× ${typeById(item.typeId)?.label ?? item.typeId}`)
+            .join(', ')
+        : ''
+      return `${line.quantity}× ${set?.label ?? line.refId} (${netsInSet(set!)} Netze: ${contents}) — ${formatChf(priceForLine(line))}`
+    }
+    const type = typeById(line.refId)
+    const measures = type ? formatSize(type.widthCm, type.heightCm) : ''
+    return `${line.quantity}× ${type?.label ?? line.refId} (${measures}) — ${formatChf(priceForLine(line))}`
   })
 
   return [
@@ -49,39 +55,27 @@ function orderBody(lines: CartLine[], customer: CustomerDetails, reference: stri
     'Positionen:',
     ...rows.map((row) => `  ${row}`),
     '',
-    `Zwischentotal: ${formatChf(totals.subtotalChf)}`,
-    totals.discountChf > 0
-      ? `Rabatt:        -${formatChf(totals.discountChf)}${totals.discountLabel ? ` (${totals.discountLabel})` : ''}`
-      : null,
-    `Lieferung:     ${totals.shippingChf === 0 ? 'kostenlos' : formatChf(totals.shippingChf)}`,
-    `Total:         ${formatChf(totals.totalChf)}`,
+    `Netze (${totals.netCount}): ${formatChf(totals.netsChf)}`,
+    totals.savingsChf > 0 ? `Im Set gespart:  ${formatChf(totals.savingsChf)}` : null,
+    montage ? `Montage:         ${formatChf(totals.montageChf)} (${totals.netCount} Fenster)` : 'Montage:         nein, Selbstmontage',
+    `Lieferung:       ${totals.shippingChf === 0 ? 'kostenlos' : formatChf(totals.shippingChf)}`,
+    `Total:           ${formatChf(totals.totalChf)}`,
   ]
     .filter(Boolean)
     .join('\n')
 }
 
 function requestBody(items: CustomRequestLine[], customer: CustomerDetails, reference: string): string {
-  const rows = items.map((item, index) => {
-    const build = buildById(item.buildId)
-    const mesh = meshById(item.meshId)
-    const width = Number(item.widthCm)
-    const height = Number(item.heightCm)
-    const estimate =
-      Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0
-        ? formatChf(customPrice(width, height, item.buildId, item.meshId))
-        : null
-    return [
+  const rows = items.map((item, index) =>
+    [
       `  Position ${index + 1}:`,
-      `    Bauart:    ${build?.name ?? item.buildId}`,
-      `    Gewebe:    ${mesh?.name ?? item.meshId}`,
-      `    Masse:     ${item.widthCm || '?'} × ${item.heightCm || '?'} cm`,
-      `    Anzahl:    ${item.quantity || '1'}`,
-      item.room ? `    Raum:      ${item.room}` : null,
-      estimate ? `    Richtwert: ${estimate} pro Stück (Formel, nicht geprüft)` : null,
+      `    Masse:  ${item.widthCm || '?'} × ${item.heightCm || '?'} cm`,
+      `    Anzahl: ${item.quantity || '1'}`,
+      item.room ? `    Raum:   ${item.room}` : null,
     ]
       .filter(Boolean)
-      .join('\n')
-  })
+      .join('\n'),
+  )
 
   return [
     `BESTELLANFRAGE (Sonderanfertigung) ${reference}`,
@@ -101,6 +95,7 @@ export interface SubmitPayload {
   lines?: CartLine[]
   items?: CustomRequestLine[]
   reference: string
+  montage?: boolean
 }
 
 /**
@@ -108,14 +103,15 @@ export interface SubmitPayload {
  * Der Dienst kennt die Empfaengeradresse; der Browser kennt sie nie.
  */
 export async function submitToOperator(payload: SubmitPayload): Promise<void> {
-  const { kind, customer, lines = [], items = [], reference } = payload
+  const { kind, customer, lines = [], items = [], reference, montage = false } = payload
 
   const subject =
     kind === 'bestellung'
       ? `Neue Bestellung ${reference} – ${customer.name}`
       : `Neue Anfrage Sonderanfertigung ${reference} – ${customer.name}`
 
-  const message = kind === 'bestellung' ? orderBody(lines, customer, reference) : requestBody(items, customer, reference)
+  const message =
+    kind === 'bestellung' ? orderBody(lines, customer, reference, montage) : requestBody(items, customer, reference)
 
   if (isDemoMode) {
     // Ohne konfigurierten Dienst wird nichts verschickt - der Ablauf laesst sich

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { CartLine, CartTotals } from '../types'
-import { priceForLine, cartTotals } from '../lib/pricing'
+import type { CartLine, CartLineKind, CartTotals } from '../types'
+import { cartTotals, netsForLine, priceForLine } from '../lib/pricing'
 
-const STORAGE_KEY = 'pfistanbul.cart.v2'
+const STORAGE_KEY = 'pfistanbul.cart.v3'
+const MONTAGE_KEY = 'pfistanbul.montage.v1'
 
 function readStoredCart(): CartLine[] {
   try {
@@ -15,9 +16,8 @@ function readStoredCart(): CartLine[] {
         typeof line === 'object' &&
         line !== null &&
         typeof (line as CartLine).id === 'string' &&
-        typeof (line as CartLine).buildId === 'string' &&
-        typeof (line as CartLine).sizeId === 'string' &&
-        typeof (line as CartLine).meshId === 'string' &&
+        ((line as CartLine).kind === 'einzel' || (line as CartLine).kind === 'set') &&
+        typeof (line as CartLine).refId === 'string' &&
         typeof (line as CartLine).quantity === 'number',
     )
   } catch {
@@ -25,37 +25,51 @@ function readStoredCart(): CartLine[] {
   }
 }
 
+function readStoredMontage(): boolean {
+  try {
+    return window.localStorage.getItem(MONTAGE_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
 export interface UseCart {
   lines: CartLine[]
   totals: CartTotals
-  add: (buildId: string, sizeId: string, meshId: string, quantity?: number) => void
+  montage: boolean
+  setMontage: (value: boolean) => void
+  add: (kind: CartLineKind, refId: string, quantity?: number) => void
   setQuantity: (id: string, quantity: number) => void
   remove: (id: string) => void
   clear: () => void
   linePrice: (line: CartLine) => number
+  lineNets: (line: CartLine) => number
 }
 
 export function useCart(): UseCart {
   const [lines, setLines] = useState<CartLine[]>(readStoredCart)
+  const [montage, setMontage] = useState<boolean>(readStoredMontage)
 
   useEffect(() => {
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(lines))
+      window.localStorage.setItem(MONTAGE_KEY, montage ? '1' : '0')
     } catch {
-      // Speicher nicht verfuegbar (privater Modus) - der Warenkorb lebt dann nur in dieser Sitzung.
+      // Speicher nicht verfügbar (privater Modus) – der Warenkorb lebt dann
+      // nur in dieser Sitzung.
     }
-  }, [lines])
+  }, [lines, montage])
 
-  const add = useCallback((buildId: string, sizeId: string, meshId: string, quantity = 1) => {
+  const add = useCallback((kind: CartLineKind, refId: string, quantity = 1) => {
     setLines((current) => {
-      const id = `${buildId}__${sizeId}__${meshId}`
+      const id = `${kind}__${refId}`
       const existing = current.find((line) => line.id === id)
       if (existing) {
         return current.map((line) =>
           line.id === id ? { ...line, quantity: Math.min(99, line.quantity + quantity) } : line,
         )
       }
-      return [...current, { id, buildId, sizeId, meshId, quantity }]
+      return [...current, { id, kind, refId, quantity }]
     })
   }, [])
 
@@ -73,7 +87,7 @@ export function useCart(): UseCart {
 
   const clear = useCallback(() => setLines([]), [])
 
-  const totals = useMemo(() => cartTotals(lines), [lines])
+  const totals = useMemo(() => cartTotals(lines, montage), [lines, montage])
 
-  return { lines, totals, add, setQuantity, remove, clear, linePrice: priceForLine }
+  return { lines, totals, montage, setMontage, add, setQuantity, remove, clear, linePrice: priceForLine, lineNets: netsForLine }
 }

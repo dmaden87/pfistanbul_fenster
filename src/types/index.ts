@@ -1,65 +1,48 @@
-/** Fenster oder Tür – bestimmt, welche Bauarten überhaupt in Frage kommen. */
-export type SizeKind = 'fenster' | 'tuer'
-
-/** Bauart: Spannrahmen, Plissee fürs Fenster, Plissee für die Balkontür. */
-export interface BuildType {
-  id: string
-  name: string
-  shortName: string
-  tagline: string
-  description: string
-  /** Für welche Art Öffnung diese Bauart gebaut wird. */
-  kind: SizeKind
-  /** Faktor auf den berechneten Grundpreis. Plissee Fenster = 1. */
-  factor: number
-  bestFor: string
-  features: string[]
-  /** Der Nachteil, den man ehrlicherweise dazusagt. */
-  caveat: string
-}
-
-/** Gewebe als eigene Wahl – der Aufschlag rechnet pro Quadratmeter. */
-export interface MeshOption {
-  id: string
-  name: string
-  short: string
-  surchargePerM2: number
-  description: string
-  stops: string
-  tradeoff: string
-  /** Richtwerte des Marktes, keine Zusicherung über das eingekaufte Material. */
-  spec: string
-  openArea: string
-}
-
-/** Eine im Pfisterhölzli vorkommende Standardöffnung. */
-export interface StandardSize {
+/** Einer der vier realen Fenstertypen der Überbauung. */
+export interface WindowType {
   id: string
   label: string
+  /** Breite in cm. */
   widthCm: number
+  /** Höhe in cm. */
   heightCm: number
-  kind: SizeKind
+  /** Fläche in m², wie im Kostenkonzept ausgewiesen. */
+  areaM2: number
   room: string
   note?: string
+  /** Fester Verkaufspreis in CHF. */
+  priceChf: number
 }
+
+/** Ein Set aus mehreren Netzen zum festen Zielpreis. */
+export interface NetSet {
+  id: string
+  label: string
+  description: string
+  items: { typeId: string; count: number }[]
+  /** Fester Zielpreis in CHF. */
+  priceChf: number
+}
+
+export type CartLineKind = 'einzel' | 'set'
 
 export interface CartLine {
   id: string
-  buildId: string
-  sizeId: string
-  meshId: string
+  kind: CartLineKind
+  /** Fenstertyp-Id oder Set-Id. */
+  refId: string
   quantity: number
 }
 
 export interface CartTotals {
-  itemCount: number
-  subtotalChf: number
-  discountChf: number
-  discountRate: number
+  /** Anzahl Netze insgesamt – Sets zählen mit ihren Einzelnetzen. */
+  netCount: number
+  netsChf: number
+  /** Ersparnis gegenüber den Einzelpreisen, nur durch Sets. */
+  savingsChf: number
+  montageChf: number
   shippingChf: number
   totalChf: number
-  discountLabel: string | null
-  nextTier: { elements: number; rate: number } | null
 }
 
 export interface CustomerDetails {
@@ -74,8 +57,6 @@ export interface CustomerDetails {
 
 export interface CustomRequestLine {
   id: string
-  buildId: string
-  meshId: string
   widthCm: string
   heightCm: string
   quantity: string

@@ -16,15 +16,15 @@ const PROMISES = [
   },
   {
     title: '14 Tage Rückgabe',
-    text: 'Auf Standardgrössen, unbeschädigt, ohne Begründung. Das Schweizer Recht verlangt das im Fernabsatz nicht – wir machen es trotzdem.',
+    text: 'Auf Netze aus dem Standardsortiment, unbeschädigt, ohne Begründung. Das Schweizer Recht verlangt das im Fernabsatz nicht – wir machen es trotzdem.',
   },
   {
     title: '2 Jahre Garantie',
     text: 'Auf Rahmen, Gewebe und Mechanik. Reisst eine Naht oder klemmt die Schiene, kommen wir vorbei.',
   },
   {
-    title: 'Lieferung in 5 Werktagen',
-    text: 'Standardgrössen liefern wir innerhalb von fünf Werktagen an Ihre Wohnungstür. Sonderanfertigungen in zwei Wochen ab Ihrer Zusage.',
+    title: 'Offene Karten beim Termin',
+    text: 'Wir produzieren in Sammelbestellungen. Bei der Bestätigung sagen wir Ihnen, wie viele Netze noch fehlen und wann die Runde voraussichtlich losgeht – und melden uns, wenn sich etwas verschiebt.',
   },
 ]
 

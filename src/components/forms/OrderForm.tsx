@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { CustomerDetails, SubmissionState } from '../../types'
 import type { UseCart } from '../../hooks/useCart'
-import { buildById, meshById, sizeById } from '../../data/catalog'
+import { netsInSet, setById, typeById } from '../../data/catalog'
 import { formatChf, formatSize } from '../../lib/format'
 import { priceForLine } from '../../lib/pricing'
 import { priceNote, shopConfig } from '../../data/shopConfig'
@@ -22,7 +22,7 @@ interface OrderFormProps {
  * für Schweizer Onlineshops (Hinweis auf die technischen Schritte, technische
  * Mittel zur Fehlerkorrektur vor Abgabe der Bestellung).
  */
-const STEPS = ['Grösse wählen', 'Warenkorb', 'Adresse', 'Prüfen & bestellen'] as const
+const STEPS = ['Netze wählen', 'Warenkorb', 'Adresse', 'Prüfen & bestellen'] as const
 
 export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
   const [customer, setCustomer] = useState<CustomerDetails>({ ...emptyCustomer, zip: '8606', city: 'Greifensee' })
@@ -30,7 +30,7 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
   const [state, setState] = useState<SubmissionState>({ status: 'idle' })
   const [step, setStep] = useState<'adresse' | 'pruefen'>('adresse')
 
-  const { lines, totals, clear } = cart
+  const { lines, totals, montage, clear } = cart
 
   const handleContinue = (event: React.FormEvent) => {
     event.preventDefault()
@@ -46,7 +46,7 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
     setState({ status: 'sending' })
 
     try {
-      await submitToOperator({ kind: 'bestellung', customer, lines, reference })
+      await submitToOperator({ kind: 'bestellung', customer, lines, reference, montage })
       setState({ status: 'success', reference })
       clear()
     } catch (error) {
@@ -76,10 +76,13 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
         <span className="confirmation__reference">Referenz {state.reference}</span>
         <ul className="confirmation__next">
           <li>Wir prüfen die Masse und melden uns, falls etwas unklar ist.</li>
-          <li>Wir vereinbaren einen Termin für die Übergabe im Pfisterhölzli.</li>
           <li>
-            Passt das Netz wider Erwarten nicht, tauschen wir es kostenlos. Auf Standardgrössen gilt zusätzlich unser
-            freiwilliges Rückgaberecht von {shopConfig.returnDays} Tagen.
+            Sobald {shopConfig.minimumBatchNets} Netze für die nächste Sammelbestellung zusammen sind, geht sie in
+            Produktion. Wir melden uns mit dem Termin.
+          </li>
+          <li>
+            Passt ein Netz wider Erwarten nicht, tauschen wir es kostenlos. Zusätzlich gilt unser freiwilliges
+            Rückgaberecht von {shopConfig.returnDays} Tagen.
           </li>
         </ul>
         <button type="button" className="btn btn--ghost" style={{ marginTop: 'var(--space-7)' }} onClick={onBackToShop}>
@@ -213,20 +216,28 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
 
               <ul className="review-lines">
                 {lines.map((line) => {
-                  const build = buildById(line.buildId)
-                  const size = sizeById(line.sizeId)
-                  const mesh = meshById(line.meshId)
-                  if (!build || !size || !mesh) return null
+                  const set = line.kind === 'set' ? setById(line.refId) : undefined
+                  const type = line.kind === 'einzel' ? typeById(line.refId) : undefined
+                  const title = set?.label ?? type?.label
+                  if (!title) return null
+                  const detail = set
+                    ? `${netsInSet(set)} Netze`
+                    : type
+                      ? formatSize(type.widthCm, type.heightCm)
+                      : ''
                   return (
                     <li key={line.id}>
                       <span>
-                        {line.quantity}× {build.shortName} · {size.label} (
-                        {formatSize(size.widthCm, size.heightCm)}, {mesh.short})
+                        {line.quantity}× {title} ({detail})
                       </span>
                       <span>{formatChf(priceForLine(line))}</span>
                     </li>
                   )
                 })}
+                <li>
+                  <span>Montage durch uns</span>
+                  <span>{montage ? formatChf(totals.montageChf) : 'nein, Selbstmontage'}</span>
+                </li>
               </ul>
             </div>
 
@@ -254,8 +265,8 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
                 {state.status === 'sending' ? 'Wird gesendet …' : 'Jetzt verbindlich bestellen'}
               </button>
               <p className="form-actions__hint">
-                Sie erhalten anschliessend eine Bestätigung per E-Mail. Lieferung innerhalb von{' '}
-                {shopConfig.deliveryWorkdays} Werktagen.
+                Sie erhalten anschliessend eine Bestätigung per E-Mail. Produziert wird in Sammelbestellungen – sobald{' '}
+                {shopConfig.minimumBatchNets} Netze zusammen sind, geht die Runde los und wir nennen Ihnen den Termin.
               </p>
             </div>
           </>
@@ -266,19 +277,22 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
         <h3>Ihre Bestellung</h3>
         <ul>
           {lines.map((line) => {
-            const build = buildById(line.buildId)
-            const size = sizeById(line.sizeId)
-            const mesh = meshById(line.meshId)
-            if (!build || !size || !mesh) return null
+            const set = line.kind === 'set' ? setById(line.refId) : undefined
+            const type = line.kind === 'einzel' ? typeById(line.refId) : undefined
+            const title = set?.label ?? type?.label
+            if (!title) return null
+            const meta = set
+              ? `${netsInSet(set)} Netze im Set`
+              : type
+                ? `${formatSize(type.widthCm, type.heightCm)} · ${type.room}`
+                : ''
             return (
               <li key={line.id}>
                 <div>
                   <p className="checkout__item-title">
-                    {line.quantity}× {build.shortName}
+                    {line.quantity}× {title}
                   </p>
-                  <p className="checkout__item-meta">
-                    {size.label} · {formatSize(size.widthCm, size.heightCm)} · {mesh.short}
-                  </p>
+                  <p className="checkout__item-meta">{meta}</p>
                 </div>
                 <span>{formatChf(priceForLine(line))}</span>
               </li>
@@ -288,13 +302,19 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
 
         <dl className="totals">
           <div>
-            <dt>Zwischentotal</dt>
-            <dd>{formatChf(totals.subtotalChf)}</dd>
+            <dt>Netze ({totals.netCount})</dt>
+            <dd>{formatChf(totals.netsChf)}</dd>
           </div>
-          {totals.discountChf > 0 && (
+          {totals.savingsChf > 0 && (
             <div className="totals__discount">
-              <dt>{totals.discountLabel}</dt>
-              <dd>−{formatChf(totals.discountChf)}</dd>
+              <dt>Im Set gespart</dt>
+              <dd>−{formatChf(totals.savingsChf)}</dd>
+            </div>
+          )}
+          {montage && (
+            <div>
+              <dt>Montage</dt>
+              <dd>{formatChf(totals.montageChf)}</dd>
             </div>
           )}
           <div>

@@ -18,11 +18,11 @@ const FAQ: GatedFaqItem[] = [
   },
   {
     q: 'Woher wissen Sie, welche Grösse zu meiner Wohnung passt?',
-    a: 'Die Siedlung wurde Anfang der Siebzigerjahre als Ganzes gebaut, entsprechend wiederholen sich dieselben Fensterformate über die Häuser hinweg. Unsere Grössenempfehlung pro Wohnungstyp beruht darauf. Weil ab 1993 etappenweise saniert wurde, können die Rahmenprofile aber von Haus zu Haus abweichen – deshalb bitten wir Sie, vor dem Bestellen einmal nachzumessen. Und falls es trotzdem nicht passt: Wir tauschen kostenlos.',
+    a: 'Wir haben sie ausgemessen. Die Siedlung wurde Anfang der Siebzigerjahre als Ganzes gebaut, entsprechend wiederholen sich vier Fensterformate über alle Wohnungen: Bad, Küche, Zimmer und Balkontüre. Weil ab 1993 etappenweise saniert wurde, können einzelne Rahmenprofile abweichen – messen Sie vor dem Bestellen einmal nach. Falls es trotzdem nicht passt, tauschen wir kostenlos.',
   },
   {
-    q: 'Was genau ist der Unterschied zwischen Plissee und Spannrahmen?',
-    a: 'Der Spannrahmen ist ein fester Rahmen, der vor dem Fenster hängt – günstig und robust, aber immer im Bild. Das Plissee liegt in Falten in einer schmalen Schiene: Sie ziehen es zu, wenn Sie lüften, und wieder auf, wenn Sie freie Sicht wollen. Für Fenster, die täglich benutzt werden, lohnt sich das Plissee fast immer.',
+    q: 'Warum kostet das Zimmer-Netz kaum mehr als das Badfenster?',
+    a: 'Weil unser Preis nicht nur der Fläche folgt. Das Zimmer-Netz ist mit knapp zwei Quadratmetern mehr als doppelt so gross wie das Badfenster, kostet aber nur fünf Franken mehr – pro Quadratmeter ist es damit das mit Abstand günstigste im Sortiment. Das ist Absicht: Von diesem Format hängen drei bis vier Stück in jeder Wohnung, dort soll es niemandem weh tun.',
   },
   {
     requiresPollen: true,
@@ -31,7 +31,7 @@ const FAQ: GatedFaqItem[] = [
   },
   {
     q: 'Wie schnell habe ich das Netz?',
-    a: 'Standardgrössen haben wir vorrätig oder innerhalb weniger Tage. Sonderanfertigungen dauern in der Regel ein bis zwei Wochen ab Ihrer Zusage. Den genauen Termin nennen wir bei der Bestätigung.',
+    a: 'Wir produzieren in Sammelbestellungen, nicht einzeln. Sobald genug Netze für eine Runde zusammengekommen sind, geht sie in Produktion – so bleibt die Fracht bezahlbar, und genau daher kommt der tiefe Preis. Wie viele noch fehlen, sagen wir Ihnen bei der Bestätigung, und den Termin, sobald er steht.',
   },
   {
     q: 'Wie und wann bezahle ich?',
@@ -39,11 +39,11 @@ const FAQ: GatedFaqItem[] = [
   },
   {
     q: 'Und wenn es doch nicht passt oder mir nicht gefällt?',
-    a: 'Bei Standardgrössen tauschen oder nehmen wir innerhalb von 14 Tagen zurück, solange das Netz unbeschädigt ist. Bei Sonderanfertigungen messen wir vorher gemeinsam nach – wenn dabei etwas schiefgeht, ist es unser Fehler und unsere Sache.',
+    a: 'Netze aus dem Standardsortiment nehmen wir innerhalb von 14 Tagen zurück oder tauschen sie, solange sie unbeschädigt sind. Bei Sondermassen messen wir vorher gemeinsam nach – wenn dabei etwas schiefgeht, ist es unser Fehler und unsere Sache.',
   },
   {
     q: 'Kann ich das Netz im Winter abnehmen?',
-    a: 'Beim Spannrahmen: ja, in einer Minute ausgehängt. Beim Plissee muss es gar nicht weg – zusammengezogen verschwindet es in einer schmalen Leiste am Fensterrand und stört auch im Winter nicht.',
+    a: 'Es muss gar nicht weg. Zusammengezogen verschwindet das Plissee in einer schmalen Leiste am Fensterrand und stört auch im Winter nicht. Wer es trotzdem abnehmen will: Der Rahmen lässt sich aushängen.',
   },
   {
     q: 'Wie reinige ich das Gewebe?',
@@ -51,7 +51,7 @@ const FAQ: GatedFaqItem[] = [
   },
   {
     q: 'Ich wohne nicht im Pfisterhölzli – bekomme ich trotzdem etwas?',
-    a: 'Ja. Die Standardgrössen sind auf unsere Siedlung zugeschnitten, passen aber in viele Wohnungen der Umgebung. Wenn Sie unsicher sind, stellen Sie einfach eine Anfrage mit Ihren Massen. Die Lieferung ausserhalb der Siedlung sprechen wir individuell ab.',
+    a: 'Ja. Die vier Formate sind auf unsere Siedlung ausgemessen, passen aber in viele Wohnungen der Umgebung. Wenn Sie unsicher sind, stellen Sie einfach eine Anfrage mit Ihren Massen – wir rechnen sie in der nächsten Sammelbestellung mit. Die Lieferung ausserhalb der Siedlung sprechen wir individuell ab.',
   },
 ]
 

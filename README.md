@@ -3,15 +3,15 @@
 Webshop und Werbeseite für Insektenschutz – zugeschnitten auf die Wohnsiedlung
 **Am Pfisterhölzli in Greifensee ZH**.
 
-Die Seite verfolgt zwei Ziele gleichzeitig: Sie soll verkaufen (Standardgrössen
-sind direkt bestellbar) und werben (der grössere Teil der Seite erklärt Nutzen,
+Die Seite verfolgt zwei Ziele gleichzeitig: Sie soll verkaufen (die vier
+Fensterformate sind direkt bestellbar) und werben (der grössere Teil der Seite erklärt Nutzen,
 Technik und Vertrauen). Beides teilt sich denselben visuellen Rahmen.
 
 ## Zwei Wege für Kundinnen und Kunden
 
 | Weg | Für wen | Was passiert |
 | --- | --- | --- |
-| **Direktbestellung** | Bewohnerinnen und Bewohner des Pfisterhölzli | Wohnungstyp wählen → passendes Netz-Paket → Warenkorb → Bestellformular |
+| **Direktbestellung** | Bewohnerinnen und Bewohner des Pfisterhölzli | Set oder einzelne Netze → Warenkorb → Bestellformular |
 | **Bestellanfrage** | Alle anderen Masse und Wohnungen | Anzahl und Masse angeben → Offerte per Mail |
 
 Beide Wege enden in einer E-Mail an den Betreiber. Es wird nichts abgebucht und
@@ -61,79 +61,104 @@ darauf hin.
 > Nachrichten an das Postfach schicken. Bei Spam lässt sich der Key beim Dienst
 > jederzeit tauschen.
 
-## Preise: zwei Zahlen, eine Formel
+## Sortiment und Preise
 
-Es gibt keine handgetippte Preisliste. Jeder Preis entsteht aus
+Vier Fenstertypen, ausgemessen in der Überbauung, mit festen Preisen. Keine
+Formel, keine Konfiguration – die Zahlen stammen aus dem Detailkonzept
+«Preise & Kosten» vom 1.9.2026 und stehen in `src/data/catalog.ts`.
 
-```
-(Grundpreis + (Quadratmeterrate + Gewebeaufschlag) × m²) × Faktor der Bauart
-```
+| Typ | Masse | Fläche | Preis |
+| --- | --- | --- | --- |
+| Bad | 117 × 82.5 cm | 0.965 m² | CHF 120 |
+| Küche | 72.5 × 122 cm | 0.885 m² | CHF 120 |
+| Zimmer | 160.5 × 122 cm | 1.958 m² | CHF 125 |
+| Balkontüre | 84 × 206 cm | 1.730 m² | CHF 135 |
 
-aufgerundet auf volle fünf Franken. In `src/lib/pricing.ts` stehen
-`BASE_CHF = 39` und `RATE_CHF_PER_M2 = 85` – über diese beiden Zahlen lässt
-sich der ganze Shop neu bepreisen. Die Faktoren der Bauarten (Spannrahmen 0.65,
-Plissee Fenster 1.00, Plissee Balkontür 1.35) stehen in `src/data/catalog.ts`.
+Dazu zwei Sets zum festen Zielpreis. Der ausgewiesene Rabatt wird aus der
+Summe der Einzelpreise zurückgerechnet, nicht separat gepflegt:
 
-Der flächenunabhängige Grundpreis macht kleine Elemente pro Quadratmeter teurer
-als grosse. Das ist Absicht und ehrlich: Ein kleiner Rahmen braucht gleich viele
-Handgriffe wie ein grosser.
+| Set | Inhalt | Einzeln | Preis | Ersparnis |
+| --- | --- | --- | --- | --- |
+| Mittel | 3× Zimmer, Balkontüre, Bad, Küche | CHF 750 | **CHF 660** | CHF 90 (12.0 %) |
+| Gross | 4× Zimmer, Balkontüre, Bad, Küche | CHF 875 | **CHF 750** | CHF 125 (14.3 %) |
 
-Positionierung: Ein Plissee 100 × 120 cm kostet hier CHF 145. Im Baumarkt liegt
-ein Bausatz zum Selberzuschneiden bei rund CHF 100, beim Fachbetrieb beginnt ein
-vergleichbares Plissee bei mehreren hundert Franken. Unter dem Baumarktpreis zu
-liegen wäre kein Vorteil – es würde das Passgenauigkeitsversprechen
-unglaubwürdig machen.
+Montage durch den Betreiber kostet CHF 15 pro Fenster, auch im Set. Der Haken
+dafür sitzt im Warenkorb und rechnet über alle Netze, Sets eingeschlossen.
+
+**Nachzuprüfen:** Beim Typ Balkontüre steht im Konzept «206 × 84 cm» unter der
+Spaltenüberschrift «B × H». Als Breite × Höhe gelesen wäre die Tür 84 cm hoch;
+die Bemerkung «Türhöhe» und die Fläche sprechen dafür, dass 206 cm die Höhe
+ist. Im Code steht deshalb 84 cm breit × 206 cm hoch.
+
+## Sammelbestellung statt Lagerware
+
+Produziert wird in Runden. Erst ab `minimumBatchNets` (aktuell 25 Netzen)
+trägt eine Runde ihre Frachtkosten – bei Kleinstmengen macht der Transport
+über die Hälfte der Kosten aus und das Zimmer-Netz hätte praktisch keine Marge
+mehr. Das ist keine Ausrede, sondern der Grund für den tiefen Preis, und die
+Seite sagt es entsprechend offen: im Warenkorb, in der Bestätigung, in der FAQ
+und in den AGB. Eine feste Lieferfrist ab Bestelleingang wird bewusst nirgends
+zugesichert.
 
 ## Der Pollenschutz ist bewusst abgeschaltet
 
-`shopConfig.pollenEnabled` steht auf `false`. Solange das gilt, erscheinen die
-Gewebeoption, der Vorteilstext, die FAQ-Antwort und die Tabellenzeile zum
-Pollenschutz nirgends auf der Seite.
+`shopConfig.pollenEnabled` steht auf `false`. Solange das gilt, erscheinen der
+Vorteilstext und die FAQ-Antwort zum Pollenschutz nirgends auf der Seite.
 
 Der Grund: Ein normales Insektenschutzgewebe hält keine Pollen zurück – Pollen
 sind rund sechzigmal kleiner als die Masche. Zurückgehalten werden sie nur von
-einem beschichteten Spezialgewebe, an dem sie haften bleiben. Ohne das
-Datenblatt eines solchen Gewebes wäre jede Pollenaussage nach UWG eine
-unrichtige Angabe, und Art. 13a UWG kehrt die Beweislast um: Im Streitfall
-müsste der Betreiber die Richtigkeit beweisen.
+einem beschichteten Spezialgewebe, an dem sie haften bleiben. Preis und
+Verfügbarkeit dieses Gewebes sind im Kostenkonzept ausdrücklich noch offen.
+Ohne das wäre jede Pollenaussage nach UWG eine unrichtige Angabe, und
+Art. 13a UWG kehrt die Beweislast um: Im Streitfall müsste der Betreiber die
+Richtigkeit beweisen.
 
-Sobald Handelsname, Maschenweite und Herstellerdatenblatt vorliegen: Schalter
-auf `true`, und die ganze Pollen-Geschichte erscheint. Prozentzahlen gehören
-auch dann nicht auf die Seite – die verbreiteten «bis zu 99 %» sind Bestwerte
-der Hersteller bei schwachem Wind, unabhängige Messungen liegen deutlich
-darunter.
+Sobald das Gewebe feststeht: Schalter auf `true`. Prozentzahlen gehören auch
+dann nicht auf die Seite – die verbreiteten «bis zu 99 %» sind Bestwerte der
+Hersteller bei schwachem Wind, unabhängige Messungen liegen deutlich darunter.
+
+## Bekanntes Problem: Formularversand noch nicht verifiziert
+
+Der Web3Forms-Schlüssel ist in `.env` hinterlegt und der Code sendet korrekt an
+den Endpunkt. **Ein echter Durchlauf konnte noch nicht bestätigt werden**, weil
+die Entwicklungsumgebung hinter einem Proxy liegt, der die TLS-Verbindung des
+Testbrowsers nach wenigen Sekunden kappt (`ws_closed_mid_exchange` gegen
+`api.web3forms.com:443`). Serverseitige Aufrufe lehnt Web3Forms grundsätzlich
+ab – auch mit falschem oder ganz ohne Schlüssel kommt dieselbe 403 zurück, die
+Antwort sagt also nichts über die Gültigkeit aus.
+
+Nach dem ersten Deployment deshalb zwingend:
+
+1. Die echte Domain im Web3Forms-Konto hinterlegen (der Schlüssel war für
+   «Localhost» aufgesetzt).
+2. Eine Testbestellung über die live geschaltete Seite auslösen.
+3. Prüfen, ob die Mail ankommt – und ob der Autoresponder für die
+   Kundenbestätigung eingeschaltet ist. Den verlangt Art. 3 Abs. 1 lit. s
+   Ziff. 4 UWG.
+
+Bis dahin bleibt der Bestellabschluss unbestätigt. Wer ohne Konfiguration
+testen will, setzt `VITE_ORDER_ENDPOINT=demo`: Dann ist der Ablauf vollständig
+durchklickbar, es wird nichts verschickt, und die Bestätigungsseite weist
+sichtbar darauf hin.
 
 ## Was vor dem Live-Gang noch fehlt
 
-Diese Punkte sind im Code als Kommentar markiert und bewusst nicht erfunden:
-
-1. **Fenstermasse erheben.** `src/data/catalog.ts` enthält marktübliche
-   Schweizer Fensterformate, keine Messung in der Siedlung. Für das Bausystem
-   Am Pfisterhölzli gibt es keine öffentlich belegten Masse, und die Fassaden
-   wurden ab 1993 etappenweise saniert – je Haus können andere Profile verbaut
-   sein. Die Seite formuliert deshalb «typisches Format für …» statt einer
-   Zusicherung und bittet ausdrücklich ums Nachmessen.
-2. **Zuordnung Wohnungstyp → Fenster prüfen** (ebenfalls `catalog.ts`). Die
-   Wohnungstypen (2 bis 5.5 Zimmer plus Attika) sind belegt, die Anzahl Fenster
-   je Typ ist geschätzt.
-3. **Grundpreis und Quadratmeterrate rechnen.** CHF 39 und CHF 85 sind
-   Positionierungsannahmen aus recherchierten Marktspannen, keine Kalkulation.
-   Gegen echte Einkaufspreise, Arbeitszeit und Wunschmarge prüfen. Dasselbe gilt
-   für die Rabattstaffel: Bei einem Grundpreis von CHF 39 pro Element frisst ein
-   Rabatt von 12 % einen erheblichen Teil davon.
-4. **Gewebedaten prüfen.** Maschenweite und offene Fläche in `catalog.ts` sind
-   Richtwerte des Marktes, nicht das Datenblatt des eingekauften Materials. Vor
-   der Veröffentlichung ersetzen. Markennamen wie Transpatec, Polltec oder
-   Petscreen nur verwenden, wenn genau dieses Material verbaut wird.
-5. **Beim Lieferanten abfragen, was fertigbar ist.** Davon hängt ab, wo die
-   Grenze zwischen Direktbestellung und Anfrage wirklich liegt.
-6. **Rechtsseiten ausfüllen.** Impressum, Datenschutz und AGB sind Entwürfe mit
+1. **Reale Herstellerpreise je Typ** bei 25 / 50 / 75 Stück und **reale
+   Frachtofferten** – beides steht im Kostenkonzept als offener Punkt. Die
+   Marge des Zimmer-Netzes ist die kritische Position: Bei Ankauf +20 % und
+   Fracht +30 % fällt sie auf 21 %, bei zu kleiner Sammelrunde ins Minus.
+   Entscheid Zimmer-Preis CHF 125 gegen CHF 130 steht aus.
+2. **MwSt-Status klären.** `shopConfig.vatRegistered` steht auf `false`, weil
+   die Pflicht erst ab CHF 100'000 Jahresumsatz gilt. Ist der Betreiber
+   pflichtig, auf `true` setzen – sonst ist «inkl. MwSt.» eine unrichtige
+   Angabe, umgekehrt aber auch das Fehlen.
+3. **Rechtsseiten ausfüllen.** Impressum, Datenschutz und AGB sind Entwürfe mit
    farbig markierten Lücken.
-7. **Sich vorstellen.** Der Block in `Promises.tsx` ist ein sichtbarer
+4. **Sich vorstellen.** Der Block in `Promises.tsx` ist ein sichtbarer
    Platzhalter für Name, Foto und ein paar eigene Sätze. Ein echter Name bringt
    in einer Siedlung mehr als jedes Gütesiegel – deshalb steht dort bewusst
    keine erfundene Person.
-8. **Keine erfundenen Kundenstimmen.** Es gibt bewusst keinen
+5. **Keine erfundenen Kundenstimmen.** Es gibt bewusst keinen
    Testimonial-Bereich. Sobald echte Rückmeldungen vorliegen, lohnt sich einer.
 
 ## Schweizer Pflichten, die schon umgesetzt sind
@@ -186,8 +211,8 @@ src/
 │   ├── shop/        Warenkorb-Panel
 │   └── forms/       Bestellung und Sonderanfertigung
 ├── data/
-│   ├── catalog.ts   Bauarten, Gewebe, Standardmasse, Wohnungstypen ← hier pflegen
-│   └── shopConfig.ts MwSt, Fristen, Garantie, Pollen-Schalter      ← und hier
+│   ├── catalog.ts    Fenstertypen, Masse, Preise, Sets  ← hier pflegen
+│   └── shopConfig.ts MwSt, Montage, Sammelmenge, Pollen ← und hier
 ├── lib/             Preislogik, Formatierung, Validierung, Versand
 ├── hooks/useCart.ts Warenkorb, im Browser gespeichert
 └── styles/          Design-Tokens und Grundlagen

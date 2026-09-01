@@ -166,16 +166,17 @@ function Agb() {
 
       <h2>4. Lieferfrist</h2>
       <p>
-        Standardgrössen liefern wir in der Regel innerhalb von {shopConfig.deliveryWorkdays} Werktagen,
-        Sonderanfertigungen innerhalb von {shopConfig.customWeeks} Wochen ab Zusage. Angegebene Fristen sind
-        Richtwerte; verzögert sich etwas, informieren wir Sie.
+        Wir fertigen in Sammelbestellungen. Sobald {shopConfig.minimumBatchNets} Netze zusammengekommen sind, geht
+        die Runde in Produktion; den voraussichtlichen Liefertermin nennen wir Ihnen bei der Bestätigung und halten Sie
+        auf dem Laufenden, wenn sich etwas verschiebt. Eine feste Frist ab Bestelleingang können wir deshalb nicht
+        zusichern.
       </p>
 
       <h2>5. Rückgabe und Umtausch</h2>
       <p>
         Bei Bestellungen über das Internet besteht nach Schweizer Recht kein gesetzliches Widerrufs- oder
         Rückgaberecht. Wir gewähren Ihnen freiwillig ein Rückgaberecht von {shopConfig.returnDays} Tagen ab Erhalt auf
-        Standardgrössen in unbenutztem und unbeschädigtem Zustand. Sonderanfertigungen nach Ihren Massen sind davon
+        Netze aus dem Standardsortiment in unbenutztem und unbeschädigtem Zustand. Sondermasse sind davon
         ausgenommen, weil sie nicht weiterverkauft werden können – ausser die Masse stimmen aufgrund eines Fehlers auf
         unserer Seite nicht.
       </p>
