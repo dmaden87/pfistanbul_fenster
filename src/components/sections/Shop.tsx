@@ -3,6 +3,7 @@ import type { UseCart } from '../../hooks/useCart'
 import { activeUeberbauung, netSets, netsInSet, regularPriceOfSet, typeById, windowTypes } from '../../data/catalog'
 import { priceNote, shopConfig } from '../../data/shopConfig'
 import { formatChf, formatSize } from '../../lib/format'
+import { PlisseeVisual } from './PlisseeVisual'
 import './Shop.css'
 
 interface ShopProps {
@@ -85,27 +86,44 @@ export function Shop({ cart, onOpenCart, onRequestClick }: ShopProps) {
         </div>
 
         <h3 className="shop__group-title">Oder einzeln</h3>
-        <div className="shop__panel">
-          <ul className="type-list">
-            {windowTypes.map((type) => {
-              const key = `einzel-${type.id}`
-              return (
-                <li className="type-row" key={type.id}>
-                  <div className="type-row__label">
-                    <p className="type-row__name">
-                      {type.label}
-                      {type.note && <span className="pill pill--neutral">{type.note}</span>}
-                    </p>
-                    <p className="type-row__room">{type.room}</p>
-                  </div>
+        <div className="type-grid">
+          {windowTypes.map((type, index) => {
+            const key = `einzel-${type.id}`
+            return (
+              <article className="type-card" key={type.id}>
+                <div className="type-card__visual">
+                  <PlisseeVisual
+                    direction={type.opening}
+                    ratio={type.widthCm / type.heightCm}
+                    delayMs={index * 700}
+                  />
+                </div>
 
-                  <p className="type-row__measure">{formatSize(type.widthCm, type.heightCm)}</p>
-                  <p className="type-row__area">{type.areaM2.toFixed(2).replace('.', ',')} m²</p>
-                  <p className="type-row__price">{formatChf(type.priceChf)}</p>
+                <div className="type-card__body">
+                  <header>
+                    <h4>{type.label}</h4>
+                    {type.note && <span className="pill pill--neutral">{type.note}</span>}
+                  </header>
+                  <p className="type-card__room">{type.room}</p>
+                  <p className="type-card__opening">{type.openingLabel}</p>
 
+                  <dl className="type-card__specs">
+                    <div>
+                      <dt>Masse</dt>
+                      <dd>{formatSize(type.widthCm, type.heightCm)}</dd>
+                    </div>
+                    <div>
+                      <dt>Fläche</dt>
+                      <dd>{type.areaM2.toFixed(2).replace('.', ',')} m²</dd>
+                    </div>
+                  </dl>
+                </div>
+
+                <footer className="type-card__foot">
+                  <p className="type-card__price">{formatChf(type.priceChf)}</p>
                   <button
                     type="button"
-                    className={`btn btn--ghost type-row__add${justAdded === key ? ' type-row__add--done' : ''}`}
+                    className={`btn btn--ghost type-card__add${justAdded === key ? ' type-card__add--done' : ''}`}
                     onClick={() => {
                       cart.add('einzel', type.id)
                       flash(key)
@@ -113,20 +131,20 @@ export function Shop({ cart, onOpenCart, onRequestClick }: ShopProps) {
                   >
                     {justAdded === key ? 'Hinzugefügt ✓' : 'In den Warenkorb'}
                   </button>
-                </li>
-              )
-            })}
-          </ul>
+                </footer>
+              </article>
+            )
+          })}
+        </div>
 
-          <div className="shop__foot">
-            <p>
-              {priceNote} Lieferung innerhalb der Siedlung kostenlos. Montage durch uns auf Wunsch{' '}
-              {formatChf(shopConfig.montageChf)} pro Fenster – auch im Set. Den Haken dafür setzen Sie im Warenkorb.
-            </p>
-            <button type="button" className="btn btn--quiet" onClick={onOpenCart}>
-              Warenkorb ansehen
-            </button>
-          </div>
+        <div className="shop__foot">
+          <p>
+            {priceNote} Lieferung innerhalb der Siedlung kostenlos. Montage durch uns auf Wunsch{' '}
+            {formatChf(shopConfig.montageChf)} pro Fenster – auch im Set. Den Haken dafür setzen Sie im Warenkorb.
+          </p>
+          <button type="button" className="btn btn--quiet" onClick={onOpenCart}>
+            Warenkorb ansehen
+          </button>
         </div>
 
         <aside className="shop__custom">

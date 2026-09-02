@@ -60,39 +60,48 @@
   stroke: var(--border);
 }
 
-.m-reveal {
+/* Aeusserer Fensterrahmen */
+.m-frame {
   fill: var(--bg-alt);
-  stroke: var(--border-strong);
-  stroke-width: 1.5;
-}
-
-.m-glass {
-  fill: color-mix(in srgb, var(--accent-soft) 65%, transparent);
-  stroke: var(--border-strong);
-}
-
-.m-sash {
   stroke: var(--border-strong);
   stroke-width: 2;
 }
 
-.m-sill {
-  fill: var(--border-strong);
+/* Der rund 5 cm breite Netzrahmen */
+.m-band {
+  fill: var(--accent);
+  opacity: 0.85;
+}
+
+/* Gewebeflaeche */
+.m-mesh {
+  fill: color-mix(in srgb, var(--accent-soft) 70%, transparent);
+  stroke: color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 .m-dim line {
-  stroke: var(--accent);
+  stroke: var(--accent-ink);
   stroke-width: 1.5;
 }
 
 .m-dim text {
   fill: var(--accent-ink);
   font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
 }
 
-.m-note {
+.m-callout line {
+  stroke: var(--text-subtle);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.m-callout circle {
+  fill: var(--accent);
+}
+
+.m-callout text {
   fill: var(--text-subtle);
   font-family: var(--font-sans);
   font-size: 12px;

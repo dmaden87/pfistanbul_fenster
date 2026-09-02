@@ -121,6 +121,15 @@ gehören nie auf die Seite**: Die verbreiteten «bis zu 99 %» sind Bestwerte de
 Hersteller bei schwachem Wind, unabhängige Messungen liegen bei 51–66 %, und
 Art. 13a UWG kehrt die Beweislast um.
 
+## Betrieb noch im Aufbau
+
+`shopConfig.operational` steht auf `false`. Solange das gilt, erscheint vor dem
+Absenden einer Bestellung oder Anfrage ein deutlich sichtbarer Hinweis, dass
+der Betrieb noch im Aufbau ist und sich jemand persönlich meldet; der Knopf
+heisst «Bestellung absenden» statt «Jetzt verbindlich bestellen», und die
+Bestätigungsseite wiederholt den Hinweis. Sobald der Ablauf steht: Schalter auf
+`true`, dann verschwindet das alles.
+
 ## Deployment auf Vercel
 
 Das Repository direkt in Vercel importieren. Der Branch
@@ -201,8 +210,10 @@ sichtbar darauf hin.
    die Pflicht erst ab CHF 100'000 Jahresumsatz gilt. Ist der Betreiber
    pflichtig, auf `true` setzen – sonst ist «inkl. MwSt.» eine unrichtige
    Angabe, umgekehrt aber auch das Fehlen.
-3. **Rechtsseiten ausfüllen.** Impressum, Datenschutz und AGB sind Entwürfe mit
-   farbig markierten Lücken.
+3. **Sitzstaat des Formulardienstes eintragen.** In `src/data/operator.ts`
+   unter `formServiceCountry`. Art. 19 Abs. 4 DSG verlangt bei einer Bekanntgabe
+   ins Ausland die Angabe des Staates; bis dahin steht in der
+   Datenschutzerklärung eine markierte Lücke. Es ist die einzige verbliebene.
 4. **Sich vorstellen.** Der Block in `Promises.tsx` ist ein sichtbarer
    Platzhalter für Name, Foto und ein paar eigene Sätze. Ein echter Name bringt
    in einer Siedlung mehr als jedes Gütesiegel – deshalb steht dort bewusst

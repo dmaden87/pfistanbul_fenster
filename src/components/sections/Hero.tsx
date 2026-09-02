@@ -36,7 +36,7 @@ export function Hero({ onShopClick, onRequestClick }: HeroProps) {
               Sortiment Pfisterhölzli
             </button>
             <button type="button" className="btn btn--ghost btn--lg" onClick={onRequestClick}>
-              Mein Fenster ausmessen lassen
+              Mein Fenster ausmessen
             </button>
           </div>
 

@@ -22,6 +22,8 @@ const pfisterhoelzliTypes: WindowType[] = [
     room: 'Bad und WC',
     note: 'Querformat',
     priceChf: 120,
+    opening: 'nach-links',
+    openingLabel: 'Öffnet seitlich, von rechts nach links',
   },
   {
     id: 'kueche',
@@ -31,6 +33,8 @@ const pfisterhoelzliTypes: WindowType[] = [
     areaM2: 0.885,
     room: 'Küche',
     priceChf: 120,
+    opening: 'nach-oben',
+    openingLabel: 'Öffnet von unten nach oben',
   },
   {
     id: 'zimmer',
@@ -41,6 +45,8 @@ const pfisterhoelzliTypes: WindowType[] = [
     room: 'Wohn-, Schlaf- und Kinderzimmer',
     note: 'Drei bis vier pro Wohnung',
     priceChf: 125,
+    opening: 'mitte',
+    openingLabel: 'Zwei Netze, die sich in der Mitte treffen – öffnen nach beiden Seiten',
   },
   {
     id: 'balkontuer',
@@ -50,6 +56,8 @@ const pfisterhoelzliTypes: WindowType[] = [
     areaM2: 1.73,
     room: 'Balkon und Loggia',
     priceChf: 135,
+    opening: 'nach-rechts',
+    openingLabel: 'Öffnet seitlich, von links nach rechts',
   },
 ]
 
@@ -107,33 +115,45 @@ export const windowTypes = activeUeberbauung.windowTypes
 export const netSets = activeUeberbauung.sets
 
 /**
- * Produktebene: Das Gewebe gehört zum Produkt, nicht zur Überbauung.
+ * Produktebene: Aufbau des Netzes. Gilt für jede Überbauung gleich.
  *
- * ACHTUNG: Pollenschutz steht bewusst auf "anfrage". Preis und Verfügbarkeit
- * des Gewebes sind laut Kostenkonzept noch offen – wir bieten es deshalb als
- * Option an, nicht als bestellbaren Artikel, und nennen keine Rückhalterate.
+ * KEIN POLLENSCHUTZ: Bewusst nicht im Sortiment, solange das Gewebe nicht
+ * eingekauft ist. Ein normales Insektenschutzgewebe hält keine Pollen zurück –
+ * Pollen sind rund sechzigmal kleiner als die Masche. Nötig wäre ein
+ * beschichtetes Spezialgewebe. Solange das nicht vorliegt, darf auf der Seite
+ * weder von Pollen noch von einer Rückhalterate die Rede sein: Das wäre nach
+ * UWG eine unrichtige Angabe, und Art. 13a UWG kehrt die Beweislast um.
  */
-export const meshOptions: MeshOption[] = [
+export const construction: MeshOption[] = [
   {
-    id: 'standard',
-    name: 'Standardgewebe',
-    short: 'Standard',
+    id: 'rahmen',
+    name: 'Der Rahmen',
+    short: 'Rahmen',
     availability: 'standard',
     description:
-      'Fiberglasgewebe, grau beschichtet. Viel Luft, viel Licht, sehr langlebig – und von aussen kaum zu sehen. In jedem Preis inbegriffen.',
-    stops: 'Stechmücken, Fliegen, Wespen, Hornissen, Motten',
-    tradeoff: 'Ganz kleine Insekten wie Gnitzen kommen durch, und katzensicher ist es nicht.',
+      'Ein rund fünf Zentimeter breiter Rahmen, in dem das Netz in feinen Falten läuft. Er wird von aussen in den äusseren Fensterrahmen gedrückt – er sitzt also vor dem Fenster, nicht darin.',
+    stops: 'Bleibt das ganze Jahr montiert',
+    tradeoff: 'Er trägt vor dem Fenster auf und ist von aussen sichtbar.',
   },
   {
-    id: 'pollen',
-    name: 'Pollenschutzgewebe',
-    short: 'Pollenschutz',
-    availability: 'anfrage',
+    id: 'befestigung',
+    name: 'Die Befestigung',
+    short: 'Befestigung',
+    availability: 'standard',
     description:
-      'Pollen sind zu klein für jede Masche – rund sechzigmal kleiner als die Öffnungen im Standardgewebe. Zurückgehalten werden sie von einer Spezialbeschichtung, an der sie haften bleiben. Wer im Frühling schlecht schläft, merkt den Unterschied zuerst im Schlafzimmer.',
-    stops: 'Insekten und einen erheblichen Teil des Blütenstaubs',
-    tradeoff:
-      'Deutlich weniger Luft und Durchsicht, und die Beschichtung lässt über die Jahre nach. Ein vollständiger Schutz ist es nicht, und eine Behandlung ersetzt es nicht.',
+      'Doppelseitiges Klebeband auf allen vier Seiten. Kein Bohren, keine Dübel, keine Schrauben – und damit auch keine Rückfrage bei der Verwaltung und keine Löcher bei der Wohnungsabgabe.',
+    stops: 'Hält ohne einen einzigen Dübel',
+    tradeoff: 'Der Fensterrahmen muss sauber und trocken sein, damit das Band greift.',
+  },
+  {
+    id: 'gewebe',
+    name: 'Das Gewebe',
+    short: 'Gewebe',
+    availability: 'standard',
+    description:
+      'Fiberglasgewebe in Grau. Viel Luft, viel Licht, sehr langlebig – und von aussen kaum zu sehen. Umlaufend mit einer Bürstendichtung, damit kein Spalt bleibt: Zwei Millimeter Lücke machen das beste Gewebe wirkungslos.',
+    stops: 'Stechmücken, Fliegen, Wespen, Hornissen, Motten',
+    tradeoff: 'Ganz kleine Insekten wie Gnitzen kommen durch, und katzensicher ist es nicht.',
   },
 ]
 
@@ -150,7 +170,7 @@ export const priceRange = {
 
 const typeIndex = new Map(ueberbauungen.flatMap((u) => u.windowTypes).map((type) => [type.id, type]))
 const setIndex = new Map(ueberbauungen.flatMap((u) => u.sets).map((set) => [set.id, set]))
-const meshIndex = new Map(meshOptions.map((mesh) => [mesh.id, mesh]))
+const meshIndex = new Map(construction.map((part) => [part.id, part]))
 
 export function meshById(id: string): MeshOption | undefined {
   return meshIndex.get(id)

@@ -79,6 +79,7 @@
 
   --highlight: #d98324;
   --highlight-soft: #fbeedd;
+  --highlight-ink: #7a4408;
 
   --success: #1c7a55;
   --success-soft: #dff0e7;
@@ -123,6 +124,7 @@
 
     --highlight: #e9a253;
     --highlight-soft: #33261a;
+    --highlight-ink: #f0c48c;
 
     --success: #4cc294;
     --success-soft: #14332a;
@@ -171,6 +173,7 @@
 
   --highlight: #e9a253;
   --highlight-soft: #33261a;
+  --highlight-ink: #f0c48c;
 
   --success: #4cc294;
   --success-soft: #14332a;

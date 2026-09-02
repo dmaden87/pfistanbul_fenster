@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { CustomRequestLine, CustomerDetails, SubmissionState } from '../../types'
 import { ContactFields } from './ContactFields'
+import { PreLaunchNotice } from './PreLaunchNotice'
 import { emptyCustomer, hasErrors, validateCustomLines, validateCustomer, type Errors } from '../../lib/validate'
 import { isDemoMode, makeReference, submitToOperator } from '../../lib/submitOrder'
 import './forms.css'
@@ -86,8 +87,9 @@ export function CustomRequestForm() {
           Wir rechnen Ihre Masse durch und melden uns mit einer verbindlichen Offerte – an Werktagen innert 24 Stunden.
         </p>
         <span className="confirmation__reference">Referenz {state.reference}</span>
+        <PreLaunchNotice variant="bestaetigung" />
         <ul className="confirmation__next">
-          <li>Sie erhalten eine Offerte mit Preis, Gewebe und Liefertermin.</li>
+          <li>Sie erhalten eine Offerte mit Preis und Liefertermin.</li>
           <li>Erst wenn Sie zusagen, produzieren wir – vorher entstehen keine Kosten.</li>
           <li>Passt etwas nicht, antworten Sie einfach auf unsere Mail.</li>
         </ul>
@@ -244,6 +246,8 @@ export function CustomRequestForm() {
           </span>
         </label>
       </div>
+
+      <PreLaunchNotice variant="anfrage" />
 
       {state.status === 'error' && <p className="form-status form-status--error">{state.message}</p>}
 

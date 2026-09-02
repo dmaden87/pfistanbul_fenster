@@ -7,7 +7,7 @@ import { Hero } from './components/sections/Hero'
 import { TrustBar } from './components/sections/TrustBar'
 import { Benefits } from './components/sections/Benefits'
 import { TwoPaths } from './components/sections/TwoPaths'
-import { Meshes } from './components/sections/Meshes'
+import { Construction } from './components/sections/Construction'
 import { Shop } from './components/sections/Shop'
 import { HowItWorks } from './components/sections/HowItWorks'
 import { Measuring } from './components/sections/Measuring'
@@ -73,7 +73,7 @@ export default function App() {
             <TrustBar />
             <Benefits />
             <TwoPaths onStandardClick={() => goToAnchor('groessen')} onCustomClick={() => goToAnchor('anfrage')} />
-            <Meshes />
+            <Construction />
             <Shop cart={cart} onOpenCart={() => setCartOpen(true)} onRequestClick={() => goToAnchor('anfrage')} />
             <HowItWorks />
             <Measuring />

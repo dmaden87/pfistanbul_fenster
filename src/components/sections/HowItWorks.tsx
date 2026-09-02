@@ -9,7 +9,7 @@ const STEPS = [
   {
     n: '02',
     title: 'Wir melden uns',
-    text: 'Innerhalb eines Werktags bestätigen wir die Bestellung und nennen Ihnen den Liefertermin.',
+    text: 'Innerhalb von ein bis drei Arbeitstagen bestätigen wir die Bestellung und nennen Ihnen den Liefertermin.',
   },
   {
     n: '03',

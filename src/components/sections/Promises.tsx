@@ -11,8 +11,8 @@ import './Promises.css'
 
 const PROMISES = [
   {
-    title: 'Passgarantie',
-    text: 'Sie haben nach unserer Grössenempfehlung bestellt und es passt trotzdem nicht? Dann ist das unser Fehler. Wir passen einmalig kostenlos an oder tauschen.',
+    title: 'Passgarantie auf unsere Masse',
+    text: 'Wenn das Mass von uns stammt – aus einem ausgemessenen Sortiment oder weil wir bei Ihnen nachgemessen haben – und es passt trotzdem nicht, ist das unser Fehler: Wir passen einmalig kostenlos an oder tauschen. Bei Massen, die Sie uns selbst durchgeben, können wir das naturgemäss nicht zusagen.',
   },
   {
     title: '14 Tage Rückgabe',

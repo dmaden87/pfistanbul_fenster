@@ -6,6 +6,7 @@ import { formatChf, formatSize } from '../../lib/format'
 import { priceForLine } from '../../lib/pricing'
 import { priceNote, shopConfig } from '../../data/shopConfig'
 import { ContactFields } from './ContactFields'
+import { PreLaunchNotice } from './PreLaunchNotice'
 import { emptyCustomer, hasErrors, validateCustomer, type Errors } from '../../lib/validate'
 import { isDemoMode, makeReference, submitToOperator } from '../../lib/submitOrder'
 import './forms.css'
@@ -68,12 +69,12 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
             <path d="M5 12.5l4.5 4.5L19 7.5" />
           </svg>
         </div>
-        <h3>Danke – Ihre Bestellung ist eingegangen.</h3>
+        <h3>Danke – Ihre Bestellung ist bei uns.</h3>
         <p className="section__lead">
-          Sie bekommen von uns eine Bestätigung per E-Mail. Bezahlt wird erst bei der Übergabe oder per Rechnung – im
-          Webshop selbst wird nichts abgebucht.
+          Bezahlt wird bei der Übergabe – im Webshop selbst wird nichts abgebucht.
         </p>
         <span className="confirmation__reference">Referenz {state.reference}</span>
+        <PreLaunchNotice variant="bestaetigung" />
         <ul className="confirmation__next">
           <li>Wir prüfen die Masse und melden uns, falls etwas unklar ist.</li>
           <li>Wir bestätigen Ihnen den Liefertermin und melden uns, falls sich etwas verschiebt.</li>
@@ -242,8 +243,8 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
               <div className="form-block__head">
                 <h3>Bezahlung</h3>
                 <p>
-                  Sie zahlen erst, wenn die Netze bei Ihnen sind – bar bei der Übergabe oder per Rechnung mit TWINT. Es
-                  werden hier keine Kartendaten erfasst.
+                  Sie zahlen bei der Übergabe, in bar oder mit TWINT. Keine Anzahlung, keine Vorauszahlung – und hier
+                  werden keine Kartendaten erfasst.
                 </p>
               </div>
               <p className="form-status form-status--note">
@@ -255,14 +256,22 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
               </p>
             </div>
 
+            <PreLaunchNotice variant="bestellung" />
+
             {state.status === 'error' && <p className="form-status form-status--error">{state.message}</p>}
 
             <div className="form-actions">
               <button type="button" className="btn btn--lg" onClick={handleSubmit} disabled={state.status === 'sending'}>
-                {state.status === 'sending' ? 'Wird gesendet …' : 'Jetzt verbindlich bestellen'}
+                {state.status === 'sending'
+                  ? 'Wird gesendet …'
+                  : shopConfig.operational
+                    ? 'Jetzt verbindlich bestellen'
+                    : 'Bestellung absenden'}
               </button>
               <p className="form-actions__hint">
-                Sie erhalten anschliessend eine Bestätigung per E-Mail, mit dem Liefertermin.
+                {shopConfig.operational
+                  ? 'Sie erhalten anschliessend eine Bestätigung per E-Mail, mit dem Liefertermin.'
+                  : 'Wir melden uns in den nächsten Tagen persönlich bei Ihnen.'}
               </p>
             </div>
           </>

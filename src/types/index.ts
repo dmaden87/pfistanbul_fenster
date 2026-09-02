@@ -24,6 +24,12 @@ export interface MeshOption {
   tradeoff: string
 }
 
+/**
+ * Wohin sich das Netz beim Öffnen bewegt. "mitte" heisst: zwei Netze, die
+ * sich beim Schliessen in der Mitte treffen.
+ */
+export type OpeningDirection = 'nach-links' | 'nach-oben' | 'nach-rechts' | 'mitte'
+
 /** Einer der ausgemessenen Fenstertypen einer Überbauung. */
 export interface WindowType {
   id: string
@@ -38,6 +44,9 @@ export interface WindowType {
   note?: string
   /** Fester Verkaufspreis in CHF. */
   priceChf: number
+  opening: OpeningDirection
+  /** Wie die Bedienung in einem Satz erklärt wird. */
+  openingLabel: string
 }
 
 /** Ein Set aus mehreren Netzen zum festen Zielpreis. */

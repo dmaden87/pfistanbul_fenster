@@ -1,8 +1,8 @@
 import './TrustBar.css'
 
 const ITEMS = [
-  { icon: 'shield', title: 'Ohne Bohren', text: 'Klemmbefestigung – die Verwaltung hat nichts dagegen' },
-  { icon: 'ruler', title: 'Passgarantie', text: 'Stimmt das Mass nicht, tauschen wir kostenlos' },
+  { icon: 'shield', title: 'Ohne Bohren', text: 'Klebeband statt Dübel – die Verwaltung hat nichts dagegen' },
+  { icon: 'ruler', title: 'Passgarantie', text: 'Auf jedes Mass, das von uns stammt' },
   { icon: 'truck', title: 'Gratis geliefert', text: 'Wir bringen es vorbei, kein Versand' },
   { icon: 'heart', title: 'Aus der Nachbarschaft', text: 'Kein Callcenter, sondern jemand von hier' },
 ]

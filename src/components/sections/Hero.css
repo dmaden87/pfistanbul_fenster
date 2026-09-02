@@ -67,10 +67,24 @@
 }
 
 .hero__actions {
-  display: flex;
-  flex-wrap: wrap;
+  /* Beide Wege sind gleichwertig: gleiche Breite, gleiche Zeile. */
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
   margin-top: var(--space-7);
+  max-width: 34rem;
+}
+
+.hero__actions .btn {
+  width: 100%;
+  padding-inline: var(--space-4);
+  text-align: center;
+}
+
+@media (max-width: 30rem) {
+  .hero__actions {
+    grid-template-columns: 1fr;
+  }
 }
 
 .hero__proof {

@@ -4,22 +4,19 @@
  */
 export const shopConfig = {
   /**
+   * Solange false: Die Seite nimmt Bestellungen entgegen, sagt aber vor dem
+   * Absenden deutlich, dass der Betrieb noch im Aufbau ist und sich jemand
+   * persönlich meldet. Sobald der Ablauf steht, auf true setzen – dann
+   * verschwinden die Hinweise und der Abschluss ist wie gewohnt verbindlich.
+   */
+  operational: false,
+
+  /**
    * MwSt-Pflicht besteht in der Schweiz erst ab CHF 100'000 Jahresumsatz.
    * Wer nicht pflichtig ist, darf "inkl. MwSt." NICHT schreiben. Die
    * Einfuhrsteuer auf der Ware ist davon unabhängig und steckt im Preis.
    */
   vatRegistered: false,
-
-  /**
-   * Pollenschutz wird als Gewebe-Option mit Aufpreis auf Anfrage angeboten,
-   * nicht als bestellbarer Artikel – Preis und Verfügbarkeit des Gewebes sind
-   * laut Kostenkonzept noch offen. Wichtig bleibt: keine Prozentzahl zur
-   * Rückhalterate, solange kein Datenblatt vorliegt. Die verbreiteten
-   * "bis zu 99 %" sind Bestwerte der Hersteller bei schwachem Wind;
-   * unabhängige Messungen liegen deutlich darunter, und Art. 13a UWG kehrt
-   * die Beweislast um.
-   */
-  pollenEnabled: true,
 
   /** Montage durch uns, Preis pro Fenster in CHF. Gilt auch in Sets. */
   montageChf: 15,

@@ -108,84 +108,134 @@
   background: var(--success);
 }
 
-/* --- Einzelne Typen -------------------------------------------------------- */
+/* --- Einzelne Typen als Karten ------------------------------------------------ */
 
-.shop__panel {
-  padding: var(--space-6);
+.type-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.type-card {
+  display: flex;
+  flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition:
+    border-color var(--motion-base),
+    transform var(--motion-base),
+    box-shadow var(--motion-base);
 }
 
-.type-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.type-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
-.type-row {
-  /* Feste Spalten, damit Masse, Fläche und Preise über alle Zeilen fluchten. */
+/* Feste Höhe, damit alle vier Karten gleich hoch beginnen – die Skizze passt
+   sich innerhalb an, ohne ihr Seitenverhältnis zu verlieren. */
+.type-card__visual {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 9rem 5.5rem 7rem 11.5rem;
-  align-items: center;
-  gap: var(--space-5);
-  padding-block: var(--space-4);
+  place-items: center;
+  height: 9.5rem;
+  padding: var(--space-4);
+  background: var(--bg-alt);
   border-bottom: 1px solid var(--border);
 }
 
-.type-row:last-child {
-  border-bottom: none;
+.type-card__body {
+  flex: 1;
+  padding: var(--space-5);
 }
 
-.type-row__name {
+.type-card__body header {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
-  font-weight: 600;
 }
 
-.type-row__room {
-  margin-top: 0.15rem;
-  color: var(--text-subtle);
-  font-size: var(--step--1);
-}
-
-.type-row__measure,
-.type-row__area {
-  color: var(--text-muted);
-  font-size: var(--step--1);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  text-align: right;
-}
-
-.type-row__area {
-  color: var(--text-subtle);
-}
-
-.type-row__price {
-  text-align: right;
+.type-card__body h4 {
   font-family: var(--font-display);
   font-size: var(--step-1);
   font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.type-card__room {
+  margin-top: var(--space-1);
+  color: var(--text-subtle);
+  font-size: var(--step--1);
+}
+
+.type-card__opening {
+  margin-top: var(--space-3);
+  color: var(--accent-ink);
+  font-size: var(--step--1);
+  font-weight: 500;
+}
+
+.type-card__specs {
+  margin: var(--space-4) 0 0;
+  padding-top: var(--space-4);
+  border-top: 1px dashed var(--border-strong);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.type-card__specs > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--step--1);
+}
+
+.type-card__specs dt {
+  color: var(--text-subtle);
+}
+
+.type-card__specs dd {
+  margin: 0;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-.type-row__add {
+/* Vier Spalten sind zu schmal für Preis und Knopf nebeneinander – der Knopf
+   steht deshalb darunter und nimmt die volle Breite. */
+.type-card__foot {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  border-top: 1px solid var(--border);
+  background: var(--surface-raised);
+}
+
+.type-card__price {
+  font-family: var(--font-display);
+  font-size: var(--step-2);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
   white-space: nowrap;
 }
 
-.type-row__add:hover:not(:disabled) {
+.type-card__add {
+  width: 100%;
+  padding-inline: 1em;
+  white-space: nowrap;
+}
+
+.type-card__add:hover:not(:disabled) {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-contrast);
 }
 
-.type-row__add--done,
-.type-row__add--done:hover:not(:disabled) {
+.type-card__add--done,
+.type-card__add--done:hover:not(:disabled) {
   background: var(--success);
   border-color: var(--success);
   color: #ffffff;
@@ -206,6 +256,18 @@
   max-width: 62ch;
   color: var(--text-subtle);
   font-size: var(--step--2);
+}
+
+@media (max-width: 75rem) {
+  .type-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 40rem) {
+  .type-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* --- Hinweis auf Sonderanfertigung ----------------------------------------- */

@@ -1,4 +1,3 @@
-import { shopConfig } from '../../data/shopConfig'
 import './Benefits.css'
 
 interface Benefit {
@@ -21,12 +20,6 @@ const BENEFITS: Benefit[] = [
     body: 'Unser Plissee liegt in feinen Falten in einer schmalen Schiene. Sie ziehen es mit einem Finger zu und genauso leicht wieder auf. Kein Aushängen, kein Verstauen im Keller – es bleibt das ganze Jahr montiert und stört trotzdem nie die Aussicht.',
   },
   {
-    id: 'pollen',
-    headline: 'Ruhigere Nächte in der Pollensaison',
-    body: 'Ein normales Insektengitter hält Pollen nicht auf – dafür sind sie zu klein. Wer im Frühling schlecht schläft, bekommt das Netz deshalb mit beschichtetem Pollenschutzgewebe: Daran bleiben die Pollen haften, statt ins Zimmer zu ziehen. Kein vollständiger Schutz und kein Ersatz für eine Behandlung, aber die Nacht bei offenem Fenster wird spürbar erträglicher. Aufpreis auf Anfrage.',
-    meta: 'Gewebe-Option',
-  },
-  {
     id: 'preis',
     headline: 'Ehrlich gerechnet statt teuer verkauft',
     body: 'Wir kaufen direkt beim Hersteller und bündeln die Bestellungen der Nachbarschaft zu einer Fracht. Kein Zwischenhandel, kein Showroom, kein Anfahrtsweg – wir wohnen hier. Ein Fachbetrieb verlangt für vergleichbare Plissees nach Mass ein Mehrfaches.',
@@ -44,10 +37,6 @@ const BENEFITS: Benefit[] = [
 ]
 
 export function Benefits() {
-  // Der Pollen-Vorteil erscheint erst, wenn ein zertifiziertes Pollenschutz-
-  // gewebe eingekauft ist. Ohne das wäre die Aussage nach UWG angreifbar.
-  const benefits = BENEFITS.filter((benefit) => benefit.id !== 'pollen' || shopConfig.pollenEnabled)
-
   return (
     <section className="section benefits" id="vorteile">
       <div className="shell">
@@ -61,7 +50,7 @@ export function Benefits() {
         </div>
 
         <div className="benefits__grid">
-          {benefits.map((benefit, index) => (
+          {BENEFITS.map((benefit, index) => (
             <article className={`benefit${index === 0 ? ' benefit--lead' : ''}`} key={benefit.id}>
               {benefit.meta && <span className="pill">{benefit.meta}</span>}
               <h3>{benefit.headline}</h3>
