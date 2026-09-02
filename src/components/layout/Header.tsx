@@ -9,7 +9,7 @@ interface HeaderProps {
 }
 
 const NAV = [
-  { anchor: 'vorteile', label: 'Warum' },
+  { anchor: 'ueberuns', label: 'Über uns' },
   { anchor: 'aufbau', label: 'Aufbau' },
   { anchor: 'groessen', label: 'Überbauungen' },
   { anchor: 'montage', label: 'Messen & Montage' },

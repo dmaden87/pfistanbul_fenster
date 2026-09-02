@@ -109,11 +109,11 @@ function Datenschutz() {
 
       <h2>Weitergabe an Dritte</h2>
       <p>
-        Die Formularinhalte werden über den Dienst {operator.formService}
-        {operator.formServiceCountry ? ` mit Sitz in ${operator.formServiceCountry}` : ' '}
-        {!operator.formServiceCountry && <Placeholder>[Sitzstaat des Dienstes ergänzen]</Placeholder>} an unsere
-        Mailbox weitergeleitet. Der Dienst verarbeitet die Daten in unserem Auftrag. Darüber hinaus geben wir keine
-        Daten an Dritte weiter und verkaufen keine Adressen.
+        Die Formularinhalte werden über den Dienst {operator.formService} an unsere Mailbox weitergeleitet. Betrieben
+        wird er von {operator.formServiceCompany} mit Sitz in {operator.formServiceCountry}; die Server stehen in{' '}
+        {operator.formServerCountry}. Ihre Angaben werden damit ins Ausland bekanntgegeben. Der Dienst verarbeitet die
+        Daten ausschliesslich in unserem Auftrag. Darüber hinaus geben wir keine Daten an Dritte weiter und verkaufen
+        keine Adressen.
       </p>
 
       <h2>Aufbewahrung</h2>

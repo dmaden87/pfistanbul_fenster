@@ -20,13 +20,21 @@ export const operator = {
   phone: null as string | null,
   /** Dienst, der die Formulare an die Mailbox weiterleitet. */
   formService: 'Web3Forms',
+  /** Betreiberin des Dienstes. */
+  formServiceCompany: 'Web3Creative',
   /**
-   * Sitzstaat des Formulardienstes. Art. 19 Abs. 4 DSG verlangt bei einer
-   * Bekanntgabe ins Ausland die Angabe des Staates – sobald bekannt, hier
-   * eintragen; dann verschwindet die markierte Lücke in der
-   * Datenschutzerklärung von selbst.
+   * Art. 19 Abs. 4 DSG verlangt bei einer Bekanntgabe ins Ausland die Angabe
+   * des Staates. Sitz der Betreiberin und Standort der Server fallen hier
+   * auseinander – beides gehört genannt.
    */
-  formServiceCountry: null as string | null,
+  formServiceCountry: 'Indien',
+  formServerCountry: 'den USA',
   /** Anfragen ohne Bestellung werden nach dieser Frist gelöscht. */
   inquiryRetentionMonths: 12,
+  /**
+   * Foto der beiden Gründer. Datei unter public/ ablegen, dann erscheint sie
+   * automatisch; fehlt sie, zeigt die Seite einen ruhigen Platzhalter statt
+   * eines kaputten Bildes.
+   */
+  teamPhoto: '/team.jpg',
 } as const

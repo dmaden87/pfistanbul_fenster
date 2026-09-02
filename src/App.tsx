@@ -11,6 +11,7 @@ import { Construction } from './components/sections/Construction'
 import { Shop } from './components/sections/Shop'
 import { HowItWorks } from './components/sections/HowItWorks'
 import { Measuring } from './components/sections/Measuring'
+import { Story } from './components/sections/Story'
 import { Promises } from './components/sections/Promises'
 import { CustomRequest } from './components/sections/CustomRequest'
 import { Faq } from './components/sections/Faq'
@@ -77,6 +78,7 @@ export default function App() {
             <Shop cart={cart} onOpenCart={() => setCartOpen(true)} onRequestClick={() => goToAnchor('anfrage')} />
             <HowItWorks />
             <Measuring />
+            <Story />
             <Promises />
             <CustomRequest />
             <Faq />

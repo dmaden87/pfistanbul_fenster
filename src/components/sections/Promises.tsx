@@ -1,12 +1,8 @@
 import './Promises.css'
 
 /**
- * ACHTUNG – VOM BETREIBER ZU FÜLLEN:
- * Die Fristen und Garantiedauern unten sind Vorschläge und müssen mit dem
- * entsprechen, was tatsächlich gehalten werden kann. Der Vorstellungsblock
- * ist bewusst ein sichtbarer Platzhalter: ein echter Name und ein echtes
- * Foto sind hier der stärkste Vertrauensgewinn – eine erfundene Person wäre
- * der grösste Schaden.
+ * ACHTUNG – VOM BETREIBER ZU PRÜFEN: Die Fristen und Garantiedauern sind
+ * Vorschläge und müssen dem entsprechen, was tatsächlich gehalten werden kann.
  */
 
 const PROMISES = [
@@ -37,28 +33,9 @@ export function Promises() {
           <h2>Vier Zusagen, die wir schriftlich geben.</h2>
           <p className="section__lead">
             Wir sind neu und haben noch keine langen Bewertungslisten. Was wir stattdessen anbieten: klare Zusagen,
-            eine Adresse in der Siedlung und die Möglichkeit, uns an der Wohnungstür anzusprechen.
+            zwei Adressen in der Siedlung und die Möglichkeit, uns an der Wohnungstür anzusprechen.
           </p>
 
-          <div className="promises__owner">
-            <div className="promises__avatar" aria-hidden="true">
-              <svg viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <circle cx="24" cy="18" r="8" />
-                <path d="M8 42c1.8-8.4 8.4-13 16-13s14.2 4.6 16 13" strokeLinecap="round" />
-              </svg>
-            </div>
-            <div>
-              <p className="promises__owner-name">
-                <mark>[Vorname Nachname]</mark>
-              </p>
-              <p className="promises__owner-text">
-                <mark>[Ein bis zwei Sätze in der Ich-Form: seit wann Sie hier wohnen, warum Sie damit angefangen
-                haben, und ein Foto.]</mark>{' '}
-                Ein echter Name mit Gesicht bringt in einer Siedlung mehr als jedes Gütesiegel – deshalb steht hier
-                bewusst ein Platzhalter statt einer erfundenen Person.
-              </p>
-            </div>
-          </div>
         </div>
 
         <ul className="promises__list">

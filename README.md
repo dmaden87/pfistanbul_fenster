@@ -210,14 +210,14 @@ sichtbar darauf hin.
    die Pflicht erst ab CHF 100'000 Jahresumsatz gilt. Ist der Betreiber
    pflichtig, auf `true` setzen – sonst ist «inkl. MwSt.» eine unrichtige
    Angabe, umgekehrt aber auch das Fehlen.
-3. **Sitzstaat des Formulardienstes eintragen.** In `src/data/operator.ts`
-   unter `formServiceCountry`. Art. 19 Abs. 4 DSG verlangt bei einer Bekanntgabe
-   ins Ausland die Angabe des Staates; bis dahin steht in der
-   Datenschutzerklärung eine markierte Lücke. Es ist die einzige verbliebene.
-4. **Sich vorstellen.** Der Block in `Promises.tsx` ist ein sichtbarer
-   Platzhalter für Name, Foto und ein paar eigene Sätze. Ein echter Name bringt
-   in einer Siedlung mehr als jedes Gütesiegel – deshalb steht dort bewusst
-   keine erfundene Person.
+3. **Rechtsseiten sind vollständig.** Impressum, Datenschutz und AGB enthalten
+   keine offenen Lücken mehr. Ändert sich etwas an den Angaben, ist
+   `src/data/operator.ts` die einzige Stelle zum Pflegen.
+4. **Foto der beiden Gründer ablegen.** Die Datei als `public/team.jpg`
+   einchecken (Pfad in `src/data/operator.ts` unter `teamPhoto`). Sie erscheint
+   dann automatisch in der Sektion «Über uns»; fehlt sie, zeigt die Seite einen
+   ruhigen Platzhalter statt eines kaputten Bildes. Ein quadratischer
+   Ausschnitt passt am besten, rund 1200 × 1200 Pixel reichen.
 5. **Keine erfundenen Kundenstimmen.** Es gibt bewusst keinen
    Testimonial-Bereich. Sobald echte Rückmeldungen vorliegen, lohnt sich einer.
 
