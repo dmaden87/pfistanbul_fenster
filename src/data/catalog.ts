@@ -75,7 +75,7 @@ const pfisterhoelzliSets: NetSet[] = [
       { typeId: 'bad', count: 1 },
       { typeId: 'kueche', count: 1 },
     ],
-    priceChf: 660,
+    priceChf: 675,
   },
   {
     id: 'set-gross',
@@ -87,7 +87,7 @@ const pfisterhoelzliSets: NetSet[] = [
       { typeId: 'bad', count: 1 },
       { typeId: 'kueche', count: 1 },
     ],
-    priceChf: 750,
+    priceChf: 785,
   },
 ]
 

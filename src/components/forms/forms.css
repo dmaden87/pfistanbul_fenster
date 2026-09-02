@@ -314,6 +314,31 @@
   background: var(--accent-soft);
 }
 
+/*
+ * Gesperrte Zahlungsart: sichtbar ausgegraut, aber der Grund bleibt gut
+ * lesbar – deshalb keine Deckkraft auf den ganzen Block, sondern nur
+ * gedaempfte Schrift beim Titel.
+ */
+.payment-option--disabled {
+  cursor: not-allowed;
+  border-style: dashed;
+  border-color: var(--border);
+  background: transparent;
+}
+
+.payment-option--disabled:hover {
+  border-color: var(--border);
+}
+
+.payment-option--disabled .payment-option__head strong {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.payment-option--disabled input {
+  cursor: not-allowed;
+}
+
 .payment-option input {
   flex-shrink: 0;
   width: 1.1rem;

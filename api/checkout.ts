@@ -10,15 +10,22 @@ import Stripe from 'stripe'
  * gewünscht sind; welcher Betrag dazugehört, entscheidet allein diese Tabelle.
  * Sonst könnte jede Person im Browser den Preis auf null setzen.
  */
+/*
+ * ACHTUNG BEI PREISÄNDERUNGEN: Der Betrag steht doppelt – in
+ * src/data/catalog.ts für die Anzeige und in Stripe für die Abrechnung.
+ * Stripe-Preise sind unveränderlich; ein neuer Preis heisst also immer auch
+ * eine neue Id hier. Der Kommentar hinter jeder Zeile nennt den Betrag, der
+ * in Stripe hinterlegt ist – er muss mit dem Katalog übereinstimmen.
+ */
 const PRICE_IDS: Record<string, string> = {
   // Einzelne Netze
-  'einzel:bad': 'price_1UB8PJLaNnyxPcSB0rHwiI9W',
-  'einzel:kueche': 'price_1UB8Q8LaNnyxPcSBJsiWRlBh',
-  'einzel:zimmer': 'price_1UB8PlLaNnyxPcSB5VS7TX6w',
-  'einzel:balkontuer': 'price_1UB8QcLaNnyxPcSBGc3rrAPI',
+  'einzel:bad': 'price_1UB8PJLaNnyxPcSB0rHwiI9W', // CHF 120
+  'einzel:kueche': 'price_1UB8Q8LaNnyxPcSBJsiWRlBh', // CHF 120
+  'einzel:zimmer': 'price_1UB8PlLaNnyxPcSB5VS7TX6w', // CHF 125
+  'einzel:balkontuer': 'price_1UB8QcLaNnyxPcSBGc3rrAPI', // CHF 135
   // Sets
-  'set:set-mittel': 'price_1UB8RtLaNnyxPcSBvEMPyadC',
-  'set:set-gross': 'price_1UB8RELaNnyxPcSBGQU41Ewh',
+  'set:set-mittel': 'price_1UB9LgLaNnyxPcSBkUO1VMoW', // CHF 675
+  'set:set-gross': 'price_1UB9LnLaNnyxPcSBEv0asdCb', // CHF 785
 }
 
 /** Montage kostet 15 Franken pro Fenster und hat kein eigenes Stripe-Produkt. */

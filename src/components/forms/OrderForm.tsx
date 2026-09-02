@@ -10,6 +10,7 @@ import { PreLaunchNotice } from './PreLaunchNotice'
 import { emptyCustomer, hasErrors, validateCustomer, type Errors } from '../../lib/validate'
 import { isDemoMode, makeReference, submitToOperator } from '../../lib/submitOrder'
 import { startCheckout } from '../../lib/checkout'
+import { blockerBadge, blockerHint, onlinePaymentBlocker } from '../../lib/payment'
 import './forms.css'
 import './OrderForm.css'
 
@@ -36,6 +37,12 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
 
   const { lines, totals, montage, clear } = cart
 
+  // Eine Stelle entscheidet, ob online bezahlt werden darf. `effectivePayment`
+  // wird überall statt `payment` verwendet, damit eine gesperrte Option auch
+  // dann nicht abgeschickt werden kann, wenn sie vorher einmal gewählt war.
+  const onlineBlocker = onlinePaymentBlocker(lines)
+  const effectivePayment: PaymentMethod = onlineBlocker === null ? payment : 'uebergabe'
+
   const handleContinue = (event: React.FormEvent) => {
     event.preventDefault()
     const nextErrors = validateCustomer(customer, true)
@@ -52,9 +59,9 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
     try {
       // Die Bestellung geht in jedem Fall zuerst an uns – auch wenn die
       // Onlinezahlung danach abgebrochen wird, ist sie damit nicht verloren.
-      await submitToOperator({ kind: 'bestellung', customer, lines, reference, montage, payment })
+      await submitToOperator({ kind: 'bestellung', customer, lines, reference, montage, payment: effectivePayment })
 
-      if (payment === 'online') {
+      if (effectivePayment === 'online') {
         const url = await startCheckout({ lines, montage, email: customer.email, reference })
         window.location.href = url
         return
@@ -251,11 +258,13 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
               </ul>
             </div>
 
+            <PreLaunchNotice variant="bestellung" payment={effectivePayment} />
+
             <div className="form-block">
               <div className="form-block__head">
                 <h3>Bezahlung</h3>
                 <p>
-                  {shopConfig.onlinePayment
+                  {shopConfig.onlinePayment && onlineBlocker === null
                     ? 'Sie können bei der Übergabe bezahlen oder gleich hier online. Beides führt zur selben Bestellung.'
                     : 'Sie zahlen bei der Übergabe – hier werden keine Zahlungsdaten erfasst.'}
                 </p>
@@ -263,12 +272,12 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
 
               {shopConfig.onlinePayment ? (
                 <div className="payment-choice" role="radiogroup" aria-label="Zahlungsart">
-                  <label className={`payment-option${payment === 'uebergabe' ? ' payment-option--active' : ''}`}>
+                  <label className={`payment-option${effectivePayment === 'uebergabe' ? ' payment-option--active' : ''}`}>
                     <input
                       type="radio"
                       name="zahlungsart"
                       value="uebergabe"
-                      checked={payment === 'uebergabe'}
+                      checked={effectivePayment === 'uebergabe'}
                       onChange={() => setPayment('uebergabe')}
                     />
                     <span>
@@ -283,21 +292,28 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
                     </span>
                   </label>
 
-                  <label className={`payment-option${payment === 'online' ? ' payment-option--active' : ''}`}>
+                  <label
+                    className={`payment-option${effectivePayment === 'online' ? ' payment-option--active' : ''}${
+                      onlineBlocker ? ' payment-option--disabled' : ''
+                    }`}
+                  >
                     <input
                       type="radio"
                       name="zahlungsart"
                       value="online"
-                      checked={payment === 'online'}
+                      checked={effectivePayment === 'online'}
+                      disabled={onlineBlocker !== null}
                       onChange={() => setPayment('online')}
                     />
                     <span>
                       <span className="payment-option__head">
                         <strong>Jetzt online bezahlen</strong>
+                        {onlineBlocker && <span className="pill pill--neutral">{blockerBadge(onlineBlocker)}</span>}
                       </span>
                       <span className="payment-option__hint">
-                        Sie werden zu Stripe weitergeleitet und zahlen dort mit Karte. Wir sehen Ihre Kartendaten nie.
-                        Danach kommen Sie automatisch hierher zurück.
+                        {onlineBlocker
+                          ? blockerHint(onlineBlocker)
+                          : 'Sie werden zu Stripe weitergeleitet und zahlen dort mit Karte. Wir sehen Ihre Kartendaten nie. Danach kommen Sie automatisch hierher zurück.'}
                       </span>
                     </span>
                   </label>
@@ -321,24 +337,22 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
               </p>
             </div>
 
-            <PreLaunchNotice variant="bestellung" payment={payment} />
-
             {state.status === 'error' && <p className="form-status form-status--error">{state.message}</p>}
 
             <div className="form-actions">
               <button type="button" className="btn btn--lg" onClick={handleSubmit} disabled={state.status === 'sending'}>
                 {state.status === 'sending'
-                  ? payment === 'online'
+                  ? effectivePayment === 'online'
                     ? 'Weiterleitung zu Stripe …'
                     : 'Wird gesendet …'
-                  : payment === 'online'
+                  : effectivePayment === 'online'
                     ? 'Bestellen und bezahlen'
                     : shopConfig.operational
                       ? 'Jetzt verbindlich bestellen'
                       : 'Bestellung absenden'}
               </button>
               <p className="form-actions__hint">
-                {payment === 'online'
+                {effectivePayment === 'online'
                   ? 'Sie werden zu Stripe weitergeleitet. Ihre Bestellung ist bereits bei uns, auch wenn Sie dort abbrechen.'
                   : shopConfig.operational
                     ? 'Sie erhalten anschliessend eine Bestätigung per E-Mail, mit dem Liefertermin.'
