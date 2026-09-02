@@ -44,12 +44,37 @@ const BREITEN = [640, 1024, 1600]
  * `zuschnitt` versteht sich als Anteile des gedrehten Bildes (0–1).
  */
 const BILDER = [
-  { datei: 'fenster-geschlossen.jpg', name: 'fenster-geschlossen' },
+  // `drehung` in Grad, im Uhrzeigersinn. Das Fensterfoto ist aus der Hand
+  // aufgenommen und haengt knapp zwei Grad; ohne Korrektur laeuft der
+  // Fensterrahmen sichtbar schief durchs Bild.
+  { datei: 'fenster-geschlossen.jpg', name: 'fenster-geschlossen', drehung: 1.8 },
   { datei: 'gewebe-detail.jpg', name: 'gewebe-detail' },
   { datei: 'fassade-aussen.jpg', name: 'fassade-aussen' },
   { datei: 'zimmer-storen.jpg', name: 'zimmer-storen' },
   { datei: 'team.jpg', name: 'team' },
 ]
+
+/**
+ * Nach einer Drehung stehen an den Ecken leere Keile. Diese Funktion liefert
+ * das groesste achsenparallele Rechteck, das noch vollstaendig im gedrehten
+ * Bild liegt – so bleibt kein Rand uebrig, und der Zuschnitt ist gerechnet
+ * statt geraten.
+ */
+function groesstesRechteck(w, h, grad) {
+  const a = Math.abs((grad * Math.PI) / 180)
+  const sin = Math.abs(Math.sin(a))
+  const cos = Math.abs(Math.cos(a))
+  const laenger = Math.max(w, h)
+  const kuerzer = Math.min(w, h)
+
+  if (kuerzer <= 2 * sin * cos * laenger || Math.abs(sin - cos) < 1e-10) {
+    const x = 0.5 * kuerzer
+    return w >= h ? { breite: x / sin, hoehe: x / cos } : { breite: x / cos, hoehe: x / sin }
+  }
+
+  const cos2a = cos * cos - sin * sin
+  return { breite: (w * cos - h * sin) / cos2a, hoehe: (h * cos - w * sin) / cos2a }
+}
 
 async function verarbeite(bild) {
   const basis = sharp(join(QUELLE, bild.datei)).rotate()
@@ -66,6 +91,22 @@ async function verarbeite(bild) {
   let quelle = basis
   let w = width
   let h = height
+
+  if (bild.drehung) {
+    // Die Drehung muss vor allem Weiteren geschehen und in Pixel gegossen
+    // werden, damit sich der spaetere Zuschnitt auf das gerade Bild bezieht.
+    const gedreht = await basis.rotate(bild.drehung, { background: '#000000' }).toBuffer()
+    const m = await sharp(gedreht).metadata()
+    const r = groesstesRechteck(width, height, bild.drehung)
+    w = Math.floor(r.breite)
+    h = Math.floor(r.hoehe)
+    quelle = sharp(gedreht).extract({
+      left: Math.round((m.width - w) / 2),
+      top: Math.round((m.height - h) / 2),
+      width: w,
+      height: h,
+    })
+  }
 
   if (bild.zuschnitt) {
     const z = bild.zuschnitt

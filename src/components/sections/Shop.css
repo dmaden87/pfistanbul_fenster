@@ -331,3 +331,44 @@
     width: 100%;
   }
 }
+
+/* --- Einleitung mit Foto ---------------------------------------------------- */
+
+.shop__lead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 20rem);
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  align-items: end;
+}
+
+.shop__lead .section__intro {
+  margin-bottom: 0;
+}
+
+.shop__photo {
+  margin: 0;
+}
+
+.shop__photo img {
+  width: 100%;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  background: var(--surface-raised);
+}
+
+.shop__photo figcaption {
+  margin-top: var(--space-3);
+  color: var(--text-subtle);
+  font-size: var(--step--2);
+}
+
+@media (max-width: 62rem) {
+  .shop__lead {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .shop__photo {
+    max-width: 22rem;
+  }
+}

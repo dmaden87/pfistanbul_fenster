@@ -136,29 +136,3 @@
   }
 }
 
-/* --- Produktfoto im Hero ---------------------------------------------------- */
-
-.hero__visual {
-  flex-direction: column;
-  width: 100%;
-  max-width: 26rem;
-  margin: 0;
-}
-
-.hero__photo {
-  display: block;
-  width: 100%;
-  height: auto;
-  border-radius: var(--radius-lg);
-  /* Der Rahmen haelt das helle Foto vom hellen Hintergrund getrennt. */
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-md);
-  background: var(--surface-raised);
-}
-
-.hero__caption {
-  margin-top: var(--space-3);
-  color: var(--text-subtle);
-  font-size: var(--step--2);
-  text-align: center;
-}

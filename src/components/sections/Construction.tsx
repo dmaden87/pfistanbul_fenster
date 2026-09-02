@@ -79,8 +79,8 @@ export function Construction() {
         </div>
 
         <p className="build-photos__note">
-          Alle Fotos auf dieser Seite stammen aus Denizʼ eigener Wohnung im Pfisterhölzli. Es sind die Netze aus der
-          Türkei, mit denen alles angefangen hat – keine Musterbilder eines Herstellers.
+          Alle Fenster-Fotos auf dieser Seite stammen aus Denizʼ eigener Wohnung im Pfisterhölzli. Es sind die Netze
+          aus der Türkei, mit denen alles angefangen hat – keine Musterbilder eines Herstellers.
         </p>
       </div>
     </section>

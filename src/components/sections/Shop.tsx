@@ -4,6 +4,7 @@ import { activeUeberbauung, netSets, netsInSet, regularPriceOfSet, typeById, win
 import { priceNote, shopConfig } from '../../data/shopConfig'
 import { formatChf, formatSize } from '../../lib/format'
 import { PlisseeVisual } from './PlisseeVisual'
+import { Foto } from '../media/Foto'
 import './Shop.css'
 
 interface ShopProps {
@@ -23,13 +24,29 @@ export function Shop({ cart, onOpenCart, onRequestClick }: ShopProps) {
   return (
     <section className="section shop" id="groessen">
       <div className="shell">
-        <div className="section__intro">
-          <span className="section__eyebrow">Ausgemessenes Sortiment</span>
-          <h2>{activeUeberbauung.name}, {activeUeberbauung.place}</h2>
-          <p className="section__lead">
-            {activeUeberbauung.intro} Für jedes Format gibt es einen festen Preis – kein Konfigurator, keine Wartezeit
-            auf eine Offerte.
-          </p>
+        {/*
+          Ein Fenster aus genau dieser Siedlung, direkt neben der Einleitung.
+          Die vier Formate darunter sind Zahlen; hier sieht man einmal, worum
+          es geht.
+        */}
+        <div className="shop__lead">
+          <div className="section__intro">
+            <span className="section__eyebrow">Ausgemessenes Sortiment</span>
+            <h2>{activeUeberbauung.name}, {activeUeberbauung.place}</h2>
+            <p className="section__lead">
+              {activeUeberbauung.intro} Für jedes Format gibt es einen festen Preis – kein Konfigurator, keine
+              Wartezeit auf eine Offerte.
+            </p>
+          </div>
+
+          <figure className="shop__photo">
+            <Foto
+              name="fenster-geschlossen"
+              alt="Wohnungsfenster im Pfisterhölzli mit geschlossenem Insektenschutz-Plissee. Durch das feine Gewebe sind Baumkrone, Wiese und Hügel klar zu erkennen."
+              sizes="(max-width: 62rem) 92vw, min(20rem, 32vw)"
+            />
+            <figcaption>Denizʼ eigenes Fenster in der Siedlung, Netz zugezogen. Die Aussicht bleibt.</figcaption>
+          </figure>
         </div>
 
         <h3 className="shop__group-title">Als Set für die ganze Wohnung</h3>

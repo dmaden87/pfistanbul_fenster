@@ -11,7 +11,7 @@ export interface FotoMasse {
 }
 
 export const fotos: Record<string, FotoMasse> = {
-  'fenster-geschlossen': { breite: 4284, hoehe: 5712, groessen: [640, 1024, 1600] },
+  'fenster-geschlossen': { breite: 4110, hoehe: 5585, groessen: [640, 1024, 1600] },
   'gewebe-detail': { breite: 4284, hoehe: 5712, groessen: [640, 1024, 1600] },
   'fassade-aussen': { breite: 5712, hoehe: 4284, groessen: [640, 1024, 1600] },
   'zimmer-storen': { breite: 5712, hoehe: 4284, groessen: [640, 1024, 1600] },
