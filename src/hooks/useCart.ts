@@ -3,7 +3,16 @@ import type { CartLine, CartLineKind, CartTotals } from '../types'
 import { cartTotals, netsForLine, priceForLine } from '../lib/pricing'
 
 const STORAGE_KEY = 'pfistanbul.cart.v3'
-const MONTAGE_KEY = 'pfistanbul.montage.v1'
+
+/**
+ * Frueher wurde hier der Montage-Wunsch gespeichert. Das war falsch: Der
+ * Haken kostet CHF 15 pro Fenster, und wer ihn einmal gesetzt hatte, fand ihn
+ * Wochen spaeter bei einer neuen Bestellung wieder gesetzt vor – der
+ * Aufschlag stand im Total, ohne dass ihn jemand nochmals gewaehlt haette.
+ * Eine kostenpflichtige Zusatzleistung darf sich nicht selbst wieder
+ * einschalten. Der Schluessel wird deshalb nur noch aufgeraeumt.
+ */
+const LEGACY_MONTAGE_KEY = 'pfistanbul.montage.v1'
 
 function readStoredCart(): CartLine[] {
   try {
@@ -25,11 +34,11 @@ function readStoredCart(): CartLine[] {
   }
 }
 
-function readStoredMontage(): boolean {
+function forgetLegacyMontage(): void {
   try {
-    return window.localStorage.getItem(MONTAGE_KEY) === '1'
+    window.localStorage.removeItem(LEGACY_MONTAGE_KEY)
   } catch {
-    return false
+    // Speicher nicht verfuegbar – dann gibt es auch nichts aufzuraeumen.
   }
 }
 
@@ -48,17 +57,22 @@ export interface UseCart {
 
 export function useCart(): UseCart {
   const [lines, setLines] = useState<CartLine[]>(readStoredCart)
-  const [montage, setMontage] = useState<boolean>(readStoredMontage)
+  // Bewusst ohne Speicherung: Die Montage wird bei jeder Bestellung neu
+  // gewaehlt und ist nie vorausgewaehlt.
+  const [montage, setMontage] = useState(false)
+
+  useEffect(() => {
+    forgetLegacyMontage()
+  }, [])
 
   useEffect(() => {
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(lines))
-      window.localStorage.setItem(MONTAGE_KEY, montage ? '1' : '0')
     } catch {
       // Speicher nicht verfügbar (privater Modus) – der Warenkorb lebt dann
       // nur in dieser Sitzung.
     }
-  }, [lines, montage])
+  }, [lines])
 
   const add = useCallback((kind: CartLineKind, refId: string, quantity = 1) => {
     setLines((current) => {
@@ -85,7 +99,10 @@ export function useCart(): UseCart {
     setLines((current) => current.filter((line) => line.id !== id))
   }, [])
 
-  const clear = useCallback(() => setLines([]), [])
+  const clear = useCallback(() => {
+    setLines([])
+    setMontage(false)
+  }, [])
 
   const totals = useMemo(() => cartTotals(lines, montage), [lines, montage])
 

@@ -16,7 +16,7 @@ import { windowTypes } from '../data/catalog'
  */
 
 /** Aufschlag für die Unsicherheit einer Einzelanfertigung. */
-const UNCERTAINTY = 0.1
+const UNCERTAINTY = 0.05
 
 /** Auf diesen Betrag wird aufgerundet – nie ab, damit die Offerte nicht teurer ausfällt als der Richtpreis. */
 const ROUND_TO_CHF = 10

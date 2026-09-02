@@ -88,8 +88,9 @@ function Datenschutz() {
   return (
     <>
       <p className="legal__lead">
-        Diese Website verwendet weder Analyse-Werkzeuge noch Werbe-Cookies, bindet keine externen Skripte ein und lädt
-        auch die Schriften vom eigenen Server. Erhoben wird nur, was Sie selbst in ein Formular eintragen.
+        Diese Website setzt keine Cookies, bindet keine Werbung ein und lädt auch die Schriften vom eigenen Server.
+        Erhoben wird, was Sie selbst in ein Formular eintragen – dazu eine anonyme Zählung der Seitenaufrufe, damit wir
+        wissen, ob unsere Seite überhaupt jemand findet.
       </p>
 
       <h2>Verantwortliche Stelle</h2>
@@ -114,6 +115,24 @@ function Datenschutz() {
         {operator.formServerCountry}. Ihre Angaben werden damit ins Ausland bekanntgegeben. Der Dienst verarbeitet die
         Daten ausschliesslich in unserem Auftrag. Darüber hinaus geben wir keine Daten an Dritte weiter und verkaufen
         keine Adressen.
+      </p>
+
+      <h2>Zahlung über Stripe</h2>
+      <p>
+        Wenn Sie die Onlinezahlung wählen, werden Sie zu Stripe weitergeleitet und geben Ihre Zahlungsdaten dort ein.
+        Betrieben wird der Dienst von der Stripe, Inc. mit Sitz in den USA, für Europa durch die Stripe Payments Europe
+        Ltd. in Irland. Wir übermitteln dabei die bestellten Artikel, den Betrag, Ihre Bestellreferenz und Ihre
+        E-Mail-Adresse. Ihre Kartendaten sehen wir nie – sie erreichen unsere Website zu keinem Zeitpunkt. Wählen Sie
+        die Zahlung bei der Übergabe, wird gar nichts an Stripe übermittelt.
+      </p>
+
+      <h2>Zählung der Seitenaufrufe</h2>
+      <p>
+        Wir verwenden Vercel Web Analytics, um zu sehen, wie viele Menschen die Seite besuchen und welche Abschnitte
+        gelesen werden. Der Dienst setzt keine Cookies, legt kein Profil über Sie an und verfolgt Sie nicht auf andere
+        Websites. Aus den Angaben Ihres Aufrufs bildet Vercel eine Kennung, die täglich wechselt und sich nicht einer
+        Person zuordnen lässt. Betreiberin ist die Vercel Inc. in den USA, bei der diese Website auch gehostet wird;
+        beim Aufruf fallen dort ausserdem die üblichen Server-Protokolle an.
       </p>
 
       <h2>Aufbewahrung</h2>
@@ -161,9 +180,10 @@ function Agb() {
 
       <h2>3. Zahlung</h2>
       <p>
-        Bezahlt wird bei der Übergabe der Netze, in bar oder mit TWINT. Über diese Website werden keine Zahlungen
-        abgewickelt und keine Zahlungsdaten erhoben. Es fallen keine Zuschläge an, und wir verlangen keine
-        Anzahlung.
+        Vorgesehen ist die Zahlung bei der Übergabe der Netze, in bar oder mit TWINT. Wahlweise können Sie die
+        Bestellung gleich online begleichen; die Zahlung wickelt dann Stripe ab, und Ihre Kartendaten erreichen unsere
+        Website zu keinem Zeitpunkt. Beide Wege kosten gleich viel: Es fallen keine Zuschläge an, und eine Anzahlung
+        verlangen wir nie.
       </p>
 
       <h2>4. Lieferfrist</h2>

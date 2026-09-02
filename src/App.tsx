@@ -19,6 +19,7 @@ import { CustomRequest } from './components/sections/CustomRequest'
 import { Faq } from './components/sections/Faq'
 import { ClosingCta } from './components/sections/ClosingCta'
 import { LegalPage, type LegalKey } from './components/sections/LegalPage'
+import { Analytics } from '@vercel/analytics/react'
 import { useCart } from './hooks/useCart'
 import './App.css'
 
@@ -110,8 +111,8 @@ export default function App() {
             <Measuring />
             <Story />
             <Promises />
-            <PaymentHelp />
             <CustomRequest />
+            <PaymentHelp />
             <Faq />
             <ClosingCta onShopClick={() => goToAnchor('groessen')} onRequestClick={() => goToAnchor('anfrage')} />
           </>
@@ -128,7 +129,7 @@ export default function App() {
                   Übergabe.
                 </p>
               </div>
-              <OrderForm cart={cart} onBackToShop={goToShop} />
+              <OrderForm cart={cart} onBackToShop={goToShop} onOpenCart={() => setCartOpen(true)} />
             </div>
           </section>
         )}
@@ -152,6 +153,15 @@ export default function App() {
       <Footer onOpenLegal={(page) => setView({ name: 'legal', page })} onNavigate={goToAnchor} />
 
       <CartDrawer cart={cart} open={cartOpen} onClose={() => setCartOpen(false)} onCheckout={goToCheckout} />
+
+      {/*
+        Vercel Analytics: zaehlt Besuche und Seitenaufrufe, setzt keine Cookies
+        und legt kein geraeteuebergreifendes Profil an. Die IP-Adresse wird von
+        Vercel nur zur Herkunftsbestimmung verwendet und nicht gespeichert.
+        Trotzdem ist es eine Bearbeitung durch einen Dritten in den USA und
+        gehoert deshalb in die Datenschutzerklaerung.
+      */}
+      <Analytics />
     </>
   )
 }

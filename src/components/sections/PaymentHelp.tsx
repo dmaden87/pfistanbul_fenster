@@ -35,8 +35,7 @@ export function PaymentHelp() {
               schauen einander an und finden eine Lösung.
             </li>
             <li>
-              <strong>Es bleibt unter uns.</strong> Ihre Anfrage landet bei uns zweien, sonst nirgends. Niemand in der
-              Siedlung erfährt davon.
+              <strong>Es bleibt unter uns.</strong> Ihre Anfrage landet bei uns zweien, sonst nirgends.
             </li>
           </ul>
         </div>

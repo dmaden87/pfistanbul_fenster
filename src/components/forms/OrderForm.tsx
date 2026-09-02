@@ -17,6 +17,8 @@ import './OrderForm.css'
 interface OrderFormProps {
   cart: UseCart
   onBackToShop: () => void
+  /** Oeffnet den Warenkorb, ohne die Bestellung zu verlassen. */
+  onOpenCart: () => void
 }
 
 /**
@@ -27,7 +29,7 @@ interface OrderFormProps {
  */
 const STEPS = ['Netze wählen', 'Warenkorb', 'Adresse', 'Prüfen & bestellen'] as const
 
-export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
+export function OrderForm({ cart, onBackToShop, onOpenCart }: OrderFormProps) {
   const [customer, setCustomer] = useState<CustomerDetails>({ ...emptyCustomer, zip: '8606', city: 'Greifensee' })
   const [errors, setErrors] = useState<Errors<CustomerDetails>>({})
   const [state, setState] = useState<SubmissionState>({ status: 'idle' })
@@ -253,7 +255,7 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
                   <h3>Ihre Positionen</h3>
                   <p>Menge oder Grösse ändern Sie im Warenkorb.</p>
                 </div>
-                <button type="button" className="btn btn--ghost" onClick={onBackToShop}>
+                <button type="button" className="btn btn--ghost" onClick={onOpenCart}>
                   Warenkorb ändern
                 </button>
               </div>
@@ -377,7 +379,7 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
                 <span aria-hidden="true">🔒</span>
                 <span>
                   Ihre Angaben gehen direkt an uns und werden ausschliesslich für diese Bestellung verwendet. Keine
-                  Weitergabe an Dritte, kein Tracking.
+                  Weitergabe an Dritte, keine Werbung, keine Cookies.
                 </span>
               </p>
             </div>
