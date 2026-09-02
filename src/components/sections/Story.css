@@ -18,6 +18,9 @@
   width: 100%;
   aspect-ratio: 1;
   object-fit: cover;
+  /* Hochformat wird quadratisch beschnitten – der Ausschnitt sitzt bewusst
+     etwas höher, damit bei einem Selfie die Gesichter im Bild bleiben. */
+  object-position: center 35%;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-md);

@@ -32,9 +32,10 @@ export const operator = {
   /** Anfragen ohne Bestellung werden nach dieser Frist gelöscht. */
   inquiryRetentionMonths: 12,
   /**
-   * Foto der beiden Gründer. Datei unter public/ ablegen, dann erscheint sie
-   * automatisch; fehlt sie, zeigt die Seite einen ruhigen Platzhalter statt
-   * eines kaputten Bildes.
+   * Foto der beiden Gründer. Datei unter public/ ablegen – die Seite probiert
+   * der Reihe nach diese Namen durch, es braucht also kein Umbenennen. Wird
+   * keine gefunden, erscheint ein ruhiger Platzhalter statt eines kaputten
+   * Bildes.
    */
-  teamPhoto: '/team.jpg',
+  teamPhotoCandidates: ['/team.jpg', '/team.jpeg', '/team.png', '/team.webp'],
 } as const

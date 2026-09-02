@@ -10,7 +10,11 @@ import './Story.css'
  * erscheint automatisch ein ruhiger Platzhalter statt eines kaputten Bildes.
  */
 export function Story() {
-  const [photoFailed, setPhotoFailed] = useState(false)
+  // Der Reihe nach durch die möglichen Dateinamen; erst wenn keiner lädt,
+  // erscheint der Platzhalter.
+  const [candidate, setCandidate] = useState(0)
+  const photo = operator.teamPhotoCandidates[candidate]
+  const photoFailed = photo === undefined
 
   return (
     <section className="section story" id="ueberuns">
@@ -28,10 +32,11 @@ export function Story() {
             </div>
           ) : (
             <img
-              src={operator.teamPhoto}
+              key={photo}
+              src={photo}
               alt={`${operator.people[0].name} und ${operator.people[1].name}, die beiden Gründer von ${operator.businessName}`}
               loading="lazy"
-              onError={() => setPhotoFailed(true)}
+              onError={() => setCandidate((index) => index + 1)}
             />
           )}
           <figcaption>
