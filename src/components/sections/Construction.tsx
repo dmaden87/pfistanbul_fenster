@@ -46,6 +46,11 @@ export function Construction() {
           der Naehe, das rechte den Nachteil, den die Karte oben zugibt: Der
           Rahmen sitzt vor dem Fenster und ist von aussen zu sehen. Wer das
           selbst beurteilen will, soll es sehen und nicht nachlesen muessen.
+
+          Die Herkunft der Bilder steht ausdruecklich dabei. Es sind Denizʼ
+          eigene Fenster, keine ausgelieferte Kundenbestellung - und erst
+          recht keine Musterbilder eines Herstellers. Wer das nicht dazusagt,
+          laesst den Eindruck entstehen, es haette schon Auftraege gegeben.
         */}
         <div className="build-photos">
           <figure>
@@ -72,6 +77,11 @@ export function Construction() {
             </figcaption>
           </figure>
         </div>
+
+        <p className="build-photos__note">
+          Alle Fotos auf dieser Seite stammen aus Denizʼ eigener Wohnung im Pfisterhölzli. Es sind die Netze aus der
+          Türkei, mit denen alles angefangen hat – keine Musterbilder eines Herstellers.
+        </p>
       </div>
     </section>
   )

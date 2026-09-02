@@ -74,7 +74,7 @@ export function Hero({ onShopClick, onRequestClick }: HeroProps) {
             sofort
           />
           <figcaption className="hero__caption">
-            Zugezogen, an einem Fenster im Pfisterhölzli. Die Aussicht bleibt.
+            Denizʼ eigenes Fenster im Pfisterhölzli, Netz zugezogen. Die Aussicht bleibt.
           </figcaption>
         </figure>
       </div>

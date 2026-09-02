@@ -94,8 +94,8 @@ export function Measuring() {
             sizes="(max-width: 60rem) 92vw, min(70rem, 90vw)"
           />
           <figcaption>
-            Montiert im Pfisterhölzli: Das Netz sitzt vor dem Fenster, die Storen darüber lassen sich weiterhin ganz
-            normal bedienen.
+            Denizʼ Wohnung im Pfisterhölzli: Das Netz sitzt vor dem Fenster, die Storen darüber lassen sich weiterhin
+            ganz normal bedienen.
           </figcaption>
         </figure>
       </div>
