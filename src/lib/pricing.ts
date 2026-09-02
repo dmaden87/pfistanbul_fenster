@@ -1,5 +1,5 @@
 import type { CartLine, CartTotals } from '../types'
-import { netsInSet, regularPriceOfSet, setById, typeById } from '../data/catalog'
+import { netsInSet, regularPriceOfSet, setById, typeById, windowTypes } from '../data/catalog'
 import { shopConfig } from '../data/shopConfig'
 
 /** Lieferung in der Siedlung: persönliche Übergabe, kostenlos. */
@@ -46,7 +46,10 @@ export function cartTotals(lines: CartLine[], withMontage: boolean): CartTotals 
   }
 }
 
-/** Günstigster Einzelpreis im Sortiment – für "ab CHF x". */
+/**
+ * Günstigster Einzelpreis im Sortiment – für "ab CHF x". Wird aus dem Katalog
+ * abgeleitet, damit der Wert bei einer Preisänderung nicht stehen bleibt.
+ */
 export function lowestPrice(): number {
-  return Math.min(...[...new Set([120, 125, 135])])
+  return Math.min(...windowTypes.map((type) => type.priceChf))
 }

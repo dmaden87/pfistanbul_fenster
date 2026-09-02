@@ -19,13 +19,13 @@ import Stripe from 'stripe'
  */
 const PRICE_IDS: Record<string, string> = {
   // Einzelne Netze
-  'einzel:bad': 'price_1UB8PJLaNnyxPcSB0rHwiI9W', // CHF 120
-  'einzel:kueche': 'price_1UB8Q8LaNnyxPcSBJsiWRlBh', // CHF 120
-  'einzel:zimmer': 'price_1UB8PlLaNnyxPcSB5VS7TX6w', // CHF 125
-  'einzel:balkontuer': 'price_1UB8QcLaNnyxPcSBGc3rrAPI', // CHF 135
+  'einzel:bad': 'price_1UBA0cLaNnyxPcSBaqEOpmwg', // CHF 130
+  'einzel:kueche': 'price_1UBA0gLaNnyxPcSBzjtArAdn', // CHF 130
+  'einzel:zimmer': 'price_1UBA0mLaNnyxPcSBZpLjthwI', // CHF 150
+  'einzel:balkontuer': 'price_1UBA0rLaNnyxPcSBYnBhmmzK', // CHF 155
   // Sets
-  'set:set-mittel': 'price_1UB9LgLaNnyxPcSBkUO1VMoW', // CHF 675
-  'set:set-gross': 'price_1UB9LnLaNnyxPcSBEv0asdCb', // CHF 785
+  'set:set-mittel': 'price_1UBA0vLaNnyxPcSBg1u40DeA', // CHF 775
+  'set:set-gross': 'price_1UBA11LaNnyxPcSBT02jUGxf', // CHF 850
 }
 
 /** Montage kostet 15 Franken pro Fenster und hat kein eigenes Stripe-Produkt. */

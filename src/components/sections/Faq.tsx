@@ -17,7 +17,7 @@ const FAQ: FaqItem[] = [
   },
   {
     q: 'Warum kostet das Zimmer-Netz kaum mehr als das Badfenster?',
-    a: 'Weil unser Preis nicht nur der Fläche folgt. Das Zimmer-Netz ist mit knapp zwei Quadratmetern mehr als doppelt so gross wie das Badfenster, kostet aber nur fünf Franken mehr – pro Quadratmeter ist es damit das mit Abstand günstigste im Sortiment. Das ist Absicht: Von diesem Format hängen drei bis vier Stück in jeder Wohnung, dort soll es niemandem weh tun.',
+    a: 'Weil unser Preis nicht nur der Fläche folgt. Das Zimmer-Netz ist mit knapp zwei Quadratmetern mehr als doppelt so gross wie das Badfenster, kostet aber nur zwanzig Franken mehr – pro Quadratmeter ist es damit das mit Abstand günstigste im Sortiment. Das ist Absicht: Von diesem Format hängen drei bis vier Stück in jeder Wohnung, dort soll es niemandem weh tun.',
   },
   {
     q: 'Wie schnell habe ich das Netz?',
