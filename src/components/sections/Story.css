@@ -13,6 +13,10 @@
   margin: 0;
 }
 
+.story__photo picture {
+  display: block;
+}
+
 .story__photo img,
 .story__photo-fallback {
   width: 100%;

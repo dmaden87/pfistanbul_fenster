@@ -45,6 +45,11 @@ svg,
 video {
   display: block;
   max-width: 100%;
+  /* Gehoert zwingend zu max-width: Die Bilder tragen width und height als
+     Attribut, damit der Browser den Platz kennt, bevor die Datei da ist.
+     Ohne height: auto waere die Hoehe an den Attributwert genagelt und das
+     Bild wuerde beim Verkleinern verzerrt. */
+  height: auto;
 }
 
 input,

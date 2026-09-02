@@ -1,3 +1,4 @@
+import { Foto } from '../media/Foto'
 import { construction } from '../../data/catalog'
 import './Construction.css'
 
@@ -38,6 +39,38 @@ export function Construction() {
               </dl>
             </article>
           ))}
+        </div>
+
+        {/*
+          Zwei Fotos statt weiterer Absaetze. Das linke zeigt das Gewebe aus
+          der Naehe, das rechte den Nachteil, den die Karte oben zugibt: Der
+          Rahmen sitzt vor dem Fenster und ist von aussen zu sehen. Wer das
+          selbst beurteilen will, soll es sehen und nicht nachlesen muessen.
+        */}
+        <div className="build-photos">
+          <figure>
+            <Foto
+              name="gewebe-detail"
+              alt="Nahaufnahme des Plissees: Links liegt das Gewebe gespannt vor der Scheibe, rechts sind die Falten zusammengeschoben. Dahinter Baum und Wiese."
+              sizes="(max-width: 60rem) 90vw, 40vw"
+            />
+            <figcaption>
+              Die Falten laufen in einer schmalen Schiene. Zusammengeschoben liegt das ganze Netz als schmales Paket
+              am Rand.
+            </figcaption>
+          </figure>
+
+          <figure>
+            <Foto
+              name="fassade-aussen"
+              alt="Hausfassade von aussen mit zwei Fenstern, an denen das Insektenschutz-Plissee montiert ist. Der helle Rahmen sitzt vor dem Fensterrahmen und zeichnet sich deutlich ab."
+              sizes="(max-width: 60rem) 90vw, 40vw"
+            />
+            <figcaption>
+              So sieht es von aussen aus. Der Rahmen trägt vor dem Fenster auf – das gehört dazu, und Sie sollen es
+              vorher wissen.
+            </figcaption>
+          </figure>
         </div>
       </div>
     </section>

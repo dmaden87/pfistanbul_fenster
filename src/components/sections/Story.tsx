@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { Foto } from '../media/Foto'
+import { fotos } from '../../data/fotos'
 import { operator } from '../../data/operator'
 import './Story.css'
 
@@ -6,21 +7,18 @@ import './Story.css'
  * Wie es angefangen hat. Der einzige Vertrauensanker, den es sonst nirgends
  * zu kaufen gibt – deshalb steht die Geschichte in der Ich-Form und mit Foto.
  *
- * Das Foto liegt unter public/ (Pfad in operator.teamPhoto). Fehlt die Datei,
- * erscheint automatisch ein ruhiger Platzhalter statt eines kaputten Bildes.
+ * Das Foto kommt wie die uebrigen aus scripts/bilder.mjs. Solange dort keines
+ * hinterlegt ist, erscheint ein ruhiger Platzhalter statt eines Lochs im
+ * Layout.
  */
 export function Story() {
-  // Der Reihe nach durch die möglichen Dateinamen; erst wenn keiner lädt,
-  // erscheint der Platzhalter.
-  const [candidate, setCandidate] = useState(0)
-  const photo = operator.teamPhotoCandidates[candidate]
-  const photoFailed = photo === undefined
+  const photoFehlt = fotos.team === undefined
 
   return (
     <section className="section story" id="ueberuns">
       <div className="shell story__inner">
         <figure className="story__photo">
-          {photoFailed ? (
+          {photoFehlt ? (
             <div className="story__photo-fallback">
               <svg viewBox="0 0 48 48" width="40" height="40" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
                 <circle cx="17" cy="19" r="6" />
@@ -31,12 +29,10 @@ export function Story() {
               <p>Foto folgt</p>
             </div>
           ) : (
-            <img
-              key={photo}
-              src={photo}
+            <Foto
+              name="team"
               alt={`${operator.people[0].name} und ${operator.people[1].name}, die beiden Gründer von ${operator.businessName}`}
-              loading="lazy"
-              onError={() => setCandidate((index) => index + 1)}
+              sizes="(max-width: 60rem) 92vw, min(28rem, 40vw)"
             />
           )}
           <figcaption>

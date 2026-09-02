@@ -31,11 +31,8 @@ export const operator = {
   formServerCountry: 'den USA',
   /** Anfragen ohne Bestellung werden nach dieser Frist gelöscht. */
   inquiryRetentionMonths: 12,
-  /**
-   * Foto der beiden Gründer. Datei unter public/ ablegen – die Seite probiert
-   * der Reihe nach diese Namen durch, es braucht also kein Umbenennen. Wird
-   * keine gefunden, erscheint ein ruhiger Platzhalter statt eines kaputten
-   * Bildes.
+  /*
+   * Das Foto der beiden Gründer wird nicht mehr hier verwaltet: Es läuft wie
+   * alle anderen Bilder durch scripts/bilder.mjs und heisst dort "team".
    */
-  teamPhotoCandidates: ['/team.jpg', '/team.jpeg', '/team.png', '/team.webp'],
 } as const

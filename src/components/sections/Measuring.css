@@ -116,3 +116,27 @@
     margin-inline: auto;
   }
 }
+
+/* --- Foto der montierten Netze ---------------------------------------------- */
+
+.measuring__photo {
+  /* Spannt sich unter beide Spalten, damit das Bild gross genug wirkt. */
+  grid-column: 1 / -1;
+  margin: clamp(2rem, 5vw, 3.5rem) 0 0;
+}
+
+.measuring__photo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+}
+
+.measuring__photo figcaption {
+  margin-top: var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--step--1);
+  max-width: 60ch;
+}

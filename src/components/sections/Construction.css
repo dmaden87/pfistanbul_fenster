@@ -68,3 +68,46 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* --- Fotos zum Aufbau ------------------------------------------------------- */
+
+.build-photos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(1.25rem, 3vw, 2.5rem);
+  margin-top: clamp(2rem, 5vw, 3.5rem);
+}
+
+.build-photos figure {
+  margin: 0;
+}
+
+.build-photos img {
+  display: block;
+  width: 100%;
+  height: 22rem;
+  /* Zwei verschiedene Seitenverhaeltnisse nebeneinander wirken unruhig,
+     deshalb eine gemeinsame Hoehe und ein Ausschnitt aus der Bildmitte. */
+  object-fit: cover;
+  object-position: center;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+}
+
+.build-photos figcaption {
+  margin-top: var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--step--1);
+  max-width: 48ch;
+}
+
+@media (max-width: 48rem) {
+  .build-photos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .build-photos img {
+    height: 16rem;
+  }
+}

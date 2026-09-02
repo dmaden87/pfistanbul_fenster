@@ -1,4 +1,4 @@
-import { WindowVisual } from './WindowVisual'
+import { Foto } from '../media/Foto'
 import { priceRange } from '../../data/catalog'
 import './Hero.css'
 
@@ -58,9 +58,25 @@ export function Hero({ onShopClick, onRequestClick }: HeroProps) {
           </ul>
         </div>
 
-        <div className="hero__visual">
-          <WindowVisual />
-        </div>
+        <figure className="hero__visual">
+          {/*
+            Bis hierher stand eine CSS-Nachbildung eines Fensters, weil noch
+            kein Produktfoto existierte. Jetzt gibt es eines – aufgenommen in
+            einer Wohnung im Pfisterhölzli, mit genau dem Netz, das wir
+            verkaufen. Ein echtes Bild belegt, was die Seite verspricht;
+            eine Zeichnung behauptet es nur.
+          */}
+          <Foto
+            name="fenster-geschlossen"
+            alt="Wohnungsfenster im Pfisterhölzli mit geschlossenem Insektenschutz-Plissee. Durch das feine Gewebe sind Baumkrone, Wiese und Hügel klar zu erkennen."
+            sizes="(max-width: 60rem) min(22rem, 90vw), min(26rem, 40vw)"
+            className="hero__photo"
+            sofort
+          />
+          <figcaption className="hero__caption">
+            Zugezogen, an einem Fenster im Pfisterhölzli. Die Aussicht bleibt.
+          </figcaption>
+        </figure>
       </div>
     </section>
   )

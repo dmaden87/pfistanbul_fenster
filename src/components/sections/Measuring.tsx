@@ -1,3 +1,4 @@
+import { Foto } from '../media/Foto'
 import './Measuring.css'
 
 /**
@@ -79,6 +80,23 @@ export function Measuring() {
               <text x="155" y="296">ca. 5 cm Rahmen, klebt rundum</text>
             </g>
           </svg>
+        </figure>
+
+        {/*
+          Die Skizze erklaert das Mass, das Foto zeigt das Ergebnis: ein Netz
+          montiert, das Fenster daneben offen, die Storen darueber weiterhin
+          benutzbar. Genau danach wird immer wieder gefragt.
+        */}
+        <figure className="measuring__photo">
+          <Foto
+            name="zimmer-storen"
+            alt="Zwei nebeneinanderliegende Fenster von innen, an beiden ist ein Insektenschutz-Plissee montiert; am linken ist es teilweise zugezogen. Über beiden sind die Lamellenstoren hochgezogen."
+            sizes="(max-width: 60rem) 92vw, min(70rem, 90vw)"
+          />
+          <figcaption>
+            Montiert im Pfisterhölzli: Das Netz sitzt vor dem Fenster, die Storen darüber lassen sich weiterhin ganz
+            normal bedienen.
+          </figcaption>
         </figure>
       </div>
     </section>
