@@ -18,6 +18,14 @@ export const shopConfig = {
    */
   vatRegistered: false,
 
+  /**
+   * Onlinezahlung über Stripe als zusätzliche Möglichkeit. Bezahlen bei der
+   * Übergabe bleibt der vorgeschlagene Weg und ist vorausgewählt. Auf false
+   * setzen, wenn nur noch bei Übergabe bezahlt werden soll – dann verschwindet
+   * die Auswahl und der Hinweistext passt sich an.
+   */
+  onlinePayment: true,
+
   /** Montage durch uns, Preis pro Fenster in CHF. Gilt auch in Sets. */
   montageChf: 15,
 

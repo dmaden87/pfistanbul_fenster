@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { CustomerDetails, SubmissionState } from '../../types'
+import type { CustomerDetails, PaymentMethod, SubmissionState } from '../../types'
 import type { UseCart } from '../../hooks/useCart'
 import { netsInSet, setById, typeById } from '../../data/catalog'
 import { formatChf, formatSize } from '../../lib/format'
@@ -9,6 +9,7 @@ import { ContactFields } from './ContactFields'
 import { PreLaunchNotice } from './PreLaunchNotice'
 import { emptyCustomer, hasErrors, validateCustomer, type Errors } from '../../lib/validate'
 import { isDemoMode, makeReference, submitToOperator } from '../../lib/submitOrder'
+import { startCheckout } from '../../lib/checkout'
 import './forms.css'
 import './OrderForm.css'
 
@@ -30,6 +31,8 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
   const [errors, setErrors] = useState<Errors<CustomerDetails>>({})
   const [state, setState] = useState<SubmissionState>({ status: 'idle' })
   const [step, setStep] = useState<'adresse' | 'pruefen'>('adresse')
+  // Bei Übergabe bezahlen bleibt der vorgeschlagene Weg.
+  const [payment, setPayment] = useState<PaymentMethod>('uebergabe')
 
   const { lines, totals, montage, clear } = cart
 
@@ -47,7 +50,16 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
     setState({ status: 'sending' })
 
     try {
-      await submitToOperator({ kind: 'bestellung', customer, lines, reference, montage })
+      // Die Bestellung geht in jedem Fall zuerst an uns – auch wenn die
+      // Onlinezahlung danach abgebrochen wird, ist sie damit nicht verloren.
+      await submitToOperator({ kind: 'bestellung', customer, lines, reference, montage, payment })
+
+      if (payment === 'online') {
+        const url = await startCheckout({ lines, montage, email: customer.email, reference })
+        window.location.href = url
+        return
+      }
+
       setState({ status: 'success', reference })
       clear()
     } catch (error) {
@@ -243,11 +255,64 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
               <div className="form-block__head">
                 <h3>Bezahlung</h3>
                 <p>
-                  Sie zahlen bei der Übergabe, in bar oder mit TWINT. Keine Anzahlung, keine Vorauszahlung – und hier
-                  werden keine Kartendaten erfasst.
+                  {shopConfig.onlinePayment
+                    ? 'Sie können bei der Übergabe bezahlen oder gleich hier online. Beides führt zur selben Bestellung.'
+                    : 'Sie zahlen bei der Übergabe – hier werden keine Zahlungsdaten erfasst.'}
                 </p>
               </div>
-              <p className="form-status form-status--note">
+
+              {shopConfig.onlinePayment ? (
+                <div className="payment-choice" role="radiogroup" aria-label="Zahlungsart">
+                  <label className={`payment-option${payment === 'uebergabe' ? ' payment-option--active' : ''}`}>
+                    <input
+                      type="radio"
+                      name="zahlungsart"
+                      value="uebergabe"
+                      checked={payment === 'uebergabe'}
+                      onChange={() => setPayment('uebergabe')}
+                    />
+                    <span>
+                      <span className="payment-option__head">
+                        <strong>Bei der Übergabe bezahlen</strong>
+                        <span className="pill">Empfohlen</span>
+                      </span>
+                      <span className="payment-option__hint">
+                        Bar oder mit TWINT, wenn die Netze bei Ihnen sind. Keine Anzahlung, keine Kartendaten – und Sie
+                        sehen die Ware, bevor Sie zahlen.
+                      </span>
+                    </span>
+                  </label>
+
+                  <label className={`payment-option${payment === 'online' ? ' payment-option--active' : ''}`}>
+                    <input
+                      type="radio"
+                      name="zahlungsart"
+                      value="online"
+                      checked={payment === 'online'}
+                      onChange={() => setPayment('online')}
+                    />
+                    <span>
+                      <span className="payment-option__head">
+                        <strong>Jetzt online bezahlen</strong>
+                      </span>
+                      <span className="payment-option__hint">
+                        Sie werden zu Stripe weitergeleitet und zahlen dort mit Karte. Wir sehen Ihre Kartendaten nie.
+                        Danach kommen Sie automatisch hierher zurück.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              ) : (
+                <p className="form-status form-status--note">
+                  <span aria-hidden="true">🔒</span>
+                  <span>
+                    Sie zahlen bei der Übergabe, in bar oder mit TWINT. Keine Anzahlung, keine Vorauszahlung – und hier
+                    werden keine Kartendaten erfasst.
+                  </span>
+                </p>
+              )}
+
+              <p className="form-status form-status--note payment-privacy">
                 <span aria-hidden="true">🔒</span>
                 <span>
                   Ihre Angaben gehen direkt an uns und werden ausschliesslich für diese Bestellung verwendet. Keine
@@ -256,22 +321,28 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
               </p>
             </div>
 
-            <PreLaunchNotice variant="bestellung" />
+            <PreLaunchNotice variant="bestellung" payment={payment} />
 
             {state.status === 'error' && <p className="form-status form-status--error">{state.message}</p>}
 
             <div className="form-actions">
               <button type="button" className="btn btn--lg" onClick={handleSubmit} disabled={state.status === 'sending'}>
                 {state.status === 'sending'
-                  ? 'Wird gesendet …'
-                  : shopConfig.operational
-                    ? 'Jetzt verbindlich bestellen'
-                    : 'Bestellung absenden'}
+                  ? payment === 'online'
+                    ? 'Weiterleitung zu Stripe …'
+                    : 'Wird gesendet …'
+                  : payment === 'online'
+                    ? 'Bestellen und bezahlen'
+                    : shopConfig.operational
+                      ? 'Jetzt verbindlich bestellen'
+                      : 'Bestellung absenden'}
               </button>
               <p className="form-actions__hint">
-                {shopConfig.operational
-                  ? 'Sie erhalten anschliessend eine Bestätigung per E-Mail, mit dem Liefertermin.'
-                  : 'Wir melden uns in den nächsten Tagen persönlich bei Ihnen.'}
+                {payment === 'online'
+                  ? 'Sie werden zu Stripe weitergeleitet. Ihre Bestellung ist bereits bei uns, auch wenn Sie dort abbrechen.'
+                  : shopConfig.operational
+                    ? 'Sie erhalten anschliessend eine Bestätigung per E-Mail, mit dem Liefertermin.'
+                    : 'Wir melden uns in den nächsten Tagen persönlich bei Ihnen.'}
               </p>
             </div>
           </>
@@ -310,12 +381,6 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
             <dt>Netze ({totals.netCount})</dt>
             <dd>{formatChf(totals.netsChf)}</dd>
           </div>
-          {totals.savingsChf > 0 && (
-            <div className="totals__discount">
-              <dt>Im Set gespart</dt>
-              <dd>−{formatChf(totals.savingsChf)}</dd>
-            </div>
-          )}
           {montage && (
             <div>
               <dt>Montage</dt>
@@ -331,6 +396,12 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
             <dd>{formatChf(totals.totalChf)}</dd>
           </div>
         </dl>
+        {totals.savingsChf > 0 && (
+          <p className="totals__saving-note">
+            Im Set-Preis sind {formatChf(totals.savingsChf)} gegenüber den Einzelpreisen bereits abgezogen.
+          </p>
+        )}
+
         <p className="checkout__vat">{priceNote}</p>
       </aside>
     </div>

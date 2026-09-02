@@ -43,7 +43,6 @@ const pfisterhoelzliTypes: WindowType[] = [
     heightCm: 122,
     areaM2: 1.958,
     room: 'Wohn-, Schlaf- und Kinderzimmer',
-    note: 'Drei bis vier pro Wohnung',
     priceChf: 125,
     opening: 'mitte',
     openingLabel: 'Zwei Netze, die sich in der Mitte treffen – öffnen nach beiden Seiten',

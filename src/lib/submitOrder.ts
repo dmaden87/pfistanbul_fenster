@@ -1,4 +1,4 @@
-import type { CartLine, CustomRequestLine, CustomerDetails, SubmissionKind } from '../types'
+import type { CartLine, CustomRequestLine, CustomerDetails, PaymentMethod, SubmissionKind } from '../types'
 import { netsInSet, setById, typeById } from '../data/catalog'
 import { cartTotals, priceForLine } from './pricing'
 import { formatChf, formatSize } from './format'
@@ -34,7 +34,13 @@ function customerBlock(customer: CustomerDetails): string {
     .join('\n')
 }
 
-function orderBody(lines: CartLine[], customer: CustomerDetails, reference: string, montage: boolean): string {
+function orderBody(
+  lines: CartLine[],
+  customer: CustomerDetails,
+  reference: string,
+  montage: boolean,
+  payment: PaymentMethod,
+): string {
   const totals = cartTotals(lines, montage)
   const rows = lines.map((line) => {
     if (line.kind === 'set') {
@@ -64,6 +70,10 @@ function orderBody(lines: CartLine[], customer: CustomerDetails, reference: stri
     montage ? `Montage:         ${formatChf(totals.montageChf)} (${totals.netCount} Fenster)` : 'Montage:         nein, Selbstmontage',
     `Lieferung:       ${totals.shippingChf === 0 ? 'kostenlos' : formatChf(totals.shippingChf)}`,
     `Total:           ${formatChf(totals.totalChf)}`,
+    '',
+    payment === 'online'
+      ? 'Zahlung: online über Stripe. Bitte im Stripe-Konto prüfen, ob der Betrag eingegangen ist – die Bestellung wird auch dann gemeldet, wenn die Zahlung abgebrochen wurde.'
+      : 'Zahlung: bei der Übergabe, bar oder mit TWINT.',
   ]
     .filter(Boolean)
     .join('\n')
@@ -100,6 +110,7 @@ export interface SubmitPayload {
   items?: CustomRequestLine[]
   reference: string
   montage?: boolean
+  payment?: PaymentMethod
 }
 
 /**
@@ -107,7 +118,7 @@ export interface SubmitPayload {
  * Der Dienst kennt die Empfaengeradresse; der Browser kennt sie nie.
  */
 export async function submitToOperator(payload: SubmitPayload): Promise<void> {
-  const { kind, customer, lines = [], items = [], reference, montage = false } = payload
+  const { kind, customer, lines = [], items = [], reference, montage = false, payment = 'uebergabe' } = payload
 
   const subject =
     kind === 'bestellung'
@@ -115,7 +126,9 @@ export async function submitToOperator(payload: SubmitPayload): Promise<void> {
       : `Neue Anfrage Sonderanfertigung ${reference} – ${customer.name}`
 
   const message =
-    kind === 'bestellung' ? orderBody(lines, customer, reference, montage) : requestBody(items, customer, reference)
+    kind === 'bestellung'
+      ? orderBody(lines, customer, reference, montage, payment)
+      : requestBody(items, customer, reference)
 
   if (isDemoMode) {
     // Ausdrücklich gewünschte Simulation: nichts wird verschickt, der Ablauf

@@ -161,12 +161,6 @@ export function CartDrawer({ cart, open, onClose, onCheckout }: CartDrawerProps)
                   <dt>Netze ({totals.netCount})</dt>
                   <dd>{formatChf(totals.netsChf)}</dd>
                 </div>
-                {totals.savingsChf > 0 && (
-                  <div className="totals__discount">
-                    <dt>Im Set gespart</dt>
-                    <dd>−{formatChf(totals.savingsChf)}</dd>
-                  </div>
-                )}
                 {montage && (
                   <div>
                     <dt>
@@ -184,6 +178,12 @@ export function CartDrawer({ cart, open, onClose, onCheckout }: CartDrawerProps)
                   <dd>{formatChf(totals.totalChf)}</dd>
                 </div>
               </dl>
+
+              {totals.savingsChf > 0 && (
+                <p className="totals__saving-note">
+                  Im Set-Preis sind {formatChf(totals.savingsChf)} gegenüber den Einzelpreisen bereits abgezogen.
+                </p>
+              )}
 
               <p className="drawer__vat">{priceNote}</p>
 

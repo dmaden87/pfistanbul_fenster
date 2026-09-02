@@ -121,11 +121,56 @@ gehören nie auf die Seite**: Die verbreiteten «bis zu 99 %» sind Bestwerte de
 Hersteller bei schwachem Wind, unabhängige Messungen liegen bei 51–66 %, und
 Art. 13a UWG kehrt die Beweislast um.
 
+## Bezahlen: bei der Übergabe oder online
+
+Im Checkout wählt die Kundschaft zwischen zwei Wegen. **Bei der Übergabe
+bezahlen** ist vorausgewählt und mit «Empfohlen» ausgezeichnet; **jetzt online
+bezahlen** führt über Stripe Checkout. Beide erzeugen dieselbe Bestellung.
+
+Die Bestellung geht **immer zuerst** per Formular an den Betreiber – auch wenn
+die Zahlung danach abgebrochen wird. So geht keine Bestellung verloren, und es
+braucht keinen Stripe-Webhook. In der Mail steht, welcher Weg gewählt wurde;
+bei «online» gehört ein Blick ins Stripe-Konto dazu, ob der Betrag wirklich
+eingegangen ist.
+
+### Warum eine Serverfunktion nötig ist
+
+Eine Stripe-Checkout-Sitzung lässt sich nicht aus dem Browser erzeugen – dafür
+braucht es den geheimen Schlüssel, und der darf nie ins Bundle. `api/checkout.ts`
+läuft deshalb als Vercel-Function auf dem Server.
+
+**Der Browser schickt keine Preise.** Er sendet nur, welcher Artikel in welcher
+Menge gewünscht ist; welcher Betrag dazugehört, entscheidet allein die Tabelle
+in `api/checkout.ts`. Sonst könnte jede Person über die Entwicklerkonsole den
+Preis auf null setzen. Die Funktion weist unbekannte Artikel, unplausible Mengen
+und überlange Warenkörbe ab, bevor sie Stripe überhaupt aufruft.
+
+### Einrichten
+
+In Vercel eine **sensitive** Environment Variable anlegen – hier ausdrücklich
+*nicht* als «Config», und ohne `VITE_`-Präfix:
+
+```
+STRIPE_SECRET_KEY = sk_live_…
+```
+
+Die Stripe-Preis-IDs stehen in `api/checkout.ts` unter `PRICE_IDS`. Ändern sich
+Preise, werden sie in Stripe geändert – im Code steht nur die ID, nie der
+Betrag. Neue Produkte brauchen dort einen zusätzlichen Eintrag; der Schlüssel
+ist `kind:refId` aus `src/data/catalog.ts`. Die Montage hat bewusst kein
+Stripe-Produkt: Sie wird als Position mit CHF 15 pro Fenster erzeugt.
+
+`shopConfig.onlinePayment` schaltet die ganze Auswahl ab – dann bleibt nur noch
+das Bezahlen bei der Übergabe.
+
 ## Betrieb noch im Aufbau
 
 `shopConfig.operational` steht auf `false`. Solange das gilt, erscheint vor dem
 Absenden einer Bestellung oder Anfrage ein deutlich sichtbarer Hinweis, dass
-der Betrieb noch im Aufbau ist und sich jemand persönlich meldet; der Knopf
+der Betrieb noch im Aufbau ist und sich jemand persönlich meldet. Bei gewählter
+Onlinezahlung sagt derselbe Hinweis stattdessen eine vollständige Rückerstattung
+zu, falls nicht geliefert werden kann – «es entstehen Ihnen keine Kosten» wäre
+dann schlicht falsch. Ausserdem der Knopf
 heisst «Bestellung absenden» statt «Jetzt verbindlich bestellen», und die
 Bestätigungsseite wiederholt den Hinweis. Sobald der Ablauf steht: Schalter auf
 `true`, dann verschwindet das alles.

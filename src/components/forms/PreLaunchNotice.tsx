@@ -1,9 +1,12 @@
+import type { PaymentMethod } from '../../types'
 import { shopConfig } from '../../data/shopConfig'
 import './PreLaunchNotice.css'
 
 interface PreLaunchNoticeProps {
   /** "bestellung" steht vor dem Absenden, "bestaetigung" danach. */
   variant: 'bestellung' | 'anfrage' | 'bestaetigung'
+  /** Bei Onlinezahlung stimmt "es entstehen keine Kosten" nicht mehr. */
+  payment?: PaymentMethod
 }
 
 /**
@@ -11,7 +14,7 @@ interface PreLaunchNoticeProps {
  * nehmen die Bestellung entgegen, sind aber noch im Aufbau und melden uns
  * persönlich. Verschwindet vollständig, sobald der Schalter umgelegt wird.
  */
-export function PreLaunchNotice({ variant }: PreLaunchNoticeProps) {
+export function PreLaunchNotice({ variant, payment = 'uebergabe' }: PreLaunchNoticeProps) {
   if (shopConfig.operational) return null
 
   return (
@@ -31,6 +34,12 @@ export function PreLaunchNotice({ variant }: PreLaunchNoticeProps) {
             Weil wir noch nicht im Normalbetrieb sind, läuft nichts automatisch: Wir schauen uns Ihre Bestellung
             persönlich an und melden uns in den nächsten Tagen bei Ihnen – mit der Bestätigung und einem Termin.
             Verbindlich ist erst, was wir miteinander abgemacht haben.
+          </p>
+        ) : payment === 'online' ? (
+          <p>
+            Ihre Bestellung nehmen wir trotzdem gerne entgegen. Wir melden uns in den nächsten Tagen persönlich bei
+            Ihnen, bestätigen alles und sagen Ihnen, wann wir liefern können. Sollten wir wider Erwarten nicht liefern
+            können, erstatten wir den bezahlten Betrag vollständig zurück.
           </p>
         ) : (
           <p>

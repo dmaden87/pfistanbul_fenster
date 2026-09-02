@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Header } from './components/layout/Header'
 import { Footer } from './components/layout/Footer'
 import { CartDrawer } from './components/shop/CartDrawer'
 import { OrderForm } from './components/forms/OrderForm'
+import { PaymentResult } from './components/forms/PaymentResult'
 import { Hero } from './components/sections/Hero'
 import { TrustBar } from './components/sections/TrustBar'
 import { Benefits } from './components/sections/Benefits'
@@ -20,17 +21,45 @@ import { LegalPage, type LegalKey } from './components/sections/LegalPage'
 import { useCart } from './hooks/useCart'
 import './App.css'
 
-type View = { name: 'shop' } | { name: 'checkout' } | { name: 'legal'; page: LegalKey }
+type View =
+  | { name: 'shop' }
+  | { name: 'checkout' }
+  | { name: 'legal'; page: LegalKey }
+  | { name: 'zahlung'; status: 'ok' | 'abbruch'; reference: string }
+
+/**
+ * Stripe schickt die Kundschaft mit ?zahlung=ok bzw. ?zahlung=abbruch zurück.
+ * Wir lesen das einmal beim Start und räumen die Adresszeile gleich wieder auf,
+ * damit ein Neuladen nicht nochmals dieselbe Meldung zeigt.
+ */
+function readPaymentReturn(): View | null {
+  const params = new URLSearchParams(window.location.search)
+  const status = params.get('zahlung')
+  if (status !== 'ok' && status !== 'abbruch') return null
+
+  const reference = params.get('ref') ?? ''
+  window.history.replaceState({}, '', window.location.pathname)
+  return { name: 'zahlung', status, reference }
+}
 
 export default function App() {
   const cart = useCart()
   const [cartOpen, setCartOpen] = useState(false)
-  const [view, setView] = useState<View>({ name: 'shop' })
+  const [view, setView] = useState<View>(() => readPaymentReturn() ?? { name: 'shop' })
   const [pendingAnchor, setPendingAnchor] = useState<string | null>(null)
 
   useEffect(() => {
     if (view.name !== 'shop') window.scrollTo({ top: 0, behavior: 'auto' })
   }, [view])
+
+  // Nach erfolgreicher Zahlung ist der Warenkorb erledigt.
+  const cartCleared = useRef(false)
+  useEffect(() => {
+    if (view.name === 'zahlung' && view.status === 'ok' && !cartCleared.current) {
+      cartCleared.current = true
+      cart.clear()
+    }
+  }, [view, cart])
 
   // Der Sprung zu einem Abschnitt wartet, bis die Startseite wieder gerendert
   // ist - sonst geht der Klick aus der Bestell- oder Rechtsseite ins Leere.
@@ -98,6 +127,19 @@ export default function App() {
                 </p>
               </div>
               <OrderForm cart={cart} onBackToShop={goToShop} />
+            </div>
+          </section>
+        )}
+
+        {view.name === 'zahlung' && (
+          <section className="section">
+            <div className="shell">
+              <PaymentResult
+                status={view.status}
+                reference={view.reference}
+                onBackToShop={goToShop}
+                onBackToCheckout={() => setView({ name: 'checkout' })}
+              />
             </div>
           </section>
         )}

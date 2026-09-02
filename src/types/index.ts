@@ -98,6 +98,9 @@ export interface CustomRequestLine {
   room: string
 }
 
+/** Wie bezahlt wird. "uebergabe" bleibt der vorgeschlagene Weg. */
+export type PaymentMethod = 'uebergabe' | 'online'
+
 export type SubmissionKind = 'bestellung' | 'anfrage'
 
 export type SubmissionState =

@@ -281,3 +281,65 @@
   color: var(--text-subtle);
   font-size: var(--step--2);
 }
+
+/* --- Zahlungsart ------------------------------------------------------------- */
+
+.payment-choice {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.payment-option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  cursor: pointer;
+  transition:
+    border-color var(--motion-fast),
+    background-color var(--motion-fast);
+}
+
+.payment-option:hover {
+  border-color: var(--accent);
+}
+
+.payment-option--active {
+  border-color: var(--accent);
+  border-width: 2px;
+  padding: calc(var(--space-4) - 1px) calc(var(--space-5) - 1px);
+  background: var(--accent-soft);
+}
+
+.payment-option input {
+  flex-shrink: 0;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: 0.2rem;
+  accent-color: var(--accent);
+}
+
+.payment-option > span {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.payment-option__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--step-0);
+}
+
+.payment-option__hint {
+  color: var(--text-muted);
+  font-size: var(--step--1);
+}
+
+.payment-privacy {
+  margin-top: var(--space-4);
+}
