@@ -28,6 +28,14 @@ const FAQ: FaqItem[] = [
     a: 'Bei der Übergabe, in bar oder mit TWINT. Keine Anzahlung, keine Rechnung im Voraus. Im Webshop selbst werden keine Zahlungsdaten erfasst und nichts abgebucht.',
   },
   {
+    q: 'Was, wenn der Betrag gerade nicht auf einmal liegt?',
+    a: 'Dann sagen Sie es uns. Wir machen eine Zahlung ab, die für Sie aufgeht – in Raten oder zu einem späteren Zeitpunkt, zinslos und ohne Gebühren. Das entscheiden wir von Fall zu Fall im Gespräch, es gibt kein Kreditformular und keine Prüfung über Sie. Melden Sie sich über den Abschnitt "Zahlung nach Absprache" oder setzen Sie im Bestellablauf das Häkchen dafür; Ihre Bestellung wird dann zu einer Anfrage, und verbindlich ist erst, was wir miteinander abgemacht haben.',
+  },
+  {
+    q: 'Bekomme ich für ein Sondermass vorher einen Preis?',
+    a: 'Ja, sofort. Sobald Sie im Anfrageformular Breite, Höhe und Anzahl eintragen, rechnen wir Ihnen direkt auf der Seite einen Richtpreis aus – hochgerechnet aus den Preisen unseres ausgemessenen Sortiments, mit einem Zuschlag für die Unsicherheit. Das ist eine Schätzung und keine Offerte: Den verbindlichen Preis nennen wir Ihnen, nachdem wir Ihre Masse angeschaut haben, und er liegt erfahrungsgemäss eher darunter. Uns ist wichtig, dass Sie eine Hausnummer kennen, bevor Sie überhaupt anfragen.',
+  },
+  {
     q: 'Und wenn es doch nicht passt oder mir nicht gefällt?',
     a: 'Netze aus einem ausgemessenen Sortiment nehmen wir innerhalb von 14 Tagen zurück oder tauschen sie, solange sie unbeschädigt sind. Bei Sondermassen kommt es darauf an, woher das Mass stammt: Haben wir gemessen, ist ein Fehler unsere Sache. Haben Sie uns die Masse durchgegeben, können wir ein angefertigtes Netz nicht zurücknehmen – deshalb bieten wir das Nachmessen kostenlos an.',
   },

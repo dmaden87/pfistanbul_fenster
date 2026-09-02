@@ -28,6 +28,7 @@ export function Footer({ onOpenLegal, onNavigate }: FooterProps) {
           <h2>Hilfe</h2>
           <button type="button" onClick={() => onNavigate('montage')}>Montage &amp; Messen</button>
           <button type="button" onClick={() => onNavigate('faq')}>Häufige Fragen</button>
+          <button type="button" onClick={() => onNavigate('zahlung')}>Zahlung nach Absprache</button>
           <button type="button" onClick={() => onNavigate('anfrage')}>Kontakt</button>
         </nav>
 

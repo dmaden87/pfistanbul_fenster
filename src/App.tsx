@@ -13,6 +13,7 @@ import { Shop } from './components/sections/Shop'
 import { HowItWorks } from './components/sections/HowItWorks'
 import { Measuring } from './components/sections/Measuring'
 import { Story } from './components/sections/Story'
+import { PaymentHelp } from './components/sections/PaymentHelp'
 import { Promises } from './components/sections/Promises'
 import { CustomRequest } from './components/sections/CustomRequest'
 import { Faq } from './components/sections/Faq'
@@ -109,6 +110,7 @@ export default function App() {
             <Measuring />
             <Story />
             <Promises />
+            <PaymentHelp />
             <CustomRequest />
             <Faq />
             <ClosingCta onShopClick={() => goToAnchor('groessen')} onRequestClick={() => goToAnchor('anfrage')} />

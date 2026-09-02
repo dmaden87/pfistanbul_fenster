@@ -34,13 +34,16 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
   const [step, setStep] = useState<'adresse' | 'pruefen'>('adresse')
   // Bei Übergabe bezahlen bleibt der vorgeschlagene Weg.
   const [payment, setPayment] = useState<PaymentMethod>('uebergabe')
+  // Wunsch nach einer individuellen Zahlungslösung. Macht aus der Bestellung
+  // eine Anfrage: Wir sagen erst zu, wenn wir miteinander gesprochen haben.
+  const [flexiblePayment, setFlexiblePayment] = useState(false)
 
   const { lines, totals, montage, clear } = cart
 
   // Eine Stelle entscheidet, ob online bezahlt werden darf. `effectivePayment`
   // wird überall statt `payment` verwendet, damit eine gesperrte Option auch
   // dann nicht abgeschickt werden kann, wenn sie vorher einmal gewählt war.
-  const onlineBlocker = onlinePaymentBlocker(lines)
+  const onlineBlocker = onlinePaymentBlocker(lines, flexiblePayment)
   const effectivePayment: PaymentMethod = onlineBlocker === null ? payment : 'uebergabe'
 
   const handleContinue = (event: React.FormEvent) => {
@@ -59,7 +62,15 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
     try {
       // Die Bestellung geht in jedem Fall zuerst an uns – auch wenn die
       // Onlinezahlung danach abgebrochen wird, ist sie damit nicht verloren.
-      await submitToOperator({ kind: 'bestellung', customer, lines, reference, montage, payment: effectivePayment })
+      await submitToOperator({
+        kind: 'bestellung',
+        customer,
+        lines,
+        reference,
+        montage,
+        payment: effectivePayment,
+        flexiblePayment,
+      })
 
       if (effectivePayment === 'online') {
         const url = await startCheckout({ lines, montage, email: customer.email, reference })
@@ -88,19 +99,31 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
             <path d="M5 12.5l4.5 4.5L19 7.5" />
           </svg>
         </div>
-        <h3>Danke – Ihre Bestellung ist bei uns.</h3>
+        <h3>{flexiblePayment ? 'Danke – Ihre Anfrage ist bei uns.' : 'Danke – Ihre Bestellung ist bei uns.'}</h3>
         <p className="section__lead">
-          Bezahlt wird bei der Übergabe – im Webshop selbst wird nichts abgebucht.
+          {flexiblePayment
+            ? 'Wir melden uns persönlich bei Ihnen, um die Zahlung miteinander abzumachen. Bis dahin ist nichts verbindlich und es entstehen Ihnen keine Kosten.'
+            : 'Bezahlt wird bei der Übergabe – im Webshop selbst wird nichts abgebucht.'}
         </p>
         <span className="confirmation__reference">Referenz {state.reference}</span>
         <PreLaunchNotice variant="bestaetigung" />
         <ul className="confirmation__next">
-          <li>Wir prüfen die Masse und melden uns, falls etwas unklar ist.</li>
-          <li>Wir bestätigen Ihnen den Liefertermin und melden uns, falls sich etwas verschiebt.</li>
-          <li>
-            Passt ein Netz wider Erwarten nicht, tauschen wir es kostenlos. Zusätzlich gilt unser freiwilliges
-            Rückgaberecht von {shopConfig.returnDays} Tagen.
-          </li>
+          {flexiblePayment ? (
+            <>
+              <li>Wir melden uns bei Ihnen – per Mail oder, wenn Sie eine Nummer angegeben haben, telefonisch.</li>
+              <li>Gemeinsam finden wir eine Zahlungsart, die für Sie aufgeht. Zinslos, ohne Gebühren.</li>
+              <li>Erst wenn das steht, bestätigen wir die Bestellung und produzieren.</li>
+            </>
+          ) : (
+            <>
+              <li>Wir prüfen die Masse und melden uns, falls etwas unklar ist.</li>
+              <li>Wir bestätigen Ihnen den Liefertermin und melden uns, falls sich etwas verschiebt.</li>
+              <li>
+                Passt ein Netz wider Erwarten nicht, tauschen wir es kostenlos. Zusätzlich gilt unser freiwilliges
+                Rückgaberecht von {shopConfig.returnDays} Tagen.
+              </li>
+            </>
+          )}
         </ul>
         <button type="button" className="btn btn--ghost" style={{ marginTop: 'var(--space-7)' }} onClick={onBackToShop}>
           Zurück zur Übersicht
@@ -181,7 +204,11 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
               <div className="form-block__head form-block__head--row">
                 <div>
                   <h3>Bitte prüfen Sie Ihre Angaben</h3>
-                  <p>Danach ist die Bestellung verbindlich. Korrigieren können Sie jetzt noch alles.</p>
+                  <p>
+                    {flexiblePayment
+                      ? 'Sie schicken uns eine Anfrage – verbindlich wird nichts, bevor wir miteinander gesprochen haben.'
+                      : 'Danach ist die Bestellung verbindlich. Korrigieren können Sie jetzt noch alles.'}
+                  </p>
                 </div>
                 <button type="button" className="btn btn--ghost" onClick={() => setStep('adresse')}>
                   Ändern
@@ -328,6 +355,24 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
                 </p>
               )}
 
+              {shopConfig.flexiblePayment && (
+                <label className="checkbox">
+                  <input
+                    type="checkbox"
+                    checked={flexiblePayment}
+                    onChange={(event) => setFlexiblePayment(event.target.checked)}
+                  />
+                  <span>
+                    <strong>Ich würde gerne eine individuelle Zahlungslösung finden.</strong>
+                    <span className="checkbox__hint">
+                      Zum Beispiel in Raten oder zu einem späteren Zeitpunkt. Wir schauen das gemeinsam an – zinslos und
+                      ohne Gebühren. Sie schicken uns damit eine Anfrage statt einer verbindlichen Bestellung: Wir
+                      melden uns persönlich, und erst wenn wir uns einig sind, produzieren wir.
+                    </span>
+                  </span>
+                </label>
+              )}
+
               <p className="form-status form-status--note payment-privacy">
                 <span aria-hidden="true">🔒</span>
                 <span>
@@ -345,18 +390,22 @@ export function OrderForm({ cart, onBackToShop }: OrderFormProps) {
                   ? effectivePayment === 'online'
                     ? 'Weiterleitung zu Stripe …'
                     : 'Wird gesendet …'
-                  : effectivePayment === 'online'
-                    ? 'Bestellen und bezahlen'
-                    : shopConfig.operational
-                      ? 'Jetzt verbindlich bestellen'
-                      : 'Bestellung absenden'}
+                  : flexiblePayment
+                    ? 'Bestellung anfragen'
+                    : effectivePayment === 'online'
+                      ? 'Bestellen und bezahlen'
+                      : shopConfig.operational
+                        ? 'Jetzt verbindlich bestellen'
+                        : 'Bestellung absenden'}
               </button>
               <p className="form-actions__hint">
-                {effectivePayment === 'online'
-                  ? 'Sie werden zu Stripe weitergeleitet. Ihre Bestellung ist bereits bei uns, auch wenn Sie dort abbrechen.'
-                  : shopConfig.operational
-                    ? 'Sie erhalten anschliessend eine Bestätigung per E-Mail, mit dem Liefertermin.'
-                    : 'Wir melden uns in den nächsten Tagen persönlich bei Ihnen.'}
+                {flexiblePayment
+                  ? 'Unverbindlich: Wir melden uns bei Ihnen und machen die Zahlung miteinander ab, bevor irgendetwas produziert wird.'
+                  : effectivePayment === 'online'
+                    ? 'Sie werden zu Stripe weitergeleitet. Ihre Bestellung ist bereits bei uns, auch wenn Sie dort abbrechen.'
+                    : shopConfig.operational
+                      ? 'Sie erhalten anschliessend eine Bestätigung per E-Mail, mit dem Liefertermin.'
+                      : 'Wir melden uns in den nächsten Tagen persönlich bei Ihnen.'}
               </p>
             </div>
           </>

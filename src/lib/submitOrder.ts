@@ -1,6 +1,7 @@
 import type { CartLine, CustomRequestLine, CustomerDetails, PaymentMethod, SubmissionKind } from '../types'
 import { netsInSet, setById, typeById } from '../data/catalog'
 import { cartTotals, priceForLine } from './pricing'
+import { estimateCustomRequest } from './estimate'
 import { formatChf, formatSize } from './format'
 
 const endpoint = import.meta.env.VITE_ORDER_ENDPOINT?.trim()
@@ -18,19 +19,25 @@ export const isUnconfigured = !endpoint
 
 /** Kurze, fuer Menschen lesbare Referenz, damit Kunde und Betreiber dieselbe Bestellung meinen. */
 export function makeReference(kind: SubmissionKind, seed: number): string {
-  const prefix = kind === 'bestellung' ? 'PF' : 'PA'
+  const prefix = kind === 'bestellung' ? 'PF' : kind === 'zahlung' ? 'PZ' : 'PA'
   return `${prefix}-${seed.toString(36).toUpperCase().slice(-6).padStart(6, '0')}`
 }
 
 function customerBlock(customer: CustomerDetails): string {
+  // Anfrageformulare erfassen keine Adresse. Dann soll auch keine leere
+  // Zeile "Adresse:   ,  " in der Mail stehen.
+  const address = [customer.street, [customer.zip, customer.city].filter(Boolean).join(' ')]
+    .filter(Boolean)
+    .join(', ')
+
   return [
     `Name:      ${customer.name}`,
     `E-Mail:    ${customer.email}`,
     `Telefon:   ${customer.phone || '-'}`,
-    `Adresse:   ${customer.street}, ${customer.zip} ${customer.city}`,
+    address ? `Adresse:   ${address}` : null,
     customer.notes ? `Bemerkung: ${customer.notes}` : null,
   ]
-    .filter(Boolean)
+    .filter((line) => line !== null)
     .join('\n')
 }
 
@@ -40,6 +47,7 @@ function orderBody(
   reference: string,
   montage: boolean,
   payment: PaymentMethod,
+  flexiblePayment: boolean,
 ): string {
   const totals = cartTotals(lines, montage)
   const rows = lines.map((line) => {
@@ -58,7 +66,7 @@ function orderBody(
   })
 
   return [
-    `BESTELLUNG ${reference}`,
+    flexiblePayment ? `BESTELLANFRAGE MIT ZAHLUNGSWUNSCH ${reference}` : `BESTELLUNG ${reference}`,
     '',
     customerBlock(customer),
     '',
@@ -71,25 +79,34 @@ function orderBody(
     `Lieferung:       ${totals.shippingChf === 0 ? 'kostenlos' : formatChf(totals.shippingChf)}`,
     `Total:           ${formatChf(totals.totalChf)}`,
     '',
-    payment === 'online'
-      ? 'Zahlung: online über Stripe. Bitte im Stripe-Konto prüfen, ob der Betrag eingegangen ist – die Bestellung wird auch dann gemeldet, wenn die Zahlung abgebrochen wurde.'
-      : 'Zahlung: bei der Übergabe, bar oder mit TWINT.',
+    flexiblePayment
+      ? 'Zahlung: KUNDE WUENSCHT EINE INDIVIDUELLE ZAHLUNGSLOESUNG.\n' +
+        '         Das ist eine Anfrage, keine verbindliche Bestellung. Bitte persoenlich melden\n' +
+        '         und gemeinsam abmachen, wie bezahlt wird.'
+      : payment === 'online'
+        ? 'Zahlung: online über Stripe. Bitte im Stripe-Konto prüfen, ob der Betrag eingegangen ist – die Bestellung wird auch dann gemeldet, wenn die Zahlung abgebrochen wurde.'
+        : 'Zahlung: bei der Übergabe, bar oder mit TWINT.',
   ]
-    .filter(Boolean)
+    // Nur null herausfiltern: filter(Boolean) wuerde auch die Leerzeilen
+    // schlucken, die die Mail ueberhaupt erst lesbar machen.
+    .filter((line) => line !== null)
     .join('\n')
 }
 
 function requestBody(items: CustomRequestLine[], customer: CustomerDetails, reference: string): string {
-  const rows = items.map((item, index) =>
-    [
+  const estimate = estimateCustomRequest(items)
+  const rows = items.map((item, index) => {
+    const line = estimate?.lines.find((entry) => entry.id === item.id)
+    return [
       `  Position ${index + 1}:`,
       `    Masse:  ${item.widthCm || '?'} × ${item.heightCm || '?'} cm`,
       `    Anzahl: ${item.quantity || '1'}`,
       item.room ? `    Raum:   ${item.room}` : null,
+      line ? `    Richtpreis: ${formatChf(line.perNetChf)} pro Netz` : null,
     ]
       .filter(Boolean)
-      .join('\n'),
-  )
+      .join('\n')
+  })
 
   return [
     `BESTELLANFRAGE (Sonderanfertigung) ${reference}`,
@@ -99,7 +116,24 @@ function requestBody(items: CustomRequestLine[], customer: CustomerDetails, refe
     'Gewuenschte Elemente:',
     ...rows,
     '',
+    // Der Kunde hat diese Zahl auf der Seite gesehen. Sie gehoert in die Mail,
+    // damit die Offerte nicht unerwartet darueber liegt.
+    estimate
+      ? `Angezeigter Richtpreis: ${formatChf(estimate.totalChf)} fuer ${estimate.netCount} Netze (geschaetzt, nicht verbindlich).`
+      : 'Kein Richtpreis angezeigt (Angaben unvollstaendig).',
+    '',
     'Bitte Offerte erstellen und dem Kunden zustellen.',
+  ].join('\n')
+}
+
+function paymentHelpBody(customer: CustomerDetails, reference: string): string {
+  return [
+    `ANFRAGE INDIVIDUELLE ZAHLUNGSLOESUNG ${reference}`,
+    '',
+    customerBlock(customer),
+    '',
+    'Diese Person moechte besprechen, wie sie bezahlen kann (Raten, spaeterer Termin,',
+    'Teilzahlung). Es liegt keine Bestellung vor. Bitte persoenlich melden.',
   ].join('\n')
 }
 
@@ -111,6 +145,8 @@ export interface SubmitPayload {
   reference: string
   montage?: boolean
   payment?: PaymentMethod
+  /** Kunde hat im Checkout um eine individuelle Zahlungsloesung gebeten. */
+  flexiblePayment?: boolean
 }
 
 /**
@@ -118,17 +154,32 @@ export interface SubmitPayload {
  * Der Dienst kennt die Empfaengeradresse; der Browser kennt sie nie.
  */
 export async function submitToOperator(payload: SubmitPayload): Promise<void> {
-  const { kind, customer, lines = [], items = [], reference, montage = false, payment = 'uebergabe' } = payload
+  const {
+    kind,
+    customer,
+    lines = [],
+    items = [],
+    reference,
+    montage = false,
+    payment = 'uebergabe',
+    flexiblePayment = false,
+  } = payload
 
   const subject =
     kind === 'bestellung'
-      ? `Neue Bestellung ${reference} – ${customer.name}`
-      : `Neue Anfrage Sonderanfertigung ${reference} – ${customer.name}`
+      ? flexiblePayment
+        ? `Bestellanfrage mit Zahlungswunsch ${reference} – ${customer.name}`
+        : `Neue Bestellung ${reference} – ${customer.name}`
+      : kind === 'zahlung'
+        ? `Anfrage Zahlungslösung ${reference} – ${customer.name}`
+        : `Neue Anfrage Sonderanfertigung ${reference} – ${customer.name}`
 
   const message =
     kind === 'bestellung'
-      ? orderBody(lines, customer, reference, montage, payment)
-      : requestBody(items, customer, reference)
+      ? orderBody(lines, customer, reference, montage, payment, flexiblePayment)
+      : kind === 'zahlung'
+        ? paymentHelpBody(customer, reference)
+        : requestBody(items, customer, reference)
 
   if (isDemoMode) {
     // Ausdrücklich gewünschte Simulation: nichts wird verschickt, der Ablauf

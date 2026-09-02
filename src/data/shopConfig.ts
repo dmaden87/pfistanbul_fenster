@@ -26,6 +26,19 @@ export const shopConfig = {
    */
   onlinePayment: true,
 
+  /**
+   * Individuelle Zahlungslösung (Raten, späterer Termin) auf Anfrage. Wird
+   * nicht automatisiert: Wer sich meldet, bekommt ein Gespräch, und wir
+   * entscheiden von Fall zu Fall. Die Seite verspricht deshalb nirgends eine
+   * Zusage – nur, dass wir eine Lösung suchen. Auf false setzen, wenn das
+   * Angebot ruhen soll; dann verschwinden Abschnitt und Checkbox.
+   *
+   * Bewusst zinslos und ohne Gebühren: Ein Zahlungsaufschub, der nichts
+   * kostet, ist etwas anderes als ein Konsumkredit. Sobald Zinsen oder
+   * Gebühren dazukämen, wäre das Konsumkreditgesetz zu prüfen.
+   */
+  flexiblePayment: true,
+
   /** Montage durch uns, Preis pro Fenster in CHF. Gilt auch in Sets. */
   montageChf: 15,
 

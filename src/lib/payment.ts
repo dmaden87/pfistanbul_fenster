@@ -3,7 +3,12 @@ import { setById, typeById } from '../data/catalog'
 import { shopConfig } from '../data/shopConfig'
 
 /** Warum die Onlinezahlung gerade nicht angeboten wird. `null` heisst: sie steht offen. */
-export type OnlinePaymentBlocker = 'abgeschaltet' | 'vor-dem-start' | 'sondermass' | 'leerer-warenkorb'
+export type OnlinePaymentBlocker =
+  | 'abgeschaltet'
+  | 'vor-dem-start'
+  | 'sondermass'
+  | 'leerer-warenkorb'
+  | 'zahlungswunsch'
 
 /**
  * Online bezahlbar ist nur, was einem Katalogartikel mit fest hinterlegtem
@@ -22,9 +27,12 @@ export function isOnlinePayableLine(line: CartLine): boolean {
  * nicht auseinanderlaufen können. Solange wir nicht operativ sind, nehmen wir
  * grundsätzlich kein Geld entgegen.
  */
-export function onlinePaymentBlocker(lines: CartLine[]): OnlinePaymentBlocker | null {
+export function onlinePaymentBlocker(lines: CartLine[], flexiblePayment = false): OnlinePaymentBlocker | null {
   if (!shopConfig.onlinePayment) return 'abgeschaltet'
   if (!shopConfig.operational) return 'vor-dem-start'
+  // Wer über die Zahlung sprechen will, soll nicht im selben Schritt den
+  // vollen Betrag mit der Karte begleichen.
+  if (flexiblePayment) return 'zahlungswunsch'
   if (lines.length === 0) return 'leerer-warenkorb'
   if (!lines.every(isOnlinePayableLine)) return 'sondermass'
   return null
@@ -37,6 +45,8 @@ export function blockerBadge(blocker: OnlinePaymentBlocker): string {
       return 'Nicht für Sondermasse'
     case 'leerer-warenkorb':
       return 'Kein Warenkorb'
+    case 'zahlungswunsch':
+      return 'Wird persönlich besprochen'
     default:
       return 'Noch nicht verfügbar'
   }
@@ -49,6 +59,8 @@ export function blockerHint(blocker: OnlinePaymentBlocker): string {
       return 'Ihr Warenkorb enthält mindestens eine Position nach Mass. Dafür gibt es keinen festen Preis, den wir im Voraus verrechnen könnten – wir offerieren Ihnen den Preis zuerst persönlich.'
     case 'leerer-warenkorb':
       return 'Legen Sie zuerst Netze in den Warenkorb.'
+    case 'zahlungswunsch':
+      return 'Sie möchten die Zahlung mit uns abmachen – dann wird hier nichts im Voraus belastet. Wir melden uns bei Ihnen.'
     default:
       return 'Solange wir im Aufbau sind, nehmen wir bewusst noch keine Zahlungen entgegen. Sobald wir live sind, können Sie hier direkt mit Karte bezahlen.'
   }

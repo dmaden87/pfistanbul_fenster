@@ -4,6 +4,8 @@ import { ContactFields } from './ContactFields'
 import { PreLaunchNotice } from './PreLaunchNotice'
 import { emptyCustomer, hasErrors, validateCustomLines, validateCustomer, type Errors } from '../../lib/validate'
 import { isDemoMode, makeReference, submitToOperator } from '../../lib/submitOrder'
+import { estimateCustomRequest } from '../../lib/estimate'
+import { formatChf, formatSize } from '../../lib/format'
 import './forms.css'
 
 function newLine(index: number): CustomRequestLine {
@@ -27,6 +29,11 @@ export function CustomRequestForm() {
   // Widerrufsrecht nach Art. 40a ff. OR für ein Haustürgeschäft aus. Der Wunsch
   // muss dokumentiert sein - deshalb wird er hier festgehalten und mitgeschickt.
   const [wantsVisit, setWantsVisit] = useState(false)
+
+  // Richtpreis, sobald ein Element vollstaendig dasteht. Bewusst waehrend des
+  // Tippens und nicht erst beim Absenden: Der Punkt der Uebung ist, dass man
+  // nicht erst eine Anfrage stellen muss, um eine Hausnummer zu kennen.
+  const estimate = estimateCustomRequest(items)
 
   const updateItem = (id: string, patch: Partial<CustomRequestLine>) => {
     setItems((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)))
@@ -212,6 +219,56 @@ export function CustomRequestForm() {
         <button type="button" className="btn btn--ghost request-add" onClick={addItem}>
           + Weiteres Element
         </button>
+
+        {estimate && (
+          <aside className="estimate" aria-live="polite">
+            <div className="estimate__head">
+              <div>
+                <p className="estimate__label">Richtpreis, geschätzt</p>
+                <p className="estimate__value">ca. {formatChf(estimate.totalChf)}</p>
+              </div>
+              <p className="estimate__count">
+                {estimate.netCount} {estimate.netCount === 1 ? 'Netz' : 'Netze'}
+              </p>
+            </div>
+
+            {estimate.lines.length > 1 && (
+              <ul className="estimate__lines">
+                {estimate.lines.map((line) => (
+                  <li key={line.id}>
+                    <span>
+                      {line.quantity}× {formatSize(line.widthCm, line.heightCm)}
+                    </span>
+                    <span className="estimate__per">à ca. {formatChf(line.perNetChf)}</span>
+                    <span className="estimate__sum">{formatChf(line.totalChf)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <p className="estimate__note">
+              <strong>Das ist eine Schätzung, keine Offerte.</strong> Wir rechnen sie aus den Preisen unseres
+              ausgemessenen Sortiments hoch – Sockelbetrag pro Netz plus Gewebefläche, mit einem Zuschlag für
+              Unsicherheit. Den verbindlichen Preis nennen wir Ihnen, nachdem wir Ihre Masse angeschaut haben; er liegt
+              erfahrungsgemäss eher darunter. Lieferung im Pfisterhölzli ist enthalten, Montage nicht.
+            </p>
+
+            {estimate.pendingCount > 0 && (
+              <p className="estimate__flag">
+                {estimate.pendingCount === 1
+                  ? 'Ein Element ist noch nicht vollständig ausgefüllt und fehlt in dieser Summe.'
+                  : `${estimate.pendingCount} Elemente sind noch nicht vollständig ausgefüllt und fehlen in dieser Summe.`}
+              </p>
+            )}
+
+            {estimate.anyOversized && (
+              <p className="estimate__flag">
+                Ein Element ist grösser als alles, was wir bisher ausgemessen haben. Dort ist die Schätzung ungenauer –
+                wir schauen es uns persönlich an.
+              </p>
+            )}
+          </aside>
+        )}
       </div>
 
       <div className="form-block">

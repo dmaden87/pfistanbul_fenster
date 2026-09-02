@@ -101,7 +101,7 @@ export interface CustomRequestLine {
 /** Wie bezahlt wird. "uebergabe" bleibt der vorgeschlagene Weg. */
 export type PaymentMethod = 'uebergabe' | 'online'
 
-export type SubmissionKind = 'bestellung' | 'anfrage'
+export type SubmissionKind = 'bestellung' | 'anfrage' | 'zahlung'
 
 export type SubmissionState =
   | { status: 'idle' }
