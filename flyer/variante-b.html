@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Pfistanbul Fenster – Flyer Pfisterhölzli (Variante B)</title>
+<link rel="stylesheet" href="gemeinsam.css">
+<style>
+.blatt { background: var(--creme); display: flex; flex-direction: column; }
+
+/* Buehne: Foto randabfallend, Text darueber */
+.buehne { position: relative; height: 108mm; overflow: hidden; }
+.buehne img { width: 100%; height: 100%; object-fit: cover; object-position: center 42%; }
+.buehne__schleier {
+  position: absolute; inset: 0;
+  /* Der Verlauf traegt den Text: oben die Wortmarke, unten Titel und
+     Unterzeile. Dazwischen bleibt das Foto so hell wie moeglich. Die Werte
+     sind am gerenderten Blatt nachgemessen, nicht geschaetzt. */
+  /*
+     Zwei Lagen. Die erste laeuft quer: Der ganze Text steht links, dort muss
+     es dunkel sein, waehrend rechts das Foto sichtbar bleibt. Die zweite
+     dunkelt nur den oberen Rand fuer die Wortmarke ab. Die Werte sind am
+     gerenderten Blatt nachgemessen - ein senkrechter Verlauf liess den Titel
+     ueber hellem Laub stehen.
+  */
+  background:
+    linear-gradient(
+      100deg,
+      rgba(10, 43, 38, 0.94) 0%,
+      rgba(10, 43, 38, 0.9) 40%,
+      rgba(10, 43, 38, 0.52) 68%,
+      rgba(10, 43, 38, 0.3) 100%
+    ),
+    linear-gradient(180deg, rgba(10, 43, 38, 0.55) 0%, rgba(10, 43, 38, 0) 26%);
+}
+.buehne__inhalt { position: absolute; inset: 0; padding: 13mm 14mm; display: flex; flex-direction: column; justify-content: space-between; color: var(--creme); }
+.buehne .wortmarke__zeichen { background: var(--creme); color: var(--gruen); }
+.buehne .wortmarke__zusatz { color: rgba(244,247,245,0.72); }
+
+.kampagne {
+  align-self: flex-start;
+  padding: 1.5mm 3.4mm; border-radius: 20mm;
+  background: rgba(250,248,244,0.16); border: 0.3mm solid rgba(250,248,244,0.5);
+  font-size: 2.8mm; font-weight: 600; letter-spacing: 0.05em;
+}
+
+.titel { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 14mm; line-height: 0.98; letter-spacing: -0.025em; }
+.titel em { font-style: italic; }
+.unterzeile { margin-top: 3mm; font-size: 3.6mm; line-height: 1.45; max-width: 118mm; color: rgba(244,247,245,0.9); }
+
+/* Geschichte */
+.mitte { padding: 9mm 14mm 0; display: grid; grid-template-columns: 1fr 66mm; gap: 10mm; align-items: start; }
+
+.geschichte h2 { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 6.2mm; letter-spacing: -0.015em; }
+.geschichte p { margin-top: 3mm; font-size: 3.4mm; line-height: 1.55; color: var(--gedaempft); }
+.geschichte p strong { color: var(--text); font-weight: 600; }
+
+.personen { display: flex; align-items: center; gap: 4mm; margin-top: 5mm; }
+.personen img { width: 20mm; height: 20mm; border-radius: 50%; object-fit: cover; object-position: center 35%; border: 0.4mm solid var(--linie); }
+.personen__name { font-family: 'Fraunces', Georgia, serif; font-style: italic; font-weight: 600; font-size: 5mm; color: var(--gruen); }
+.personen__zusatz { margin-top: 1mm; font-size: 2.8mm; line-height: 1.45; color: var(--gedaempft); }
+
+.merkmale { list-style: none; display: grid; gap: 2.4mm; padding: 4.5mm 5mm; border-radius: 3mm; background: var(--akzent-soft); }
+.merkmale li { font-size: 3mm; line-height: 1.4; }
+.merkmale b { display: block; font-family: 'Fraunces', Georgia, serif; font-size: 3.6mm; font-weight: 700; }
+
+/* Preise */
+.preisteil { padding: 8mm 14mm 0; display: grid; grid-template-columns: 1fr 1fr; gap: 9mm; }
+.sets { display: grid; gap: 2.6mm; margin-top: 3.5mm; }
+.set { display: flex; align-items: baseline; justify-content: space-between; gap: 3mm; padding: 3.2mm 4mm; border-radius: 2.5mm; background: var(--gruen); color: var(--creme); }
+.set__name { display: block; font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 4.4mm; }
+.set__inhalt { display: block; font-size: 2.7mm; opacity: 0.85; margin-top: 0.5mm; }
+.set__preis { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 5.6mm; white-space: nowrap; }
+.hinweis { margin-top: 2.5mm; font-size: 2.7mm; line-height: 1.45; color: var(--gedaempft); }
+
+/* Fuss */
+.fuss { margin-top: auto; background: var(--gruen); color: var(--creme); padding: 7mm 14mm; display: flex; align-items: center; justify-content: space-between; gap: 8mm; }
+.fuss__text { font-size: 3.1mm; line-height: 1.5; color: rgba(244,247,245,0.85); }
+.fuss__gross { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 5.4mm; color: var(--creme); letter-spacing: -0.01em; }
+.fuss .qr svg { width: 27mm; height: 27mm; background: var(--creme); padding: 1.6mm; border-radius: 2mm; }
+.fuss .qr__url { color: var(--creme); }
+.fuss .qr__text { color: rgba(244,247,245,0.85); }
+</style>
+</head>
+<body>
+<div class="blatt">
+
+  <header class="buehne">
+    <img src="../public/fotos/zimmer-storen-1600.jpg" alt="">
+    <div class="buehne__schleier"></div>
+    <div class="buehne__inhalt">
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:6mm">
+        <div class="wortmarke">
+          <span class="wortmarke__zeichen">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M3.5 9.5h17M3.5 14.5h17M9.5 3.5v17M14.5 3.5v17"/></svg>
+          </span>
+          <span>
+            <span class="wortmarke__name">Pfistanbul</span><br>
+            <span class="wortmarke__zusatz">Fenster</span>
+          </span>
+        </div>
+        <span class="kampagne">Für die Überbauung Am Pfisterhölzli</span>
+      </div>
+
+      <div>
+        <h1 class="titel">Fenster auf.<br><em>Mücken draussen.</em></h1>
+        <p class="unterzeile">
+          Insektenschutz-Plissee nach Mass – ausgemessen für die vier Fensterformate, die sich in unserer Siedlung
+          über alle Wohnungen wiederholen.
+        </p>
+      </div>
+    </div>
+  </header>
+
+  <div class="mitte">
+    <div class="geschichte">
+      <h2>Es begann mit einem Kaffee.</h2>
+      <p>
+        Diesen Sommer habe ich mir in der Türkei Fliegennetze machen lassen. Noch während der Montage kam Ufuk auf
+        einen Kaffee vorbei, schaute sie sich an und fragte, ob ich ihm auch welche mitbringen könne. Bis der Kaffee
+        ausgetrunken war, hatten sich zwei weitere Nachbarn gemeldet.
+      </p>
+      <p>
+        <strong>Daraus ist Pfistanbul Fenster geworden:</strong> kein Unternehmen, das in die Siedlung hinein
+        verkauft, sondern zwei Nachbarn, die direkt beim Hersteller einkaufen und die Bestellungen aus dem Quartier
+        zu einer Lieferung bündeln. Deshalb der Preis.
+      </p>
+      <div class="personen">
+        <img src="../public/fotos/team-640.jpg" alt="">
+        <div>
+          <p class="personen__name">Ufuk &amp; Deniz</p>
+          <p class="personen__zusatz">Am Pfisterhölzli 28 und 38, 8606 Greifensee<br>deniz.maden@gmx.net</p>
+        </div>
+      </div>
+    </div>
+
+    <ul class="merkmale">
+      <li><b>Meist ohne Bohren</b>Der Rahmen klebt rundum – keine Löcher, kein Ärger bei der Wohnungsabgabe.</li>
+      <li><b>Bleibt das ganze Jahr hängen</b>Im Winter offen lassen statt abhängen und im Keller verstauen.</li>
+      <li><b>Passgarantie auf unsere Masse</b>Passt es nicht, tauschen wir kostenlos.</li>
+      <li><b>Bezahlt bei der Übergabe</b>Keine Anzahlung. Lieferung in der Siedlung gratis.</li>
+    </ul>
+  </div>
+
+  <div class="preisteil">
+    <div>
+      <table class="preise">
+        <thead><tr><th>Einzelne Netze</th><th>Preis</th></tr></thead>
+        <tbody>
+          <tr><td><span class="name">Bad</span> <span class="mass">117 × 82.5 cm</span></td><td class="preis">CHF 130</td></tr>
+          <tr><td><span class="name">Küche</span> <span class="mass">72.5 × 122 cm</span></td><td class="preis">CHF 130</td></tr>
+          <tr><td><span class="name">Zimmer</span> <span class="mass">160.5 × 122 cm</span></td><td class="preis">CHF 150</td></tr>
+          <tr><td><span class="name">Balkontüre</span> <span class="mass">84 × 206 cm</span></td><td class="preis">CHF 155</td></tr>
+        </tbody>
+      </table>
+      <p class="hinweis">Montage durch uns auf Wunsch CHF 15 pro Fenster. Alle Preise in CHF, wir sind nicht mehrwertsteuerpflichtig.</p>
+    </div>
+    <div>
+      <table class="preise"><thead><tr><th>Sets für die ganze Wohnung</th><th></th></tr></thead></table>
+      <div class="sets">
+        <div class="set">
+          <span><span class="set__name">Set Mittel</span><span class="set__inhalt">6 Netze: 3× Zimmer, Balkontüre, Bad, Küche</span></span>
+          <span class="set__preis">775</span>
+        </div>
+        <div class="set">
+          <span><span class="set__name">Set Gross</span><span class="set__inhalt">7 Netze: 4× Zimmer, Balkontüre, Bad, Küche</span></span>
+          <span class="set__preis">850</span>
+        </div>
+      </div>
+      <p class="hinweis">Im Set sind CHF 90 bzw. CHF 165 gegenüber den Einzelpreisen bereits abgezogen.</p>
+    </div>
+  </div>
+
+  <footer class="fuss">
+    <div>
+      <p class="fuss__gross">Wir sammeln jetzt die Bestellungen für die erste Lieferung.</p>
+      <p class="fuss__text">
+        Code scannen, Netze aussuchen, Bestellung abschicken – bezahlt wird erst bei der Übergabe, bar oder mit
+        TWINT. Wir melden uns persönlich mit dem Liefertermin.
+      </p>
+    </div>
+    <div class="qr">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 29 29" shape-rendering="crispEdges"><path stroke="#0f3b34" d="M0 0.5h7m1 0h1m2 0h5m2 0h3m1 0h7M0 1.5h1m5 0h1m1 0h2m2 0h2m2 0h1m3 0h1m1 0h1m5 0h1M0 2.5h1m1 0h3m1 0h1m2 0h1m1 0h2m3 0h1m1 0h1m3 0h1m1 0h3m1 0h1M0 3.5h1m1 0h3m1 0h1m1 0h1m5 0h2m1 0h1m2 0h1m1 0h1m1 0h3m1 0h1M0 4.5h1m1 0h3m1 0h1m3 0h1m1 0h1m1 0h1m1 0h2m1 0h1m2 0h1m1 0h3m1 0h1M0 5.5h1m5 0h1m4 0h1m1 0h1m1 0h2m1 0h3m1 0h1m5 0h1M0 6.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M8 7.5h3m1 0h1m2 0h4M0 8.5h1m1 0h2m1 0h3m4 0h2m1 0h1m1 0h3m2 0h1m2 0h1m1 0h2M1 9.5h1m2 0h2m1 0h1m4 0h4m1 0h4m1 0h3m3 0h1M0 10.5h2m3 0h3m1 0h2m2 0h1m2 0h3m1 0h2m2 0h1m1 0h2M0 11.5h1m1 0h1m1 0h2m1 0h6m3 0h1m3 0h1m1 0h1m5 0h1M1 12.5h1m2 0h4m1 0h1m4 0h2m1 0h2m1 0h1m2 0h1m1 0h2M1 13.5h2m1 0h1m4 0h1m4 0h1m1 0h1m2 0h1m2 0h1m3 0h3M0 14.5h1m2 0h1m2 0h1m1 0h2m1 0h3m1 0h5m2 0h2m2 0h3M4 15.5h2m4 0h2m2 0h1m1 0h1m1 0h3m6 0h1M1 16.5h1m2 0h1m1 0h1m1 0h1m1 0h2m2 0h3m1 0h4m1 0h3m1 0h1M2 17.5h2m3 0h1m2 0h3m1 0h1m1 0h1m6 0h1m1 0h3M0 18.5h1m2 0h1m2 0h1m2 0h1m1 0h6m1 0h1m3 0h1m3 0h1M2 19.5h2m1 0h1m2 0h1m2 0h1m1 0h2m2 0h2m3 0h1m3 0h1M1 20.5h2m1 0h4m5 0h2m1 0h3m1 0h7M8 21.5h1m1 0h1m1 0h1m2 0h2m3 0h1m3 0h5M0 22.5h7m1 0h3m3 0h2m1 0h1m1 0h2m1 0h1m1 0h2m1 0h1M0 23.5h1m5 0h1m1 0h1m4 0h3m4 0h1m3 0h2M0 24.5h1m1 0h3m1 0h1m2 0h1m1 0h2m4 0h1m2 0h5m1 0h1m1 0h1M0 25.5h1m1 0h3m1 0h1m1 0h2m2 0h1m4 0h5m1 0h3m1 0h1M0 26.5h1m1 0h3m1 0h1m1 0h4m11 0h1m2 0h1m1 0h1M0 27.5h1m5 0h1m3 0h2m2 0h1m1 0h1m1 0h4m2 0h2m1 0h1M0 28.5h7m1 0h2m2 0h1m1 0h2m3 0h2m1 0h2m1 0h1m1 0h1"/></svg>
+      <span class="qr__text">Alle Grössen<br>und bestellen:<br><span class="qr__url">pfistanbul.vercel.app</span></span>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
