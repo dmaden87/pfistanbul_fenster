@@ -40,9 +40,12 @@ export const shopConfig = {
   flexiblePayment: true,
 
   /**
-   * Einzugsgebiet. Angefangen hat es in einer Siedlung, inzwischen fragen
-   * auch Freunde und Bekannte ausserhalb – liefern und montieren koennen wir
-   * im ganzen Kanton.
+   * Wie weit wir fahren. Das ist eine praktische Grenze, kein
+   * Verkaufsargument: Wir liefern und montieren selbst, und am Anfang soll
+   * das nicht durch die halbe Schweiz gehen. Entsprechend steht es nur dort
+   * auf der Seite, wo es jemanden betrifft – beim Ausmessen, in der FAQ, im
+   * Kleingedruckten und in den AGB. Die Positionierung ist eine andere: von
+   * Freunden und Nachbarn fuer Freunde und Nachbarn.
    *
    * Wichtig fuer die Preisangabe: Der Warenkorb ist bauartbedingt auf die
    * ausgemessene Ueberbauung beschraenkt, denn nur dort gibt es feste

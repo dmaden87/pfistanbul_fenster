@@ -111,6 +111,21 @@ export const ueberbauungen: Ueberbauung[] = [
 /** Die Überbauung, deren Sortiment die Seite gerade zeigt. */
 export const activeUeberbauung = ueberbauungen[0]
 
+/**
+ * Beschriftung des ersten Knopfs im Hero. Sie wechselt mit der Kampagne –
+ * eine andere Überbauung, ein anderer Anlass – und steht deshalb hier statt
+ * mitten in einer Komponente.
+ *
+ * Zweizeilig, weil "Angebot für Überbauungen: Pfisterhölzli" in einer Zeile
+ * rund 445 Pixel braucht und im Knopf 250 zur Verfügung stehen. Auf drei
+ * Zeilen umgebrochen stünde der Knopf höher als sein Nachbar; so trägt die
+ * kleine Zeile den Anlass und die grosse den Namen.
+ */
+export const ueberbauungCta = {
+  anlass: 'Angebot für Überbauungen',
+  name: activeUeberbauung.shortName,
+}
+
 export const windowTypes = activeUeberbauung.windowTypes
 export const netSets = activeUeberbauung.sets
 

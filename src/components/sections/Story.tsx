@@ -61,9 +61,9 @@ export function Story() {
           </p>
           <p>
             Inzwischen hat es sich herumgesprochen. Es fragen nicht mehr nur Leute aus unserem Haus, sondern auch
-            Freunde und Bekannte aus anderen Gemeinden. Daran hat sich nichts geändert: Wir messen selbst, wir liefern
-            selbst, wir bringen es vorbei – neu einfach im ganzen {shopConfig.serviceArea} statt nur eine Treppe
-            weiter unten.
+            Freunde und Bekannte. Am Vorgehen ändert das nichts: Wir messen selbst, wir liefern selbst, wir bringen es
+            vorbei. Nur fahren wir dafür nicht durch die halbe Schweiz – vorerst bleiben wir im{' '}
+            {shopConfig.serviceArea}.
           </p>
           <p className="story__signature">
             {operator.people[0].name} und {operator.people[1].name}

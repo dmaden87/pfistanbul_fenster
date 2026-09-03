@@ -72,7 +72,9 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
   margin-top: var(--space-7);
-  max-width: 34rem;
+  /* Breit genug, dass die Kampagnen-Beschriftung des ersten Knopfs auf zwei
+     Zeilen passt statt auf drei - sonst steht er hoeher als sein Nachbar. */
+  max-width: 36rem;
 }
 
 .hero__actions .btn {
@@ -137,15 +139,3 @@
 }
 
 
-/* Einstieg fuer die Leute aus der ausgemessenen Ueberbauung. Bewusst kleiner
-   als die beiden Knoepfe darueber: ein Abkuerzung, keine zweite Hauptstrasse. */
-.hero__local {
-  margin-top: var(--space-5);
-  color: var(--text-muted);
-  font-size: var(--step--1);
-  max-width: 46ch;
-}
-
-.hero__local strong {
-  color: var(--text);
-}

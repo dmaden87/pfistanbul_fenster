@@ -1,5 +1,4 @@
 import { activeUeberbauung, netSets, priceRange, windowTypes } from '../../data/catalog'
-import { shopConfig } from '../../data/shopConfig'
 import { formatChf } from '../../lib/format'
 import './TwoPaths.css'
 
@@ -21,8 +20,7 @@ export function TwoPaths({ onStandardClick, onCustomClick }: TwoPathsProps) {
           <h2>Ist Ihr Fenster schon ausgemessen?</h2>
           <p className="section__lead">
             Für Überbauungen, die wir ausgemessen haben, gibt es feste Preise und Sets. Für jedes andere Fenster
-            fertigen wir nach Ihrem Mass – im ganzen {shopConfig.serviceArea}. Gleiches Produkt, gleiche Qualität, nur
-            der Weg dorthin ist ein anderer.
+            fertigen wir nach Ihrem Mass. Gleiches Produkt, gleiche Qualität, nur der Weg dorthin ist ein anderer.
           </p>
         </div>
 

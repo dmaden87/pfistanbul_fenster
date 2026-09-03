@@ -1,6 +1,5 @@
 import { WindowVisual } from './WindowVisual'
-import { activeUeberbauung, priceRange } from '../../data/catalog'
-import { shopConfig } from '../../data/shopConfig'
+import { priceRange, ueberbauungCta } from '../../data/catalog'
 import './Hero.css'
 
 interface HeroProps {
@@ -29,32 +28,19 @@ export function Hero({ onShopClick, onRequestClick }: HeroProps) {
           <p className="hero__lead">
             Ein Netz, das in Falten in einer schmalen Schiene liegt: einmal montiert, bleibt es das ganze Jahr. Wir
             fertigen es auf Ihr Mass, kaufen direkt beim Hersteller und bündeln die Bestellungen – deshalb kostet es
-            einen Bruchteil dessen, was ein Fachbetrieb verlangt. Wir liefern und montieren im ganzen{' '}
-            {shopConfig.serviceArea}.
+            einen Bruchteil dessen, was ein Fachbetrieb verlangt. Von Freunden und Nachbarn für Freunde und
+            Nachbarn.
           </p>
 
           <div className="hero__actions">
-            <button type="button" className="btn btn--lg" onClick={onShopClick}>
-              Feste Grössen ansehen
+            <button type="button" className="btn btn--lg btn--stacked" onClick={onShopClick}>
+              <span className="btn__kicker">{ueberbauungCta.anlass}</span>
+              <span>{ueberbauungCta.name}</span>
             </button>
             <button type="button" className="btn btn--ghost btn--lg" onClick={onRequestClick}>
               Mein Fenster ausmessen
             </button>
           </div>
-
-          {/*
-            Im Pfisterhoelzli verteilen wir Flyer. Wer von dort kommt, soll die
-            Siedlung sofort wiederfinden - ohne dass die ganze Seite so wirkt,
-            als sei sie nur fuer diese eine Adresse gemacht.
-          */}
-          <p className="hero__local">
-            <strong>Sie wohnen im {activeUeberbauung.shortName}?</strong> Ihre vier Fensterformate sind ausgemessen und
-            haben feste Preise –{' '}
-            <button type="button" className="link-inline" onClick={onShopClick}>
-              direkt zum Sortiment
-            </button>
-            .
-          </p>
 
           <ul className="hero__proof">
             <li>

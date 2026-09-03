@@ -213,6 +213,23 @@ a {
   color: var(--accent-ink);
 }
 
+/*
+ * Zweizeiliger Knopf: kleine Zeile mit dem Anlass, grosse mit dem Namen.
+ * Die Hierarchie kommt ueber die Schriftgroesse, nicht ueber blassere
+ * Farbe - auf dem dunklen Knopf wuerde das den Kontrast kosten.
+ */
+.btn--stacked {
+  flex-direction: column;
+  gap: 0.2em;
+  line-height: 1.2;
+}
+
+.btn__kicker {
+  font-size: 0.62em;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
 .btn--quiet {
   padding: 0.45em 0.9em;
   background: transparent;
