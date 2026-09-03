@@ -150,8 +150,8 @@ export function CartDrawer({ cart, open, onClose, onCheckout }: CartDrawerProps)
                 <span>
                   <strong>Montage durch uns</strong>
                   <span className="montage-toggle__hint">
-                    {formatChf(shopConfig.montageChf)} pro Fenster. Ohne Haken montieren Sie selbst – geklemmt, ohne
-                    Bohren, in wenigen Minuten.
+                    {formatChf(shopConfig.montageChf)} pro Fenster. Ohne Haken montieren Sie selbst – geklemmt statt
+                    gebohrt, in wenigen Minuten.
                   </span>
                 </span>
               </label>

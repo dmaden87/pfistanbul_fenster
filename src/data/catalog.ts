@@ -140,9 +140,10 @@ export const construction: MeshOption[] = [
     short: 'Befestigung',
     availability: 'standard',
     description:
-      'Doppelseitiges Klebeband auf allen vier Seiten. Kein Bohren, keine Dübel, keine Schrauben – und damit auch keine Rückfrage bei der Verwaltung und keine Löcher bei der Wohnungsabgabe.',
-    stops: 'Hält ohne einen einzigen Dübel',
-    tradeoff: 'Der Fensterrahmen muss sauber und trocken sein, damit das Band greift.',
+      'Doppelseitiges Klebeband auf allen vier Seiten. Bei den allermeisten Fenstern braucht es dafür weder Bohrer noch Dübel noch Schrauben – und damit bleibt auch kein Loch zurück, das bei der Wohnungsabgabe auffällt.',
+    stops: 'Hält in aller Regel ohne einen einzigen Dübel',
+    tradeoff:
+      'Rundum braucht es rund fünf Zentimeter ebene, saubere und trockene Fläche. Wo der Rahmen die nicht hergibt, hält das Band nicht zuverlässig – das sagen wir vor der Bestellung.',
   },
   {
     id: 'gewebe',

@@ -9,7 +9,7 @@ interface FaqItem {
 const FAQ: FaqItem[] = [
   {
     q: 'Muss ich für die Montage bohren – und braucht es die Zustimmung der Verwaltung?',
-    a: 'Nein und nein. Der Rahmen wird von aussen in den äusseren Fensterrahmen gedrückt und hält dort rundum mit doppelseitigem Klebeband. Es entsteht kein einziges Loch, also keine bauliche Veränderung – und bei einem Umzug nehmen Sie alles wieder mit.',
+    a: 'In aller Regel nicht. Der Rahmen wird von aussen in den äusseren Fensterrahmen gedrückt und hält dort rundum mit doppelseitigem Klebeband. Dann entsteht kein einziges Loch, also keine bauliche Veränderung – und bei einem Umzug nehmen Sie alles wieder mit. Pauschal versprechen können wir es aber nicht: Manche Fenster haben zu wenig ebene Klebefläche, oder eine Dichtung sitzt genau dort, wo das Band hin müsste. Das sehen wir beim Messen und sagen es Ihnen vor der Bestellung – gebohrt wird deswegen nichts, dann suchen wir eine andere Lösung. Und weil der Rahmen von aussen sichtbar ist: Bei einer strengen Hausordnung fragen Sie besser trotzdem kurz bei der Verwaltung nach.',
   },
   {
     q: 'Woher wissen Sie, welche Grösse zu meiner Wohnung passt?',

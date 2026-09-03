@@ -52,8 +52,12 @@ export function Hero({ onShopClick, onRequestClick }: HeroProps) {
               <span>oder ab ausgemessenem Sortiment</span>
             </li>
             <li>
-              <strong>Ohne Bohren</strong>
-              <span>mieterfreundlich</span>
+              <strong>Meist ohne Bohren</strong>
+              <span>geklebt statt gedübelt</span>
+            </li>
+            <li>
+              <strong>Das ganze Jahr</strong>
+              <span>im Winter offen lassen statt abhängen</span>
             </li>
           </ul>
         </div>

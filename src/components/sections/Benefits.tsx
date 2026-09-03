@@ -17,7 +17,7 @@ const BENEFITS: Benefit[] = [
   {
     id: 'akkordeon',
     headline: 'Auf- und zuziehen wie ein Akkordeon',
-    body: 'Unser Plissee liegt in feinen Falten in einer schmalen Schiene. Sie ziehen es mit einem Finger zu und genauso leicht wieder auf. Kein Aushängen, kein Verstauen im Keller – es bleibt das ganze Jahr montiert und stört trotzdem nie die Aussicht.',
+    body: 'Unser Plissee liegt in feinen Falten in einer schmalen Schiene. Sie ziehen es mit einem Finger zu und genauso leicht wieder auf. Und im Herbst bleibt es einfach hängen: kein Aushängen, kein Verstauen im Keller, kein Suchen und Wiederanbringen im Frühling, wie man es von den üblichen Spannrahmen kennt. Zusammengeschoben verschwindet es am Fensterrand und stört auch im Winter nicht.',
   },
   {
     id: 'preis',
@@ -26,8 +26,8 @@ const BENEFITS: Benefit[] = [
   },
   {
     id: 'bohren',
-    headline: 'Ohne einen einzigen Dübel',
-    body: 'Alles wird geklemmt, nichts wird gebohrt. Das heisst: keine Rückfrage bei der Verwaltung, keine Löcher, kein Ärger bei der Wohnungsabgabe.',
+    headline: 'Fast immer ohne einen einzigen Dübel',
+    body: 'Das Netz klebt rundum im äusseren Fensterrahmen. Wo das aufgeht – und das ist bei den allermeisten Fenstern der Fall –, entsteht kein einziges Loch: keine bauliche Veränderung, nichts, was bei der Wohnungsabgabe auffällt. Ist die Klebefläche zu schmal oder sitzt eine Dichtung an der falschen Stelle, sagen wir Ihnen das vor der Bestellung, statt Sie damit zu überraschen.',
   },
   {
     id: 'kleintiere',

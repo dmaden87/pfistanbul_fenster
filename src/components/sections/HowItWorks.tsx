@@ -19,7 +19,7 @@ const STEPS = [
   {
     n: '04',
     title: 'Selber montieren – oder nicht',
-    text: 'Geklemmt statt gebohrt, ganz ohne Werkzeug. Beim ersten Fenster braucht es trotzdem etwas Geduld, bis alles sauber sitzt; danach geht es zügig. Wer keine Lust darauf hat, lässt es uns machen.',
+    text: 'Geklemmt statt gebohrt, in aller Regel ganz ohne Werkzeug. Beim ersten Fenster braucht es trotzdem etwas Geduld, bis alles sauber sitzt; danach geht es zügig. Wer keine Lust darauf hat, lässt es uns machen.',
   },
 ]
 
