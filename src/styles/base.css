@@ -90,6 +90,24 @@ a {
   text-underline-offset: 0.2em;
 }
 
+/* Ein Knopf, der wie ein Link im Fliesstext aussieht. Semantisch bleibt es
+   ein button, weil er die Ansicht wechselt und keine Adresse oeffnet. */
+.link-inline {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-ink);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.link-inline:hover {
+  text-decoration-thickness: 2px;
+}
+
 :focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 3px;

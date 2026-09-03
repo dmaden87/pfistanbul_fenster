@@ -85,7 +85,7 @@ export function PaymentHelpForm() {
           {state.status === 'sending' ? 'Wird gesendet …' : 'Unverbindlich anfragen'}
         </button>
         <p className="form-actions__hint">
-          Kein Formular an eine Bank, keine Bonitätsprüfung, kein Eintrag irgendwo. Es liest jemand aus der Siedlung.
+          Kein Formular an eine Bank, keine Bonitätsprüfung, kein Eintrag irgendwo. Es liest einer von uns beiden.
         </p>
       </div>
     </form>

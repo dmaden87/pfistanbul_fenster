@@ -10,7 +10,7 @@ export function CustomRequest() {
       <div className="shell">
         <div className="section__intro">
           <span className="section__eyebrow">Nach Ihrem Mass</span>
-          <h2>Jedes andere Fenster rechnen wir Ihnen aus.</h2>
+          <h2>Jedes andere Fenster im Kanton Zürich rechnen wir Ihnen aus.</h2>
           <p className="section__lead">
             Sagen Sie uns, wie viele Netze Sie brauchen und wie gross sie sein sollen. Den Richtpreis sehen Sie sofort,
             noch bevor Sie die Anfrage abschicken – bei uns gibt es kein blindes «Preis auf Anfrage». Die feste Offerte

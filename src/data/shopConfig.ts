@@ -39,6 +39,19 @@ export const shopConfig = {
    */
   flexiblePayment: true,
 
+  /**
+   * Einzugsgebiet. Angefangen hat es in einer Siedlung, inzwischen fragen
+   * auch Freunde und Bekannte ausserhalb – liefern und montieren koennen wir
+   * im ganzen Kanton.
+   *
+   * Wichtig fuer die Preisangabe: Der Warenkorb ist bauartbedingt auf die
+   * ausgemessene Ueberbauung beschraenkt, denn nur dort gibt es feste
+   * Formate. Deshalb stimmt "Lieferung kostenlos" im Warenkorb immer. Alles
+   * ausserhalb laeuft ueber die Offerte, in der Lieferung und Montage
+   * einzeln stehen.
+   */
+  serviceArea: 'Kanton Zürich',
+
   /** Montage durch uns, Preis pro Fenster in CHF. Gilt auch in Sets. */
   montageChf: 15,
 

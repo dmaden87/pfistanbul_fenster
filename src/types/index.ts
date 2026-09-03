@@ -3,6 +3,12 @@ export interface Ueberbauung {
   id: string
   /** Name der Siedlung, z. B. "Am Pfisterhölzli". */
   name: string
+  /**
+   * Der Name ohne Artikel, fuer den Fliesstext: "Sie wohnen im Pfisterhölzli?"
+   * Aus `name` laesst sich das nicht ableiten - manche Siedlungen heissen
+   * "Am ...", andere "Im ...", die meisten gar nicht so.
+   */
+  shortName: string
   /** Ort, z. B. "Greifensee ZH". */
   place: string
   /** Ein Satz zur Siedlung, erscheint über dem Sortiment. */

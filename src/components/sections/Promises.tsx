@@ -33,7 +33,8 @@ export function Promises() {
           <h2>Vier Zusagen, die wir schriftlich geben.</h2>
           <p className="section__lead">
             Wir sind neu und haben noch keine langen Bewertungslisten. Was wir stattdessen anbieten: klare Zusagen,
-            zwei Adressen in der Siedlung und die Möglichkeit, uns an der Wohnungstür anzusprechen.
+            zwei Adressen mit Namen im Impressum und zwei Leute, die selbst vorbeikommen – statt einer Nummer, die
+            niemand abnimmt.
           </p>
 
         </div>

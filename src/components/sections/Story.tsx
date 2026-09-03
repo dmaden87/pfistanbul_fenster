@@ -1,6 +1,7 @@
 import { Foto } from '../media/Foto'
 import { fotos } from '../../data/fotos'
 import { operator } from '../../data/operator'
+import { shopConfig } from '../../data/shopConfig'
 import './Story.css'
 
 /**
@@ -56,7 +57,13 @@ export function Story() {
           <p>
             Da haben wir uns hingesetzt. Mit Lieferanten telefoniert, mit Transporteuren gerechnet, hin und her
             überlegt. Herausgekommen ist Pfistanbul Fenster: kein Unternehmen, das in die Siedlung hinein verkauft,
-            sondern zwei Nachbarn, die etwas für die Siedlung organisieren.
+            sondern zwei Nachbarn, die etwas für die Nachbarschaft organisieren.
+          </p>
+          <p>
+            Inzwischen hat es sich herumgesprochen. Es fragen nicht mehr nur Leute aus unserem Haus, sondern auch
+            Freunde und Bekannte aus anderen Gemeinden. Daran hat sich nichts geändert: Wir messen selbst, wir liefern
+            selbst, wir bringen es vorbei – neu einfach im ganzen {shopConfig.serviceArea} statt nur eine Treppe
+            weiter unten.
           </p>
           <p className="story__signature">
             {operator.people[0].name} und {operator.people[1].name}

@@ -3,8 +3,8 @@ import './TrustBar.css'
 const ITEMS = [
   { icon: 'shield', title: 'Klebeband statt Dübel', text: 'Fast immer ohne Bohren – wo nicht, sagen wir es vorher' },
   { icon: 'ruler', title: 'Passgarantie', text: 'Auf jedes Mass, das von uns stammt' },
-  { icon: 'truck', title: 'Gratis geliefert', text: 'Wir bringen es vorbei, kein Versand' },
-  { icon: 'heart', title: 'Aus der Nachbarschaft', text: 'Kein Callcenter, sondern jemand von hier' },
+  { icon: 'truck', title: 'Persönlich geliefert', text: 'Kein Versand – wir bringen es im Kanton Zürich vorbei' },
+  { icon: 'heart', title: 'Von Nachbarn für Nachbarn', text: 'Kein Callcenter, sondern jemand aus der Region' },
 ]
 
 function Icon({ name }: { name: string }) {

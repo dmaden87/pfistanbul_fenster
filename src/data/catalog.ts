@@ -99,6 +99,7 @@ export const ueberbauungen: Ueberbauung[] = [
   {
     id: 'pfisterhoelzli',
     name: 'Am Pfisterhölzli',
+    shortName: 'Pfisterhölzli',
     place: 'Greifensee ZH',
     intro:
       'Die Siedlung wurde Anfang der Siebzigerjahre als Ganzes gebaut. Entsprechend wiederholen sich vier Fensterformate über alle Wohnungen – wir haben sie ausgemessen.',

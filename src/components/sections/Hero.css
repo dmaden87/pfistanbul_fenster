@@ -136,3 +136,16 @@
   }
 }
 
+
+/* Einstieg fuer die Leute aus der ausgemessenen Ueberbauung. Bewusst kleiner
+   als die beiden Knoepfe darueber: ein Abkuerzung, keine zweite Hauptstrasse. */
+.hero__local {
+  margin-top: var(--space-5);
+  color: var(--text-muted);
+  font-size: var(--step--1);
+  max-width: 46ch;
+}
+
+.hero__local strong {
+  color: var(--text);
+}

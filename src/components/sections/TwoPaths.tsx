@@ -1,4 +1,5 @@
 import { activeUeberbauung, netSets, priceRange, windowTypes } from '../../data/catalog'
+import { shopConfig } from '../../data/shopConfig'
 import { formatChf } from '../../lib/format'
 import './TwoPaths.css'
 
@@ -19,8 +20,9 @@ export function TwoPaths({ onStandardClick, onCustomClick }: TwoPathsProps) {
           <span className="section__eyebrow">Zwei Wege zum Netz</span>
           <h2>Ist Ihr Fenster schon ausgemessen?</h2>
           <p className="section__lead">
-            Für Überbauungen, die wir kennen, gibt es feste Preise und Sets. Für alles andere fertigen wir nach Ihrem
-            Mass. Gleiches Produkt, gleiche Qualität – nur der Weg dorthin ist ein anderer.
+            Für Überbauungen, die wir ausgemessen haben, gibt es feste Preise und Sets. Für jedes andere Fenster
+            fertigen wir nach Ihrem Mass – im ganzen {shopConfig.serviceArea}. Gleiches Produkt, gleiche Qualität, nur
+            der Weg dorthin ist ein anderer.
           </p>
         </div>
 
@@ -49,8 +51,8 @@ export function TwoPaths({ onStandardClick, onCustomClick }: TwoPathsProps) {
             <span className="pill">Nach Ihrem Mass</span>
             <h3>Jedes andere Fenster</h3>
             <p>
-              Eine andere Siedlung, ein Estrichfenster, eine verglaste Loggia: Sagen Sie uns Anzahl und Masse, wir
-              fertigen es zu. Auf Wunsch kommen wir vorher zum Ausmessen vorbei.
+              Eine andere Wohnung, ein Reihenhaus, ein Estrichfenster, eine verglaste Loggia: Sagen Sie uns Anzahl
+              und Masse, wir fertigen es zu. Auf Wunsch kommen wir vorher zum Ausmessen vorbei.
             </p>
             <ul className="path__list">
               <li>

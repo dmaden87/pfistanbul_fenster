@@ -13,7 +13,8 @@ export function Footer({ onOpenLegal, onNavigate }: FooterProps) {
         <div className="site-footer__brand">
           <p className="site-footer__name">Pfistanbul Fenster</p>
           <p className="site-footer__claim">
-            Insektenschutz aus der Nachbarschaft – gebaut für die Fenster im Pfisterhölzli in Greifensee.
+            Insektenschutz-Plissee nach Mass. Von Nachbarn für Nachbarn – angefangen im Pfisterhölzli in Greifensee,
+            heute im ganzen Kanton Zürich.
           </p>
         </div>
 
@@ -48,7 +49,9 @@ export function Footer({ onOpenLegal, onNavigate }: FooterProps) {
 
       <div className="shell site-footer__base">
         <p>© {new Date().getFullYear()} Pfistanbul Fenster</p>
-        <p>{priceNote} · Lieferung im Pfisterhölzli kostenlos</p>
+        <p>
+          {priceNote} · Lieferung im Pfisterhölzli kostenlos, im übrigen Kanton Zürich nach Absprache
+        </p>
       </div>
     </footer>
   )

@@ -49,7 +49,7 @@ const FAQ: FaqItem[] = [
   },
   {
     q: 'Ich wohne nicht im Pfisterhölzli – bekomme ich trotzdem etwas?',
-    a: 'Ja. Wir fertigen jedes Netz nach Mass – das ausgemessene Sortiment ist nur die Abkürzung für eine Siedlung, die wir kennen. Stellen Sie einfach eine Anfrage mit Ihren Massen. Als Richtwert liegen gängige Fensterformate bei CHF 100 bis 200 pro Stück; den festen Preis nennen wir in der Offerte. Die Lieferung ausserhalb der Siedlung sprechen wir individuell ab.',
+    a: 'Ja, und das ist ausdrücklich erwünscht. Wir fertigen jedes Netz nach Mass; das ausgemessene Sortiment ist nur die Abkürzung für eine Siedlung, in der wir selbst wohnen. Im ganzen Kanton Zürich liefern und montieren wir gleich wie bei uns im Haus – Sie stellen eine Anfrage mit Ihren Massen, auf Wunsch kommen wir vorher zum Ausmessen vorbei. Den Richtpreis sehen Sie schon im Formular, den festen Preis nennen wir in der Offerte; darin stehen dann auch Lieferung und allfällige Anfahrt. Ausserhalb des Kantons fragen Sie uns einfach – meistens findet sich ein Weg, versprechen können wir es aber nicht.',
   },
 ]
 

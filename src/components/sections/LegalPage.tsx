@@ -174,8 +174,9 @@ function Agb() {
 
       <h2>2. Preise</h2>
       <p>
-        {priceNote} Die Lieferung innerhalb der Siedlung Am Pfisterhölzli ist kostenlos; für Lieferungen ausserhalb
-        vereinbaren wir die Konditionen vorgängig.
+        {priceNote} Die Lieferung innerhalb der Siedlung Am Pfisterhölzli ist kostenlos. Ausserhalb liefern und
+        montieren wir im {shopConfig.serviceArea}; Lieferung und allfällige Anfahrt stehen in der Offerte, die Sie vor
+        dem Vertragsabschluss erhalten.
       </p>
 
       <h2>3. Zahlung</h2>

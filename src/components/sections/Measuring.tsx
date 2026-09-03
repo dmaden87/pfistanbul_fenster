@@ -1,4 +1,5 @@
 import { Foto } from '../media/Foto'
+import { shopConfig } from '../../data/shopConfig'
 import './Measuring.css'
 
 /**
@@ -38,8 +39,8 @@ export function Measuring() {
           </ol>
 
           <p className="measuring__reassure">
-            Unsicher? Wir kommen vorbei und messen nach, bevor produziert wird. Kostet nichts und verpflichtet zu
-            nichts – und dann übernehmen wir auch die Verantwortung fürs Mass.
+            Unsicher? Wir kommen vorbei und messen nach, bevor produziert wird – im ganzen {shopConfig.serviceArea}.
+            Kostet nichts und verpflichtet zu nichts, und dann übernehmen wir auch die Verantwortung fürs Mass.
           </p>
         </div>
 
