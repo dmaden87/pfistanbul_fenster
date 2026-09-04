@@ -114,3 +114,51 @@ export type SubmissionState =
   | { status: 'sending' }
   | { status: 'success'; reference: string }
   | { status: 'error'; message: string }
+
+/* --- Adminbereich ----------------------------------------------------------- */
+
+/** Wo eine Bestellung in der Abwicklung steht. */
+export type BestellStatus = 'neu' | 'bestellt' | 'erledigt' | 'geloescht'
+
+/** Woher der Eintrag kommt. "zahlung" ist die Frage nach einer Ratenlösung. */
+export type BestellArt = 'bestellung' | 'anfrage' | 'zahlung'
+
+export interface BestellPosition {
+  menge: number
+  bezeichnung: string
+  detail: string
+  preisChf: number
+}
+
+export interface Bestellung {
+  id: string
+  referenz: string
+  art: BestellArt
+  status: BestellStatus
+  /** ISO-Zeitpunkt des Eingangs. */
+  eingang: string
+  /** ISO-Zeitpunkt der letzten Statusänderung. */
+  geaendert: string
+  kunde: {
+    name: string
+    email: string
+    telefon: string
+    strasse: string
+    plz: string
+    ort: string
+    bemerkung: string
+  }
+  positionen: BestellPosition[]
+  montage: boolean
+  zahlung: PaymentMethod
+  zahlungswunsch: boolean
+  summeChf: number
+}
+
+/** Was der Server über die Einrichtung des Adminbereichs verrät. */
+export interface AdminStatus {
+  eingerichtet: boolean
+  speicher: boolean
+  passwort: boolean
+  angemeldet: boolean
+}

@@ -2,6 +2,8 @@ import type { CartLine, CustomRequestLine, CustomerDetails, PaymentMethod, Submi
 import { netsInSet, setById, typeById } from '../data/catalog'
 import { cartTotals, priceForLine } from './pricing'
 import { estimateCustomRequest } from './estimate'
+import { speichereBestellung } from './bestellungSpeichern'
+import { shopConfig } from '../data/shopConfig'
 import { formatChf, formatSize } from './format'
 
 const endpoint = import.meta.env.VITE_ORDER_ENDPOINT?.trim()
@@ -165,6 +167,25 @@ export async function submitToOperator(payload: SubmitPayload): Promise<void> {
     flexiblePayment = false,
   } = payload
 
+  /*
+   * Zuerst in den Adminbereich schreiben, denn dort wird die Bestellung
+   * abgewickelt. Klappt das nicht, geht sie trotzdem als Mail raus – eine
+   * Bestellung darf nie verloren gehen, nur weil ein Speicher gerade nicht
+   * erreichbar ist. Deshalb faengt dieser Block seinen Fehler selbst ab und
+   * merkt sich nur, dass die Mail jetzt zwingend ist.
+   */
+  let speichernMisslungen = false
+  if (!isDemoMode) {
+    try {
+      await speichereBestellung({ art: kind, referenz: reference, customer, lines, items, montage, payment, zahlungswunsch: flexiblePayment })
+    } catch (fehler) {
+      speichernMisslungen = true
+      console.error('Bestellung konnte nicht im Adminbereich abgelegt werden:', fehler)
+    }
+  }
+
+  const gespeichert = !speichernMisslungen && !isDemoMode
+
   const subject =
     kind === 'bestellung'
       ? flexiblePayment
@@ -189,13 +210,29 @@ export async function submitToOperator(payload: SubmitPayload): Promise<void> {
     return
   }
 
+  if (!shopConfig.bestellungPerMail && gespeichert) return
+
+  /*
+   * Ab hier gilt: Ein Fehler beim Mailversand darf die Bestellung nur dann
+   * scheitern lassen, wenn sie auch nicht gespeichert werden konnte. Sonst
+   * saehe die Kundin eine Fehlermeldung, obwohl ihre Bestellung laengst bei
+   * uns liegt - und wuerde ein zweites Mal bestellen.
+   */
+  const scheitern = (fehler: Error) => {
+    if (gespeichert) {
+      console.error('Bestellung liegt im Adminbereich, die Mail ging aber nicht raus:', fehler)
+      return
+    }
+    throw fehler
+  }
+
   if (isUnconfigured) {
     console.error(
       'VITE_ORDER_ENDPOINT ist nicht gesetzt. Ohne Formulardienst kann keine Bestellung zugestellt werden. ' +
         'In den Umgebungsvariablen des Hostings eintragen (siehe .env.example) oder für einen reinen Klicktest ' +
         'VITE_ORDER_ENDPOINT=demo setzen.',
     )
-    throw new Error('Der Bestellversand ist auf dieser Seite noch nicht eingerichtet')
+    return scheitern(new Error('Der Bestellversand ist auf dieser Seite noch nicht eingerichtet'))
   }
 
   const body: Record<string, string> = {
@@ -208,13 +245,18 @@ export async function submitToOperator(payload: SubmitPayload): Promise<void> {
   }
   if (accessKey) body.access_key = accessKey
 
-  const response = await fetch(endpoint as string, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify(body),
-  })
+  let response: Response
+  try {
+    response = await fetch(endpoint as string, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(body),
+    })
+  } catch (fehler) {
+    return scheitern(fehler instanceof Error ? fehler : new Error('Der Formulardienst ist nicht erreichbar.'))
+  }
 
   if (!response.ok) {
-    throw new Error(`Der Formulardienst hat mit Status ${response.status} geantwortet.`)
+    return scheitern(new Error(`Der Formulardienst hat mit Status ${response.status} geantwortet.`))
   }
 }

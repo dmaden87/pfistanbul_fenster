@@ -15,7 +15,7 @@ export const operator = {
     { name: 'Deniz Maden', street: 'Am Pfisterhölzli 38', zip: '8606', city: 'Greifensee' },
     { name: 'Ufuk Soruklu', street: 'Am Pfisterhölzli 28', zip: '8606', city: 'Greifensee' },
   ],
-  email: 'deniz.maden@gmx.net',
+  email: 'pfistanbul34@gmail.com',
   /** Keine Telefonnummer – gesetzlich auch nicht verlangt. */
   phone: null as string | null,
   /** Dienst, der die Formulare an die Mailbox weiterleitet. */

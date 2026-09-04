@@ -83,3 +83,16 @@
     grid-column: 1 / -1;
   }
 }
+
+/* Der Adminzugang steht unter den rechtlichen Links, deutlich leiser als
+   diese. Er soll auffindbar sein, wenn man ihn sucht, und sonst nicht
+   stoeren. */
+.site-footer__admin {
+  margin-top: var(--space-3);
+  opacity: 0.55;
+  font-size: var(--step--2);
+}
+
+.site-footer__admin:hover {
+  opacity: 1;
+}

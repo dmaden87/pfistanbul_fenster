@@ -19,6 +19,7 @@ import { CustomRequest } from './components/sections/CustomRequest'
 import { Faq } from './components/sections/Faq'
 import { ClosingCta } from './components/sections/ClosingCta'
 import { LegalPage, type LegalKey } from './components/sections/LegalPage'
+import { AdminPage } from './components/admin/AdminPage'
 import { Analytics } from '@vercel/analytics/react'
 import { useCart } from './hooks/useCart'
 import './App.css'
@@ -26,6 +27,7 @@ import './App.css'
 type View =
   | { name: 'shop' }
   | { name: 'checkout' }
+  | { name: 'admin' }
   | { name: 'legal'; page: LegalKey }
   | { name: 'zahlung'; status: 'ok' | 'abbruch'; reference: string }
 
@@ -148,9 +150,15 @@ export default function App() {
         )}
 
         {view.name === 'legal' && <LegalPage page={view.page} onBack={goToShop} />}
+
+        {view.name === 'admin' && <AdminPage onBack={goToShop} />}
       </main>
 
-      <Footer onOpenLegal={(page) => setView({ name: 'legal', page })} onNavigate={goToAnchor} />
+      <Footer
+        onOpenLegal={(page) => setView({ name: 'legal', page })}
+        onNavigate={goToAnchor}
+        onOpenAdmin={() => setView({ name: 'admin' })}
+      />
 
       <CartDrawer cart={cart} open={cartOpen} onClose={() => setCartOpen(false)} onCheckout={goToCheckout} />
 

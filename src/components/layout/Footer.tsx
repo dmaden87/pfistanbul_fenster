@@ -4,9 +4,10 @@ import './Footer.css'
 interface FooterProps {
   onOpenLegal: (page: 'impressum' | 'datenschutz' | 'agb') => void
   onNavigate: (anchor: string) => void
+  onOpenAdmin: () => void
 }
 
-export function Footer({ onOpenLegal, onNavigate }: FooterProps) {
+export function Footer({ onOpenLegal, onNavigate, onOpenAdmin }: FooterProps) {
   return (
     <footer className="site-footer">
       <div className="shell site-footer__inner">
@@ -42,6 +43,13 @@ export function Footer({ onOpenLegal, onNavigate }: FooterProps) {
           </button>
           <button type="button" onClick={() => onOpenLegal('agb')}>
             AGB
+          </button>
+          {/* Zugang zur Arbeitsliste. Bewusst klein und unbeworben - es ist
+              kein Angebot an Besucher, sondern unsere eigene Tuer. Geschuetzt
+              ist der Bereich ohnehin auf dem Server, nicht durch das
+              Verstecken dieses Knopfs. */}
+          <button type="button" className="site-footer__admin" onClick={onOpenAdmin}>
+            Admin
           </button>
         </nav>
       </div>

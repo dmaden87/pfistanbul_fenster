@@ -55,6 +55,17 @@ export const shopConfig = {
    */
   serviceArea: 'Kanton Zürich',
 
+  /**
+   * Jede Bestellung zusaetzlich als Mail schicken. Bewusst dauerhaft an:
+   * Der Adminbereich ist die Arbeitsliste, die Mail ist die Sicherung. Zwei
+   * unabhaengige Wege bedeuten, dass keine Bestellung verloren geht, wenn
+   * einer davon ausfaellt.
+   *
+   * Unabhaengig von diesem Schalter: Laesst sich eine Bestellung nicht
+   * speichern, geht die Mail in jedem Fall raus.
+   */
+  bestellungPerMail: true,
+
   /** Montage durch uns, Preis pro Fenster in CHF. Gilt auch in Sets. */
   montageChf: 15,
 
