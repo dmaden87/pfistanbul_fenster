@@ -86,7 +86,7 @@ function orderBody(
         '         Das ist eine Anfrage, keine verbindliche Bestellung. Bitte persoenlich melden\n' +
         '         und gemeinsam abmachen, wie bezahlt wird.'
       : payment === 'online'
-        ? 'Zahlung: online über Stripe. Bitte im Stripe-Konto prüfen, ob der Betrag eingegangen ist – die Bestellung wird auch dann gemeldet, wenn die Zahlung abgebrochen wurde.'
+        ? 'Zahlung: online über Stripe. Ob der Betrag eingegangen ist, steht im Adminbereich –\n         diese Mail geht raus, sobald bestellt wurde, auch wenn die Zahlung danach abgebrochen wird.'
         : 'Zahlung: bei der Übergabe, bar oder mit TWINT.',
   ]
     // Nur null herausfiltern: filter(Boolean) wuerde auch die Leerzeilen

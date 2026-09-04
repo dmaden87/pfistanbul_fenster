@@ -130,6 +130,20 @@ export interface BestellPosition {
   preisChf: number
 }
 
+/**
+ * Was aus der Onlinezahlung geworden ist. Fehlt, solange Stripe nichts
+ * gemeldet hat - dann ist offen, ob bezahlt wurde. Gesetzt wird das
+ * ausschliesslich von api/stripe-webhook.ts, nie vom Browser.
+ */
+export interface Bezahlung {
+  status: 'bezahlt' | 'abgebrochen'
+  betragChf: number
+  /** ISO-Zeitpunkt der Meldung von Stripe. */
+  zeitpunkt: string
+  /** Id der Checkout-Sitzung, zum Nachschlagen im Stripe-Konto. */
+  sitzung: string
+}
+
 export interface Bestellung {
   id: string
   referenz: string
@@ -153,6 +167,8 @@ export interface Bestellung {
   zahlung: PaymentMethod
   zahlungswunsch: boolean
   summeChf: number
+  /** Nur bei Onlinezahlung und erst, wenn Stripe sich gemeldet hat. */
+  bezahlung?: Bezahlung
 }
 
 /** Was der Server über die Einrichtung des Adminbereichs verrät. */

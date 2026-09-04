@@ -16,6 +16,15 @@
 const url = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL
 const token = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN
 
+/**
+ * Die Tabelle mit den Bestellungen. Steht hier und nicht im Handler, weil
+ * inzwischen zwei Funktionen darauf zugreifen: bestellungen.ts fuer die
+ * Arbeitsliste und stripe-webhook.ts fuer den Zahlungsstand. Ein Tippfehler
+ * in einer Kopie waere still - die Bestellung landete in einer zweiten,
+ * unsichtbaren Tabelle.
+ */
+export const TABELLE_BESTELLUNGEN = 'pf:bestellungen'
+
 /** True, sobald ein Speicher verbunden ist. Ohne ihn bleibt der Adminbereich leer, statt zu lügen. */
 export const speicherBereit = Boolean(url && token)
 

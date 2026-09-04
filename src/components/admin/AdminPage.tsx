@@ -41,6 +41,22 @@ function datum(iso: string): string {
 }
 
 /**
+ * Was über die Zahlung wirklich bekannt ist.
+ *
+ * "Zahlungsart online" heisst nur, dass die Kundin diesen Weg gewählt hat –
+ * ob Geld geflossen ist, weiss allein Stripe und meldet es an
+ * api/stripe-webhook.ts. Solange diese Meldung fehlt, steht hier "offen" und
+ * nicht "bezahlt": Eine Bestellung ausliefern, weil die Liste etwas
+ * Falsches behauptet, wäre teurer als ein kurzer Blick ins Stripe-Konto.
+ */
+function zahlungstext(b: Bestellung): string {
+  if (b.zahlung !== 'online') return 'zahlt bei Übergabe'
+  if (b.bezahlung?.status === 'bezahlt') return `online bezahlt am ${datum(b.bezahlung.zeitpunkt)}`
+  if (b.bezahlung?.status === 'abgebrochen') return 'Onlinezahlung abgebrochen'
+  return 'Onlinezahlung noch offen'
+}
+
+/**
  * Welche Schritte von hier aus möglich sind. Vorwärts ist der Normalfall,
  * zurück steht bewusst auch offen: Wer versehentlich klickt, soll das ohne
  * Umweg über die Datenbank geraderücken können.
@@ -264,6 +280,11 @@ export function AdminPage({ onBack }: AdminPageProps) {
                         <span className={`admin__art admin__art--${b.art}`}>{ART_TEXT[b.art]}</span>
                         <span className="admin__referenz">{b.referenz || b.id}</span>
                         <span className="admin__datum">{datum(b.eingang)}</span>
+                        {b.bezahlung?.status === 'bezahlt' && (
+                          <span className="admin__marke admin__marke--gut">
+                            bezahlt · {formatChf(b.bezahlung.betragChf)}
+                          </span>
+                        )}
                         {b.status === 'geloescht' && <span className="admin__marke">abgesagt</span>}
                         {b.status === 'erledigt' && <span className="admin__marke admin__marke--gut">erledigt</span>}
                       </div>
@@ -303,7 +324,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
                           <p className="admin__summe">
                             <span>
                               {b.montage ? 'mit Montage' : 'Selbstmontage'} ·{' '}
-                              {b.zahlung === 'online' ? 'online bezahlt' : 'zahlt bei Übergabe'}
+                              {zahlungstext(b)}
                               {b.zahlungswunsch && ' · Ratenwunsch'}
                             </span>
                             <strong>{formatChf(b.summeChf)}</strong>

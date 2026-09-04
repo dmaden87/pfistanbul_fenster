@@ -6,7 +6,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
  * .ts-Datei um. Ohne die Endung startet die Funktion auf Vercel gar nicht
  * erst - mit ERR_MODULE_NOT_FOUND, sichtbar nur als 500.
  */
-import { hDel, hGet, hGetAll, hSet, inkrement, speicherBereit, SpeicherFehlt, verfaellt } from './_speicher.js'
+import { hDel, hGet, hGetAll, hSet, inkrement, speicherBereit, SpeicherFehlt, TABELLE_BESTELLUNGEN, verfaellt } from './_speicher.js'
 import { abmeldeCookie, angemeldet, anmeldeCookie, passwortGesetzt, passwortStimmt } from './_sitzung.js'
 
 /**
@@ -21,7 +21,7 @@ import { abmeldeCookie, angemeldet, anmeldeCookie, passwortGesetzt, passwortStim
  * checkout.ts, wo die Beträge ausschliesslich aus der Server-Tabelle kommen.
  */
 
-const TABELLE = 'pf:bestellungen'
+const TABELLE = TABELLE_BESTELLUNGEN
 
 /** Nach so vielen Fehlversuchen ist für eine Viertelstunde Ruhe. */
 const MAX_VERSUCHE = 8
@@ -67,6 +67,12 @@ interface Bestellung {
   zahlung: 'uebergabe' | 'online'
   zahlungswunsch: boolean
   summeChf: number
+  /**
+   * Setzt allein stripe-webhook.ts, nachdem Stripe den Ausgang der Zahlung
+   * gemeldet hat. Beim Anlegen fehlt das Feld - eine Bestellung gilt erst
+   * als bezahlt, wenn es jemand bestaetigt, der es wissen kann.
+   */
+  bezahlung?: { status: 'bezahlt' | 'abgebrochen'; betragChf: number; zeitpunkt: string; sitzung: string }
 }
 
 /* --- Eingaben zurechtstutzen ------------------------------------------------ */
