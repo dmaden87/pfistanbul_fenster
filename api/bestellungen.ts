@@ -1,6 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { hGet, hGetAll, hSet, inkrement, speicherBereit, SpeicherFehlt, verfaellt } from './_speicher'
-import { abmeldeCookie, angemeldet, anmeldeCookie, passwortGesetzt, passwortStimmt } from './_sitzung'
+/*
+ * Die Endung .js gehoert hier hin, obwohl die Dateien .ts heissen. Das
+ * Projekt ist ein ES-Modul ("type": "module"), und Node loest relative
+ * Importe zur Laufzeit nur mit Endung auf. TypeScript rechnet .js auf die
+ * .ts-Datei um. Ohne die Endung startet die Funktion auf Vercel gar nicht
+ * erst - mit ERR_MODULE_NOT_FOUND, sichtbar nur als 500.
+ */
+import { hGet, hGetAll, hSet, inkrement, speicherBereit, SpeicherFehlt, verfaellt } from './_speicher.js'
+import { abmeldeCookie, angemeldet, anmeldeCookie, passwortGesetzt, passwortStimmt } from './_sitzung.js'
 
 /**
  * Bestellungen: annehmen, auflisten, Status ändern.
