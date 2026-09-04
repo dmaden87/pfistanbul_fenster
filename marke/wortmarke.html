@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Pfistanbul Fenster – Anzeigebild mit Wortmarke</title>
+<style>
+/*
+ * Artboards fuer die Profilbilder mit Schrift.
+ *
+ * Warum als HTML und nicht als SVG wie die uebrigen Varianten: Der
+ * SVG-Rasterizer von sharp kennt die eingebettete Fraunces nicht und setzt
+ * still eine Standardschrift ein. Im Browser stimmt die Schrift.
+ *
+ * Rendern: In einem Browser oeffnen und die beiden Flaechen als 1080x1080
+ * aufnehmen - oder das Skript nutzen, das die Bilder bereits erzeugt hat.
+ *
+ * Der graue Kreis ist eine Hilfslinie und im Bild nicht sichtbar: Er zeigt,
+ * was Instagram vom Quadrat uebrig laesst. Nichts Wichtiges darf ihn
+ * verlassen.
+ */
+@font-face {
+  font-family: 'Fraunces';
+  src: url('../public/fonts/fraunces-normal-700-latin.woff2') format('woff2');
+  font-weight: 700;
+  font-display: block;
+}
+@font-face {
+  font-family: 'InterMarke';
+  src: url('../public/fonts/inter-normal-600-latin.woff2') format('woff2');
+  font-weight: 600;
+  font-display: block;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #6b7a75; display: flex; flex-wrap: wrap; gap: 40px; padding: 40px; }
+
+.blatt {
+  position: relative;
+  width: 1080px;
+  height: 1080px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 46px;
+  background: #0f3b34;
+  color: #f7fbf9;
+  overflow: hidden;
+}
+
+.zeichen { display: block; }
+
+.name {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 700;
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+}
+
+.zusatz {
+  font-family: 'InterMarke', system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  text-indent: 0.34em;
+  opacity: 0.82;
+}
+
+/* Zeichen plus Name. Das Zeichen ist bewusst klein: Es soll die Herkunft
+   zeigen, aber dem Namen nicht den Platz nehmen - der muss im Profil
+   lesbar sein. */
+#mitzeichen { gap: 34px; }
+#mitzeichen .name { font-size: 168px; }
+#mitzeichen .zusatz { font-size: 63px; margin-top: -10px; }
+
+/* Nur Schrift, dafuer deutlich groesser */
+#nurtext { gap: 18px; }
+#nurtext .name { font-size: 196px; }
+#nurtext .zusatz { font-size: 74px; }
+</style>
+</head>
+<body>
+
+<div class="blatt" id="mitzeichen">
+  <svg class="zeichen" width="212" height="212" viewBox="0 0 300 300">
+    <rect x="23" y="23" width="254" height="254" rx="30" fill="none" stroke="#f7fbf9" stroke-width="22"/>
+    <path d="M23 108H277M23 192H277M108 23V277M192 23V277" stroke="#f7fbf9" stroke-width="15" stroke-linecap="round"/>
+  </svg>
+  <div>
+    <p class="name">Pfistanbul</p>
+    <p class="zusatz">Fenster</p>
+  </div>
+</div>
+
+<div class="blatt" id="nurtext">
+  <p class="name">Pfistanbul</p>
+  <p class="zusatz">Fenster</p>
+</div>
+
+</body>
+</html>

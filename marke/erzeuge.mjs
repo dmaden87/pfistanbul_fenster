@@ -79,14 +79,33 @@ for (const [name, svg] of Object.entries(varianten)) {
  * Test: Wer das Zeichen aendert, sieht sofort, ob es bei 32 Pixeln noch
  * etwas darstellt. Rund beschnitten, weil Instagram das auch tut.
  */
+/*
+ * Auch die beiden Schriftfassungen kommen in die Probe. Sie entstehen nicht
+ * hier, sondern aus marke/wortmarke.html im Browser: Der SVG-Rasterizer
+ * kennt die eingebettete Fraunces nicht und setzt still eine Standardschrift
+ * ein. Fehlen die Dateien, laesst die Probe sie einfach weg.
+ */
+const AUS_DEM_BROWSER = ['wortmarke', 'nurtext']
+
 const GROESSEN = [176, 96, 56, 32]
 const rand = 26
 const zeile = 176 + rand * 2
 const breite = GROESSEN.reduce((s, g) => s + g + rand * 2, 0) + 40
 
+const vorhanden = []
+for (const name of AUS_DEM_BROWSER) {
+  try {
+    await sharp(`${ZIEL}/profil-${name}-1080.png`).metadata()
+    vorhanden.push(name)
+  } catch {
+    // Noch nicht gerendert - kein Grund, die Probe scheitern zu lassen.
+  }
+}
+const inDerProbe = [...Object.keys(varianten), ...vorhanden]
+
 const teile = []
 let y = rand
-for (const name of Object.keys(varianten)) {
+for (const name of inDerProbe) {
   let x = rand
   for (const g of GROESSEN) {
     const kreis = Buffer.from(`<svg width="${g}" height="${g}"><circle cx="${g / 2}" cy="${g / 2}" r="${g / 2}" fill="#fff"/></svg>`)
@@ -106,4 +125,4 @@ await sharp({ create: { width: Math.round(breite), height: Math.round(y + rand),
   .png()
   .toFile(`${ZIEL}/groessenprobe.png`)
 
-console.log(`\nGroessenprobe: ${Object.keys(varianten).join(', ')} bei ${GROESSEN.join(', ')} Pixeln`)
+console.log(`\nGroessenprobe: ${inDerProbe.join(', ')} bei ${GROESSEN.join(', ')} Pixeln`)
