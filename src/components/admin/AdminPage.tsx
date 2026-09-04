@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { AdminStatus, Bestellung, BestellStatus } from '../../types'
-import { abmelden, adminStatus, anmelden, ladeBestellungen, setzeStatus } from '../../lib/adminApi'
+import { abmelden, adminStatus, anmelden, entferneBestellung, ladeBestellungen, setzeStatus } from '../../lib/adminApi'
 import { formatChf } from '../../lib/format'
 import './AdminPage.css'
 
@@ -70,6 +70,9 @@ export function AdminPage({ onBack }: AdminPageProps) {
   const [fehler, setFehler] = useState<string | null>(null)
   const [laedt, setLaedt] = useState(true)
   const [sendet, setSendet] = useState(false)
+  // Welcher Eintrag gerade nach dem zweiten Klick fragt. Endgueltiges
+  // Loeschen soll nicht aus Versehen passieren.
+  const [loeschFrage, setLoeschFrage] = useState<string | null>(null)
 
   const laden = useCallback(async () => {
     setFehler(null)
@@ -119,6 +122,17 @@ export function AdminPage({ onBack }: AdminPageProps) {
       await setzeStatus(id, neu)
     } catch (f) {
       setFehler(f instanceof Error ? f.message : 'Der Status konnte nicht geändert werden.')
+      await laden()
+    }
+  }
+
+  const handleLoeschen = async (id: string) => {
+    setBestellungen((liste) => liste.filter((b) => b.id !== id))
+    setLoeschFrage(null)
+    try {
+      await entferneBestellung(id)
+    } catch (f) {
+      setFehler(f instanceof Error ? f.message : 'Der Eintrag konnte nicht gelöscht werden.')
       await laden()
     }
   }
@@ -310,6 +324,29 @@ export function AdminPage({ onBack }: AdminPageProps) {
                             {s.text}
                           </button>
                         ))}
+
+                        {/*
+                          Endgueltiges Loeschen gibt es nur bei abgeschlossenen
+                          Eintraegen und nur nach einer Rueckfrage. Es ist der
+                          Weg, das Loeschversprechen aus der
+                          Datenschutzerklaerung einzuloesen.
+                        */}
+                        {(b.status === 'erledigt' || b.status === 'geloescht') &&
+                          (loeschFrage === b.id ? (
+                            <span className="admin__loeschfrage">
+                              Endgültig löschen?
+                              <button type="button" className="btn btn--quiet admin__gefahr" onClick={() => handleLoeschen(b.id)}>
+                                Ja, Daten entfernen
+                              </button>
+                              <button type="button" className="btn btn--quiet" onClick={() => setLoeschFrage(null)}>
+                                Abbrechen
+                              </button>
+                            </span>
+                          ) : (
+                            <button type="button" className="btn btn--quiet admin__gefahr" onClick={() => setLoeschFrage(b.id)}>
+                              Daten löschen
+                            </button>
+                          ))}
                       </div>
                     </li>
                   ))}

@@ -50,6 +50,18 @@ export async function ladeBestellungen(): Promise<Bestellung[]> {
   return daten.bestellungen
 }
 
+/** Entfernt den Eintrag endgültig – im Gegensatz zum Status "geloescht". */
+export async function entferneBestellung(id: string): Promise<void> {
+  await antwort(
+    await fetch(PFAD, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ id }),
+    }),
+  )
+}
+
 export async function setzeStatus(id: string, status: BestellStatus): Promise<Bestellung> {
   const daten = await antwort<{ bestellung: Bestellung }>(
     await fetch(PFAD, {

@@ -6,7 +6,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
  * .ts-Datei um. Ohne die Endung startet die Funktion auf Vercel gar nicht
  * erst - mit ERR_MODULE_NOT_FOUND, sichtbar nur als 500.
  */
-import { hGet, hGetAll, hSet, inkrement, speicherBereit, SpeicherFehlt, verfaellt } from './_speicher.js'
+import { hDel, hGet, hGetAll, hSet, inkrement, speicherBereit, SpeicherFehlt, verfaellt } from './_speicher.js'
 import { abmeldeCookie, angemeldet, anmeldeCookie, passwortGesetzt, passwortStimmt } from './_sitzung.js'
 
 /**
@@ -161,8 +161,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'POST') return await anlegen(req, res)
     if (req.method === 'GET') return await auflisten(req, res)
     if (req.method === 'PATCH') return await aendern(req, res)
+    if (req.method === 'DELETE') return await entfernen(req, res)
 
-    res.setHeader('Allow', 'GET, POST, PATCH')
+    res.setHeader('Allow', 'GET, POST, PATCH, DELETE')
     return res.status(405).json({ error: 'Methode nicht erlaubt.' })
   } catch (fehler) {
     if (fehler instanceof SpeicherFehlt) {
@@ -224,6 +225,25 @@ async function auflisten(req: VercelRequest, res: VercelResponse) {
 
   res.setHeader('Cache-Control', 'no-store')
   return res.status(200).json({ bestellungen: liste })
+}
+
+/**
+ * Loescht einen Eintrag endgueltig. Nicht dasselbe wie der Status
+ * "geloescht": Der bedeutet abgesagt und bleibt zum Nachschlagen stehen.
+ * Hier verschwinden die Daten wirklich – das braucht es, damit wir das
+ * Loeschversprechen aus der Datenschutzerklaerung auch halten koennen.
+ */
+async function entfernen(req: VercelRequest, res: VercelResponse) {
+  if (!angemeldet(req.headers.cookie)) return nichtAngemeldet(res)
+
+  const koerper = (typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body) ?? {}
+  const id = text(koerper.id, 40)
+  if (!id) return res.status(400).json({ error: 'Id fehlt.' })
+
+  const geloescht = await hDel(TABELLE, id)
+  if (!geloescht) return res.status(404).json({ error: 'Bestellung nicht gefunden.' })
+
+  return res.status(200).json({ ok: true })
 }
 
 async function aendern(req: VercelRequest, res: VercelResponse) {

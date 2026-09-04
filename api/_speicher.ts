@@ -70,6 +70,16 @@ export async function hGetAll(schluessel: string): Promise<Record<string, string
   return raus
 }
 
+/**
+ * Entfernt ein Feld endgültig. Gebraucht fuer das Loeschversprechen in der
+ * Datenschutzerklaerung: Anfragen, aus denen keine Bestellung wird, loeschen
+ * wir spaetestens nach zwoelf Monaten – und auf Verlangen sofort, wie es das
+ * revidierte Datenschutzgesetz vorsieht.
+ */
+export function hDel(schluessel: string, feld: string) {
+  return befehl<number>('HDEL', schluessel, feld)
+}
+
 /** Zählt hoch und liefert den neuen Wert – für die Sperre nach zu vielen Fehlversuchen. */
 export function inkrement(schluessel: string) {
   return befehl<number>('INCR', schluessel)
