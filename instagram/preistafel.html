@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Preistafel für Instagram</title>
+<style>
+/*
+ * Der fuenfte Beitrag: die einzige Grafik zwischen vier Fotos.
+ *
+ * Heller Grund mit Absicht. Im Raster des Profils stehen ringsherum Bilder
+ * mit viel Gruen und Holz; eine helle Flaeche setzt einen Ruhepunkt und ist
+ * sofort als "hier stehen Zahlen" erkennbar.
+ *
+ * Rendern: In marke/wortmarke.html steht, warum das ueber den Browser laeuft
+ * und nicht ueber sharp – die Schrift.
+ */
+@font-face {
+  font-family: 'Fraunces';
+  src: url('../public/fonts/fraunces-normal-700-latin.woff2') format('woff2');
+  font-weight: 700;
+  font-display: block;
+}
+@font-face {
+  font-family: 'Fraunces';
+  src: url('../public/fonts/fraunces-italic-600-latin.woff2') format('woff2');
+  font-weight: 600;
+  font-style: italic;
+  font-display: block;
+}
+@font-face {
+  font-family: 'InterPost';
+  src: url('../public/fonts/inter-normal-400-latin.woff2') format('woff2');
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: 'InterPost';
+  src: url('../public/fonts/inter-normal-600-latin.woff2') format('woff2');
+  font-weight: 600;
+  font-display: block;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #6b7a75; padding: 40px; }
+
+.blatt {
+  width: 1080px;
+  height: 1350px;
+  padding: 86px 78px 70px;
+  background: #faf8f4;
+  color: #17211f;
+  font-family: 'InterPost', system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.oben { font-size: 26px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #4d5b57; }
+
+h1 {
+  margin-top: 22px;
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 700;
+  font-size: 92px;
+  line-height: 0.96;
+  letter-spacing: -0.025em;
+}
+h1 em { font-style: italic; color: #0f3b34; }
+
+.liste { margin-top: 56px; }
+
+.zeile {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px 0;
+  border-bottom: 2px solid #e4ded3;
+}
+.zeile:first-child { border-top: 4px solid #0f3b34; }
+
+.was { font-size: 40px; font-weight: 600; }
+.mass { font-size: 27px; color: #4d5b57; margin-left: 14px; font-weight: 400; }
+.preis { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 44px; white-space: nowrap; }
+
+.sets { margin-top: 44px; display: grid; gap: 18px; }
+.set {
+  display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  padding: 26px 34px; border-radius: 20px; background: #0f3b34; color: #f7fbf9;
+}
+.set__name { display: block; font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 42px; }
+.set__inhalt { display: block; font-size: 25px; opacity: 0.85; margin-top: 4px; }
+.set__preis { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 56px; }
+
+.fuss { margin-top: auto; padding-top: 34px; border-top: 2px solid #e4ded3; }
+.fuss__gross { font-family: 'Fraunces', Georgia, serif; font-style: italic; font-weight: 600; font-size: 40px; color: #0f3b34; }
+.fuss__klein { margin-top: 12px; font-size: 26px; line-height: 1.5; color: #4d5b57; }
+</style>
+</head>
+<body>
+<div class="blatt">
+  <p class="oben">Am Pfisterhölzli, Greifensee</p>
+  <h1>Vier Formate.<br><em>Feste Preise.</em></h1>
+
+  <div class="liste">
+    <div class="zeile"><span class="was">Bad<span class="mass">117 × 82.5 cm</span></span><span class="preis">CHF 130</span></div>
+    <div class="zeile"><span class="was">Küche<span class="mass">72.5 × 122 cm</span></span><span class="preis">CHF 130</span></div>
+    <div class="zeile"><span class="was">Zimmer<span class="mass">160.5 × 122 cm</span></span><span class="preis">CHF 150</span></div>
+    <div class="zeile"><span class="was">Balkontüre<span class="mass">84 × 206 cm</span></span><span class="preis">CHF 155</span></div>
+  </div>
+
+  <div class="sets">
+    <div class="set">
+      <span><span class="set__name">Set Mittel</span><span class="set__inhalt">6 Netze für die ganze Wohnung</span></span>
+      <span class="set__preis">775</span>
+    </div>
+    <div class="set">
+      <span><span class="set__name">Set Gross</span><span class="set__inhalt">7 Netze, für Attika und die grossen</span></span>
+      <span class="set__preis">850</span>
+    </div>
+  </div>
+
+  <div class="fuss">
+    <p class="fuss__gross">Lieferung in der Siedlung gratis.</p>
+    <p class="fuss__klein">Bezahlt wird bei der Übergabe. Montage auf Wunsch CHF 15 pro Fenster.<br>Alles unter pfistanbul.vercel.app</p>
+  </div>
+</div>
+</body>
+</html>
