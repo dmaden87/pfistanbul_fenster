@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080">
+    <rect width="1080" height="1080" fill="#0f3b34"/>
+    <defs>
+      <clipPath id="haelfte"><rect x="540" y="240" width="300" height="600"/></clipPath>
+    </defs>
+    <g clip-path="url(#haelfte)"><path d="M240 300H840M300 240V840M240 360H840M360 240V840M240 420H840M420 240V840M240 480H840M480 240V840M240 540H840M540 240V840M240 600H840M600 240V840M240 660H840M660 240V840M240 720H840M720 240V840M240 780H840M780 240V840" stroke="#f7fbf9" stroke-width="13" stroke-linecap="round"/></g>
+    <rect x="240" y="240" width="600" height="600" rx="56" fill="none" stroke="#f7fbf9" stroke-width="40"/>
+    <path d="M540 240V840" stroke="#f7fbf9" stroke-width="40" stroke-linecap="round"/>
+  </svg>
