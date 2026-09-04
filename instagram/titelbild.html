@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Titelbild für Instagram</title>
+<style>
+/*
+ * Der oberste Beitrag: das Aushängeschild des Profils, in der Bildsprache
+ * des Flyers.
+ *
+ * Bewusst NICHT der Flyer im Kleinformat. Auf A4 stehen vier Nutzenpunkte,
+ * zwei Preistabellen, drei Schritte und ein QR-Code – auf einem Handy wäre
+ * das eine graue Fläche. Übernommen sind Kopfzeile, Schlagzeile, Foto und
+ * die persönliche Zeile; der Rest ist weggelassen.
+ *
+ * Kein QR-Code. Wer den Beitrag sieht, hält das Telefon bereits in der Hand;
+ * der Weg zur Seite führt über den Link im Profil. Ein Code zum Abscannen des
+ * eigenen Bildschirms wäre ein Zirkelschluss.
+ */
+@font-face { font-family: 'Fraunces'; src: url('../public/fonts/fraunces-normal-700-latin.woff2') format('woff2'); font-weight: 700; font-display: block; }
+@font-face { font-family: 'Fraunces'; src: url('../public/fonts/fraunces-italic-600-latin.woff2') format('woff2'); font-weight: 600; font-style: italic; font-display: block; }
+@font-face { font-family: 'InterPost'; src: url('../public/fonts/inter-normal-400-latin.woff2') format('woff2'); font-weight: 400; font-display: block; }
+@font-face { font-family: 'InterPost'; src: url('../public/fonts/inter-normal-600-latin.woff2') format('woff2'); font-weight: 600; font-display: block; }
+@font-face { font-family: 'InterPost'; src: url('../public/fonts/inter-normal-700-latin.woff2') format('woff2'); font-weight: 700; font-display: block; }
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #6b7a75; padding: 40px; }
+
+.blatt {
+  width: 1080px; height: 1350px;
+  padding: 64px 68px 58px;
+  background: #faf8f4; color: #17211f;
+  font-family: 'InterPost', system-ui, sans-serif;
+  display: flex; flex-direction: column;
+}
+
+.kopf { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.marke { display: flex; align-items: center; gap: 18px; }
+.marke__zeichen { display: grid; place-items: center; width: 62px; height: 62px; border-radius: 15px; background: #0f3b34; }
+.marke__name { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 36px; line-height: 1; }
+.marke__zusatz { font-size: 16px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: #4d5b57; }
+.kampagne {
+  padding: 12px 22px; border: 2px solid #0f3b34; border-radius: 100px;
+  font-size: 20px; font-weight: 600; color: #0f3b34; white-space: nowrap;
+}
+
+h1 {
+  margin-top: 40px;
+  font-family: 'Fraunces', Georgia, serif; font-weight: 700;
+  font-size: 104px; line-height: 0.94; letter-spacing: -0.028em;
+}
+h1 em { display: block; font-style: italic; color: #0f3b34; }
+
+.foto { margin-top: 36px; border-radius: 22px; overflow: hidden; }
+.foto img { display: block; width: 100%; height: 470px; object-fit: cover; object-position: center 46%; }
+
+.punkte { margin-top: 34px; display: flex; gap: 16px; }
+.punkt {
+  flex: 1; padding: 20px 22px; border-radius: 16px; background: #dcefe7;
+  font-size: 23px; line-height: 1.35;
+}
+.punkt b { display: block; font-family: 'Fraunces', Georgia, serif; font-size: 29px; font-weight: 700; margin-bottom: 5px; }
+
+.preis {
+  margin-top: 26px; padding: 22px 30px; border-radius: 18px; background: #0f3b34; color: #f7fbf9;
+  display: flex; align-items: center; gap: 30px;
+}
+.preis > div { flex: 1; }
+.preis > div + div { border-left: 2px solid rgba(247, 251, 249, 0.28); padding-left: 30px; }
+.preis__was { display: block; font-size: 22px; opacity: 0.82; }
+.preis__zahl { display: block; margin-top: 3px; font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 42px; }
+
+.fuss { margin-top: auto; padding-top: 26px; border-top: 2px solid #e4ded3; }
+.fuss__name { font-family: 'Fraunces', Georgia, serif; font-style: italic; font-weight: 600; font-size: 38px; color: #0f3b34; }
+.fuss__text { margin-top: 8px; font-size: 23px; line-height: 1.45; color: #4d5b57; }
+</style>
+</head>
+<body>
+<div class="blatt">
+
+  <header class="kopf">
+    <div class="marke">
+      <span class="marke__zeichen">
+        <svg width="34" height="34" viewBox="0 0 300 300">
+          <rect x="30" y="30" width="240" height="240" rx="30" fill="none" stroke="#f7fbf9" stroke-width="26"/>
+          <path d="M30 110H270M30 190H270M110 30V270M190 30V270" stroke="#f7fbf9" stroke-width="18" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <span>
+        <span class="marke__name">Pfistanbul</span><br>
+        <span class="marke__zusatz">Fenster</span>
+      </span>
+    </div>
+    <span class="kampagne">Für die Überbauung Am Pfisterhölzli</span>
+  </header>
+
+  <h1>Fenster auf.<em>Mücken draussen.</em></h1>
+
+  <figure class="foto">
+    <img src="../public/fotos/zimmer-storen-1600.jpg" alt="">
+  </figure>
+
+  <div class="punkte">
+    <div class="punkt"><b>Meist ohne Bohren</b>Geklebt statt gedübelt</div>
+    <div class="punkt"><b>Bleibt das ganze Jahr</b>Im Winter offen lassen</div>
+    <div class="punkt"><b>Passgarantie</b>Auf unsere Masse</div>
+  </div>
+
+  <div class="preis">
+    <div>
+      <span class="preis__was">Einzelnes Netz ab</span>
+      <span class="preis__zahl">CHF 130</span>
+    </div>
+    <div>
+      <span class="preis__was">Ganze Wohnung ab</span>
+      <span class="preis__zahl">CHF 775</span>
+    </div>
+  </div>
+
+  <div class="fuss">
+    <p class="fuss__name">Ufuk &amp; Deniz</p>
+    <p class="fuss__text">
+      Zwei Nachbarn aus der Siedlung. Die Netze hängen fertig montiert am Pfisterhölzli 38 – melden Sie sich, wir
+      zeigen sie Ihnen gerne. Alles Weitere über den Link im Profil.
+    </p>
+  </div>
+
+</div>
+</body>
+</html>

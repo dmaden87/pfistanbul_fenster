@@ -4,9 +4,9 @@ Fünf Beiträge zum Start, dazu Profiltext. Bilder liegen fertig daneben,
 Format 4:5 (1080 × 1350) – das höchste, das Instagram im Feed ungeschnitten
 zeigt. Ein quadratischer Beitrag verschenkt ein Viertel der Fläche.
 
-`node instagram/erzeuge.mjs` schneidet die vier Fotos zu. Die Preistafel
-kommt aus `preistafel.html` über den Browser (Grund steht in
-`marke/LIESMICH.md`: die Schrift).
+`node instagram/erzeuge.mjs` schneidet die vier Fotos zu. Die Preistafel und
+das Titelbild kommen aus `preistafel.html` und `titelbild.html` über den
+Browser (Grund steht in `marke/LIESMICH.md`: die Schrift).
 
 ## Profil
 
@@ -29,9 +29,8 @@ Greifensee ZH · feste Preise fürs Pfisterhölzli
 ## Reihenfolge
 
 Einer alle zwei bis drei Tage, in dieser Reihenfolge. Instagram zeigt den
-neuesten zuoberst – wer zuletzt die Geschichte postet, begrüsst jeden neuen
-Besucher damit. Für zwei Nachbarn, die etwas für die Siedlung organisieren,
-ist das die bessere Visitenkarte als ein Produktfoto.
+neuesten zuoberst, also landet oben, was zuletzt gepostet wird – deshalb steht
+das Titelbild am Schluss der Liste und nicht am Anfang.
 
 ---
 
@@ -123,6 +122,23 @@ Ufuk & Deniz
 #nachbarschaft #greifensee #pfisterhölzli #ausdernachbarschaft
 ```
 
+### 6 · `beitrag-6-titel.jpg` — als letztes posten
+
+```
+Fenster auf. Mücken draussen.
+
+Insektenschutz-Plissee nach Mass, für die vier Fensterformate, die sich im
+Pfisterhölzli über alle Wohnungen wiederholen. Feste Preise, Lieferung in der
+Siedlung gratis, bezahlt wird bei der Übergabe.
+
+Die Netze hängen fertig montiert am Pfisterhölzli 38 – melden Sie sich, wir
+zeigen sie Ihnen gerne.
+
+Alles Weitere über den Link im Profil.
+
+#pfisterhölzli #greifensee #insektenschutz #fliegengitter #nachbarschaft
+```
+
 ---
 
 ## Was noch fehlt
@@ -132,7 +148,9 @@ Fussleiste der Website – sonst führt der Weg nur in eine Richtung.
 
 ## Vor dem Posten prüfen
 
-- Stimmen die Preise im vierten Beitrag noch mit `src/data/catalog.ts` überein?
+- Stimmen die Preise im vierten und im sechsten Beitrag noch mit
+  `src/data/catalog.ts` überein? Sie stehen dort als Text im Bild, nicht aus
+  dem Katalog gezogen – ein Bild wird einmal gepostet und bleibt dann stehen.
 - Ist Ufuk mit dem Bild im fünften Beitrag einverstanden?
 - Solange `shopConfig.operational` auf `false` steht, passt der Satz im vierten
   Beitrag über das Sammeln der Bestellungen. Danach gehört er geändert.
