@@ -18,9 +18,11 @@ import { Promises } from './components/sections/Promises'
 import { CustomRequest } from './components/sections/CustomRequest'
 import { Faq } from './components/sections/Faq'
 import { ClosingCta } from './components/sections/ClosingCta'
-import { LegalPage, type LegalKey } from './components/sections/LegalPage'
+import { LegalPage } from './components/sections/LegalPage'
 import { AdminPage } from './components/admin/AdminPage'
 import { Analytics } from '@vercel/analytics/react'
+import { pfadFuerRechtsseite, rechtsseiteAusPfad, setzeKopfdaten } from './lib/adresse'
+import type { LegalKey } from './data/site'
 import { useCart } from './hooks/useCart'
 import './App.css'
 
@@ -36,6 +38,20 @@ type View =
  * Wir lesen das einmal beim Start und räumen die Adresszeile gleich wieder auf,
  * damit ein Neuladen nicht nochmals dieselbe Meldung zeigt.
  */
+/**
+ * Welche Ansicht zur Adresse in der Adresszeile gehoert. Alles, was keine
+ * Rechtsseite ist, laeuft unter "/" - siehe lib/adresse.ts.
+ */
+function ansichtAusAdresse(): View {
+  const seite = rechtsseiteAusPfad(window.location.pathname)
+  return seite ? { name: 'legal', page: seite } : { name: 'shop' }
+}
+
+/** Die Adresse zu einer Ansicht. */
+function adresseFuer(ansicht: View): string {
+  return ansicht.name === 'legal' ? pfadFuerRechtsseite(ansicht.page) : '/'
+}
+
 function readPaymentReturn(): View | null {
   const params = new URLSearchParams(window.location.search)
   const status = params.get('zahlung')
@@ -49,12 +65,26 @@ function readPaymentReturn(): View | null {
 export default function App() {
   const cart = useCart()
   const [cartOpen, setCartOpen] = useState(false)
-  const [view, setView] = useState<View>(() => readPaymentReturn() ?? { name: 'shop' })
+  const [view, setView] = useState<View>(() => readPaymentReturn() ?? ansichtAusAdresse())
   const [pendingAnchor, setPendingAnchor] = useState<string | null>(null)
 
   useEffect(() => {
     if (view.name !== 'shop') window.scrollTo({ top: 0, behavior: 'auto' })
   }, [view])
+
+  // Fenstertitel und Kopfangaben der Ansicht nachfuehren. Sichtbar wird das
+  // im Browsertab - und beim Vorabrendern wird genau dieser Zustand zur
+  // ausgelieferten Datei.
+  useEffect(() => {
+    setzeKopfdaten(adresseFuer(view))
+  }, [view])
+
+  // Der Zurueck-Knopf des Browsers soll tun, was er ueberall tut.
+  useEffect(() => {
+    const zurueck = () => setView(ansichtAusAdresse())
+    window.addEventListener('popstate', zurueck)
+    return () => window.removeEventListener('popstate', zurueck)
+  }, [])
 
   // Nach erfolgreicher Zahlung ist der Warenkorb erledigt.
   const cartCleared = useRef(false)
@@ -74,18 +104,34 @@ export default function App() {
     target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [view, pendingAnchor])
 
-  const goToShop = useCallback(() => setView({ name: 'shop' }), [])
+  /**
+   * Ansicht wechseln und die Adresszeile mitnehmen. Ein Eintrag kommt nur
+   * dazu, wenn sich die Adresse wirklich aendert - sonst brauchte der
+   * Zurueck-Knopf mehrere Klicks fuer einen sichtbaren Schritt.
+   */
+  const gehe = useCallback((ziel: View) => {
+    const pfad = adresseFuer(ziel)
+    if (window.location.pathname !== pfad) window.history.pushState({}, '', pfad)
+    setView(ziel)
+  }, [])
+
+  const goToShop = useCallback(() => gehe({ name: 'shop' }), [gehe])
 
   const goToCheckout = useCallback(() => {
     setCartOpen(false)
-    setView({ name: 'checkout' })
-  }, [])
+    gehe({ name: 'checkout' })
+  }, [gehe])
 
-  const goToAnchor = useCallback((anchor: string) => {
-    setCartOpen(false)
-    setView({ name: 'shop' })
-    setPendingAnchor(anchor)
-  }, [])
+  const goToAnchor = useCallback(
+    (anchor: string) => {
+      setCartOpen(false)
+      gehe({ name: 'shop' })
+      setPendingAnchor(anchor)
+    },
+    [gehe],
+  )
+
+  const goToLegal = useCallback((page: LegalKey) => gehe({ name: 'legal', page }), [gehe])
 
   return (
     <>
@@ -143,7 +189,7 @@ export default function App() {
                 status={view.status}
                 reference={view.reference}
                 onBackToShop={goToShop}
-                onBackToCheckout={() => setView({ name: 'checkout' })}
+                onBackToCheckout={() => gehe({ name: 'checkout' })}
               />
             </div>
           </section>
@@ -155,9 +201,9 @@ export default function App() {
       </main>
 
       <Footer
-        onOpenLegal={(page) => setView({ name: 'legal', page })}
+        onOpenLegal={goToLegal}
         onNavigate={goToAnchor}
-        onOpenAdmin={() => setView({ name: 'admin' })}
+        onOpenAdmin={() => gehe({ name: 'admin' })}
       />
 
       <CartDrawer cart={cart} open={cartOpen} onClose={() => setCartOpen(false)} onCheckout={goToCheckout} />

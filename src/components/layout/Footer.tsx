@@ -1,8 +1,9 @@
 import { priceNote } from '../../data/shopConfig'
+import type { LegalKey } from '../../data/site'
 import './Footer.css'
 
 interface FooterProps {
-  onOpenLegal: (page: 'impressum' | 'datenschutz' | 'agb') => void
+  onOpenLegal: (page: LegalKey) => void
   onNavigate: (anchor: string) => void
   onOpenAdmin: () => void
 }

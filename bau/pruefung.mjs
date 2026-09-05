@@ -1,6 +1,7 @@
 /** Prueft das ausgelieferte HTML: Kopfangaben, JSON-LD, Sitemap, robots.txt. */
 import { readFileSync } from 'node:fs'
 import { windowTypes, netSets } from '../src/data/catalog.ts'
+import { rechtsseiten, startseite } from '../src/data/site.ts'
 
 const html = readFileSync('dist/index.html', 'utf8')
 const pruefungen = []
@@ -62,12 +63,53 @@ pruefe('elf Fragen mit Antwort', fragen.mainEntity.length === 11 && fragen.mainE
 
 // --- Sitemap und robots ---
 const sitemap = readFileSync('dist/sitemap.xml', 'utf8')
-pruefe('Sitemap nennt nur die Startseite', (sitemap.match(/<loc>/g) ?? []).length === 1)
+const erwarteteAdressen = 1 + rechtsseiten.length
+pruefe(`Sitemap nennt ${erwarteteAdressen} Adressen`, (sitemap.match(/<loc>/g) ?? []).length === erwarteteAdressen)
+for (const seite of rechtsseiten) {
+  pruefe(`Sitemap kennt ${seite.pfad}`, sitemap.includes(`<loc>https://pfistanbul.vercel.app${seite.pfad}</loc>`))
+}
 pruefe('Sitemap ohne erfundenes lastmod', !sitemap.includes('lastmod'))
 const robots = readFileSync('dist/robots.txt', 'utf8')
 pruefe('robots.txt sperrt niemanden aus', /User-agent: \*\nAllow: \//.test(robots))
 pruefe('robots.txt schuetzt /api/', robots.includes('Disallow: /api/'))
 pruefe('robots.txt zeigt auf die Sitemap', robots.includes('https://pfistanbul.vercel.app/sitemap.xml'))
+
+// --- Vorgerenderte Seiten ---------------------------------------------------
+//
+// Ohne sie waere die Seite fuer Crawler wieder das, was sie vorher war: ein
+// Kilobyte mit einem leeren <div>. Geprueft wird deshalb nicht nur, DASS die
+// Dateien da sind, sondern dass jede ihren eigenen Kopf traegt und wirklich
+// Text enthaelt.
+const bundeldateien = (t) => [...t.matchAll(/\/assets\/[A-Za-z0-9._-]+/g)].map((m) => m[0]).sort().join('|')
+const nurText = (t) => t.replace(/<(script|style)[\s\S]*?<\/\1>/g, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+
+const startText = nurText(html)
+pruefe('Startseite traegt echten Text', startText.split(' ').length > 2500, `${startText.split(' ').length} Woerter`)
+pruefe('Startseite nennt einen Preis im Text', startText.includes('130'))
+
+for (const seite of rechtsseiten) {
+  const datei = `dist${seite.pfad}.html`
+  let inhalt
+  try {
+    inhalt = readFileSync(datei, 'utf8')
+  } catch {
+    pruefe(`${seite.pfad} ist vorgerendert`, false, 'Datei fehlt')
+    continue
+  }
+  const text = nurText(inhalt)
+  pruefe(`${seite.pfad} ist vorgerendert`, true)
+  pruefe(`${seite.pfad} hat einen eigenen Titel`, inhalt.includes(`<title>${seite.titel}</title>`))
+  pruefe(`${seite.pfad} zeigt auf sich selbst (canonical)`, inhalt.includes(`href="https://pfistanbul.vercel.app${seite.pfad}"`))
+  pruefe(`${seite.pfad} traegt echten Text`, text.split(' ').length > 150, `${text.split(' ').length} Woerter`)
+  pruefe(`${seite.pfad} nutzt dieselben Bundle-Dateien`, bundeldateien(inhalt) === bundeldateien(html))
+
+  const graph = JSON.parse(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(inhalt)[1])['@graph']
+  const typen = new Set(graph.map((k) => k['@type']))
+  pruefe(`${seite.pfad} ohne Produktdaten`, !typen.has('Product') && !typen.has('FAQPage'), [...typen].join(', '))
+  pruefe(`${seite.pfad} nennt die Organisation`, typen.has('Organization'))
+}
+
+pruefe('Startseite behaelt ihren Titel', html.includes(`<title>${startseite.titel}</title>`))
 
 for (const p of pruefungen) console.log(`${p.ok ? 'ok  ' : 'FEHL'}  ${p.name}${p.ok ? '' : '   -> ' + p.zusatz}`)
 console.log(`\n${pruefungen.filter((p) => p.ok).length}/${pruefungen.length} bestanden`)

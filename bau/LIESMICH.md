@@ -93,13 +93,65 @@ Nur `adresse` in `src/data/site.ts` ändern und neu bauen. Alles Weitere –
 Sitemap, canonical, Open Graph, die Kennungen im JSON-LD – leitet sich daraus
 ab.
 
+## Echte Adressen und Vorabrendern
+
+Vorher war die ganze Seite **eine einzige Adresse** mit umschaltbaren
+Ansichten. `/impressum` antwortete mit 404, `/agb` auch. Selbst ein Werkzeug,
+das JavaScript ausführt, konnte unser Impressum weder verlinken noch zitieren.
+
+Eine eigene Adresse haben jetzt die Startseite und die drei rechtlichen
+Seiten. Warenkorb, Bestellablauf und Adminbereich bewusst **nicht**: Die
+hängen an Warenkorbinhalt, Anmeldung und der Rückkehr von Stripe. Jede weitere
+Adresse wäre ein weiterer Weg, auf dem der funktionierende Bestellablauf
+kaputtgehen kann – und für eine Suchmaschine gibt es dort nichts zu holen.
+Sie laufen weiter unter `/`.
+
+`vorrendern.mjs` baut eine frische Hülle, ruft jede Adresse einmal im Browser
+auf und legt das fertige HTML ab.
+
+```
+npm run vorrendern
+```
+
+**Warum über den Browser und nicht serverseitig:** Ein echter Browser hat ein
+`window`, ein `document` und einen `localStorage`. Damit entfällt die ganze
+Fehlerklasse, an der serverseitiges Rendern sonst hängt.
+
+**Warum das für Menschen nichts ändert:** `main.tsx` benutzt `createRoot`,
+nicht `hydrateRoot`. Ein echter Browser wirft das vorgerenderte Markup weg und
+baut die Seite auf wie bisher. Es gibt kein Abgleichen zwischen vorgerendertem
+und echtem Baum – und damit auch nicht die Fehlerklasse, bei der beide
+auseinanderlaufen und es flackert. Belegt ist das mit Aufnahmen der ganzen
+Seite vor und nach dem Umbau, bei 1440 und bei 390 Pixel Breite.
+
+**Warum das Ergebnis im Repository liegt (`vorgerendert/`):** Auf den
+Bauservern von Vercel gibt es keinen Browser. Gerendert wird hier, eingesetzt
+wird dort – von `vorgerendert.ts`, genau wie die Flyer-PDFs und die
+Instagram-Bilder auch hier erzeugt und eingecheckt werden.
+
+Die Gefahr dabei ist eine **veraltete Kopie**: Ändert jemand den Code, ohne neu
+zu rendern, zeigt die abgelegte Datei auf Bundle-Dateien, die es nicht mehr
+gibt – die Seite bliebe weiss. `vorgerendert.ts` vergleicht deshalb die
+Verweise und lässt den Build lieber scheitern, als das auszuliefern. Wer diese
+Fehlermeldung sieht, führt `npm run vorrendern` aus und checkt das Ergebnis
+mit ein.
+
+Zwei Fallen, die beim Bauen Zeit gekostet haben und in den Dateien
+dokumentiert sind:
+
+- `--virtual-time-budget` **hängt** an der Endlos-Animation im Hero. Ohne den
+  Schalter gibt Chromium den Baum nach dem Ladeereignis aus, und das genügt.
+- Die Ausgabe muss in eine **Datei** gehen, nicht in eine Pipe. Chromium
+  startet Kindprozesse, die den Ausgabekanal erben und offen halten; bei einer
+  Pipe wartet Node danach ewig auf ein Ende, das nie kommt.
+
+Weil sich auf ein Ladeereignis kein Verlass gründen lässt, prüft der Renderer
+für jede Seite ein Stück Text, das dort stehen **muss**. Fehlt es, bricht der
+Lauf ab, statt eine halb gerenderte Datei einzuchecken.
+
 ## Was noch fehlt
 
-Die Seite hat bis heute **keine echten Adressen**: `/impressum` antwortet mit
-404, genau wie `/agb`. Alles ist eine einzige Adresse mit umschaltbaren
-Ansichten. Selbst ein Werkzeug, das JavaScript ausführt, kann unser Impressum
-weder verlinken noch zitieren.
+Nichts Dringendes. Wenn eine eigene Domain kommt, siehe oben – eine Zeile.
 
-Der nächste Schritt ist deshalb, den vier Seiten eigene Adressen zu geben und
-sie beim Bauen mit Chromium einmal fertig zu rendern. Dann sind alle 3'274
-Wörter lesbar und nicht nur die strukturierten Daten.
+Offen bleibt nur, ob `vercel.json` mit `cleanUrls` irgendwann durch echte
+Weiterleitungen ersetzt werden sollte, falls Adressen dazukommen.

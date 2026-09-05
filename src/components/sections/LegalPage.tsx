@@ -1,8 +1,7 @@
 import { priceNote, shopConfig } from '../../data/shopConfig'
 import { operator } from '../../data/operator'
+import type { LegalKey } from '../../data/site'
 import './LegalPage.css'
-
-export type LegalKey = 'impressum' | 'datenschutz' | 'agb'
 
 interface LegalPageProps {
   page: LegalKey

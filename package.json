@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "bilder": "node scripts/bilder.mjs",
     "vorschau": "node bau/vorschau.mjs",
-    "pruefen": "npm run build && node bau/pruefung.mjs"
+    "pruefen": "npm run build && node bau/pruefung.mjs",
+    "vorrendern": "node bau/vorrendern.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",

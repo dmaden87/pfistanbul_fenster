@@ -3,7 +3,7 @@ import { netSets, netsInSet, regularPriceOfSet, windowTypes } from '../src/data/
 import { faq } from '../src/data/faq'
 import { operator } from '../src/data/operator'
 import { shopConfig } from '../src/data/shopConfig'
-import { absolut, seiten, site } from '../src/data/site'
+import { absolut, seiten, site, startseite } from '../src/data/site'
 
 /**
  * Macht die Seite fuer Maschinen lesbar.
@@ -225,13 +225,6 @@ function graph(titel: string, beschreibung: string) {
   }
 }
 
-/** Holt Titel und Beschreibung aus der index.html, statt sie zu verdoppeln. */
-function auslesen(html: string) {
-  const titel = /<title>([\s\S]*?)<\/title>/.exec(html)?.[1]?.trim() ?? operator.businessName
-  const roh = /<meta\s+name="description"\s+content="([\s\S]*?)"/.exec(html)?.[1] ?? ''
-  return { titel, beschreibung: roh.replace(/\s+/g, ' ').trim() }
-}
-
 function sitemap(): string {
   /*
    * Ohne <lastmod>: Der Zeitpunkt des Bauens ist nicht der Zeitpunkt, zu dem
@@ -270,12 +263,14 @@ export function maschinenlesbar(): Plugin {
     name: 'pfistanbul-maschinenlesbar',
 
     transformIndexHtml(html) {
-      const { titel, beschreibung } = auslesen(html)
+      const { titel, beschreibung } = startseite
       const bild = absolut(site.vorschaubild)
 
       return {
         html,
         tags: [
+          { tag: 'title', children: titel, injectTo: 'head' },
+          { tag: 'meta', attrs: { name: 'description', content: beschreibung }, injectTo: 'head' },
           { tag: 'link', attrs: { rel: 'canonical', href: absolut('/') }, injectTo: 'head' },
           // Vorschau, wenn jemand den Link in einem Chat oder in sozialen
           // Netzen teilt. Ohne diese Angaben zeigen die meisten Dienste einen
