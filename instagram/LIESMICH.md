@@ -166,24 +166,25 @@ im Bild: Sie ist der einzige Grund, warum es diesen Beitrag gibt.
 ```
 Ab heute können Sie bestellen.
 
-Lange gemessen, gerechnet und ausprobiert – seit heute ist der Shop offen. Die
-vier Fensterformate, die sich im Pfisterhölzli über alle Wohnungen wiederholen,
-haben wir ausgemessen. Für jedes gibt es einen festen Preis: Format wählen,
-bestellen, fertig.
+Lange gemessen, gerechnet und ausprobiert – seit heute ist der Shop offen. Wir
+lassen Insektenschutz-Plissees nach Mass fertigen und montieren sie selbst.
 
-Ab CHF 130 pro Netz, das Set für die ganze Wohnung ab CHF 775. Bezahlt wird bei
-der Übergabe, bar oder mit TWINT – wer lieber online mit Karte zahlt, kann das
-ab jetzt auch.
+Die vier Fensterformate, die sich im Pfisterhölzli über alle Wohnungen
+wiederholen, haben wir ausgemessen: dafür gibt es feste Preise ab CHF 130, das
+Set für die ganze Wohnung ab CHF 775. Überall sonst fertigen wir nach Ihren
+Massen – Richtwert CHF 100 bis 200 pro Fenster für Formate bis rund 2 m². Den
+Richtpreis sehen Sie sofort auf der Seite, noch bevor Sie anfragen.
+
+Der Rahmen klebt rundum im äusseren Fensterrahmen. Bei den allermeisten
+Fenstern braucht es dafür weder Bohrer noch Dübel – keine Löcher, nichts, was
+bei der Wohnungsabgabe auffällt. Und im Herbst bleibt das Netz einfach hängen.
 
 Ein Lager haben wir nicht. Jedes Netz wird auf Bestellung gefertigt, und wir
-bündeln die Bestellungen zu einer Lieferung. Genau daher kommt der tiefe Preis –
-den Liefertermin nennen wir Ihnen mit der Bestätigung.
+bündeln die Bestellungen zu einer Lieferung. Genau daher kommt der Preis – den
+Liefertermin nennen wir Ihnen mit der Bestätigung.
 
-Sie wohnen nicht im Pfisterhölzli? Schicken Sie uns Ihre Masse. Den Richtpreis
-sehen Sie sofort auf der Seite, noch bevor Sie anfragen.
-
-Und wenn der Betrag gerade nicht auf einmal liegt: Sagen Sie es uns. Wir machen
-eine Zahlung ab, die für Sie aufgeht, zinslos und ohne Gebühren.
+Bezahlt wird bei der Übergabe, bar oder mit TWINT. Und wenn der Betrag gerade
+nicht auf einmal liegt: Sagen Sie es uns, wir finden eine Lösung.
 
 Anschauen? Bei Deniz am Pfisterhölzli 38 hängen die Netze fertig montiert.
 
