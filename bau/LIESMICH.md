@@ -149,6 +149,31 @@ Weil sich auf ein Ladeereignis kein Verlass gründen lässt, prüft der Renderer
 für jede Seite ein Stück Text, das dort stehen **muss**. Fehlt es, bricht der
 Lauf ab, statt eine halb gerenderte Datei einzuchecken.
 
+## Anmelden statt warten (IndexNow)
+
+Eine neue Seite, auf die niemand verlinkt, findet kein Crawler von selbst.
+Sie kann technisch perfekt sein – steht sie in keinem Index, kann ein
+KI-Werkzeug sie nicht nachschlagen. Genau daran ist unsere zweite Probe mit
+Perplexity gescheitert: Die Seite war längst lesbar, aber unbekannt.
+
+```
+npm run melden
+```
+
+Meldet alle Adressen aus `src/data/site.ts` bei **Bing, Yandex, Seznam und
+Naver**. **Google nimmt an IndexNow nicht teil** – dort läuft es über die
+Search Console und über Geduld.
+
+**Erst pushen, warten bis die Änderung live ist, dann melden.** Die Meldung
+sagt „hier ist etwas Neues, hol es ab" – läuft sie zu früh, holen die Crawler
+den alten Stand.
+
+Der Schlüssel liegt als Datei im `public/`-Ordner und ergibt sich aus deren
+Namen; eine zweite Stelle, die man beim Wechsel vergessen könnte, gibt es
+nicht. Er ist **kein Geheimnis**: Die Suchmaschine holt die Datei zur
+Kontrolle ab, sie muss öffentlich lesbar sein. Das Skript prüft vor dem Senden
+selbst, ob sie erreichbar ist und den richtigen Inhalt hat.
+
 ## Was noch fehlt
 
 Nichts Dringendes. Wenn eine eigene Domain kommt, siehe oben – eine Zeile.

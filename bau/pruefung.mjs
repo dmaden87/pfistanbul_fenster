@@ -1,5 +1,5 @@
 /** Prueft das ausgelieferte HTML: Kopfangaben, JSON-LD, Sitemap, robots.txt. */
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { windowTypes, netSets } from '../src/data/catalog.ts'
 import { absolut, rechtsseiten, site, startseite } from '../src/data/site.ts'
 
@@ -114,6 +114,21 @@ for (const seite of rechtsseiten) {
   const typen = new Set(graph.map((k) => k['@type']))
   pruefe(`${seite.pfad} ohne Produktdaten`, !typen.has('Product') && !typen.has('FAQPage'), [...typen].join(', '))
   pruefe(`${seite.pfad} nennt die Organisation`, typen.has('Organization'))
+}
+
+// --- IndexNow ---------------------------------------------------------------
+//
+// Der Schluessel weist uns gegenueber Bing und Yandex als Betreiber aus. Liegt
+// die Datei nicht im ausgelieferten Ergebnis oder stimmt ihr Inhalt nicht mit
+// dem Dateinamen ueberein, werden Meldungen still abgelehnt.
+const schluesseldateien = readdirSync('dist').filter((name) => /^[0-9a-f]{32}\.txt$/.test(name))
+pruefe('genau eine IndexNow-Schluesseldatei', schluesseldateien.length === 1, `${schluesseldateien.length} gefunden`)
+if (schluesseldateien.length === 1) {
+  const name = schluesseldateien[0]
+  pruefe(
+    'Schluesseldatei enthaelt ihren eigenen Namen',
+    readFileSync(`dist/${name}`, 'utf8').trim() === name.replace('.txt', ''),
+  )
 }
 
 pruefe('Startseite behaelt ihren Titel', html.includes(`<title>${startseite.titel}</title>`))
