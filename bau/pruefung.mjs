@@ -1,22 +1,29 @@
 /** Prueft das ausgelieferte HTML: Kopfangaben, JSON-LD, Sitemap, robots.txt. */
 import { readFileSync } from 'node:fs'
 import { windowTypes, netSets } from '../src/data/catalog.ts'
-import { rechtsseiten, startseite } from '../src/data/site.ts'
+import { absolut, rechtsseiten, site, startseite } from '../src/data/site.ts'
 
 const html = readFileSync('dist/index.html', 'utf8')
 const pruefungen = []
 const pruefe = (name, ok, zusatz = '') => pruefungen.push({ name, ok, zusatz })
 
 // --- Kopfangaben ---
-for (const [name, muster] of [
-  ['canonical', /<link rel="canonical" href="https:\/\/pfistanbul\.vercel\.app\/">/],
-  ['og:title', /property="og:title"/],
-  ['og:description', /property="og:description"/],
-  ['og:image', /property="og:image" content="https:\/\/pfistanbul\.vercel\.app\/vorschau\.jpg"/],
-  ['og:image:width 1200', /property="og:image:width" content="1200"/],
-  ['og:locale de_CH', /property="og:locale" content="de_CH"/],
-  ['twitter:card', /name="twitter:card" content="summary_large_image"/],
-]) pruefe(name, muster.test(html))
+//
+// Adressen kommen aus site.ts und stehen hier NICHT nochmals als Text. Beim
+// Wechsel auf die eigene Domain waren genau diese beiden Zeilen die letzten,
+// die noch auf die alte Adresse zeigten - gefunden hat sie diese Pruefung
+// selbst, aber eine Suche im Quelltext hatte sie uebersehen, weil die
+// Adresse in einem regulaeren Ausdruck maskiert war.
+for (const [name, teil] of [
+  ['canonical', `<link rel="canonical" href="${absolut('/')}">`],
+  ['og:title', 'property="og:title"'],
+  ['og:description', 'property="og:description"'],
+  ['og:url', `property="og:url" content="${absolut('/')}"`],
+  ['og:image', `property="og:image" content="${absolut(site.vorschaubild)}"`],
+  ['og:image:width 1200', 'property="og:image:width" content="1200"'],
+  ['og:locale de_CH', 'property="og:locale" content="de_CH"'],
+  ['twitter:card', 'name="twitter:card" content="summary_large_image"'],
+]) pruefe(name, html.includes(teil), teil)
 
 // --- JSON-LD ---
 const roh = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(html)?.[1]
@@ -66,13 +73,13 @@ const sitemap = readFileSync('dist/sitemap.xml', 'utf8')
 const erwarteteAdressen = 1 + rechtsseiten.length
 pruefe(`Sitemap nennt ${erwarteteAdressen} Adressen`, (sitemap.match(/<loc>/g) ?? []).length === erwarteteAdressen)
 for (const seite of rechtsseiten) {
-  pruefe(`Sitemap kennt ${seite.pfad}`, sitemap.includes(`<loc>https://pfistanbul.vercel.app${seite.pfad}</loc>`))
+  pruefe(`Sitemap kennt ${seite.pfad}`, sitemap.includes(`<loc>${absolut(seite.pfad)}</loc>`))
 }
 pruefe('Sitemap ohne erfundenes lastmod', !sitemap.includes('lastmod'))
 const robots = readFileSync('dist/robots.txt', 'utf8')
 pruefe('robots.txt sperrt niemanden aus', /User-agent: \*\nAllow: \//.test(robots))
 pruefe('robots.txt schuetzt /api/', robots.includes('Disallow: /api/'))
-pruefe('robots.txt zeigt auf die Sitemap', robots.includes('https://pfistanbul.vercel.app/sitemap.xml'))
+pruefe('robots.txt zeigt auf die Sitemap', robots.includes(absolut('/sitemap.xml')))
 
 // --- Vorgerenderte Seiten ---------------------------------------------------
 //
@@ -99,7 +106,7 @@ for (const seite of rechtsseiten) {
   const text = nurText(inhalt)
   pruefe(`${seite.pfad} ist vorgerendert`, true)
   pruefe(`${seite.pfad} hat einen eigenen Titel`, inhalt.includes(`<title>${seite.titel}</title>`))
-  pruefe(`${seite.pfad} zeigt auf sich selbst (canonical)`, inhalt.includes(`href="https://pfistanbul.vercel.app${seite.pfad}"`))
+  pruefe(`${seite.pfad} zeigt auf sich selbst (canonical)`, inhalt.includes(`href="${absolut(seite.pfad)}"`))
   pruefe(`${seite.pfad} traegt echten Text`, text.split(' ').length > 150, `${text.split(' ').length} Woerter`)
   pruefe(`${seite.pfad} nutzt dieselben Bundle-Dateien`, bundeldateien(inhalt) === bundeldateien(html))
 

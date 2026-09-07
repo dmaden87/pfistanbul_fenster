@@ -26,7 +26,7 @@ import { createServer } from 'node:http'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, normalize } from 'node:path'
-import { kopfdatenFuer, seiten } from '../src/data/site.ts'
+import { absolut, kopfdatenFuer, seiten } from '../src/data/site.ts'
 
 const CHROMIUM = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
 const DIST = 'dist'
@@ -214,7 +214,7 @@ try {
       const gefunden = /<title>([^<]*)<\/title>/.exec(roh)?.[1] ?? '(keiner)'
       throw new Error(`${seite.pfad}: Titel ist "${gefunden}", erwartet war "${titel}".`)
     }
-    if (!roh.includes(`<link rel="canonical" href="https://pfistanbul.vercel.app${seite.pfad === '/' ? '/' : seite.pfad}">`)) {
+    if (!roh.includes(`<link rel="canonical" href="${absolut(seite.pfad)}">`)) {
       throw new Error(`${seite.pfad}: Der canonical-Verweis zeigt nicht auf diese Seite.`)
     }
 

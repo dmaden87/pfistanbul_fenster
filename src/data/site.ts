@@ -7,13 +7,17 @@
  * Verweise relativ - hier geht es nur um die Faelle, in denen jemand von
  * aussen auf uns zeigt.
  *
- * WENN EINE EIGENE DOMAIN DAZUKOMMT: Nur `adresse` aendern und einmal neu
- * bauen. Alles Weitere leitet sich daraus ab. Solange Flyer und QR-Code auf
- * die Vercel-Adresse zeigen, bleibt sie stehen - zwei Adressen fuer dieselbe
- * Seite waeren fuer Suchmaschinen schlechter als eine unschoene.
+ * DIESE EINE ZEILE IST DIE QUELLE. Aendert die Domain, aendert sich hier
+ * genau `adresse`, danach einmal `npm run vorrendern` - Sitemap, canonical,
+ * Open Graph, robots.txt und die strukturierten Daten ziehen von selbst nach.
+ *
+ * Die alte Adresse pfistanbul.vercel.app bleibt bestehen und leitet dauerhaft
+ * hierher um. Das muss so: Auf den gedruckten Flyern steht sie im QR-Code.
+ * Zwei Adressen, die beide dieselbe Seite ausliefern, waeren dagegen
+ * schaedlich - sie machten sich bei Suchmaschinen gegenseitig Konkurrenz.
  */
 export const site = {
-  adresse: 'https://pfistanbul.vercel.app',
+  adresse: 'https://pfistanbul.ch',
   sprache: 'de-CH',
   /** Bild, das erscheint, wenn jemand den Link in einem Chat teilt. */
   vorschaubild: '/vorschau.jpg',

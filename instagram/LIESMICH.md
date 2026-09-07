@@ -24,7 +24,7 @@ Von Freunden und Nachbarn für Freunde und Nachbarn.
 Greifensee ZH · feste Preise fürs Pfisterhölzli
 ```
 
-**Link**: `https://pfistanbul.vercel.app`
+**Link**: `https://pfistanbul.ch`
 
 ## Reihenfolge
 
