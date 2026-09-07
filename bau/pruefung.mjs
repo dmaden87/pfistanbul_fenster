@@ -1,5 +1,5 @@
 /** Prueft das ausgelieferte HTML: Kopfangaben, JSON-LD, Sitemap, robots.txt. */
-import { readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { windowTypes, netSets } from '../src/data/catalog.ts'
 import { absolut, rechtsseiten, site, startseite } from '../src/data/site.ts'
 
@@ -61,6 +61,18 @@ pruefe('keine MwSt-Behauptung', !JSON.stringify(graph).includes('valueAddedTaxIn
 pruefe('Verfuegbarkeit ist Vorbestellung', produkte.every((p) => p.offers.availability.endsWith('/PreOrder')))
 pruefe('Ruecknahme 14 Tage', produkte.every((p) => p.offers.hasMerchantReturnPolicy.merchantReturnDays === 14))
 pruefe('Garantie 2 Jahre', produkte.every((p) => p.offers.warranty.durationOfWarranty.value === 2))
+
+// Google verlangt fuer Haendlereintraege ein Bild und eine Marke als eigenes
+// Objekt. Beides fehlte zuerst - die Search Console meldete "Feld image fehlt"
+// und "Ungueltiger Objekttyp fuer Feld brand".
+pruefe('jedes Produkt hat Bilder', produkte.every((p) => Array.isArray(p.image) && p.image.length > 0))
+pruefe(
+  'Bildadressen sind absolut und zeigen auf vorhandene Fotos',
+  produkte.every((p) => p.image.every((b) => b.startsWith(absolut('/fotos/')) && existsSync(`public${new URL(b).pathname}`))),
+)
+pruefe('Marke ist ein eigenes Objekt, kein Verweis', produkte.every((p) => p.brand?.['@type'] === 'Brand'))
+pruefe('jedes Produkt hat eine Artikelnummer', produkte.every((p) => typeof p.sku === 'string' && p.sku.length > 3))
+pruefe('keine erfundenen Bewertungen', !JSON.stringify(graph).includes('aggregateRating'))
 
 const org = graph.find((k) => k['@type'] === 'Organization')
 pruefe('Impressumsangaben in der Organisation', org.email === 'pfistanbul34@gmail.com' && org.address.postalCode === '8606')

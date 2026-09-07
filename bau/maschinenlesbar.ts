@@ -91,6 +91,35 @@ function angebot(preisChf: number) {
   }
 }
 
+/**
+ * Bilder zu den Produkten.
+ *
+ * Google verlangt fuer Haendlereintraege ein `image` - ohne das gibt es keine
+ * Produktdarstellung in der Suche. Wir haben aber kein Studiofoto je Format,
+ * sondern fuenf echte Aufnahmen aus der Siedlung.
+ *
+ * Zugeordnet ist deshalb, was WIRKLICH passt: Das Kuechenfenster ist das
+ * Kuechenfenster, das Zimmerfenster das Zimmerfenster. Fuer Bad und
+ * Balkontuere gibt es noch keine eigene Aufnahme; dort steht die
+ * Fensteraufnahme stellvertretend - dasselbe Produkt in einem anderen Format,
+ * und das genaue Mass steht in der Beschreibung. Als zweites Bild kommt
+ * ueberall die Gewebeaufnahme dazu, denn das Gewebe ist in jedem Netz dasselbe.
+ *
+ * SOBALD IHR BEI NACHBARN MONTIERT HABT: je eine Aufnahme pro Format machen
+ * und hier eintragen. Ein echtes Bild des jeweiligen Formats ist besser als
+ * ein stellvertretendes.
+ */
+const FOTO_JE_TYP: Record<string, string> = {
+  bad: 'fenster-geschlossen',
+  kueche: 'fenster-geschlossen',
+  zimmer: 'zimmer-storen',
+  balkontuer: 'fenster-geschlossen',
+}
+
+function bilder(name: string): string[] {
+  return [absolut(`/fotos/${name}-1600.jpg`), absolut('/fotos/gewebe-detail-1600.jpg')]
+}
+
 function mass(wert: number) {
   return { '@type': 'QuantitativeValue', value: wert, unitCode: 'CMT' }
 }
@@ -108,7 +137,12 @@ function produkte() {
     material: 'Fiberglasgewebe, Aluminiumrahmen',
     width: mass(typ.widthCm),
     height: mass(typ.heightCm),
-    brand: { '@id': ID.organisation },
+    // Als eigenes Objekt und nicht als Verweis auf die Organisation: Googles
+    // Pruefung loest die Kennung nicht auf und meldet sonst einen ungueltigen
+    // Objekttyp.
+    brand: { '@type': 'Brand', name: operator.businessName },
+    sku: `PF-${typ.id.toUpperCase()}`,
+    image: bilder(FOTO_JE_TYP[typ.id] ?? 'fenster-geschlossen'),
     offers: angebot(typ.priceChf),
   }))
 
@@ -120,7 +154,10 @@ function produkte() {
       `${satz.description} Statt ${regularPriceOfSet(satz)} Franken einzeln. ` +
       `Enthält ${netsInSet(satz)} Netze in den ausgemessenen Formaten der Überbauung Am Pfisterhölzli.`,
     category: 'Insektenschutz für Fenster',
-    brand: { '@id': ID.organisation },
+    brand: { '@type': 'Brand', name: operator.businessName },
+    sku: `PF-${satz.id.toUpperCase()}`,
+    // Ein Set besteht ueberwiegend aus Zimmernetzen - deshalb diese Aufnahme.
+    image: bilder('zimmer-storen'),
     isRelatedTo: satz.items.map((teil) => ({ '@id': `${site.adresse}/#produkt-${teil.typeId}` })),
     offers: angebot(satz.priceChf),
   }))
