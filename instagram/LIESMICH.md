@@ -4,9 +4,10 @@ Fünf Beiträge zum Start, dazu Profiltext. Bilder liegen fertig daneben,
 Format 4:5 (1080 × 1350) – das höchste, das Instagram im Feed ungeschnitten
 zeigt. Ein quadratischer Beitrag verschenkt ein Viertel der Fläche.
 
-`node instagram/erzeuge.mjs` schneidet die vier Fotos zu. Die Preistafel und
-das Titelbild kommen aus `preistafel.html` und `titelbild.html` über den
-Browser (Grund steht in `marke/LIESMICH.md`: die Schrift).
+`node instagram/erzeuge.mjs` schneidet die vier Fotos zu. Die Tafeln
+(`preistafel`, `titelbild`, `livegang`) rendert `node instagram/tafel.mjs <name>`
+über den Browser – warum nicht über sharp, steht in `marke/LIESMICH.md`: die
+Schrift.
 
 ## Profil
 
@@ -154,3 +155,39 @@ Fussleiste der Website – sonst führt der Weg nur in eine Richtung.
 - Ist Ufuk mit dem Bild im fünften Beitrag einverstanden?
 - Solange `shopConfig.operational` auf `false` steht, passt der Satz im vierten
   Beitrag über das Sammeln der Bestellungen. Danach gehört er geändert.
+
+---
+
+### 7 · `beitrag-livegang.jpg` — zum Live-Gang
+
+Der erste Beitrag, nachdem der Shop offen ist. Bewusst mit der Adresse gross
+im Bild: Sie ist der einzige Grund, warum es diesen Beitrag gibt.
+
+```
+Ab heute können Sie bestellen.
+
+Lange gemessen, gerechnet und ausprobiert – seit heute ist der Shop offen. Die
+vier Fensterformate, die sich im Pfisterhölzli über alle Wohnungen wiederholen,
+haben wir ausgemessen. Für jedes gibt es einen festen Preis: Format wählen,
+bestellen, fertig.
+
+Ab CHF 130 pro Netz, das Set für die ganze Wohnung ab CHF 775. Bezahlt wird bei
+der Übergabe, bar oder mit TWINT – wer lieber online mit Karte zahlt, kann das
+ab jetzt auch.
+
+Ein Lager haben wir nicht. Jedes Netz wird auf Bestellung gefertigt, und wir
+bündeln die Bestellungen zu einer Lieferung. Genau daher kommt der tiefe Preis –
+den Liefertermin nennen wir Ihnen mit der Bestätigung.
+
+Sie wohnen nicht im Pfisterhölzli? Schicken Sie uns Ihre Masse. Den Richtpreis
+sehen Sie sofort auf der Seite, noch bevor Sie anfragen.
+
+Und wenn der Betrag gerade nicht auf einmal liegt: Sagen Sie es uns. Wir machen
+eine Zahlung ab, die für Sie aufgeht, zinslos und ohne Gebühren.
+
+Anschauen? Bei Deniz am Pfisterhölzli 38 hängen die Netze fertig montiert.
+
+Alles auf der Seite, Link im Profil.
+
+#insektenschutz #fliegengitter #plissee #greifensee #pfisterhölzli #nachbarschaft
+```
