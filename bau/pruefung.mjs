@@ -93,6 +93,19 @@ pruefe(
   org.email === operator.email && org.address.postalCode === operator.people[0].zip,
   `${org.email} / ${org.address.postalCode}`,
 )
+// Es darf genau EINE Mailadresse ausgeliefert werden. Beim Wechsel auf die
+// eigene Domain waere eine uebersehene Stelle still geblieben - Kundschaft
+// haette an ein Postfach geschrieben, das niemand mehr liest.
+const alleSeiten = ['index', 'impressum', 'agb', 'datenschutz']
+  .map((n) => readFileSync(`dist/${n}.html`, 'utf8'))
+  .join('\n')
+const adressen = [...new Set(alleSeiten.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) ?? [])]
+pruefe(
+  'nur die eine Mailadresse im ganzen Ergebnis',
+  adressen.length === 1 && adressen[0] === operator.email,
+  adressen.join(', ') || '(keine)',
+)
+
 pruefe('Mailadresse steht als Text im Impressum', readFileSync('dist/impressum.html', 'utf8').includes(operator.email))
 pruefe('beide Gruender genannt', org.founder.length === 2)
 const fragen = graph.find((k) => k['@type'] === 'FAQPage')
