@@ -7,15 +7,6 @@
   font-size: var(--step-4);
 }
 
-.legal__warning {
-  margin-top: var(--space-5);
-  padding: var(--space-4) var(--space-5);
-  border: 1px solid var(--highlight);
-  border-radius: var(--radius-md);
-  background: var(--highlight-soft);
-  font-size: var(--step--1);
-}
-
 .legal__body {
   margin-top: var(--space-8);
 }

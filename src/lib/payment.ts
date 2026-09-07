@@ -47,6 +47,8 @@ export function blockerBadge(blocker: OnlinePaymentBlocker): string {
       return 'Kein Warenkorb'
     case 'zahlungswunsch':
       return 'Wird persönlich besprochen'
+    case 'abgeschaltet':
+      return 'Nur bei der Übergabe'
     default:
       return 'Noch nicht verfügbar'
   }
@@ -61,6 +63,8 @@ export function blockerHint(blocker: OnlinePaymentBlocker): string {
       return 'Legen Sie zuerst Netze in den Warenkorb.'
     case 'zahlungswunsch':
       return 'Sie möchten die Zahlung mit uns abmachen – dann wird hier nichts im Voraus belastet. Wir melden uns bei Ihnen.'
+    case 'abgeschaltet':
+      return 'Wir rechnen zurzeit nur bei der Übergabe ab, bar oder mit TWINT. Das ist kein Fehler, sondern so eingerichtet.'
     default:
       return 'Solange wir im Aufbau sind, nehmen wir bewusst noch keine Zahlungen entgegen. Sobald wir live sind, können Sie hier direkt mit Karte bezahlen.'
   }

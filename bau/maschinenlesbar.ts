@@ -35,12 +35,20 @@ const ID = {
 } as const
 
 /**
- * Verfuegbarkeit. Solange wir nicht operativ sind, ist "Vorbestellung" die
- * richtige Angabe: Wir nehmen Bestellungen entgegen und liefern spaeter.
- * "Auf Lager" waere falsch - wir haben bewusst kein Lager.
+ * Verfuegbarkeit.
+ *
+ * BEWUSST NICHT "InStock", auch im Normalbetrieb nicht. Wir haben kein Lager:
+ * Jedes Netz wird auf Bestellung gefertigt, und wir buendeln die Bestellungen
+ * zu einer Lieferung - genau daher kommt der tiefe Preis. "Auf Lager" liesse
+ * eine sofortige Lieferung erwarten und waere damit eine unrichtige Angabe im
+ * Sinne des UWG.
+ *
+ * "BackOrder" trifft es: bestellbar, aber nicht vorraetig, Lieferung folgt.
+ * Vor dem Live-Gang war es "PreOrder" - da nahmen wir Bestellungen entgegen,
+ * ohne schon zu liefern.
  */
 const verfuegbarkeit = shopConfig.operational
-  ? 'https://schema.org/InStock'
+  ? 'https://schema.org/BackOrder'
   : 'https://schema.org/PreOrder'
 
 /**

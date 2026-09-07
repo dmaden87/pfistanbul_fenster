@@ -9,6 +9,13 @@ interface LegalPageProps {
 }
 
 /**
+ * KEINE RECHTSBERATUNG: Diese Texte sind sorgfältig erstellt und decken ab,
+ * was Art. 3 Abs. 1 lit. s UWG, das revDSG und die PBV verlangen. Sie
+ * ersetzen aber die Prüfung durch eine Anwältin nicht. Dieser Vorbehalt stand
+ * bis zum Live-Gang als oranger Kasten auf jeder Rechtsseite – dort war er
+ * falsch am Platz: Er richtet sich an den Betreiber, und der Kundschaft
+ * signalisiert er nur Unsicherheit über die eigenen Bedingungen.
+ *
  * ACHTUNG – VOM BETREIBER ZU ERGAENZEN:
  * Die mit [ ... ] markierten Stellen sind Platzhalter und muessen vor dem
  * Live-Gang durch echte Angaben ersetzt werden. Ohne vollstaendige
@@ -234,11 +241,6 @@ export function LegalPage({ page, onBack }: LegalPageProps) {
         </button>
 
         <h1>{TITLES[page]}</h1>
-
-        <p className="legal__warning">
-          Falls farbig markierte Stellen zu sehen sind: Das sind Angaben, die noch fehlen. Dieser Text ist sorgfältig
-          erstellt, ersetzt aber keine Rechtsberatung.
-        </p>
 
         <div className="legal__body">
           {page === 'impressum' && <Impressum />}

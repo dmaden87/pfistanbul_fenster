@@ -3,6 +3,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { windowTypes, netSets } from '../src/data/catalog.ts'
 import { absolut, rechtsseiten, site, startseite } from '../src/data/site.ts'
 import { operator } from '../src/data/operator.ts'
+import { shopConfig } from '../src/data/shopConfig.ts'
 
 const html = readFileSync('dist/index.html', 'utf8')
 const pruefungen = []
@@ -59,7 +60,16 @@ const falsch = produkte.filter((p) => Number(p.offers.price) !== erwartet.get(p.
 pruefe('Preise stimmen mit dem Katalog', falsch.length === 0, falsch.map((p) => p.name).join(', '))
 pruefe('alle Preise in CHF', produkte.every((p) => p.offers.priceCurrency === 'CHF'))
 pruefe('keine MwSt-Behauptung', !JSON.stringify(graph).includes('valueAddedTaxIncluded'))
-pruefe('Verfuegbarkeit ist Vorbestellung', produkte.every((p) => p.offers.availability.endsWith('/PreOrder')))
+// Nie "InStock": Wir haben kein Lager, jedes Netz wird auf Bestellung
+// gefertigt. Im Normalbetrieb "BackOrder" (bestellbar, Lieferung folgt),
+// davor "PreOrder".
+const erwarteteLage = shopConfig.operational ? '/BackOrder' : '/PreOrder'
+pruefe(
+  `Verfuegbarkeit ist ${erwarteteLage.slice(1)}`,
+  produkte.every((p) => p.offers.availability.endsWith(erwarteteLage)),
+  produkte[0]?.offers?.availability,
+)
+pruefe('nirgends "auf Lager" behauptet', !JSON.stringify(graph).includes('/InStock'))
 pruefe('Ruecknahme 14 Tage', produkte.every((p) => p.offers.hasMerchantReturnPolicy.merchantReturnDays === 14))
 pruefe('Garantie 2 Jahre', produkte.every((p) => p.offers.warranty.durationOfWarranty.value === 2))
 

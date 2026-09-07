@@ -4,12 +4,16 @@
  */
 export const shopConfig = {
   /**
-   * Solange false: Die Seite nimmt Bestellungen entgegen, sagt aber vor dem
-   * Absenden deutlich, dass der Betrieb noch im Aufbau ist und sich jemand
-   * persönlich meldet. Sobald der Ablauf steht, auf true setzen – dann
-   * verschwinden die Hinweise und der Abschluss ist wie gewohnt verbindlich.
+   * Normalbetrieb. Seit dem Live-Gang true: Die Hinweise auf den Aufbau sind
+   * weg, der Abschluss ist verbindlich, und die Onlinezahlung steht offen.
+   *
+   * Wieder auf false setzen, wenn ihr für längere Zeit nicht liefern könnt –
+   * dann nimmt die Seite Bestellungen weiterhin entgegen, sagt aber vor dem
+   * Absenden deutlich, dass sich jemand persönlich meldet, und bietet keine
+   * Onlinezahlung an. Das ist ehrlicher, als Bestellungen anzunehmen und
+   * niemanden zu bedienen.
    */
-  operational: false,
+  operational: true,
 
   /**
    * MwSt-Pflicht besteht in der Schweiz erst ab CHF 100'000 Jahresumsatz.
