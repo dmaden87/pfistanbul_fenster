@@ -56,8 +56,16 @@ h1 {
 }
 h1 em { display: block; font-style: italic; color: #0f3b34; }
 
-.foto { margin-top: 30px; border-radius: 22px; overflow: hidden; }
-.foto img { display: block; width: 100%; height: 420px; object-fit: cover; object-position: center 44%; }
+/*
+ * Die Schlagzeile nennt jetzt zuerst das Produkt und erst darunter die
+ * Nachricht. Vorher stand dort "Der Shop ist offen" - stark, aber wer das
+ * Profil nicht kennt, erfuhr nirgends im Bild, was hier verkauft wird.
+ * "Fenster" im Markenzeichen kann alles heissen.
+ */
+.nachricht { margin-top: 16px; font-size: 30px; line-height: 1.35; color: #3c4b47; }
+
+.foto { margin-top: 26px; border-radius: 22px; overflow: hidden; }
+.foto img { display: block; width: 100%; height: 404px; object-fit: cover; object-position: center 44%; }
 
 .punkte { margin-top: 28px; display: flex; gap: 14px; }
 .punkt {
@@ -97,7 +105,8 @@ h1 em { display: block; font-style: italic; color: #0f3b34; }
     <span class="jetzt">Ab sofort</span>
   </header>
 
-  <h1>Der Shop ist<em>offen.</em></h1>
+  <h1>Insektenschutz<em>nach Mass.</em></h1>
+  <p class="nachricht">Der Shop ist offen – ab heute können Sie bestellen.</p>
 
   <figure class="foto">
     <img src="../public/fotos/fenster-geschlossen-1600.jpg" alt="">

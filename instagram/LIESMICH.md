@@ -164,7 +164,7 @@ Der erste Beitrag, nachdem der Shop offen ist. Bewusst mit der Adresse gross
 im Bild: Sie ist der einzige Grund, warum es diesen Beitrag gibt.
 
 ```
-Ab heute können Sie bestellen.
+Insektenschutz nach Mass – ab heute können Sie bestellen.
 
 Lange gemessen, gerechnet und ausprobiert – seit heute ist der Shop offen. Wir
 lassen Insektenschutz-Plissees nach Mass fertigen und montieren sie selbst.
