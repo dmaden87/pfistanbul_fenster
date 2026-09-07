@@ -2,6 +2,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { windowTypes, netSets } from '../src/data/catalog.ts'
 import { absolut, rechtsseiten, site, startseite } from '../src/data/site.ts'
+import { operator } from '../src/data/operator.ts'
 
 const html = readFileSync('dist/index.html', 'utf8')
 const pruefungen = []
@@ -75,7 +76,14 @@ pruefe('jedes Produkt hat eine Artikelnummer', produkte.every((p) => typeof p.sk
 pruefe('keine erfundenen Bewertungen', !JSON.stringify(graph).includes('aggregateRating'))
 
 const org = graph.find((k) => k['@type'] === 'Organization')
-pruefe('Impressumsangaben in der Organisation', org.email === 'pfistanbul34@gmail.com' && org.address.postalCode === '8606')
+// Aus operator.ts gelesen, nicht abgetippt: Beim Wechsel der Mailadresse war
+// diese Zeile die einzige, die noch die alte kannte.
+pruefe(
+  'Impressumsangaben stimmen mit operator.ts ueberein',
+  org.email === operator.email && org.address.postalCode === operator.people[0].zip,
+  `${org.email} / ${org.address.postalCode}`,
+)
+pruefe('Mailadresse steht als Text im Impressum', readFileSync('dist/impressum.html', 'utf8').includes(operator.email))
 pruefe('beide Gruender genannt', org.founder.length === 2)
 const fragen = graph.find((k) => k['@type'] === 'FAQPage')
 pruefe('elf Fragen mit Antwort', fragen.mainEntity.length === 11 && fragen.mainEntity.every((f) => f.acceptedAnswer.text.length > 40))

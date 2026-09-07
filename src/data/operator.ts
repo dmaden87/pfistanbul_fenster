@@ -5,9 +5,11 @@
  * stehen, ein Kontaktformular genügt nicht.
  *
  * Hinweis: Damit steht die Adresse auch im ausgelieferten JavaScript und ist
- * für Spam-Sammler lesbar. Wer das später trennen will, legt eine
- * Alias-Adresse an (etwa info@…), die aufs private Postfach weiterleitet, und
- * trägt nur die Alias hier ein.
+ * für Spam-Sammler lesbar. Das ist der Preis dafür, dass sie im Impressum als
+ * Text stehen muss; ein Kontaktformular genügt dem Gesetz nicht.
+ *
+ * Die frühere Gmail-Adresse steht noch auf den gedruckten Flyern und
+ * funktioniert weiter. Hier steht die Adresse, die Kundschaft künftig sieht.
  */
 export const operator = {
   businessName: 'Pfistanbul Fenster',
@@ -15,7 +17,7 @@ export const operator = {
     { name: 'Deniz Maden', street: 'Am Pfisterhölzli 38', zip: '8606', city: 'Greifensee' },
     { name: 'Ufuk Soruklu', street: 'Am Pfisterhölzli 28', zip: '8606', city: 'Greifensee' },
   ],
-  email: 'pfistanbul34@gmail.com',
+  email: 'dma@pfistanbul.ch',
   /** Keine Telefonnummer – gesetzlich auch nicht verlangt. */
   phone: null as string | null,
   /** Dienst, der die Formulare an die Mailbox weiterleitet. */
