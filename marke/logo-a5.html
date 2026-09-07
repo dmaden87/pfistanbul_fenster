@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Pfistanbul Fenster – Logo A5</title>
+<style>
+/*
+ * Das Logo auf A5, druckfertig.
+ *
+ * Zwei Seiten: die erste auf dem dunklen Markengrund, so wie das Logo im
+ * Profil aussieht; die zweite dunkel auf Weiss, für den Ausdruck auf normalem
+ * Papier. Wer nur eine braucht, druckt die eine Seite.
+ *
+ * ECHTES VEKTOR-PDF: Chromium bettet die Schrift ein und zeichnet das SVG als
+ * Kurven. Die Datei lässt sich also beliebig vergrössern - anders als ein PNG
+ * aus marke/. Deshalb geht das über den Browser und nicht über sharp.
+ *
+ * Rendern: node marke/logo-a5.mjs
+ *
+ * Masse in Millimetern, nicht in Pixeln. Beim Druck zählt die physische
+ * Grösse, und eine Umrechnung über Pixel wäre eine Fehlerquelle mehr.
+ */
+@font-face {
+  font-family: 'Fraunces';
+  src: url('../public/fonts/fraunces-normal-700-latin.woff2') format('woff2');
+  font-weight: 700;
+  font-display: block;
+}
+@font-face {
+  font-family: 'InterMarke';
+  src: url('../public/fonts/inter-normal-600-latin.woff2') format('woff2');
+  font-weight: 600;
+  font-display: block;
+}
+
+@page { size: A5 portrait; margin: 0; }
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 148mm; }
+
+.seite {
+  width: 148mm;
+  height: 210mm;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9mm;
+  /* Damit die Farbe wirklich gedruckt wird und nicht als Weiss herausfällt. */
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.seite + .seite { page-break-before: always; }
+
+.dunkel { background: #0f3b34; color: #f7fbf9; }
+/*
+ * Weiss, nicht der cremefarbene Markengrund. Auf A5 gedruckt hiesse Creme:
+ * Farbe ueber die ganze Flaeche, und ein Heimdrucker trifft den Rand nicht -
+ * es bliebe ein weisser Streifen ringsum. Weiss laesst das Papier das Papier
+ * sein und druckt nur das Logo.
+ */
+.hell { background: #ffffff; color: #0f3b34; }
+
+.name {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 700;
+  font-size: 21mm;
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+}
+
+.zusatz {
+  font-family: 'InterMarke', system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 7.9mm;
+  letter-spacing: 0.34em;
+  /* Der Zwischenraum haengt hinten ueber - dieser Einzug rueckt die Zeile
+     wieder unter die Mitte des Namens. */
+  text-indent: 0.34em;
+  opacity: 0.82;
+  margin-top: -1mm;
+}
+</style>
+</head>
+<body>
+
+<div class="seite dunkel">
+  <svg width="27mm" height="27mm" viewBox="0 0 300 300">
+    <rect x="23" y="23" width="254" height="254" rx="30" fill="none" stroke="#f7fbf9" stroke-width="22"/>
+    <path d="M23 108H277M23 192H277M108 23V277M192 23V277" stroke="#f7fbf9" stroke-width="15" stroke-linecap="round"/>
+  </svg>
+  <div>
+    <p class="name">Pfistanbul</p>
+    <p class="zusatz">Fenster</p>
+  </div>
+</div>
+
+<div class="seite hell">
+  <svg width="27mm" height="27mm" viewBox="0 0 300 300">
+    <rect x="23" y="23" width="254" height="254" rx="30" fill="none" stroke="#0f3b34" stroke-width="22"/>
+    <path d="M23 108H277M23 192H277M108 23V277M192 23V277" stroke="#0f3b34" stroke-width="15" stroke-linecap="round"/>
+  </svg>
+  <div>
+    <p class="name">Pfistanbul</p>
+    <p class="zusatz">Fenster</p>
+  </div>
+</div>
+
+</body>
+</html>

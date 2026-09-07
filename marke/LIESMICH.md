@@ -59,3 +59,29 @@ die Grössenprobe die neuen Bilder mitprüft.
 Instagram verlangt mindestens 320 Pixel und rechnet selbst herunter; von einer
 grösseren Vorlage bleibt mehr übrig. Deshalb die 1080er nehmen. Die
 320er-Fassungen liegen für Dienste bereit, die kleine Dateien wollen.
+
+## Logo als PDF
+
+```
+node marke/logo-a5.mjs
+```
+
+Erzeugt `pfistanbul-logo-a5.pdf` aus `logo-a5.html`: zwei A5-Seiten, die
+erste auf dem dunklen Markengrund wie im Profil, die zweite dunkel auf Weiss
+zum Ausdrucken. Wer nur eine braucht, druckt die eine Seite.
+
+Weiss statt des cremefarbenen Markengrunds ist Absicht: Auf A5 gedruckt hiesse
+Creme, Farbe über die ganze Fläche zu legen – und ein Heimdrucker trifft den
+Rand nicht, es bliebe ein weisser Streifen ringsum.
+
+**Es ist ein echtes Vektor-PDF.** Die Masse stehen in Millimetern, nicht in
+Pixeln, und das Ergebnis lässt sich beliebig vergrössern – anders als die
+PNG-Dateien daneben. Nachgemessen: 148 × 210 mm, keine Rasterbilder drin.
+
+Eine Eigenheit, die man kennen sollte: Chromium bettet die Schrift als
+**Type-3-Schrift** ein. Die Buchstaben liegen dabei als Zeichenprozeduren in
+der Datei – sie sind also vollständig enthalten, es kann keine Ersatzschrift
+einspringen, und jedes moderne Programm stellt sie richtig dar. Sehr alte
+Druckvorstufen tun sich damit gelegentlich schwer. Falls eine Druckerei je
+reklamiert: Dann wandelt man die Schrift in echte Pfade um, das ist eine
+einmalige Sache.
