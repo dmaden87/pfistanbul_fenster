@@ -234,9 +234,13 @@ dritte ein leerer Kreis mit „Ihr Insektenschutz nach Mass". Eine offene Zeile
 am Ende einer sonst erledigten Liste zieht den Blick – man will sie schliessen.
 
 ### `story-heute-bestellen.jpg`
-Dieselbe Botschaft ohne Foto, cremefarben. Der Status steht oben in einer
-Zeile, damit die Schlagzeile die **Aufforderung** sein kann und nicht die
-Ankuendigung. Zwischen zwei Fotostories eine optische Pause.
+Heller Grund, oben die Gewebeaufnahme, die nach unten in den Grund auslaeuft.
+Der Status steht in einer Zeile darunter, damit die Schlagzeile die
+**Aufforderung** sein kann und nicht die Ankuendigung.
+
+Das Foto ist nicht Schmuck: Der Kontoname sagt niemandem etwas, ohne Bild
+waere bis zur dritten Zeile unklar, wovon die Rede ist. Der Verlauf statt
+eines harten Schnitts haelt die Seite zusammen, statt sie zu halbieren.
 
 ### `story-es-laeuft.jpg`
 Ganzflaechiges Foto mit dunklem Schleier, Text in der Mitte. Wirkt im
