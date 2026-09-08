@@ -210,16 +210,13 @@ Antwortfeld, Linkaufkleber. Alles Wichtige liegt deshalb in den mittleren rund
 Fläche in der Mitte ist Absicht: Dort gehören Aufkleber hin.
 
 ### `story-wir-sind-live.jpg`
-Die Ankündigung in der Bildsprache von `unterwegs`: Foto oben, das nach unten
-in den Markengrund ausläuft, Text im unteren Drittel.
+Die Ankündigung auf der Fassadenaufnahme: Foto oben, das nach unten in den
+Markengrund ausläuft, Text im unteren Drittel.
 
-Das Foto zeigt die beiden – bei „wir sind live" ist das „wir" der Punkt. Die
-Gesichter sitzen im oberen Teil des Originals, deshalb der Bildausschnitt bei
-32 Prozent; unten deckt ohnehin der Verlauf ab.
-
-Wer lieber das Produkt zeigt: im HTML `team-1600.jpg` durch
-`fenster-geschlossen-1600.jpg` ersetzen und den Ausschnitt auf 46 Prozent
-setzen.
+Die Zeile **„Erste Bestellung ist schon in Arbeit"** steht als eigenes Feld und
+nicht im Fliesstext – sie ist eine Tatsache, keine Behauptung, und soll als
+solche lesbar sein. **Sie muss stimmen.** Wird die Story später wiederverwendet,
+gehört sie geprüft oder entfernt.
 
 ### `story-erster-tag.jpg`
 Der soziale Beweis. **Wirkt nur, solange er stimmt**: keine erfundenen Zahlen,
