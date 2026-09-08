@@ -210,8 +210,16 @@ Antwortfeld, Linkaufkleber. Alles Wichtige liegt deshalb in den mittleren rund
 Fläche in der Mitte ist Absicht: Dort gehören Aufkleber hin.
 
 ### `story-wir-sind-live.jpg`
-Die Ankündigung, sonst nichts. Dunkler Grund, weil die Beiträge im Profil hell
-sind – in der Story-Leiste fällt der Wechsel auf.
+Die Ankündigung in der Bildsprache von `unterwegs`: Foto oben, das nach unten
+in den Markengrund ausläuft, Text im unteren Drittel.
+
+Das Foto zeigt die beiden – bei „wir sind live" ist das „wir" der Punkt. Die
+Gesichter sitzen im oberen Teil des Originals, deshalb der Bildausschnitt bei
+32 Prozent; unten deckt ohnehin der Verlauf ab.
+
+Wer lieber das Produkt zeigt: im HTML `team-1600.jpg` durch
+`fenster-geschlossen-1600.jpg` ersetzen und den Ausschnitt auf 46 Prozent
+setzen.
 
 ### `story-erster-tag.jpg`
 Der soziale Beweis. **Wirkt nur, solange er stimmt**: keine erfundenen Zahlen,
