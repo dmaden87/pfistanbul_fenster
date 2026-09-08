@@ -224,29 +224,26 @@ Fragen-Aufkleber („Sollen wir bei dir auch vorbeischauen?"). Jede Antwort ist
 ein Gespräch – und ein Gespräch ist mehr wert als eine Einblendung.
 
 
-### `story-preise.jpg`
-Der Preis als Hauptmotiv, auf der Gewebe-Makroaufnahme. Oben steht in der
-Kopfzeile, **was** das Produkt ist – der Preis allein sagt es nicht, und wer
-die Story sieht, kennt das Konto noch nicht.
+Die naechsten drei tragen alle dieselbe Botschaft – **wir sind live, die
+ersten Bestellungen laufen, jetzt sind Sie dran** – in drei Darstellungen.
+Sie sind Alternativen, nicht eine Reihe: eine davon reicht.
 
-Beide Zahlen stehen bewusst im Bild: `ab CHF 130` gross, darunter der Richtwert
-CHF 100–200 für Sondermasse. Eine grosse Zahl ohne die zweite wäre ein Köder.
+### `story-jetzt-dran.jpg`
+Die Botschaft steckt in der Liste, nicht im Text: zwei Punkte abgehakt, der
+dritte ein leerer Kreis mit „Ihr Insektenschutz nach Mass". Eine offene Zeile
+am Ende einer sonst erledigten Liste zieht den Blick – man will sie schliessen.
 
-**Prüfen vor dem Posten:** Stimmen beide Zahlen noch mit `src/data/catalog.ts`
-überein?
+### `story-heute-bestellen.jpg`
+Dieselbe Botschaft ohne Foto, cremefarben. Der Status steht oben in einer
+Zeile, damit die Schlagzeile die **Aufforderung** sein kann und nicht die
+Ankuendigung. Zwischen zwei Fotostories eine optische Pause.
 
-### `story-ablauf.jpg`
-Bewusst ohne Foto – cremefarbene Tafel, drei nummerierte Schritte
-(Masse · Bestellen · Liefern). Zwei Aufgaben: Sie beantwortet die stille Frage
-„wie umständlich ist das?", und sie ist zwischen zwei Fotostories eine optische
-Pause. Als einzige der Vorlagen altert sie nicht – der Ablauf bleibt derselbe.
+### `story-es-laeuft.jpg`
+Ganzflaechiges Foto mit dunklem Schleier, Text in der Mitte. Wirkt im
+Vollbild am staerksten, weil kein Rand die Flaeche bricht. Der Schleier ist
+noetig, nicht dekorativ: heller Text auf hellem Foto ist auf dem Telefon in
+der Sonne nicht lesbar.
 
-### `story-erste-lieferung.jpg`
-Die Dringlichkeit, die sich aus dem Geschäft selbst ergibt: kein Lager, jedes
-Netz auf Bestellung gefertigt, Bestellungen zu einer Lieferung gebündelt –
-also **„Wer jetzt bestellt, ist dabei."** Keine erfundene Frist, sondern eine
-echte.
-
-**Diese Story hat ein Ablaufdatum.** Sobald die erste Lieferung unterwegs oder
-angekommen ist, stimmt der Satz nicht mehr. Dann gehört sie umgeschrieben
-(„die zweite Lieferung") oder zurückgezogen – nicht wiederverwendet.
+**Alle drei haben ein Ablaufdatum.** „Erste Bestellungen in Arbeit" stimmt nur,
+solange die erste Lieferung nicht draussen ist. Danach gehoert die Zeile
+umgeschrieben – nicht einfach wiederverwendet.

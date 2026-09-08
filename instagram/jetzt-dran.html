@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><title>Story – Jetzt sind Sie dran</title>
+<link rel="stylesheet" href="story.css">
+<style>
+/*
+ * Kernbotschaft: Wir sind live, die ersten Bestellungen laufen, jetzt sind
+ * Sie dran.
+ *
+ * Der Kern steckt hier in der Liste, nicht im Text: die ersten beiden Punkte
+ * sind abgehakt, der dritte ist ein leerer Kreis. Eine offene Zeile am Ende
+ * einer sonst erledigten Liste zieht den Blick - man will sie schliessen.
+ *
+ * DIE ERSTEN BEIDEN PUNKTE MUESSEN STIMMEN. Sobald die erste Lieferung
+ * draussen ist, gehoert Punkt zwei umgeschrieben.
+ */
+.blatt { position: relative; padding: 0; background: #0f3b34; color: #f7fbf9; overflow: hidden; }
+.foto { position: absolute; inset: 0 0 auto 0; height: 1000px; }
+.foto img { width: 100%; height: 100%; object-fit: cover; object-position: center 45%; }
+.foto::after { content: ''; position: absolute; inset: auto 0 0 0; height: 400px;
+               background: linear-gradient(to bottom, rgba(15,59,52,0), #0f3b34 88%); }
+.inhalt { position: relative; height: 100%; padding: 250px 80px 300px; display: flex; flex-direction: column; }
+.marke__zeichen { background: rgba(0,0,0,.34); color: #f7fbf9; }
+.marke { text-shadow: 0 2px 14px rgba(0,0,0,.5); }
+h1 { margin-top: auto; font-size: 104px; }
+h1 em { color: #9fe3cc; }
+.liste { margin-top: 52px; display: flex; flex-direction: column; gap: 26px; }
+.punkt { display: flex; align-items: center; gap: 22px; font-size: 37px; line-height: 1.25; }
+.punkt__zeichen { flex: none; display: grid; place-items: center; width: 56px; height: 56px;
+                  border-radius: 50%; font-size: 32px; font-weight: 700; }
+.erledigt .punkt__zeichen { background: #9fe3cc; color: #0f3b34; }
+.erledigt { opacity: .85; }
+.offen .punkt__zeichen { border: 3px dashed rgba(247,251,249,.6); }
+.offen { font-weight: 700; color: #ffffff; }
+.band { margin-top: 46px; background: #faf8f4; color: #0f3b34; }
+</style></head><body><div class="blatt">
+  <figure class="foto"><img src="../public/fotos/fenster-geschlossen-1600.jpg" alt=""></figure>
+  <div class="inhalt">
+    <div class="marke"><span class="marke__zeichen"><svg width="34" height="34" viewBox="0 0 300 300"><rect x="30" y="30" width="240" height="240" rx="30" fill="none" stroke="currentColor" stroke-width="26"/><path d="M30 110H270M30 190H270M110 30V270M190 30V270" stroke="currentColor" stroke-width="18" stroke-linecap="round"/></svg></span>
+      <span><span class="marke__name">Pfistanbul</span><br><span class="marke__zusatz">Fenster</span></span></div>
+    <h1>Jetzt sind<em>Sie dran.</em></h1>
+    <div class="liste">
+      <div class="punkt erledigt"><span class="punkt__zeichen">✓</span><span>Shop offen</span></div>
+      <div class="punkt erledigt"><span class="punkt__zeichen">✓</span><span>Erste Bestellungen in Arbeit</span></div>
+      <div class="punkt offen"><span class="punkt__zeichen"></span><span>Ihr Insektenschutz nach Mass</span></div>
+    </div>
+    <div class="band"><span class="band__was">Noch heute bestellen unter</span><span class="band__wo">pfistanbul.ch</span></div>
+  </div>
+</div></body></html>
