@@ -1,3 +1,4 @@
+import { operator } from '../../data/operator'
 import { priceNote } from '../../data/shopConfig'
 import type { LegalKey } from '../../data/site'
 import './Footer.css'
@@ -17,6 +18,18 @@ export function Footer({ onOpenLegal, onNavigate, onOpenAdmin }: FooterProps) {
           <p className="site-footer__claim">
             Insektenschutz-Plissee nach Mass. Von Freunden und Nachbarn für Freunde und Nachbarn.
           </p>
+          {/* Bis hierhin fuehrte der Weg nur in eine Richtung: vom Profil auf
+              die Seite. Der Rueckweg fehlte - fuer Menschen, die nach dem
+              Flyer sehen wollen, wer dahintersteht, und fuer Suchmaschinen,
+              die aus beiden Verweisen dieselbe Firma erkennen. */}
+          <a className="site-footer__instagram" href={operator.instagram} rel="me noopener" target="_blank">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="5" />
+              <circle cx="12" cy="12" r="4" />
+              <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+            </svg>
+            Auf Instagram
+          </a>
         </div>
 
         <nav className="site-footer__col" aria-label="Sortiment">

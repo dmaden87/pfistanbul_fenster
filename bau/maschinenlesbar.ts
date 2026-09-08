@@ -221,6 +221,8 @@ function organisation() {
     areaServed: { '@type': 'AdministrativeArea', name: shopConfig.serviceArea },
     founder: operator.people.map((person) => ({ '@type': 'Person', name: person.name })),
     knowsLanguage: ['de-CH', 'tr'],
+    // Belegt, dass Webseite und Instagram-Profil dasselbe Unternehmen sind.
+    sameAs: [operator.instagram],
     logo: absolut(site.vorschaubild),
   }
 }

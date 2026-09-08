@@ -107,6 +107,12 @@ pruefe(
 )
 
 pruefe('Mailadresse steht als Text im Impressum', readFileSync('dist/impressum.html', 'utf8').includes(operator.email))
+pruefe(
+  'Instagram-Profil als sameAs verknuepft',
+  Array.isArray(org.sameAs) && org.sameAs.includes(operator.instagram),
+  JSON.stringify(org.sameAs),
+)
+pruefe('Instagram-Link steht auch sichtbar auf der Seite', html.includes(operator.instagram))
 pruefe('beide Gruender genannt', org.founder.length === 2)
 const fragen = graph.find((k) => k['@type'] === 'FAQPage')
 pruefe('elf Fragen mit Antwort', fragen.mainEntity.length === 11 && fragen.mainEntity.every((f) => f.acceptedAnswer.text.length > 40))

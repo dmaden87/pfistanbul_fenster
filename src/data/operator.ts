@@ -20,6 +20,20 @@ export const operator = {
   email: 'dma@pfistanbul.ch',
   /** Keine Telefonnummer – gesetzlich auch nicht verlangt. */
   phone: null as string | null,
+  /**
+   * Oeffentliche Profile, die dasselbe Unternehmen zeigen.
+   *
+   * Steht als `sameAs` in den strukturierten Daten. Das ist die uebliche Art,
+   * Webseite und Profil als DIESELBE Sache auszuweisen - fuer Suchmaschinen
+   * und KI-Werkzeuge ein Beleg, dass es hinter dem Namen etwas Wirkliches
+   * gibt. Bei einem Namen, den Google fuer einen Tippfehler von "Istanbul"
+   * haelt, zaehlt jeder solche Beleg.
+   *
+   * ACHTUNG BEI AENDERUNGEN: Wird der Handle auf Instagram umbenannt, zeigt
+   * dieser Verweis ins Leere. Dann hier nachfuehren.
+   */
+  instagram: 'https://www.instagram.com/pfistanbul.fenster/',
+
   /** Dienst, der die Formulare an die Mailbox weiterleitet. */
   formService: 'Web3Forms',
   /** Betreiberin des Dienstes. */

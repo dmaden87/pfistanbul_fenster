@@ -27,6 +27,10 @@ Greifensee ZH · feste Preise fürs Pfisterhölzli
 
 **Link**: `https://pfistanbul.ch`
 
+**Handle**: `pfistanbul.fenster` – steht in `src/data/operator.ts` und von dort
+in den strukturierten Daten (`sameAs`) und in der Fussleiste der Website.
+Wird er auf Instagram umbenannt, muss er dort nachgeführt werden.
+
 ## Reihenfolge
 
 Einer alle zwei bis drei Tage, in dieser Reihenfolge. Instagram zeigt den
