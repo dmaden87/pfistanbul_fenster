@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><title>Story – Preise</title>
+<link rel="stylesheet" href="story.css">
+<style>
+/*
+ * Vorschlag 1: der Preis als Held.
+ *
+ * Nuechtern und ohne Beiwerk - genau das wirkt professionell. Die
+ * Gewebeaufnahme zeigt das Produkt aus der Naehe, ohne Wohnzimmer und ohne
+ * Menschen; sie traegt die Aussage, statt von ihr abzulenken.
+ *
+ * Beide Zahlen stehen da, weil beide stimmen: fester Preis fuer die
+ * ausgemessenen Formate, Richtwert fuer alles andere. Nur die tiefere zu
+ * nennen waere ein Koeder.
+ */
+.blatt { position: relative; padding: 0; background: #0f3b34; color: #f7fbf9; overflow: hidden; }
+.foto { position: absolute; inset: 0 0 auto 0; height: 1020px; }
+.foto img { width: 100%; height: 100%; object-fit: cover; object-position: center 50%; }
+.foto::after { content: ''; position: absolute; inset: auto 0 0 0; height: 400px;
+               background: linear-gradient(to bottom, rgba(15,59,52,0), #0f3b34 88%); }
+.inhalt { position: relative; height: 100%; padding: 250px 80px 300px; display: flex; flex-direction: column; }
+.marke__zeichen { background: rgba(0,0,0,.34); color: #f7fbf9; }
+.marke { text-shadow: 0 2px 14px rgba(0,0,0,.5); }
+.kicker { margin-top: auto; font-size: 24px; font-weight: 700; letter-spacing: 0.26em;
+          text-transform: uppercase; color: #9fe3cc; }
+.preis { margin-top: 14px; font-family: 'Fraunces', Georgia, serif; font-weight: 700;
+         font-size: 150px; line-height: 0.9; letter-spacing: -0.035em; }
+.preis small { display: block; font-family: 'InterPost', sans-serif; font-weight: 600;
+               font-size: 34px; letter-spacing: 0; opacity: .82; margin-top: 16px; }
+.zeilen { margin-top: 40px; display: flex; flex-direction: column; gap: 14px; font-size: 31px; line-height: 1.35; }
+.zeilen b { color: #9fe3cc; font-weight: 600; }
+.band { margin-top: 42px; background: #faf8f4; color: #0f3b34; }
+</style></head><body><div class="blatt">
+  <figure class="foto"><img src="../public/fotos/gewebe-detail-1600.jpg" alt=""></figure>
+  <div class="inhalt">
+    <div class="marke"><span class="marke__zeichen"><svg width="34" height="34" viewBox="0 0 300 300"><rect x="30" y="30" width="240" height="240" rx="30" fill="none" stroke="currentColor" stroke-width="26"/><path d="M30 110H270M30 190H270M110 30V270M190 30V270" stroke="currentColor" stroke-width="18" stroke-linecap="round"/></svg></span>
+      <span><span class="marke__name">Pfistanbul</span><br><span class="marke__zusatz">Fenster</span></span></div>
+    <p class="kicker">Insektenschutz-Plissee nach Mass</p>
+    <p class="preis">ab CHF 130<small>pro Netz, Lieferung inbegriffen</small></p>
+    <div class="zeilen">
+      <p><b>Feste Preise</b> für die ausgemessenen Formate im Pfisterhölzli</p>
+      <p><b>CHF 100–200</b> Richtwert für Fenster bis rund 2 m²</p>
+    </div>
+    <div class="band"><span class="band__was">Alle Preise unter</span><span class="band__wo">pfistanbul.ch</span></div>
+  </div>
+</div></body></html>

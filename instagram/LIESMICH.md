@@ -146,11 +146,6 @@ Alles Weitere über den Link im Profil.
 
 ---
 
-## Was noch fehlt
-
-Der **Handle**. Sobald er feststeht, kommt der Instagram-Link in die
-Fussleiste der Website – sonst führt der Weg nur in eine Richtung.
-
 ## Vor dem Posten prüfen
 
 - Stimmen die Preise im vierten und im sechsten Beitrag noch mit
@@ -228,3 +223,30 @@ Der Moment statt der Ankündigung. Unten bleibt bewusst Platz für einen
 Fragen-Aufkleber („Sollen wir bei dir auch vorbeischauen?"). Jede Antwort ist
 ein Gespräch – und ein Gespräch ist mehr wert als eine Einblendung.
 
+
+### `story-preise.jpg`
+Der Preis als Hauptmotiv, auf der Gewebe-Makroaufnahme. Oben steht in der
+Kopfzeile, **was** das Produkt ist – der Preis allein sagt es nicht, und wer
+die Story sieht, kennt das Konto noch nicht.
+
+Beide Zahlen stehen bewusst im Bild: `ab CHF 130` gross, darunter der Richtwert
+CHF 100–200 für Sondermasse. Eine grosse Zahl ohne die zweite wäre ein Köder.
+
+**Prüfen vor dem Posten:** Stimmen beide Zahlen noch mit `src/data/catalog.ts`
+überein?
+
+### `story-ablauf.jpg`
+Bewusst ohne Foto – cremefarbene Tafel, drei nummerierte Schritte
+(Masse · Bestellen · Liefern). Zwei Aufgaben: Sie beantwortet die stille Frage
+„wie umständlich ist das?", und sie ist zwischen zwei Fotostories eine optische
+Pause. Als einzige der Vorlagen altert sie nicht – der Ablauf bleibt derselbe.
+
+### `story-erste-lieferung.jpg`
+Die Dringlichkeit, die sich aus dem Geschäft selbst ergibt: kein Lager, jedes
+Netz auf Bestellung gefertigt, Bestellungen zu einer Lieferung gebündelt –
+also **„Wer jetzt bestellt, ist dabei."** Keine erfundene Frist, sondern eine
+echte.
+
+**Diese Story hat ein Ablaufdatum.** Sobald die erste Lieferung unterwegs oder
+angekommen ist, stimmt der Satz nicht mehr. Dann gehört sie umgeschrieben
+(„die zweite Lieferung") oder zurückgezogen – nicht wiederverwendet.
