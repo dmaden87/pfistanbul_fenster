@@ -10,7 +10,17 @@
       brauchen eigene, und zur Laufzeit muessen sie beim Wechsel der Ansicht
       mitwandern - zwei Fassungen wuerden auseinanderlaufen.
     -->
+    <!--
+      Mehr als die SVG-Datei, weil Google eine quadratische Rastergrafik in
+      einem Vielfachen von 48 Pixeln erwartet und notfalls direkt /favicon.ico
+      abholt. Eine SVG-Datei hat keine Pixelgroesse und wird in der Suche
+      haeufig gar nicht angezeigt. Erzeugt von bau/favicon.mjs.
+    -->
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preload" href="/fonts/inter-normal-400-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/fraunces-normal-600-latin.woff2" as="font" type="font/woff2" crossorigin />
   </head>

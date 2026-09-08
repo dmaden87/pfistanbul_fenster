@@ -36,6 +36,37 @@ function knoten(html: string): Record<string, unknown>[] {
   }
 }
 
+/**
+ * Die Kopfangaben einer Seite, auf ihren Kern reduziert.
+ *
+ * Verglichen wird nicht der Text der Tags - Browser serialisieren anders als
+ * die Quelldatei -, sondern was ein Tag AUSSAGT: bei <link> das Verhaeltnis
+ * und das Ziel, bei <meta> der Name und der Inhalt.
+ *
+ * Ausgenommen sind die Angaben, die sich pro Seite unterscheiden SOLLEN.
+ * Die setzt die Anwendung zur Laufzeit (src/lib/adresse.ts), damit
+ * /impressum seinen eigenen Titel und canonical-Verweis traegt.
+ */
+const PRO_SEITE = new Set(['canonical', 'description', 'og:title', 'og:description', 'og:url'])
+
+function kopfangaben(html: string): string[] {
+  const kopf = /<head[^>]*>([\s\S]*?)<\/head>/i.exec(html)?.[1] ?? ''
+  const merkmal = (tag: string) => {
+    const attribut = (name: string) => new RegExp(`\\b${name}=["']([^"']*)["']`, 'i').exec(tag)?.[1]
+    if (/^<link/i.test(tag)) {
+      const rel = attribut('rel') ?? ''
+      return PRO_SEITE.has(rel) ? null : `link ${rel} ${attribut('href') ?? ''} ${attribut('sizes') ?? ''}`.trim()
+    }
+    const name = attribut('name') ?? attribut('property') ?? ''
+    if (!name || PRO_SEITE.has(name)) return null
+    return `meta ${name} ${attribut('content') ?? ''}`.trim()
+  }
+  return [...kopf.matchAll(/<(?:link|meta)\b[^>]*>/gi)]
+    .map((t) => merkmal(t[0]))
+    .filter((t): t is string => t !== null)
+    .sort()
+}
+
 export function vorgerendertEinsetzen(): Plugin {
   return {
     name: 'pfistanbul-vorgerendert',
@@ -76,7 +107,9 @@ export function vorgerendertEinsetzen(): Plugin {
        * tragen bewusst nur einen Teil des Graphen - deshalb "enthalten" und
        * nicht "gleich".
        */
-      const frischeKnoten = new Set(knoten(await readFile(join(ziel, 'index.html'), 'utf8')).map((k) => JSON.stringify(k)))
+      const frischesIndex = await readFile(join(ziel, 'index.html'), 'utf8')
+      const frischeKnoten = new Set(knoten(frischesIndex).map((k) => JSON.stringify(k)))
+      const frischerKopf = kopfangaben(frischesIndex)
 
       for (const name of dateien) {
         const html = await readFile(join(ORDNER, name), 'utf8')
@@ -86,6 +119,20 @@ export function vorgerendertEinsetzen(): Plugin {
             `${ORDNER}/${name} ist veraltet: Die Seite verweist auf ${alt.join(', ') || '(nichts)'}, ` +
               `dieser Build erzeugt aber ${frisch.join(', ')}. Wuerde die Datei so ausgeliefert, ` +
               'bliebe die Seite weiss. Bitte `npm run vorrendern` ausfuehren und neu einchecken.',
+          )
+        }
+
+        /*
+         * Dritte Probe. Die ersten beiden griffen nicht, als nur die
+         * Kopfangaben wechselten - beim Ergaenzen der Symbole blieben
+         * Bundle-Namen und strukturierte Daten gleich, und die veraltete
+         * Kopie waere ohne die neuen Verweise ausgeliefert worden.
+         */
+        const fehlend = frischerKopf.filter((eintrag) => !kopfangaben(html).includes(eintrag))
+        if (fehlend.length > 0) {
+          throw new Error(
+            `${ORDNER}/${name} fehlen Kopfangaben aus diesem Build: ${fehlend.join(' | ')}. ` +
+              'Bitte `npm run vorrendern` ausfuehren und neu einchecken.',
           )
         }
 
