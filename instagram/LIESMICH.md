@@ -196,3 +196,30 @@ Alles auf der Seite, Link im Profil.
 
 #insektenschutz #fliegengitter #plissee #greifensee #pfisterhölzli #nachbarschaft
 ```
+
+---
+
+## Stories
+
+Format 1080 × 1920. Gerendert mit `node instagram/tafel.mjs <name> story`,
+gemeinsame Stile in `story.css`.
+
+**Instagram legt oben und unten eigene Bedienung über das Bild** – Profilzeile,
+Antwortfeld, Linkaufkleber. Alles Wichtige liegt deshalb in den mittleren rund
+1400 Pixeln; die Vorlagen halten die Ränder mit Polsterung frei. Die freie
+Fläche in der Mitte ist Absicht: Dort gehören Aufkleber hin.
+
+### `story-wir-sind-live.jpg`
+Die Ankündigung, sonst nichts. Dunkler Grund, weil die Beiträge im Profil hell
+sind – in der Story-Leiste fällt der Wechsel auf.
+
+### `story-erster-tag.jpg`
+Der soziale Beweis. **Wirkt nur, solange er stimmt**: keine erfundenen Zahlen,
+sondern die drei Tatsachen, die es am ersten Tag gab. Wird der Beitrag später
+wiederverwendet, gehören die Punkte angepasst.
+
+### `story-unterwegs.jpg`
+Der Moment statt der Ankündigung. Unten bleibt bewusst Platz für einen
+Fragen-Aufkleber („Sollen wir bei dir auch vorbeischauen?"). Jede Antwort ist
+ein Gespräch – und ein Gespräch ist mehr wert als eine Einblendung.
+

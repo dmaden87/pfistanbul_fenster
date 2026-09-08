@@ -1,7 +1,14 @@
 /**
- * Rendert eine der Instagram-Tafeln zu einem fertigen Beitragsbild.
+ * Rendert eine der Instagram-Tafeln zu einem fertigen Bild.
  *
- * Aufruf: node instagram/tafel.mjs <name>       z. B. livegang, preistafel, titelbild
+ * Aufruf: node instagram/tafel.mjs <name> [story]
+ *   ohne "story":  1080 x 1350, das Beitragsformat
+ *   mit  "story":  1080 x 1920, das Storyformat
+ *
+ * ACHTUNG BEIM STORYFORMAT: Instagram legt oben und unten eigene Bedienung
+ * ueber das Bild - Profilzeile, Antwortfeld, Linkaufkleber. Alles Wichtige
+ * gehoert in die mittleren rund 1400 Pixel. Die Vorlagen halten diese Raender
+ * mit Polsterung frei.
  *
  * Bis jetzt liefen diese Tafeln von Hand durch den Browser, und wie genau,
  * stand nirgends. Das hier ist derselbe Weg, nur aufschreibbar.
@@ -23,9 +30,10 @@ import { join } from 'node:path'
 import sharp from 'sharp'
 
 const CHROMIUM = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
+const istStory = process.argv[3] === 'story'
 const BREITE = 1080
-const HOEHE = 1350
-const FENSTERHOEHE = 1700
+const HOEHE = istStory ? 1920 : 1350
+const FENSTERHOEHE = HOEHE + 350
 
 const name = process.argv[2]
 if (!name) throw new Error('Aufruf: node instagram/tafel.mjs <name>   (ohne .html)')
@@ -63,7 +71,7 @@ if (width !== BREITE || height !== FENSTERHOEHE) {
   throw new Error(`Chromium lieferte ${width}×${height} statt ${BREITE}×${FENSTERHOEHE}.`)
 }
 
-const ziel = `instagram/beitrag-${name}.jpg`
+const ziel = `instagram/${istStory ? 'story' : 'beitrag'}-${name}.jpg`
 await sharp(roh)
   .extract({ left: 0, top: 0, width: BREITE, height: HOEHE })
   .jpeg({ quality: 88, mozjpeg: true })

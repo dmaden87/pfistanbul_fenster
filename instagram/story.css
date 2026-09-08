@@ -1,0 +1,21 @@
+@font-face { font-family: 'Fraunces'; src: url('../public/fonts/fraunces-normal-700-latin.woff2') format('woff2'); font-weight: 700; font-display: block; }
+@font-face { font-family: 'Fraunces'; src: url('../public/fonts/fraunces-italic-600-latin.woff2') format('woff2'); font-weight: 600; font-style: italic; font-display: block; }
+@font-face { font-family: 'InterPost'; src: url('../public/fonts/inter-normal-400-latin.woff2') format('woff2'); font-weight: 400; font-display: block; }
+@font-face { font-family: 'InterPost'; src: url('../public/fonts/inter-normal-600-latin.woff2') format('woff2'); font-weight: 600; font-display: block; }
+@font-face { font-family: 'InterPost'; src: url('../public/fonts/inter-normal-700-latin.woff2') format('woff2'); font-weight: 700; font-display: block; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #6b7a75; }
+/* Oben und unten legt Instagram eigene Bedienung darueber - deshalb die
+   grosszuegige Polsterung. Alles Wichtige liegt in der Mitte. */
+.blatt { width: 1080px; height: 1920px; padding: 250px 80px 300px; display: flex; flex-direction: column;
+         font-family: 'InterPost', system-ui, sans-serif; }
+.marke { display: flex; align-items: center; gap: 18px; }
+.marke__zeichen { display: grid; place-items: center; width: 62px; height: 62px; border-radius: 15px; }
+.marke__name { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 36px; line-height: 1; }
+.marke__zusatz { font-size: 16px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; opacity: 0.75; }
+h1 { font-family: 'Fraunces', Georgia, serif; font-weight: 700; line-height: 0.94; letter-spacing: -0.03em; }
+h1 em { display: block; font-style: italic; }
+.band { margin-top: auto; padding: 30px 36px; border-radius: 22px; text-align: center; }
+.band__was { display: block; font-size: 26px; opacity: 0.8; }
+.band__wo { display: block; margin-top: 8px; font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 62px; }
+.tipp { margin-top: 26px; text-align: center; font-size: 24px; opacity: 0.62; }

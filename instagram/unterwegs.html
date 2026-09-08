@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><title>Story C – Heute unterwegs</title>
+<link rel="stylesheet" href="story.css">
+<style>
+/*
+ * Vorschlag C, mein eigener.
+ *
+ * Die anderen beiden verkuenden. Dieser hier ZEIGT - und das ist es, wofuer
+ * Stories da sind: der Moment, nicht die Ankuendigung. "Wir sind live" ist
+ * einen Tag lang Nachricht. "Heute unterwegs zum Ausmessen" ist der Beweis,
+ * dass es laeuft, und es stellt ganz nebenbei die Frage, die zum naechsten
+ * Auftrag fuehrt.
+ *
+ * Unten bleibt bewusst Platz: dort gehoert ein Fragen-Aufkleber hin
+ * ("Sollen wir bei dir auch vorbeischauen?"). Jede Antwort ist ein Gespraech.
+ */
+.blatt { position: relative; padding: 0; background: #0f3b34; color: #f7fbf9; overflow: hidden; }
+.foto { position: absolute; inset: 0 0 auto 0; height: 1180px; }
+.foto img { width: 100%; height: 100%; object-fit: cover; object-position: center 58%; }
+/* Nach unten in den Markengrund auslaufen, damit die Kante nicht bricht. */
+.foto::after { content: ''; position: absolute; inset: auto 0 0 0; height: 420px;
+               background: linear-gradient(to bottom, rgba(15,59,52,0), #0f3b34 88%); }
+.inhalt { position: relative; height: 100%; padding: 250px 80px 300px; display: flex; flex-direction: column; }
+.marke__zeichen { background: rgba(0,0,0,.34); color: #f7fbf9; }
+.marke { text-shadow: 0 2px 14px rgba(0,0,0,.5); }
+.kicker { margin-top: auto; font-size: 24px; font-weight: 700; letter-spacing: 0.26em;
+          text-transform: uppercase; color: #9fe3cc; }
+h1 { margin-top: 18px; font-size: 104px; }
+.satz { margin-top: 32px; font-size: 36px; line-height: 1.38; opacity: .92; max-width: 24ch; }
+.band { margin-top: 46px; background: #faf8f4; color: #0f3b34; }
+</style></head><body><div class="blatt">
+  <figure class="foto"><img src="../public/fotos/fassade-aussen-1600.jpg" alt=""></figure>
+  <div class="inhalt">
+    <div class="marke"><span class="marke__zeichen"><svg width="34" height="34" viewBox="0 0 300 300"><rect x="30" y="30" width="240" height="240" rx="30" fill="none" stroke="currentColor" stroke-width="26"/><path d="M30 110H270M30 190H270M110 30V270M190 30V270" stroke="currentColor" stroke-width="18" stroke-linecap="round"/></svg></span>
+      <span><span class="marke__name">Pfistanbul</span><br><span class="marke__zusatz">Fenster</span></span></div>
+    <p class="kicker">Heute unterwegs</p>
+    <h1>Ausmessen<em>bei Nachbarn.</em></h1>
+    <p class="satz">Sie schicken uns die Masse – oder wir kommen vorbei und nehmen sie selbst. Beides kostet nichts.</p>
+    <div class="band"><span class="band__was">Termin abmachen</span><span class="band__wo">pfistanbul.ch</span></div>
+  </div>
+</div></body></html>
