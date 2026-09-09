@@ -5,6 +5,7 @@ import {
   ABSENDER,
   GANZE_LIEFERUNG,
   LIEFERKOSTEN,
+  PACKMASS_TITEL,
   MASSREGEL,
   MECHANISMEN,
   NETZFARBEN,
@@ -13,7 +14,6 @@ import {
   RAHMENFARBEN,
   RICHTUNGSREGEL,
 } from '../../data/produktion'
-import { operator } from '../../data/operator'
 import './Bestellauftrag.css'
 
 /**
@@ -244,6 +244,14 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
               <tr>
                 <th>Paket</th>
                 <th className="blatt__eng">Stück</th>
+                {/*
+                  Nur eine Groessenordnung fuers Abschaetzen der Fracht, keine
+                  Frachtangabe: Wie dick ein flach gepacktes Plissee wirklich
+                  auftraegt, weiss der Produzent. Die Annahmen stehen in
+                  src/data/produktion.ts und gehoeren nach der ersten Lieferung
+                  korrigiert. Darum steht "ca." davor.
+                */}
+                <th>{PACKMASS_TITEL.deutsch}</th>
                 <th className="blatt__preis">{LIEFERKOSTEN.deutsch}</th>
               </tr>
             </thead>
@@ -254,24 +262,24 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
                     <span className="blatt__kennung">{block.kennung}</span>
                   </td>
                   <td className="blatt__zahl">{block.anzahl}</td>
+                  <td className="blatt__packmass">
+                    {block.packmass
+                      ? `${block.packmass.laengeCm} × ${block.packmass.breiteCm} × ${block.packmass.hoeheCm} cm`
+                      : '—'}
+                  </td>
                   <td className="blatt__preis blatt__leer-feld" />
                 </tr>
               ))}
               <tr className="blatt__gesamt">
                 <td>{GANZE_LIEFERUNG.deutsch}</td>
                 <td className="blatt__zahl">{auftrag.anzahl}</td>
+                <td />
                 <td className="blatt__preis blatt__leer-feld" />
               </tr>
             </tbody>
           </table>
         </section>
 
-        <footer className="blatt__fuss">
-          <p>
-            Fragen an {operator.people[0].name}, {operator.email}
-            {operator.phone ? ` · ${operator.phone}` : ''}
-          </p>
-        </footer>
       </article>
     </>
   )

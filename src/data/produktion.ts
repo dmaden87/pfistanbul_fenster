@@ -157,3 +157,27 @@ export const PREISHINWEIS: Beschriftung = {
   deutsch: 'Bitte Stückpreis je Zeile und die Lieferkosten eintragen.',
   tuerkisch: 'Lütfen her satır için birim fiyatı ve nakliye bedelini yazınız.',
 }
+
+/**
+ * Woraus das ungefaehre Packmass gerechnet wird.
+ *
+ * ACHTUNG, DAS SIND ANNAHMEN. Wie dick ein flach gepacktes Plissee wirklich
+ * auftraegt, weiss der Produzent und nicht wir. Die Zahlen hier sind eine
+ * begruendete Schaetzung, damit auf dem Blatt ueberhaupt eine Groessenordnung
+ * steht – zum Abschaetzen der Fracht, nicht zum Buchen. Deshalb steht auf dem
+ * Dokument "ca." davor.
+ *
+ * Sobald die erste Lieferung da ist: nachmessen und diese zwei Zahlen
+ * korrigieren. Sie stehen absichtlich an einer einzigen Stelle.
+ */
+export const PACKMASS = {
+  /** Wie hoch ein flach liegendes Plissee auftraegt, in cm. */
+  dickeJePlisseeCm: 4,
+  /** Zuschlag fuer Karton und Polsterung, in cm – einmal je Richtung. */
+  zuschlagCm: 4,
+} as const
+
+export const PACKMASS_TITEL: Beschriftung = {
+  deutsch: 'Packmass ca.',
+  tuerkisch: 'Yaklaşık paket ölçüsü',
+}

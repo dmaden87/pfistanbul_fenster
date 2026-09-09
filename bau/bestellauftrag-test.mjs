@@ -13,7 +13,8 @@
  *  - Fehlende Angaben werden GEMELDET und nicht mit einer Annahme gefuellt.
  */
 import assert from 'node:assert/strict'
-import { auftragAufbauen, kennungFuer } from '../src/lib/bestellauftrag.ts'
+import { auftragAufbauen, kennungFuer, packmass } from '../src/lib/bestellauftrag.ts'
+import { PACKMASS } from '../src/data/produktion.ts'
 
 let bestanden = 0
 const fehler = []
@@ -128,6 +129,36 @@ pruefe('Was in der Bestellung steht, gilt vor dem Katalog', () => {
   // erteilte Bestellung ruecklaeufig aendern.
   const a = auftragAufbauen([bestellung('PF-10', [{ menge: 1, bezeichnung: 'Bad', detail: '', preisChf: 130, typId: 'bad', breiteCm: 119, hoeheCm: 84, ...KOMPLETT }])])
   assert.equal(a.zeilen[0].breiteCm, 119)
+})
+
+pruefe('Das Packmass richtet jedes Plissee nach seiner langen Seite aus', () => {
+  // Ein Stueck 128.6 breit und 182.5 hoch liegt mit 182.5 in der Laenge.
+  const m = packmass([{ menge: 1, bezeichnung: 'x', breiteCm: 128.6, hoeheCm: 182.5 }])
+  assert.equal(m.laengeCm, Math.ceil(182.5 + PACKMASS.zuschlagCm))
+  assert.equal(m.breiteCm, Math.ceil(128.6 + PACKMASS.zuschlagCm))
+  assert.equal(m.hoeheCm, Math.ceil(1 * PACKMASS.dickeJePlisseeCm + PACKMASS.zuschlagCm))
+})
+
+pruefe('Der Karton richtet sich nach dem groessten Stueck, die Hoehe nach der Anzahl', () => {
+  const m = packmass([
+    { menge: 2, bezeichnung: 'gross', breiteCm: 128.6, hoeheCm: 182.5 },
+    { menge: 1, bezeichnung: 'klein', breiteCm: 64, hoeheCm: 95.7 },
+  ])
+  assert.equal(m.laengeCm, Math.ceil(182.5 + PACKMASS.zuschlagCm), 'nicht nach dem laengsten Stueck')
+  assert.equal(m.breiteCm, Math.ceil(128.6 + PACKMASS.zuschlagCm), 'nicht nach dem breitesten Stueck')
+  assert.equal(m.hoeheCm, Math.ceil(3 * PACKMASS.dickeJePlisseeCm + PACKMASS.zuschlagCm), 'die Menge zaehlt nicht mit')
+})
+
+pruefe('Ohne Masse gibt es kein Packmass statt eines erfundenen', () => {
+  assert.equal(packmass([{ menge: 1, bezeichnung: 'x' }]), undefined)
+  assert.equal(packmass([]), undefined)
+})
+
+pruefe('Jedes Paket bekommt sein eigenes Packmass', () => {
+  const netz = { menge: 1, bezeichnung: 'Wohnzimmer', detail: '', preisChf: 170, breiteCm: 128.6, hoeheCm: 182.5, ...KOMPLETT }
+  const a = auftragAufbauen([bestellung('PF-20', [netz]), bestellung('PF-21', [netz, netz])])
+  assert.ok(a.bloecke[0].packmass)
+  assert.ok(a.bloecke[1].packmass.hoeheCm > a.bloecke[0].packmass.hoeheCm, 'zwei Stueck muessten hoeher stapeln')
 })
 
 pruefe('Die Kennung ist kurz und ohne Sonderzeichen', () => {

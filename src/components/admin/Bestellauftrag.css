@@ -231,7 +231,13 @@
 /* Nur so breit, wie die drei Spalten brauchen – nicht ueber das Blatt gezogen. */
 .blatt__paketliste {
   width: auto;
-  min-width: 90mm;
+  min-width: 130mm;
+}
+
+/* Nur eine Groessenordnung – tritt entsprechend zurueck. */
+.blatt__packmass {
+  color: #444444;
+  white-space: nowrap;
 }
 
 .blatt__gesamt td {
@@ -293,13 +299,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.blatt__fuss {
-  margin-top: 8mm;
-  padding-top: 3mm;
-  border-top: 0.5px solid #cccccc;
-  font-size: 9pt;
-  color: #444444;
-}
 
 /* --- Druck ------------------------------------------------------------------ */
 
