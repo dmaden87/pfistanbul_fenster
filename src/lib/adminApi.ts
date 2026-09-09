@@ -1,4 +1,4 @@
-import type { AdminStatus, Bestellung, BestellAenderung, BestellStatus } from '../types'
+import type { AdminStatus, Bestellung, BestellAenderung } from '../types'
 
 /**
  * Zugriff auf den Adminbereich. Alles läuft über /api/bestellungen; das
@@ -77,10 +77,6 @@ export async function aendereBestellung(id: string, aenderung: BestellAenderung)
     }),
   )
   return daten.bestellung
-}
-
-export function setzeStatus(id: string, status: BestellStatus): Promise<Bestellung> {
-  return aendereBestellung(id, { status })
 }
 
 /**

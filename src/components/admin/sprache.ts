@@ -67,26 +67,61 @@ const PAARE = {
   neuKlein: ['neu', 'yeni'],
   inOfferte: ['in Offerte', 'teklifte'],
 
-  sektionNeu: ['Neu eingegangen', 'Yeni gelenler'],
-  sektionNeuSatz: [
-    'Noch nichts unternommen. Weiterreichen, offerieren oder absagen.',
-    'Henüz bir şey yapılmadı. İletin, teklif verin veya iptal edin.',
+  /* --- Bloecke und Abschnitte der Arbeitsliste ---------------------------- */
+  blockBeiDir: ['Bei dir', 'Sende'],
+  blockBeiDirSatz: [
+    'Hier ist etwas zu tun.',
+    'Burada yapılacak bir şey var.',
   ],
-  sektionOfferte: ['Offerte', 'Teklif'],
-  sektionOfferteSatz: [
-    'Ausmessen und offerieren. Die beiden Haken sagen, wie weit es ist – und seit wann die Offerte draussen ist.',
-    'Ölçün ve teklif verin. İki kutucuk nerede olduğunu gösterir – ve teklifin ne zamandır dışarıda olduğunu.',
+  blockBeimLieferanten: ['Bei Bora', 'Bora’da'],
+  blockBeimLieferantenSatz: [
+    'Läuft. Wir warten auf den Lieferanten.',
+    'Devam ediyor. Tedarikçiyi bekliyoruz.',
   ],
-  sektionBestellt: ['Beim Lieferanten bestellt', 'Tedarikçiye sipariş verildi'],
-  sektionBestelltSatz: [
-    'Läuft. Sobald wir ausgeliefert haben, hier abschliessen.',
-    'Devam ediyor. Teslim ettiğimizde burada kapatın.',
+  blockBeimKunden: ['Beim Kunden', 'Müşteride'],
+  blockBeimKundenSatz: [
+    'Die Offerte ist draussen. Wir warten auf die Zusage.',
+    'Teklif gönderildi. Onayı bekliyoruz.',
   ],
-  sektionAbgeschlossen: ['Abgeschlossen', 'Tamamlandı'],
-  sektionAbgeschlossenSatz: [
-    'Ausgeliefert oder abgesagt. Bleibt zum Nachschlagen stehen.',
-    'Teslim edildi veya iptal edildi. Bakmak için burada kalır.',
+  blockArchiv: ['Archiv', 'Arşiv'],
+  blockArchivSatz: [
+    'Abgeschlossen oder abgesagt. Bleibt zum Nachschlagen stehen.',
+    'Tamamlandı veya iptal edildi. Bakmak için burada kalır.',
   ],
+
+  schrittNeuTitel: ['Neu – Preis anfragen', 'Yeni – fiyat sor'],
+  schrittNeuSatz: [
+    'Für die Lieferrunde ankreuzen und eine Preisanfrage an Bora auslösen.',
+    'Sevkiyat turu için işaretleyin ve Bora’dan fiyat isteyin.',
+  ],
+  schrittOfferteRechnenTitel: ['Kosten da – Offerte rechnen', 'Maliyet geldi – teklifi hesapla'],
+  schrittOfferteRechnenSatz: [
+    'Boras Preise liegen vor. Offerte erstellen, verschicken und hier abhaken.',
+    'Bora’nın fiyatları geldi. Teklifi hazırlayın, gönderin ve burada işaretleyin.',
+  ],
+  schrittBereitTitel: ['Bereit zum Bestellen', 'Sipariş için hazır'],
+  schrittBereitSatz: [
+    'Zugesagt. Für die nächste Bestellrunde ankreuzen.',
+    'Onaylandı. Bir sonraki sipariş turu için işaretleyin.',
+  ],
+  schrittAusliefernTitel: ['Ware da – ausliefern', 'Mal geldi – teslim et'],
+  schrittAusliefernSatz: [
+    'Die Lieferung ist eingetroffen. Termin machen, übergeben, kassieren.',
+    'Sevkiyat geldi. Randevu alın, teslim edin, tahsil edin.',
+  ],
+  schrittZahlungOffenTitel: ['Ausgeliefert – Zahlung offen', 'Teslim edildi – ödeme bekliyor'],
+  schrittZahlungOffenSatz: [
+    'Übergeben, aber noch nicht bezahlt.',
+    'Teslim edildi ama henüz ödenmedi.',
+  ],
+  schrittAnfrageLaeuftTitel: ['Preisanfrage läuft', 'Fiyat talebi gönderildi'],
+  schrittBeimLieferantenTitel: ['Bestellt, unterwegs', 'Sipariş verildi, yolda'],
+  schrittOfferteDraussenTitel: ['Offerte draussen', 'Teklif dışarıda'],
+  schrittAbgeschlossenTitel: ['Abgeschlossen', 'Tamamlandı'],
+  schrittAbgesagtTitel: ['Abgesagt', 'İptal edildi'],
+
+  inRunde: ['in Runde', 'turda'],
+  zuTun: ['zu tun', 'yapılacak'],
 
   /* --- Art und Quelle ---------------------------------------------------- */
   artBestellung: ['Bestellung', 'Sipariş'],
@@ -139,17 +174,15 @@ const PAARE = {
   zuVielRichtung: ['zu viel bezahlt', 'fazla ödendi'],
 
   /* --- Schritte ---------------------------------------------------------- */
-  schrittOfferieren: ['Ausmessen & offerieren', 'Ölç & teklif ver'],
-  schrittBestellt: ['Beim Lieferanten bestellt', 'Tedarikçiye sipariş verildi'],
-  schrittAngenommen: ['Angenommen, bestellt', 'Kabul edildi, sipariş verildi'],
-  schrittStorniert: ['Storniert', 'İptal'],
-  schrittAbgesagt: ['Abgesagt', 'İptal'],
-  schrittZugesagt: ['Zugesagt, beim Lieferanten bestellt', 'Onaylandı, tedarikçiye sipariş verildi'],
-  schrittErledigt: ['Ausgeliefert, erledigt', 'Teslim edildi, tamam'],
-  schrittZurueckNeu: ['Zurück zu neu', 'Yeniye geri'],
-  schrittDochStorniert: ['Doch storniert', 'Yine de iptal'],
-  schrittZurueckOfferte: ['Zurück zur Offerte', 'Teklife geri'],
-  schrittWiederOeffnen: ['Wieder öffnen', 'Yeniden aç'],
+  knopfOfferteAnzeigen: ['Offerte anzeigen', 'Teklifi göster'],
+  knopfOfferteRaus: ['Offerte ist raus', 'Teklif gönderildi'],
+  knopfKundeZugesagt: ['Kunde hat zugesagt', 'Müşteri onayladı'],
+  knopfAbsagen: ['Absagen', 'İptal et'],
+  knopfUebergeben: ['Übergeben & bezahlt', 'Teslim edildi & ödendi'],
+  knopfNurAusgeliefert: ['nur ausgeliefert', 'sadece teslim edildi'],
+  knopfBezahlt: ['Bezahlt', 'Ödendi'],
+  knopfWiederOeffnen: ['Wieder öffnen', 'Yeniden aç'],
+  knopfZurueckNeu: ['Zurück zu neu', 'Yeniye geri'],
 
   /* --- Netz-Editor ------------------------------------------------------- */
   anzahlKurz: ['Anz.', 'Adet'],

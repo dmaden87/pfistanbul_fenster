@@ -163,20 +163,26 @@ await pruefe('Preise landen an der Zeile', async () => {
 
 /* --- Der Uebergang nach "bestellt" ----------------------------------------- */
 
-await pruefe('"Bestellt" zieht die Bestellungen mit', async () => {
+await pruefe('"Bestellt" laesst die Bestellungen in Ruhe', async () => {
+  /*
+   * Frueher zog die Runde ihre Bestellungen auf denselben Status. Das ist
+   * weg, und zwar mit Absicht: Wo die Ware steht, steht in der Runde. Zwei
+   * Schreibwege auf dieselbe Aussage waren die Quelle der widerspruechlichen
+   * Staende – die Runde stand auf "angefragt", die Bestellung auf "bestellt",
+   * und niemand wusste, welche stimmt.
+   */
+  const vorher = (await ruf(bestellHandler, { method: 'GET', cookie })).daten.bestellungen
   const antwort = await ruf(handler, { method: 'PATCH', cookie, body: { id: runde.id, status: 'bestellt' } })
-  assert.equal(antwort.daten.mitgezogen, 2)
-  const liste = (await ruf(bestellHandler, { method: 'GET', cookie })).daten.bestellungen
-  assert.ok(liste.filter((b) => [b1.id, b2.id].includes(b.id)).every((b) => b.status === 'bestellt'))
-})
+  assert.equal(antwort.code, 200)
+  assert.equal(antwort.daten.mitgezogen, undefined, 'die Runde zieht noch mit')
 
-await pruefe('Ein schon erledigter Eintrag wird NICHT zurueckgesetzt', async () => {
-  // Sonst wuerde eine laengst ausgelieferte Bestellung wieder als offen gelten.
-  await ruf(bestellHandler, { method: 'PATCH', cookie, body: { id: b1.id, status: 'erledigt' } })
-  const antwort = await ruf(handler, { method: 'PATCH', cookie, body: { id: runde.id, status: 'bestellt' } })
-  assert.equal(antwort.daten.mitgezogen, 0, 'es wurde etwas ueberschrieben')
-  const liste = (await ruf(bestellHandler, { method: 'GET', cookie })).daten.bestellungen
-  assert.equal(liste.find((b) => b.id === b1.id).status, 'erledigt')
+  const nachher = (await ruf(bestellHandler, { method: 'GET', cookie })).daten.bestellungen
+  for (const id of [b1.id, b2.id]) {
+    const a = vorher.find((b) => b.id === id)
+    const z = nachher.find((b) => b.id === id)
+    assert.equal(z.status, a.status, `Status von ${id} wurde angefasst`)
+    assert.equal(z.geaendert, a.geaendert, `${id} wurde ueberhaupt angefasst`)
+  }
 })
 
 /* --- Die Rechnung ---------------------------------------------------------- */

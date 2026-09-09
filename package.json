@@ -11,7 +11,7 @@
     "bilder": "node scripts/bilder.mjs",
     "vorschau": "node bau/vorschau.mjs",
     "pruefen": "npm run build && node --import ./bau/ts-aufloeser.mjs bau/pruefung.mjs",
-    "test": "KV_REST_API_URL=http://attrappe KV_REST_API_TOKEN=attrappe ADMIN_PASSWORT=testpasswort node --import ./bau/ts-aufloeser.mjs bau/bestellungen-test.mjs && node --import ./bau/ts-aufloeser.mjs bau/bestellauftrag-test.mjs && node --import ./bau/ts-aufloeser.mjs bau/zeilen-test.mjs && KV_REST_API_URL=http://attrappe KV_REST_API_TOKEN=attrappe ADMIN_PASSWORT=testpasswort node --import ./bau/ts-aufloeser.mjs bau/lieferungen-test.mjs",
+    "test": "KV_REST_API_URL=http://attrappe KV_REST_API_TOKEN=attrappe ADMIN_PASSWORT=testpasswort node --import ./bau/ts-aufloeser.mjs bau/bestellungen-test.mjs && node --import ./bau/ts-aufloeser.mjs bau/arbeitsschritt-test.mjs && node --import ./bau/ts-aufloeser.mjs bau/bestellauftrag-test.mjs && node --import ./bau/ts-aufloeser.mjs bau/zeilen-test.mjs && KV_REST_API_URL=http://attrappe KV_REST_API_TOKEN=attrappe ADMIN_PASSWORT=testpasswort node --import ./bau/ts-aufloeser.mjs bau/lieferungen-test.mjs",
     "vorrendern": "node bau/vorrendern.mjs",
     "melden": "node bau/indexnow.mjs"
   },

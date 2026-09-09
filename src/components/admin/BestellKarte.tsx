@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import type { Bestellung, BestellAenderung, BestellPosition, BestellStatus } from '../../types'
+import type { Bestellung, BestellAenderung, BestellPosition, Lieferung } from '../../types'
+import type { Arbeitsschritt } from '../../lib/arbeitsschritt'
 import type { AdminTexte } from './sprache'
 import { formatChf } from '../../lib/format'
 import {
@@ -29,10 +30,24 @@ import { fuelle, useSprache } from './sprache'
  * hinter einem Klick zu verstecken hiesse, jeden Tag zweimal zu klicken.
  */
 
+/**
+ * Was ein Knopf tut: entweder die Offerte oeffnen, oder eine Aenderung an der
+ * Bestellung schicken. Beides als Daten und nicht als Rueckruf, damit die
+ * Liste oben eine reine Tabelle bleibt und sich testen laesst.
+ */
+type KartenKnopf = {
+  tat: 'offerte' | BestellAenderung
+  text: string
+  art: 'haupt' | 'still'
+}
+
 interface BestellKarteProps {
   bestellung: Bestellung
+  /** Der Schritt, in dem die Karte steht. Bestimmt die Uebersicht, nicht die Karte. */
+  schritt: Arbeitsschritt
+  /** Die Runde, in der die Bestellung steckt – nur zur Anzeige. */
+  runde?: Lieferung
   montageProNetz: number
-  onStatus: (id: string, status: BestellStatus) => void
   onAendern: (id: string, aenderung: BestellAenderung) => Promise<void>
   onLoeschen: (id: string) => void
   /** Oeffnet die Offerte an die Kundschaft. */
@@ -43,38 +58,52 @@ interface BestellKarteProps {
 }
 
 /**
- * Welche Schritte von hier aus möglich sind. Vorwärts ist der Normalfall,
- * zurück steht bewusst auch offen: Wer versehentlich klickt, soll das ohne
- * Umweg über die Datenbank geraderücken können.
+ * Was von diesem Schritt aus zu tun ist.
+ *
+ * Genau ein Hauptknopf je Abschnitt, der Rest leise. Frueher standen hier
+ * drei gleich laute Knoepfe nebeneinander ("Ausmessen & offerieren",
+ * "Beim Lieferanten bestellt", "Storniert"), und man musste jedes Mal lesen,
+ * welcher gemeint ist.
+ *
+ * Zwei Schritte haben ABSICHTLICH keinen Knopf: Bei "Preisanfrage laeuft" und
+ * "Bestellt, unterwegs" warten wir auf Bora. Es gibt dort nichts zu tun, und
+ * ein Knopf, der das Gegenteil suggeriert, ist schlimmer als keiner. Was sich
+ * dort aendert, aendert man in der Runde.
+ *
+ * "Neu" und "Bereit zum Bestellen" haben auch keinen: Dort ist die Aktion das
+ * Kaestchen fuer die Lieferrunde oben an der Karte.
  */
-function schritte(b: Bestellung, t: AdminTexte): { status: BestellStatus; text: string; art: 'haupt' | 'still' }[] {
-  switch (b.status) {
+function knoepfe(schritt: Arbeitsschritt, t: AdminTexte): KartenKnopf[] {
+  switch (schritt) {
     case 'neu':
+      return [{ tat: { status: 'abgesagt' }, text: t.knopfAbsagen, art: 'still' }]
+    case 'offerteRechnen':
       return [
-        // Beim Sondermass geht es zuerst zum Ausmessen und Offerieren; eine
-        // feste Bestellung aus dem Warenkorb kann direkt zum Lieferanten.
-        { status: 'offerte', text: t.schrittOfferieren, art: b.art === 'bestellung' ? 'still' : 'haupt' },
-        {
-          status: 'bestellt',
-          text: b.art === 'bestellung' ? t.schrittBestellt : t.schrittAngenommen,
-          art: b.art === 'bestellung' ? 'haupt' : 'still',
-        },
-        { status: 'geloescht', text: b.art === 'bestellung' ? t.schrittStorniert : t.schrittAbgesagt, art: 'still' },
+        { tat: 'offerte', text: t.knopfOfferteAnzeigen, art: 'haupt' },
+        { tat: { status: 'offeriert', offerteVersendet: true }, text: t.knopfOfferteRaus, art: 'still' },
+        { tat: { status: 'abgesagt' }, text: t.knopfAbsagen, art: 'still' },
       ]
-    case 'offerte':
+    case 'offerteDraussen':
       return [
-        { status: 'bestellt', text: t.schrittZugesagt, art: 'haupt' },
-        { status: 'neu', text: t.schrittZurueckNeu, art: 'still' },
-        { status: 'geloescht', text: t.schrittAbgesagt, art: 'still' },
+        { tat: { status: 'zugesagt' }, text: t.knopfKundeZugesagt, art: 'haupt' },
+        { tat: { status: 'abgesagt' }, text: t.knopfAbsagen, art: 'still' },
       ]
-    case 'bestellt':
+    case 'bereitZuBestellen':
+      return [{ tat: { status: 'abgesagt' }, text: t.knopfAbsagen, art: 'still' }]
+    case 'ausliefern':
       return [
-        { status: 'erledigt', text: t.schrittErledigt, art: 'haupt' },
-        { status: 'offerte', text: t.schrittZurueckOfferte, art: 'still' },
-        { status: 'geloescht', text: t.schrittDochStorniert, art: 'still' },
+        { tat: { ausgeliefert: true, bezahlt: true }, text: t.knopfUebergeben, art: 'haupt' },
+        { tat: { ausgeliefert: true }, text: t.knopfNurAusgeliefert, art: 'still' },
       ]
+    case 'zahlungOffen':
+      return [{ tat: { bezahlt: true }, text: t.knopfBezahlt, art: 'haupt' }]
+    case 'abgeschlossen':
+      return [{ tat: { ausgeliefert: false, bezahlt: false }, text: t.knopfWiederOeffnen, art: 'still' }]
+    case 'abgesagt':
+      return [{ tat: { status: 'neu' }, text: t.knopfWiederOeffnen, art: 'still' }]
     default:
-      return [{ status: 'bestellt', text: t.schrittWiederOeffnen, art: 'still' }]
+      // anfrageLaeuft und beimLieferanten: wir warten.
+      return []
   }
 }
 
@@ -85,8 +114,9 @@ function netzZahl(positionen: BestellPosition[]): number {
 
 export function BestellKarte({
   bestellung: b,
+  schritt,
+  runde,
   montageProNetz,
-  onStatus,
   onAendern,
   onLoeschen,
   onOfferte,
@@ -110,7 +140,7 @@ export function BestellKarte({
   }
 
   return (
-    <li className={`admin__karte admin__karte--${b.status}`}>
+    <li className={`admin__karte admin__karte--${schritt}`}>
       <div className="admin__karte-kopf">
         {onWahl && (
           <label className="admin__wahl">
@@ -125,8 +155,14 @@ export function BestellKarte({
         {b.bezahlung?.status === 'bezahlt' && (
           <span className="admin__marke admin__marke--gut">{t.bezahltMarke} · {formatChf(b.bezahlung.betragChf)}</span>
         )}
-        {b.status === 'geloescht' && <span className="admin__marke">{t.abgesagtMarke}</span>}
-        {b.status === 'erledigt' && <span className="admin__marke admin__marke--gut">{t.erledigtMarke}</span>}
+        {/*
+          Die Runde steht im Kopf, weil die Karte frueher nicht wusste, in
+          welcher sie steckt – und man dafuer in die andere Ansicht springen
+          musste. Genau daran ist die alte Uebersicht gescheitert.
+        */}
+        {runde && <span className="admin__marke">{t.inRunde} {runde.nummer}</span>}
+        {schritt === 'abgesagt' && <span className="admin__marke">{t.abgesagtMarke}</span>}
+        {schritt === 'abgeschlossen' && <span className="admin__marke admin__marke--gut">{t.erledigtMarke}</span>}
       </div>
 
       <div className="admin__zeile">
@@ -145,8 +181,13 @@ export function BestellKarte({
         von "Offerte versendet" die Information loeschen, dass ausgemessen
         wurde – und beim Sondermass nach Kundenmass kommt die Offerte auch
         ganz ohne Messtermin zustande.
+
+        Nur beim Sondermass: Eine Bestellung aus dem Warenkorb wird nicht
+        ausgemessen und bekommt keine Offerte. Dort waeren die beiden Haken
+        zwei Kaestchen, die nie jemand ankreuzt.
       */}
-      {b.status === 'offerte' && (
+      {b.art === 'anfrage' &&
+        (schritt === 'neu' || schritt === 'offerteRechnen' || schritt === 'offerteDraussen') && (
         <div className="admin__haken-reihe">
           <label className="admin__haken">
             <input
@@ -289,14 +330,14 @@ export function BestellKarte({
       {!offen && b.notiz && <p className="admin__bemerkung admin__bemerkung--notiz">{b.notiz}</p>}
 
       <div className="admin__schritte">
-        {schritte(b, t).map((s) => (
+        {knoepfe(schritt, t).map((k) => (
           <button
-            key={s.status + s.text}
+            key={k.text}
             type="button"
-            className={s.art === 'haupt' ? 'btn' : 'btn btn--quiet'}
-            onClick={() => onStatus(b.id, s.status)}
+            className={k.art === 'haupt' ? 'btn' : 'btn btn--quiet'}
+            onClick={() => (k.tat === 'offerte' ? onOfferte(b.id) : onAendern(b.id, k.tat))}
           >
-            {s.text}
+            {k.text}
           </button>
         ))}
 
@@ -305,7 +346,7 @@ export function BestellKarte({
           nur nach einer Rueckfrage. Es ist der Weg, das Loeschversprechen aus
           der Datenschutzerklaerung einzuloesen.
         */}
-        {(b.status === 'erledigt' || b.status === 'geloescht') &&
+        {(schritt === 'abgeschlossen' || schritt === 'abgesagt') &&
           (loeschFrage ? (
             <span className="admin__loeschfrage">
               {t.endgueltigLoeschen}

@@ -28,12 +28,43 @@ const MAX_VERSUCHE = 8
 const SPERRE_SEKUNDEN = 900
 
 /**
- * "offerte" liegt zwischen Eingang und Bestellung beim Lieferanten. Der
- * Schritt kam dazu, weil Sondermasse haeufiger sind als erwartet: Dort wird
- * zuerst ausgemessen und offeriert, und dazwischen vergehen Tage.
+ * Wo die KUNDSCHAFT steht. Wo die Ware steht, sagt die Lieferrunde – das
+ * wird nie hier gespeichert, sondern aus ihr abgeleitet.
  */
-export type Status = 'neu' | 'offerte' | 'bestellt' | 'erledigt' | 'geloescht'
-const STATUS: Status[] = ['neu', 'offerte', 'bestellt', 'erledigt', 'geloescht']
+export type Status = 'neu' | 'offeriert' | 'zugesagt' | 'abgesagt'
+const STATUS: Status[] = ['neu', 'offeriert', 'zugesagt', 'abgesagt']
+
+/**
+ * Alte Statuswerte auf die neuen abbilden – beim LESEN, nicht in einer
+ * Wanderung.
+ *
+ * Gespeicherte Bestellungen tragen noch "offerte", "bestellt", "erledigt"
+ * oder "geloescht". Eine Datenwanderung waere ein einmaliges Skript, das
+ * genau dann laeuft, wenn niemand hinschaut, und bei einem Fehler die
+ * einzige Kopie der Bestellungen kaputt macht. Diese Abbildung dagegen ist
+ * jederzeit wiederholbar und kostet nichts.
+ *
+ * "bestellt" wird zu "zugesagt": Dass beim Lieferanten bestellt ist, steht
+ * ohnehin in der Runde, und die zieht die Bestellung von dort an die
+ * richtige Stelle. "erledigt" hiess ausgeliefert UND bezahlt – also beide
+ * Haken, mit dem letzten Aenderungszeitpunkt als bestem verfuegbarem Datum.
+ */
+export function vereinheitlichen(b: Bestellung): Bestellung {
+  const alt = b.status as string
+  if (STATUS.includes(alt as Status)) return b
+  if (alt === 'offerte') return { ...b, status: 'offeriert' }
+  if (alt === 'bestellt') return { ...b, status: 'zugesagt' }
+  if (alt === 'geloescht') return { ...b, status: 'abgesagt' }
+  if (alt === 'erledigt') {
+    return {
+      ...b,
+      status: 'zugesagt',
+      ausgeliefertAm: b.ausgeliefertAm ?? b.geaendert,
+      bezahltAm: b.bezahltAm ?? b.geaendert,
+    }
+  }
+  return { ...b, status: 'neu' }
+}
 
 /**
  * Woher der Eintrag kam. Die Seite legt immer "web" an; alles andere traegt
@@ -106,6 +137,9 @@ interface Bestellung {
   ausgemessenAm?: string
   /** Gesetzt, sobald die Offerte raus ist. */
   offerteAm?: string
+  /** Uebergabe und Zahlung. Beide gesetzt heisst abgeschlossen. */
+  ausgeliefertAm?: string
+  bezahltAm?: string
   /** Interne Notiz. Sieht die Kundschaft nie. */
   notiz?: string
   /**
@@ -213,7 +247,21 @@ function ausRohdaten(roh: Record<string, unknown>, vonHand = false): Bestellung 
   if (!email && !(vonHand && telefon)) return null
 
   const jetzt = new Date().toISOString()
-  const status = vonHand && STATUS.includes(roh.status as Status) ? (roh.status as Status) : 'neu'
+  /*
+   * Der Startpunkt haengt an der Art.
+   *
+   * Eine Bestellung aus dem Warenkorb ist bereits zugesagt: Der Kunde hat an
+   * der Kasse zugesagt, der Preis stand im Katalog, und die Bestaetigung geht
+   * automatisch raus. Sie braucht keine Offerte und wartet auf nichts – sie
+   * wartet nur darauf, beim Lieferanten bestellt zu werden. Stuende sie unter
+   * "neu", muesste jemand sie jeden Tag von Hand weiterschieben, ohne dass
+   * dabei etwas entschieden wird.
+   *
+   * Eine Sondermass-Anfrage dagegen ist "neu": Da ist noch nichts zugesagt,
+   * nicht einmal ein Preis.
+   */
+  const startStatus: Status = art === 'bestellung' ? 'zugesagt' : 'neu'
+  const status = vonHand && STATUS.includes(roh.status as Status) ? (roh.status as Status) : startStatus
   const quelle = vonHand && QUELLEN.includes(roh.quelle as Quelle) ? (roh.quelle as Quelle) : 'web'
   const netze = positionen(roh.positionen)
   const montageChf = zahl(roh.montageChf)
@@ -358,7 +406,7 @@ async function auflisten(req: VercelRequest, res: VercelResponse) {
   const liste: Bestellung[] = []
   for (const wert of Object.values(alle)) {
     try {
-      liste.push(JSON.parse(wert) as Bestellung)
+      liste.push(vereinheitlichen(JSON.parse(wert) as Bestellung))
     } catch {
       // Eine kaputte Zeile darf nicht die ganze Tabelle unbrauchbar machen.
     }
@@ -411,7 +459,7 @@ async function aendern(req: VercelRequest, res: VercelResponse) {
   const vorhanden = await hGet(TABELLE, id)
   if (!vorhanden) return res.status(404).json({ error: 'Bestellung nicht gefunden.' })
 
-  const bestellung = JSON.parse(vorhanden) as Bestellung
+  const bestellung = vereinheitlichen(JSON.parse(vorhanden) as Bestellung)
   let geaendert = false
 
   if (koerper.status !== undefined) {
@@ -435,6 +483,25 @@ async function aendern(req: VercelRequest, res: VercelResponse) {
   }
   if (koerper.offerteVersendet !== undefined) {
     bestellung.offerteAm = koerper.offerteVersendet === true ? new Date().toISOString() : undefined
+    geaendert = true
+  }
+
+  /*
+   * Uebergabe und Zahlung. Auch hier Zeitpunkte statt Ja/Nein, aus demselben
+   * Grund – und weil eine Rentabilitaetsrechnung spaeter wissen will, wie
+   * lange zwischen Bestellung und Geld lag.
+   *
+   * "bezahlt" wird hier von Hand gesetzt, fuer die Uebergabe an der Tuer.
+   * Die Onlinezahlung traegt sich in `bezahlung` selbst ein; das darf von
+   * hier aus niemand anfassen, denn was Stripe abgebucht hat, entscheidet
+   * nicht der Adminbereich.
+   */
+  if (koerper.ausgeliefert !== undefined) {
+    bestellung.ausgeliefertAm = koerper.ausgeliefert === true ? new Date().toISOString() : undefined
+    geaendert = true
+  }
+  if (koerper.bezahlt !== undefined) {
+    bestellung.bezahltAm = koerper.bezahlt === true ? new Date().toISOString() : undefined
     geaendert = true
   }
 

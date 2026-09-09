@@ -60,6 +60,17 @@ globalThis.fetch = async (_url, optionen) =>
   })
 
 const { default: handler } = await import('../api/bestellungen.ts')
+const { TABELLE_BESTELLUNGEN } = await import('../api/_speicher.ts')
+
+/**
+ * Direkter Griff in den gespeicherten Datensatz. Nur fuer die Faelle, in
+ * denen genau das geprueft wird, was NICHT ueber die API hineinkommt – etwa
+ * alte Statuswerte aus der Zeit vor dieser Fassung.
+ */
+const gespeichert = {
+  lies: (id) => JSON.parse(tabellen.get(TABELLE_BESTELLUNGEN).get(id)),
+  schreib: (id, wert) => tabellen.get(TABELLE_BESTELLUNGEN).set(id, JSON.stringify(wert)),
+}
 
 /* --- Attrappen fuer Anfrage und Antwort ------------------------------------ */
 
@@ -121,7 +132,7 @@ await pruefe('Anmeldung mit falschem Passwort scheitert', async () => {
 
 /* --- Der offene Weg: das Bestellformular ------------------------------------ */
 
-await pruefe('Bestellung von der Seite landet als "neu" und Quelle "web"', async () => {
+await pruefe('Bestellung von der Seite landet als "zugesagt" und Quelle "web"', async () => {
   const a = await ruf({
     method: 'POST',
     body: { art: 'bestellung', referenz: 'PF-1', kunde, positionen: [], summeChf: 130 },
@@ -129,19 +140,31 @@ await pruefe('Bestellung von der Seite landet als "neu" und Quelle "web"', async
   assert.equal(a.code, 201)
   const liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
   const b = liste.find((x) => x.referenz === 'PF-1')
-  assert.equal(b.status, 'neu')
+  // An der Kasse ist zugesagt worden – sie wartet nur noch auf den Lieferanten.
+  assert.equal(b.status, 'zugesagt')
   assert.equal(b.quelle, 'web')
 })
 
 await pruefe('Der offene Weg darf Status und Quelle NICHT setzen', async () => {
   await ruf({
     method: 'POST',
-    body: { art: 'bestellung', referenz: 'PF-2', kunde, status: 'erledigt', quelle: 'instagram', summeChf: 0 },
+    body: { art: 'bestellung', referenz: 'PF-2', kunde, status: 'zugesagt', quelle: 'instagram', summeChf: 0 },
   })
   const liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
   const b = liste.find((x) => x.referenz === 'PF-2')
-  assert.equal(b.status, 'neu', 'Status aus dem Koerper wurde uebernommen')
+  // "zugesagt" ist der Startpunkt einer Warenkorbbestellung, nicht der Wert
+  // aus dem Koerper – der haette "erledigt" gesagt.
+  assert.equal(b.status, 'zugesagt', 'Status aus dem Koerper wurde uebernommen')
   assert.equal(b.quelle, 'web', 'Quelle aus dem Koerper wurde uebernommen')
+})
+
+await pruefe('Eine Sondermass-Anfrage von der Seite bleibt "neu"', async () => {
+  await ruf({
+    method: 'POST',
+    body: { art: 'anfrage', referenz: 'H-1', kunde, summeChf: 0 },
+  })
+  const liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
+  assert.equal(liste.find((x) => x.referenz === 'H-1').status, 'neu')
 })
 
 await pruefe('Der offene Weg verlangt eine E-Mail', async () => {
@@ -174,7 +197,7 @@ await pruefe('Erfassen: Telefon allein genuegt, Status und Quelle greifen', asyn
     body: {
       art: 'anfrage',
       quelle: 'whatsapp',
-      status: 'offerte',
+      status: 'offeriert',
       referenz: 'H-ABCD',
       kunde: { name: 'Nachbarin', telefon: '079 222 22 22' },
       positionen: [
@@ -188,7 +211,7 @@ await pruefe('Erfassen: Telefon allein genuegt, Status und Quelle greifen', asyn
   })
   assert.equal(a.code, 201)
   vonHand = a.daten.bestellung
-  assert.equal(vonHand.status, 'offerte')
+  assert.equal(vonHand.status, 'offeriert')
   assert.equal(vonHand.quelle, 'whatsapp')
   assert.equal(vonHand.kunde.email, '')
 })
@@ -210,10 +233,47 @@ await pruefe('Erfassen ohne Namen wird abgewiesen', async () => {
 
 /* --- Aendern ---------------------------------------------------------------- */
 
-await pruefe('Status laesst sich auf "offerte" setzen', async () => {
-  const a = await ruf({ method: 'PATCH', cookie, body: { id: vonHand.id, status: 'offerte' } })
+await pruefe('Status laesst sich auf "offeriert" setzen', async () => {
+  const a = await ruf({ method: 'PATCH', cookie, body: { id: vonHand.id, status: 'offeriert' } })
   assert.equal(a.code, 200)
-  assert.equal(a.daten.bestellung.status, 'offerte')
+  assert.equal(a.daten.bestellung.status, 'offeriert')
+})
+
+await pruefe('Die alten Statuswerte werden beim Lesen abgebildet', async () => {
+  // Gespeicherte Bestellungen tragen noch das alte Vokabular. Sie duerfen
+  // nicht als "unbekannt" durchfallen, sonst verschwinden sie aus der Liste.
+  const roh = gespeichert.lies(vonHand.id)
+  for (const [alt, neu] of [['offerte', 'offeriert'], ['bestellt', 'zugesagt'], ['geloescht', 'abgesagt']]) {
+    gespeichert.schreib(vonHand.id, { ...roh, status: alt })
+    const liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
+    assert.equal(liste.find((b) => b.id === vonHand.id).status, neu, alt)
+  }
+  gespeichert.schreib(vonHand.id, roh)
+})
+
+await pruefe('"erledigt" wird zu beiden Haken', async () => {
+  const roh = gespeichert.lies(vonHand.id)
+  gespeichert.schreib(vonHand.id, { ...roh, status: 'erledigt' })
+  const b = (await ruf({ method: 'GET', cookie })).daten.bestellungen.find((x) => x.id === vonHand.id)
+  assert.equal(b.status, 'zugesagt')
+  assert.equal(b.ausgeliefertAm, roh.geaendert)
+  assert.equal(b.bezahltAm, roh.geaendert)
+  gespeichert.schreib(vonHand.id, roh)
+})
+
+await pruefe('Uebergabe und Zahlung lassen sich getrennt haken', async () => {
+  let a = await ruf({ method: 'PATCH', cookie, body: { id: vonHand.id, ausgeliefert: true } })
+  assert.equal(a.code, 200)
+  assert.ok(a.daten.bestellung.ausgeliefertAm)
+  assert.equal(a.daten.bestellung.bezahltAm, undefined)
+
+  a = await ruf({ method: 'PATCH', cookie, body: { id: vonHand.id, bezahlt: true } })
+  assert.ok(a.daten.bestellung.bezahltAm)
+
+  // Und wieder zurueck – ein Fehlklick muss sich geraderuecken lassen.
+  a = await ruf({ method: 'PATCH', cookie, body: { id: vonHand.id, ausgeliefert: false, bezahlt: false } })
+  assert.equal(a.daten.bestellung.ausgeliefertAm, undefined)
+  assert.equal(a.daten.bestellung.bezahltAm, undefined)
 })
 
 await pruefe('Unbekannter Status wird abgewiesen', async () => {
@@ -313,7 +373,7 @@ await pruefe('Eine leere Aenderung wird abgewiesen', async () => {
 })
 
 await pruefe('Aendern ohne Anmeldung wird abgewiesen', async () => {
-  assert.equal((await ruf({ method: 'PATCH', body: { id: vonHand.id, status: 'erledigt' } })).code, 401)
+  assert.equal((await ruf({ method: 'PATCH', body: { id: vonHand.id, status: 'zugesagt' } })).code, 401)
 })
 
 /* --- Der wichtigste Test: der Zahlungsstand ist von hier nicht setzbar ------ */
@@ -324,7 +384,7 @@ await pruefe('bezahlung laesst sich ueber PATCH nicht setzen', async () => {
     cookie,
     body: {
       id: vonHand.id,
-      status: 'bestellt',
+      status: 'zugesagt',
       bezahlung: { status: 'bezahlt', betragChf: 475, zeitpunkt: new Date().toISOString(), sitzung: 'cs_gefaelscht' },
     },
   })

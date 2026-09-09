@@ -9,7 +9,6 @@ import {
   hGetAll,
   hSet,
   SpeicherFehlt,
-  TABELLE_BESTELLUNGEN,
   TABELLE_LIEFERUNGEN,
 } from './_speicher.js'
 import { angemeldet } from './_sitzung.js'
@@ -274,37 +273,13 @@ async function aendern(req: VercelRequest, res: VercelResponse) {
   lieferung.geaendert = new Date().toISOString()
   await hSet(TABELLE, id, JSON.stringify(lieferung))
 
-  const mitgezogen = lieferung.status === 'bestellt' ? await bestellungenAufBestellt(lieferung.bestellungIds) : 0
-  return res.status(200).json({ ok: true, lieferung, mitgezogen })
-}
-
-/**
- * Setzt die Bestellungen der Runde auf "beim Lieferanten bestellt".
- *
- * Bewusst ohne Rueckweg: Faellt die Runde zurueck auf "angefragt", bleiben
- * die Bestellungen, wo sie sind. Eine automatische Ruecknahme koennte einen
- * Status ueberschreiben, den jemand inzwischen von Hand weitergesetzt hat –
- * etwa auf "erledigt", weil schon ausgeliefert wurde.
- */
-async function bestellungenAufBestellt(ids: string[]): Promise<number> {
-  let gezaehlt = 0
-  for (const id of ids) {
-    const roh = await hGet(TABELLE_BESTELLUNGEN, id)
-    if (!roh) continue
-    try {
-      const bestellung = JSON.parse(roh) as { status: string; geaendert: string }
-      if (bestellung.status === 'bestellt' || bestellung.status === 'erledigt' || bestellung.status === 'geloescht') {
-        continue
-      }
-      bestellung.status = 'bestellt'
-      bestellung.geaendert = new Date().toISOString()
-      await hSet(TABELLE_BESTELLUNGEN, id, JSON.stringify(bestellung))
-      gezaehlt++
-    } catch {
-      // Eine kaputte Bestellung haelt die Runde nicht auf.
-    }
-  }
-  return gezaehlt
+  /*
+   * Frueher zog der Uebergang nach "bestellt" die Bestellungen auf denselben
+   * Status. Das ist weg: Wo die Ware steht, steht in der Runde, und die
+   * Uebersicht liest es dort. Ein zweiter Schreibweg auf denselben Sachverhalt
+   * war genau die Quelle, aus der die widerspruechlichen Staende kamen.
+   */
+  return res.status(200).json({ ok: true, lieferung })
 }
 
 async function entfernen(req: VercelRequest, res: VercelResponse) {

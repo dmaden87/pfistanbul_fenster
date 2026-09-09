@@ -127,16 +127,28 @@ export type SubmissionState =
 /* --- Adminbereich ----------------------------------------------------------- */
 
 /**
- * Wo eine Bestellung in der Abwicklung steht.
+ * Wo die KUNDSCHAFT steht – nicht, wo die Ware steht.
  *
- * "offerte" liegt zwischen Eingang und Bestellung beim Lieferanten. Der
- * Schritt kam dazu, weil Sondermasse haeufiger sind als erwartet: Dort wird
- * zuerst ausgemessen und offeriert, und zwischen Offerte und Zusage vergehen
- * Tage. Ohne eigenen Abschnitt sass das entweder faelschlich unter "neu"
- * (nichts unternommen, stimmt nicht) oder unter "bestellt" (beim Lieferanten,
- * stimmt auch nicht).
+ * Das ist die eine Haelfte der Wahrheit. Die andere steckt in der
+ * Lieferrunde: ob angefragt, bestellt oder eingetroffen. Frueher sollte ein
+ * einziger Status beides sagen, und genau daran ist die Uebersicht
+ * gescheitert – "beim Lieferanten bestellt" war eine Aussage ueber die Ware,
+ * "Offerte" eine ueber den Kunden, und beide standen in derselben Spalte.
+ *
+ * Deshalb hier nur noch vier Werte, und keiner davon erwaehnt den
+ * Lieferanten. Was mit der Ware ist, leitet `arbeitsschritt()` aus der Runde
+ * ab; von Hand gesetzt wird es nie. Zwei Wahrheiten ueber dieselbe Sache
+ * gehen irgendwann auseinander.
+ *
+ * Eine Bestellung aus dem Warenkorb startet bei "zugesagt": Der Kunde hat an
+ * der Kasse zugesagt, der Preis stand im Katalog, eine Offerte gibt es nicht.
+ * Nur das Sondermass laeuft die ganze Leiter.
+ *
+ * "abgesagt" hiess frueher "geloescht" und war damit missverstaendlich: Es
+ * loescht nichts, es haelt fest, dass daraus nichts wurde. Endgueltig
+ * entfernt wird ueber DELETE, und das ist etwas anderes.
  */
-export type BestellStatus = 'neu' | 'offerte' | 'bestellt' | 'erledigt' | 'geloescht'
+export type BestellStatus = 'neu' | 'offeriert' | 'zugesagt' | 'abgesagt'
 
 /**
  * Woher der Eintrag kam. Die Seite legt immer "web" an; alles andere traegt
@@ -249,6 +261,19 @@ export interface Bestellung {
   ausgemessenAm?: string
   /** Gesetzt, sobald die Offerte raus ist. ISO-Zeitpunkt. */
   offerteAm?: string
+  /**
+   * Die beiden Haken am Ende. Bewusst zwei Zeitpunkte und kein weiterer
+   * Status: Uebergabe und Zahlung sind unabhaengig voneinander. Bei
+   * Barzahlung fallen sie zusammen, bei einer Onlinezahlung war laengst
+   * bezahlt, und bei einer Ratenloesung liegen Wochen dazwischen.
+   *
+   * "Abgeschlossen" ist deshalb kein Zustand, den jemand setzt, sondern die
+   * Aussage, dass beide gesetzt sind. Damit faellt eine uebergebene
+   * Bestellung sofort aus der Ausliefer-Liste, taucht aber unter "Zahlung
+   * offen" auf, bis das Geld da ist.
+   */
+  ausgeliefertAm?: string
+  bezahltAm?: string
   /** Interne Notiz aus dem Adminbereich. Sieht die Kundschaft nie. */
   notiz?: string
 }
@@ -274,6 +299,12 @@ export interface BestellAenderung {
   /** true setzt den Zeitpunkt auf jetzt, false loescht ihn. */
   ausgemessen?: boolean
   offerteVersendet?: boolean
+  ausgeliefert?: boolean
+  /**
+   * Die Zahlung bei der Uebergabe. Nicht zu verwechseln mit `bezahlung`: Das
+   * ist Stripes Meldung und bleibt von hier aus unantastbar.
+   */
+  bezahlt?: boolean
   positionen?: BestellPosition[]
   montage?: boolean
   montageChf?: number

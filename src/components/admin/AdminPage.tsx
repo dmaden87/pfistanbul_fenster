@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { AdminStatus, Bestellung, BestellAenderung, BestellPosition, BestellStatus, Lieferung } from '../../types'
+import type { AdminStatus, Bestellung, BestellAenderung, BestellPosition, Lieferung } from '../../types'
+import { BLOCK_VON, SCHRITTE, nachSchritt, rundeFuer, type Arbeitsschritt, type Block } from '../../lib/arbeitsschritt'
 import type { AdminTexte } from './sprache'
-import { abmelden, adminStatus, aendereBestellung, anmelden, entferneBestellung, ladeBestellungen, setzeStatus } from '../../lib/adminApi'
+import { abmelden, adminStatus, aendereBestellung, anmelden, entferneBestellung, ladeBestellungen } from '../../lib/adminApi'
 import { shopConfig } from '../../data/shopConfig'
 import { BestellKarte } from './BestellKarte'
 import { LieferungSeite } from './LieferungSeite'
@@ -26,14 +27,45 @@ function standTexte(t: AdminTexte): Record<Lieferung['status'], string> {
   }
 }
 
-/** Die Abschnitte der Arbeitsliste, in der Reihenfolge des Ablaufs. */
-function sektionen(t: AdminTexte): { status: BestellStatus[]; titel: string; erklaerung: string }[] {
-  return [
-    { status: ['neu'], titel: t.sektionNeu, erklaerung: t.sektionNeuSatz },
-    { status: ['offerte'], titel: t.sektionOfferte, erklaerung: t.sektionOfferteSatz },
-    { status: ['bestellt'], titel: t.sektionBestellt, erklaerung: t.sektionBestelltSatz },
-    { status: ['erledigt', 'geloescht'], titel: t.sektionAbgeschlossen, erklaerung: t.sektionAbgeschlossenSatz },
-  ]
+/**
+ * Die Arbeitsliste, gegliedert nach WESSEN PROBLEM etwas gerade ist.
+ *
+ * Frueher standen hier vier Abschnitte nach Status – "neu", "Offerte",
+ * "beim Lieferanten bestellt", "abgeschlossen". Das Problem war nicht die
+ * Zahl, sondern dass sie zwei verschiedene Fragen vermischten: Wo steht der
+ * Kunde, und wo steht die Ware? Eine Bestellung, fuer die gerade eine
+ * Preisanfrage bei Bora lief, stand unverdrossen unter "neu eingegangen".
+ *
+ * Jetzt entscheidet `arbeitsschritt()`, und die Bloecke sagen, wer am Zug
+ * ist. Der erste ist die Arbeitsliste; die beiden mittleren sind Wartezimmer
+ * und deshalb zugeklappt. Wer nichts tun kann, soll auch nichts sehen
+ * muessen – aber wissen, dass es laeuft.
+ */
+const BLOCK_FOLGE: Block[] = ['beiDir', 'beimLieferanten', 'beimKunden', 'archiv']
+
+function blockTexte(t: AdminTexte): Record<Block, { titel: string; satz: string }> {
+  return {
+    beiDir: { titel: t.blockBeiDir, satz: t.blockBeiDirSatz },
+    beimLieferanten: { titel: t.blockBeimLieferanten, satz: t.blockBeimLieferantenSatz },
+    beimKunden: { titel: t.blockBeimKunden, satz: t.blockBeimKundenSatz },
+    archiv: { titel: t.blockArchiv, satz: t.blockArchivSatz },
+  }
+}
+
+/** Titel und erklaerender Satz je Abschnitt. Ohne Satz bleibt er weg. */
+function schrittTexte(t: AdminTexte): Record<Arbeitsschritt, { titel: string; satz?: string }> {
+  return {
+    neu: { titel: t.schrittNeuTitel, satz: t.schrittNeuSatz },
+    offerteRechnen: { titel: t.schrittOfferteRechnenTitel, satz: t.schrittOfferteRechnenSatz },
+    bereitZuBestellen: { titel: t.schrittBereitTitel, satz: t.schrittBereitSatz },
+    ausliefern: { titel: t.schrittAusliefernTitel, satz: t.schrittAusliefernSatz },
+    zahlungOffen: { titel: t.schrittZahlungOffenTitel, satz: t.schrittZahlungOffenSatz },
+    anfrageLaeuft: { titel: t.schrittAnfrageLaeuftTitel },
+    beimLieferanten: { titel: t.schrittBeimLieferantenTitel },
+    offerteDraussen: { titel: t.schrittOfferteDraussenTitel },
+    abgeschlossen: { titel: t.schrittAbgeschlossenTitel },
+    abgesagt: { titel: t.schrittAbgesagtTitel },
+  }
 }
 
 /**
@@ -65,6 +97,11 @@ function AdminMaske({ onBack }: AdminPageProps) {
   const [offeneRunde, setOffeneRunde] = useState<string | null>(null)
   /** Welche Bestellung gerade als Offerte angezeigt wird. */
   const [offeneOfferte, setOffeneOfferte] = useState<string | null>(null)
+  /*
+   * Die Wartezimmer starten zugeklappt: Dort ist nichts zu tun, und der Platz
+   * gehoert der Arbeitsliste. Das Archiv ebenso.
+   */
+  const [zugeklappt, setZugeklappt] = useState<Block[]>(['beimLieferanten', 'beimKunden', 'archiv'])
   const { sprache, setzeSprache, t } = useSprache()
 
   const laden = useCallback(async () => {
@@ -108,18 +145,6 @@ function AdminMaske({ onBack }: AdminPageProps) {
       setFehler(f instanceof Error ? f.message : 'Anmeldung fehlgeschlagen.')
     } finally {
       setSendet(false)
-    }
-  }
-
-  const handleStatus = async (id: string, neu: BestellStatus) => {
-    // Erst lokal umstellen, damit der Klick sofort etwas tut; bei einem Fehler
-    // wird die Liste ohnehin frisch geladen.
-    setBestellungen((liste) => liste.map((b) => (b.id === id ? { ...b, status: neu } : b)))
-    try {
-      await setzeStatus(id, neu)
-    } catch (f) {
-      setFehler(f instanceof Error ? f.message : 'Der Status konnte nicht geändert werden.')
-      await laden()
     }
   }
 
@@ -219,8 +244,16 @@ function AdminMaske({ onBack }: AdminPageProps) {
     )
   }
 
-  const offen = bestellungen.filter((b) => b.status === 'neu').length
-  const inOfferte = bestellungen.filter((b) => b.status === 'offerte').length
+  /*
+   * Einmal gruppieren, nicht einmal je Abschnitt. Die Zuordnung liest die
+   * Runden mit, und das je Karte zu wiederholen waere bei zehn Runden zehnmal
+   * dieselbe Suche.
+   */
+  const gruppen = nachSchritt(bestellungen, lieferungen)
+  const zuTun = (['neu', 'offerteRechnen', 'bereitZuBestellen', 'ausliefern', 'zahlungOffen'] as const).reduce(
+    (n, sch) => n + gruppen.get(sch)!.length,
+    0,
+  )
   const gewaehlte = bestellungen.filter((b) => runde.includes(b.id))
 
   const waehle = (id: string, an: boolean) =>
@@ -229,9 +262,12 @@ function AdminMaske({ onBack }: AdminPageProps) {
   const handleLieferung = async (id: string, aenderung: Partial<Lieferung>) => {
     const { lieferung } = await lieferungAendern(id, aenderung)
     setLieferungen((liste) => liste.map((l) => (l.id === id ? lieferung : l)))
-    // Der Uebergang nach "bestellt" zieht die Bestellungen mit – die Liste
-    // stimmt danach nicht mehr, also frisch holen.
-    if (aenderung.status === 'bestellt') setBestellungen(await ladeBestellungen())
+    /*
+     * Kein Nachladen der Bestellungen mehr. Frueher zog der Uebergang nach
+     * "bestellt" ihren Status mit, und die Liste stimmte danach nicht. Jetzt
+     * steht der Stand der Ware nur noch in der Runde – die hier gerade neu
+     * gesetzt wurde, womit die Abschnitte von selbst stimmen.
+     */
   }
 
   /**
@@ -291,7 +327,7 @@ function AdminMaske({ onBack }: AdminPageProps) {
           <div>
             <h1>{t.bestellungen}</h1>
             <p className="admin__zusammenfassung">
-              {bestellungen.length} {t.insgesamt}, {t.davonNeu} {offen} {t.neuKlein} · {inOfferte} {t.inOfferte}
+              {bestellungen.length} {t.insgesamt} · {zuTun} {t.zuTun}
             </p>
           </div>
           <div className="admin__werkzeuge">
@@ -387,14 +423,17 @@ function AdminMaske({ onBack }: AdminPageProps) {
           />
         )}
 
+        {/*
+          Die Runden stehen oben, aber klein. Sie sind Werkzeug und nicht
+          Tagesgeschaeft: Der erste Bildschirm gehoert der Arbeitsliste. Der
+          erklaerende Satz faellt weg, sobald Runden da sind – dann erklaeren
+          sich die Zeilen selbst.
+        */}
         {lieferungen.length > 0 && (
-          <section className="admin__sektion">
-            <div className="admin__sektion-kopf">
-              <h2>
-                {t.lieferrunden} <span className="admin__zahl">{lieferungen.length}</span>
-              </h2>
-              <p>{t.lieferrundenSatz}</p>
-            </div>
+          <section className="admin__runden-block">
+            <h2>
+              {t.lieferrunden} <span className="admin__zahl">{lieferungen.length}</span>
+            </h2>
             <ul className="admin__runden">
               {lieferungen.map((l) => (
                 <li key={l.id}>
@@ -412,37 +451,65 @@ function AdminMaske({ onBack }: AdminPageProps) {
           </section>
         )}
 
-        {sektionen(t).map((sektion) => {
-          const treffer = bestellungen.filter((b) => sektion.status.includes(b.status))
-          return (
-            <section className="admin__sektion" key={sektion.titel}>
-              <div className="admin__sektion-kopf">
-                <h2>
-                  {sektion.titel} <span className="admin__zahl">{treffer.length}</span>
-                </h2>
-                <p>{sektion.erklaerung}</p>
-              </div>
+        {BLOCK_FOLGE.map((block) => {
+          const schritte = SCHRITTE.filter((sch) => BLOCK_VON[sch] === block)
+          const anzahl = schritte.reduce((n, sch) => n + gruppen.get(sch)!.length, 0)
+          const texte = blockTexte(t)[block]
+          const zu = zugeklappt.includes(block)
 
-              {treffer.length === 0 ? (
-                <p className="admin__leer">{t.nichtsHier}</p>
-              ) : (
-                <ul className="admin__karten">
-                  {treffer.map((b) => (
-                    <BestellKarte
-                      key={b.id}
-                      bestellung={b}
-                      montageProNetz={shopConfig.montageChf}
-                      onStatus={handleStatus}
-                      onAendern={handleAendern}
-                      onLoeschen={handleLoeschen}
-                      onOfferte={setOffeneOfferte}
-                      gewaehlt={runde.includes(b.id)}
-                      // Abgeschlossenes gehoert in keine Runde mehr.
-                      onWahl={b.status === 'erledigt' || b.status === 'geloescht' ? undefined : waehle}
-                    />
-                  ))}
-                </ul>
-              )}
+          return (
+            <section className={`admin__block admin__block--${block}`} key={block}>
+              <button
+                type="button"
+                className="admin__block-kopf"
+                aria-expanded={!zu}
+                onClick={() =>
+                  setZugeklappt((liste) => (zu ? liste.filter((x) => x !== block) : [...liste, block]))
+                }
+              >
+                <h2>
+                  {texte.titel} <span className="admin__zahl">{anzahl}</span>
+                </h2>
+                <p>{texte.satz}</p>
+              </button>
+
+              {!zu &&
+                schritte.map((sch) => {
+                  const treffer = gruppen.get(sch)!
+                  // Leere Abschnitte innerhalb eines Blocks bleiben weg. Eine
+                  // Ueberschrift ueber nichts ist nur Weg zum naechsten.
+                  if (treffer.length === 0) return null
+                  const st = schrittTexte(t)[sch]
+                  return (
+                    <div className="admin__sektion" key={sch}>
+                      <div className="admin__sektion-kopf">
+                        <h3>
+                          {st.titel} <span className="admin__zahl">{treffer.length}</span>
+                        </h3>
+                        {st.satz && <p>{st.satz}</p>}
+                      </div>
+                      <ul className="admin__karten">
+                        {treffer.map((b) => (
+                          <BestellKarte
+                            key={b.id}
+                            bestellung={b}
+                            schritt={sch}
+                            runde={rundeFuer(b, lieferungen)}
+                            montageProNetz={shopConfig.montageChf}
+                            onAendern={handleAendern}
+                            onLoeschen={handleLoeschen}
+                            onOfferte={setOffeneOfferte}
+                            gewaehlt={runde.includes(b.id)}
+                            // Abgeschlossenes gehoert in keine Runde mehr.
+                            onWahl={block === 'archiv' ? undefined : waehle}
+                          />
+                        ))}
+                      </ul>
+                    </div>
+                  )
+                })}
+
+              {!zu && anzahl === 0 && <p className="admin__leer">{t.nichtsHier}</p>}
             </section>
           )
         })}
