@@ -161,25 +161,34 @@ export const PREISHINWEIS: Beschriftung = {
 /**
  * Woraus das ungefaehre Packmass gerechnet wird.
  *
- * ACHTUNG, DAS SIND ANNAHMEN. Wie dick ein flach gepacktes Plissee wirklich
- * auftraegt, weiss der Produzent und nicht wir. Die Zahlen hier sind eine
- * begruendete Schaetzung, damit auf dem Blatt ueberhaupt eine Groessenordnung
- * steht – zum Abschaetzen der Fracht, nicht zum Buchen. Deshalb steht auf dem
- * Dokument "ca." davor.
+ * WICHTIG, WEIL ES DAS MODELL BESTIMMT: Die Plissees kommen zerlegt. Was
+ * geliefert wird, sind die Rahmenstangen – zusammengebaut, aber nicht
+ * zusammengesteckt. Das Netz steckt bereits im Profil und traegt nichts
+ * zusaetzlich auf. Verpackt wird nicht in Kartons, sondern gestapelt,
+ * eingewickelt und mit Klebeband gesichert.
  *
- * Sobald die erste Lieferung da ist: nachmessen und diese zwei Zahlen
- * korrigieren. Sie stehen absichtlich an einer einzigen Stelle.
+ * Ein Paket ist also ein BUENDEL STANGEN und kein Stapel Platten. Damit
+ * haengt die Laenge am laengsten Einzelstueck und der Querschnitt an der
+ * ANZAHL der Stangen – nicht an der Breite der Fenster. Ein frueheres Modell
+ * rechnete flach gestapelte Platten und kam auf einen viel zu voluminoesen
+ * Karton.
+ *
+ * ACHTUNG, DER QUERSCHNITT IST GESCHAETZT. Wie dick die Profile wirklich
+ * sind, weiss der Produzent. Angesetzt ist, was ein zerlegtes Plissee im
+ * Buendel ungefaehr belegt: Kassettenprofil mit eingelegtem Netz, Laufprofil
+ * und zwei Fuehrungsschienen. Nach der ersten Lieferung nachmessen und diese
+ * zwei Zahlen korrigieren – sie stehen absichtlich an einer einzigen Stelle.
  */
 export const PACKMASS = {
-  /** Wie hoch ein flach liegendes Plissee auftraegt, in cm. */
-  dickeJePlisseeCm: 4,
-  /** Zuschlag fuer Karton und Polsterung, in cm – einmal je Richtung. */
-  zuschlagCm: 4,
+  /** Querschnitt, den ein zerlegtes Plissee im Buendel belegt, in cm². */
+  querschnittJePlisseeCm2: 35,
+  /** Zuschlag fuer Folie und Klebeband, in cm. */
+  zuschlagCm: 2,
 } as const
 
 export const PACKMASS_TITEL: Beschriftung = {
-  deutsch: 'Packmass ca.',
-  tuerkisch: 'Yaklaşık paket ölçüsü',
+  deutsch: 'Packmass ca. (indikativ, theoretisch gerechnet)',
+  tuerkisch: 'Yaklaşık paket ölçüsü (teorik hesap)',
 }
 
 /**
@@ -194,7 +203,17 @@ export const PACKMASS_TITEL: Beschriftung = {
  * nicht "yazınız".
  */
 export const TEXTE = {
-  preisanfrage: { deutsch: 'Preisanfrage', tuerkisch: 'Fiyat Teklifi Talebi' },
+  /*
+   * Ein Titel fuer beide Zustaende: Dasselbe Blatt geht als Anfrage raus und
+   * wird spaeter zur Bestellung.
+   *
+   * Der Zustand steht trotzdem darunter, und zwar deutlich. Ob eine Zahl
+   * erfragt oder ein Auftrag erteilt wird, ist der Unterschied zwischen "was
+   * kostet das" und "bitte anfangen" – das darf nicht am Dateinamen haengen.
+   */
+  formular: { deutsch: 'Anfrage- und Bestellformular', tuerkisch: 'Talep ve Sipariş Formu' },
+  zustand: { deutsch: 'Stand', tuerkisch: 'Durum' },
+  preisanfrage: { deutsch: 'Preisanfrage', tuerkisch: 'Fiyat teklifi talebi' },
   bestellung: { deutsch: 'Bestellung', tuerkisch: 'Sipariş' },
   terminOffen: { deutsch: 'Ungefährer Liefertermin', tuerkisch: 'Yaklaşık teslim tarihi' },
   terminGesetzt: { deutsch: 'Erwarteter Liefertermin', tuerkisch: 'Beklenen teslim tarihi' },

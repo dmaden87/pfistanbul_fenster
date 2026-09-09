@@ -86,24 +86,22 @@
 
 .blatt__kopf {
   display: flex;
-  align-items: flex-end;
+  align-items: baseline;
   justify-content: space-between;
   gap: var(--space-5);
   padding-bottom: 4mm;
   border-bottom: 2px solid #111111;
 }
 
-/* Der Absender als Anschriftenblock, wie auf einem Brief. */
-.blatt__absender {
-  display: grid;
-  gap: 0.3mm;
-  font-style: normal;
-  font-size: 9.5pt;
-  line-height: 1.3;
+.blatt__marke {
+  font-size: 13pt;
+  font-weight: 700;
 }
 
-.blatt__absender strong {
-  font-size: 12pt;
+/* Der Zustand: erfragt oder erteilt. Steht direkt unter dem Titel. */
+.blatt__stand {
+  margin-top: 1mm;
+  font-size: 10pt;
 }
 
 .blatt__zeile {

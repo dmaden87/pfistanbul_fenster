@@ -42,8 +42,12 @@ export interface AuftragsBlock {
   /** Was auf das Paket geschrieben wird. Kurz, ohne Umlaute. */
   kennung: string
   anzahl: number
-  /** Ungefaehres Packmass in cm, laengste Seite zuerst. Fehlt ohne Masse. */
-  packmass?: { laengeCm: number; breiteCm: number; hoeheCm: number }
+  /**
+   * Ungefaehres Packmass in cm: die Laenge des Buendels und seine Seite. Das
+   * Buendel ist ungefaehr quadratisch im Querschnitt, deshalb nur zwei Zahlen.
+   * Fehlt, sobald einem Netz die Masse fehlen.
+   */
+  packmass?: { laengeCm: number; seiteCm: number }
 }
 
 /**
@@ -176,32 +180,34 @@ export function kennungFuer(b: Bestellung): string {
 /**
  * Was das Paket ungefaehr misst.
  *
- * Angenommen wird ein flacher Stapel: Jedes Plissee liegt mit der langen
- * Seite in der Laenge des Kartons, die Plissees liegen aufeinander. Der
- * Karton muss also so lang wie das laengste und so breit wie das breiteste
- * Stueck sein; die Hoehe waechst mit der Anzahl.
+ * Die Plissees kommen zerlegt: geliefert werden die Rahmenstangen, gestapelt,
+ * eingewickelt und mit Klebeband gesichert. Ein Paket ist damit ein BUENDEL
+ * und kein Karton.
  *
- * DAS IST EINE SCHAETZUNG und keine Frachtangabe – wie dick ein Plissee
- * wirklich auftraegt, weiss der Produzent. Die beiden Annahmen stehen in
- * PACKMASS und gehoeren nach der ersten Lieferung korrigiert.
+ * Daraus folgt die Rechnung. Die Laenge des Buendels ist die laengste einzelne
+ * Stange – also die laengste Seite des groessten Fensters. Der Querschnitt
+ * haengt an der ANZAHL der Plissees und nicht an ihrer Breite: Jedes bringt
+ * seine vier Profile mit, egal wie gross das Fenster ist. Angenommen wird ein
+ * ungefaehr quadratisches Buendel, daher die Wurzel.
+ *
+ * DAS IST EINE SCHAETZUNG und keine Frachtangabe. Der Querschnitt je Plissee
+ * steht in PACKMASS und gehoert nach der ersten Lieferung korrigiert.
  */
 export function packmass(netze: AuftragsNetz[]): AuftragsBlock['packmass'] {
-  let laengsteSeite = 0
-  let breitesteSeite = 0
+  let laengsteStange = 0
   let stueck = 0
 
   for (const netz of netze) {
     if (!netz.breiteCm || !netz.hoeheCm) return undefined
-    laengsteSeite = Math.max(laengsteSeite, netz.breiteCm, netz.hoeheCm)
-    breitesteSeite = Math.max(breitesteSeite, Math.min(netz.breiteCm, netz.hoeheCm))
+    laengsteStange = Math.max(laengsteStange, netz.breiteCm, netz.hoeheCm)
     stueck += netz.menge
   }
   if (stueck === 0) return undefined
 
+  const querschnitt = stueck * PACKMASS.querschnittJePlisseeCm2
   return {
-    laengeCm: Math.ceil(laengsteSeite + PACKMASS.zuschlagCm),
-    breiteCm: Math.ceil(breitesteSeite + PACKMASS.zuschlagCm),
-    hoeheCm: Math.ceil(stueck * PACKMASS.dickeJePlisseeCm + PACKMASS.zuschlagCm),
+    laengeCm: Math.ceil(laengsteStange + PACKMASS.zuschlagCm),
+    seiteCm: Math.ceil(Math.sqrt(querschnitt) + PACKMASS.zuschlagCm),
   }
 }
 

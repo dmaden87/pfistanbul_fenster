@@ -131,22 +131,26 @@ pruefe('Was in der Bestellung steht, gilt vor dem Katalog', () => {
   assert.equal(a.zeilen[0].breiteCm, 119)
 })
 
-pruefe('Das Packmass richtet jedes Plissee nach seiner langen Seite aus', () => {
-  // Ein Stueck 128.6 breit und 182.5 hoch liegt mit 182.5 in der Laenge.
+pruefe('Das Packmass nimmt die laengste einzelne Stange als Buendellaenge', () => {
+  // Zerlegt geliefert: Die laengste Stange ist die lange Seite des Fensters.
   const m = packmass([{ menge: 1, bezeichnung: 'x', breiteCm: 128.6, hoeheCm: 182.5 }])
   assert.equal(m.laengeCm, Math.ceil(182.5 + PACKMASS.zuschlagCm))
-  assert.equal(m.breiteCm, Math.ceil(128.6 + PACKMASS.zuschlagCm))
-  assert.equal(m.hoeheCm, Math.ceil(1 * PACKMASS.dickeJePlisseeCm + PACKMASS.zuschlagCm))
 })
 
-pruefe('Der Karton richtet sich nach dem groessten Stueck, die Hoehe nach der Anzahl', () => {
-  const m = packmass([
-    { menge: 2, bezeichnung: 'gross', breiteCm: 128.6, hoeheCm: 182.5 },
-    { menge: 1, bezeichnung: 'klein', breiteCm: 64, hoeheCm: 95.7 },
-  ])
-  assert.equal(m.laengeCm, Math.ceil(182.5 + PACKMASS.zuschlagCm), 'nicht nach dem laengsten Stueck')
-  assert.equal(m.breiteCm, Math.ceil(128.6 + PACKMASS.zuschlagCm), 'nicht nach dem breitesten Stueck')
-  assert.equal(m.hoeheCm, Math.ceil(3 * PACKMASS.dickeJePlisseeCm + PACKMASS.zuschlagCm), 'die Menge zaehlt nicht mit')
+pruefe('Der Querschnitt haengt an der Anzahl, nicht an der Breite der Fenster', () => {
+  // Das ist der Kern des Modells: Ein Buendel Stangen wird nicht breiter,
+  // wenn die Fenster breiter sind - nur laenger.
+  const schmal = packmass([{ menge: 4, bezeichnung: 'x', breiteCm: 60, hoeheCm: 180 }])
+  const breit = packmass([{ menge: 4, bezeichnung: 'x', breiteCm: 160, hoeheCm: 180 }])
+  assert.equal(schmal.seiteCm, breit.seiteCm, 'die Buendelseite haengt an der Fensterbreite')
+  assert.equal(schmal.laengeCm, breit.laengeCm)
+})
+
+pruefe('Mehr Plissees ergeben ein dickeres Buendel', () => {
+  const wenig = packmass([{ menge: 2, bezeichnung: 'x', breiteCm: 100, hoeheCm: 180 }])
+  const viel = packmass([{ menge: 20, bezeichnung: 'x', breiteCm: 100, hoeheCm: 180 }])
+  assert.ok(viel.seiteCm > wenig.seiteCm)
+  assert.equal(viel.laengeCm, wenig.laengeCm, 'die Laenge darf mit der Anzahl nicht wachsen')
 })
 
 pruefe('Ohne Masse gibt es kein Packmass statt eines erfundenen', () => {
@@ -158,7 +162,7 @@ pruefe('Jedes Paket bekommt sein eigenes Packmass', () => {
   const netz = { menge: 1, bezeichnung: 'Wohnzimmer', detail: '', preisChf: 170, breiteCm: 128.6, hoeheCm: 182.5, ...KOMPLETT }
   const a = auftragAufbauen([bestellung('PF-20', [netz]), bestellung('PF-21', [netz, netz])])
   assert.ok(a.bloecke[0].packmass)
-  assert.ok(a.bloecke[1].packmass.hoeheCm > a.bloecke[0].packmass.hoeheCm, 'zwei Stueck muessten hoeher stapeln')
+  assert.ok(a.bloecke[1].packmass.seiteCm > a.bloecke[0].packmass.seiteCm, 'zwei Stueck muessten dicker buendeln')
 })
 
 pruefe('Die Kennung ist kurz und ohne Sonderzeichen', () => {

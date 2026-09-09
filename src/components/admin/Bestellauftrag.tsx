@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Bestellung } from '../../types'
 import { auftragAufbauen, type AuftragsNetz } from '../../lib/bestellauftrag'
 import {
@@ -71,6 +71,24 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
   const [nummer, setNummer] = useState('')
   const [termin, setTermin] = useState('')
   const [bemerkung, setBemerkung] = useState('')
+
+  /*
+   * Der Dateiname beim Sichern als PDF.
+   *
+   * Beim Drucken aus dem Browser gibt es dafuer genau einen Hebel: den Titel
+   * des Dokuments. Chrome und Safari schlagen ihn als Dateinamen vor. Deshalb
+   * wird er gesetzt, solange dieses Blatt offen ist, und danach wieder auf
+   * den alten zurueckgestellt – sonst steht er noch im Reiter, wenn laengst
+   * wieder die Bestellliste zu sehen ist.
+   */
+  useEffect(() => {
+    const vorher = document.title
+    const kennung = nummer.trim().replace(/[^A-Za-z0-9-]/g, '') || 'entwurf'
+    document.title = `pfistanbul_talep_siparis_${kennung}`
+    return () => {
+      document.title = vorher
+    }
+  }, [nummer])
 
   const auftrag = auftragAufbauen(bestellungen)
   /** Kuerzel fuer "nimm die Fassung in der gewaehlten Sprache". */
@@ -159,16 +177,24 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
       {/* Ab hier das Dokument, das gedruckt wird. Querformat. */}
       <article className="blatt">
         <header className="blatt__kopf">
-          <address className="blatt__absender">
-            <strong>{ABSENDER.firma}</strong>
-            <span>{ABSENDER.person}</span>
-            <span>{ABSENDER.strasse}</span>
-            <span>
-              {ABSENDER.ort} ({w(ABSENDER.land)})
-            </span>
-          </address>
+          {/*
+            Keine Anschrift: Das Blatt ist ein Arbeitspapier zwischen drei
+            Parteien, die einander kennen, und jede Lieferung geht ohnehin an
+            uns. Nur der Name bleibt, damit das Blatt nicht anonym ist.
+          */}
+          <p className="blatt__marke">{ABSENDER.firma}</p>
           <div className="blatt__rechts">
-            <h1>{w(art === 'anfrage' ? TEXTE.preisanfrage : TEXTE.bestellung)}</h1>
+            {/*
+              Ein Titel fuer beide Zustaende – dasselbe Blatt geht als Anfrage
+              raus und wird spaeter zur Bestellung. Der Zustand steht darunter
+              und nicht im Titel, aber er steht da: Ob eine Zahl erfragt oder
+              ein Auftrag erteilt wird, ist der Unterschied zwischen "was
+              kostet das" und "bitte anfangen".
+            */}
+            <h1>{w(TEXTE.formular)}</h1>
+            <p className="blatt__stand">
+              {w(TEXTE.zustand)}: <strong>{w(art === 'anfrage' ? TEXTE.preisanfrage : TEXTE.bestellung)}</strong>
+            </p>
             <p className="blatt__zeile">
               {nummer && <strong>{nummer} · </strong>}
               {heute}
@@ -291,7 +317,7 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
                   <td className="blatt__zahl">{block.anzahl}</td>
                   <td className="blatt__packmass">
                     {block.packmass
-                      ? `${block.packmass.laengeCm} × ${block.packmass.breiteCm} × ${block.packmass.hoeheCm} cm`
+                      ? `${block.packmass.laengeCm} × ${block.packmass.seiteCm} × ${block.packmass.seiteCm} cm`
                       : '—'}
                   </td>
                   <td className="blatt__preis blatt__leer-feld" />
