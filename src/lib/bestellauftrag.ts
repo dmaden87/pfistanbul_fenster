@@ -40,8 +40,23 @@ export interface AuftragsBlock {
   bestellung: Bestellung
   /** Was auf das Paket geschrieben wird. Kurz, ohne Umlaute. */
   kennung: string
-  netze: AuftragsNetz[]
   anzahl: number
+}
+
+/**
+ * Eine Zeile des Auftrags: genau EIN Plissee.
+ *
+ * Bewusst nicht "3 × dieses Netz". Der Produzent fertigt Stueck fuer Stueck,
+ * und auf jedem Stueck muss die Paketkennung stehen – bei einer
+ * zusammengefassten Zeile stuenden dort drei verschiedene. Gleiche Bauarten
+ * stehen dafuer hintereinander, damit er sie in einem Zug fertigen kann.
+ *
+ * Die laufende Nummer ist fuer den Rueckweg: Bora traegt die Preise ein und
+ * kann sich auf "Zeile 7" beziehen, statt Masse abzuschreiben.
+ */
+export interface AuftragsZeile extends AuftragsNetz {
+  nummer: number
+  kennung: string
 }
 
 export interface Luecke {
@@ -52,8 +67,8 @@ export interface Luecke {
 
 export interface Auftrag {
   bloecke: AuftragsBlock[]
-  /** Alle Netze aller Kunden, nach Bauart zusammengefasst – daraus fertigt er. */
-  fertigung: AuftragsNetz[]
+  /** Alle Plissees einzeln, gleiche Bauarten hintereinander. */
+  zeilen: AuftragsZeile[]
   anzahl: number
   luecken: Luecke[]
 }
@@ -158,23 +173,30 @@ export function kennungFuer(b: Bestellung): string {
 export function auftragAufbauen(bestellungen: Bestellung[]): Auftrag {
   const bloecke: AuftragsBlock[] = []
   const luecken: Luecke[] = []
-  const alle: AuftragsNetz[] = []
+  // Nach Bauart gesammelt, in der Reihenfolge des ersten Auftretens. So
+  // stehen gleiche Netze beieinander, ohne dass die Liste umsortiert wirkt.
+  const nachBauart = new Map<string, AuftragsZeile[]>()
 
   for (const bestellung of bestellungen) {
     const kennung = kennungFuer(bestellung)
-    const roh = bestellung.positionen.flatMap(netzeAusPosition)
-    const netze = zusammenfassen(roh, true)
+    const netze = zusammenfassen(bestellung.positionen.flatMap(netzeAusPosition), true)
+    let anzahl = 0
 
     for (const netz of netze) {
       const fehlt = PFLICHT.filter(({ feld }) => netz[feld] === undefined || netz[feld] === '').map((f) => f.name)
       if (fehlt.length > 0) luecken.push({ kennung, netz: netz.bezeichnung || 'ohne Bezeichnung', fehlt })
+
+      // Aus "3 ×" werden drei Zeilen. Jede traegt ihre Paketkennung.
+      const schluessel = bauart(netz)
+      const liste = nachBauart.get(schluessel) ?? []
+      for (let i = 0; i < netz.menge; i++) liste.push({ ...netz, menge: 1, nummer: 0, kennung })
+      nachBauart.set(schluessel, liste)
+      anzahl += netz.menge
     }
 
-    const anzahl = netze.reduce((summe, n) => summe + n.menge, 0)
-    bloecke.push({ bestellung, kennung, netze, anzahl })
-    alle.push(...netze)
+    bloecke.push({ bestellung, kennung, anzahl })
   }
 
-  const fertigung = zusammenfassen(alle, false)
-  return { bloecke, fertigung, anzahl: fertigung.reduce((s, n) => s + n.menge, 0), luecken }
+  const zeilen = [...nachBauart.values()].flat().map((z, i) => ({ ...z, nummer: i + 1 }))
+  return { bloecke, zeilen, anzahl: zeilen.length, luecken }
 }

@@ -41,6 +41,10 @@
   padding: 0.35rem 0.5rem;
 }
 
+.auftrag__feld--kurz {
+  width: 9rem;
+}
+
 .auftrag__schritte {
   display: flex;
   flex-wrap: wrap;
@@ -68,7 +72,8 @@
 /* --- Das Blatt -------------------------------------------------------------- */
 
 .blatt {
-  max-width: 210mm;
+  /* Querformat: Elf Spalten passen im Hochformat nicht ohne Quetschen. */
+  max-width: 297mm;
   margin: 0 auto;
   padding: 16mm 14mm;
   border: 1px solid var(--border);
@@ -81,16 +86,24 @@
 
 .blatt__kopf {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: space-between;
   gap: var(--space-5);
   padding-bottom: 4mm;
   border-bottom: 2px solid #111111;
 }
 
-.blatt__marke {
-  font-size: 13pt;
-  font-weight: 700;
+/* Der Absender als Anschriftenblock, wie auf einem Brief. */
+.blatt__absender {
+  display: grid;
+  gap: 0.3mm;
+  font-style: normal;
+  font-size: 9.5pt;
+  line-height: 1.3;
+}
+
+.blatt__absender strong {
+  font-size: 12pt;
 }
 
 .blatt__zeile {
@@ -168,7 +181,7 @@
 .blatt__tabelle {
   width: 100%;
   border-collapse: collapse;
-  font-size: 9pt;
+  font-size: 8.5pt;
 }
 
 .blatt__tabelle th {
@@ -180,7 +193,7 @@
 }
 
 .blatt__tabelle td {
-  padding: 1.5mm 2mm;
+  padding: 1mm 2mm;
   border-bottom: 0.5px solid #cccccc;
   vertical-align: top;
 }
@@ -192,8 +205,37 @@
 }
 
 .blatt__eng {
-  width: 14mm;
+  width: 12mm;
   text-align: right;
+}
+
+/* Die Kennung steht auf jeder Zeile – sie ist die Packanweisung. */
+.blatt__paketzelle {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.blatt__abstand {
+  display: inline-block;
+  width: 12mm;
+}
+
+.blatt__leer--kurz {
+  width: 34mm;
+}
+
+.blatt__paketzeile {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4mm;
+}
+
+.blatt__paketmarke {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2mm;
 }
 
 .blatt__preis {
@@ -216,14 +258,6 @@
   margin-top: 2mm;
   font-size: 8.5pt;
   color: #444444;
-}
-
-.blatt__paket {
-  margin-top: 4mm;
-  padding-top: 2mm;
-  border-top: 0.5px solid #cccccc;
-  /* Ein Paket soll nicht ueber zwei Seiten zerrissen werden. */
-  break-inside: avoid;
 }
 
 .blatt__kennung {
@@ -276,7 +310,6 @@
     border: 0;
   }
 
-  .blatt__paket,
   .blatt__tabelle tr {
     break-inside: avoid;
   }
@@ -287,6 +320,6 @@
 }
 
 @page {
-  size: A4 portrait;
-  margin: 14mm;
+  size: A4 landscape;
+  margin: 12mm;
 }

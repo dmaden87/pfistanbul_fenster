@@ -104,3 +104,30 @@ export const RICHTUNGSREGEL: Beschriftung = {
   deutsch: 'Alle Öffnungsrichtungen sind von innen nach aussen betrachtet.',
   tuerkisch: 'Tüm açılma yönleri içeriden dışarıya doğru bakıldığında geçerlidir.',
 }
+
+/**
+ * Der Absender, wie er auf dem Auftrag steht.
+ *
+ * Steht hier und nicht in operator.ts: Das dort ist die Adresse fuer die
+ * Kundschaft und fuer das Impressum. Diese hier geht in die Tuerkei und
+ * nennt deshalb das Land in der Sprache des Empfaengers.
+ *
+ * ZUR ORTSANGABE: Die Postleitzahl 8606 gehoert zu Greifensee, nicht zu
+ * Zuerich. So steht es hier trotzdem, weil der Empfaenger Zuerich kennt und
+ * Greifensee nicht; die Post stellt nach Postleitzahl zu. Soll ein Paket
+ * wirklich hierher geschickt werden, ist "8606 Greifensee" die sichere
+ * Fassung.
+ */
+export const ABSENDER = {
+  firma: 'Pfistanbul Fenster',
+  person: 'Deniz Maden',
+  strasse: 'Am Pfisterhölzli 38',
+  ort: 'CH 8606 Zürich',
+  land: { deutsch: 'SCHWEIZ', tuerkisch: 'İSVİÇRE' } as Beschriftung,
+} as const
+
+/** Was Bora je Lieferung eintraegt – zusaetzlich zu den Stueckpreisen. */
+export const LIEFERKOSTEN: Beschriftung = {
+  deutsch: 'Lieferkosten für die ganze Lieferung',
+  tuerkisch: 'Tüm sevkiyat için nakliye bedeli',
+}

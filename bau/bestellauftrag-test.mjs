@@ -44,40 +44,58 @@ function bestellung(referenz, positionen) {
 
 pruefe('Ein Set wird in seine einzelnen Netze aufgeloest', () => {
   const a = auftragAufbauen([bestellung('PF-1', [{ menge: 1, bezeichnung: 'Set Mittel', detail: '', preisChf: 775, setId: 'set-mittel', ...KOMPLETT }])])
-  // Set Mittel: 3 Zimmer, 1 Balkontuere, 1 Bad, 1 Kueche = 6 Netze.
+  // Set Mittel: 3 Zimmer, 1 Balkontuere, 1 Bad, 1 Kueche = 6 Plissees.
   assert.equal(a.bloecke[0].anzahl, 6)
-  assert.equal(a.bloecke[0].netze.length, 4, 'vier verschiedene Bauarten erwartet')
-  const zimmer = a.bloecke[0].netze.find((n) => n.bezeichnung === 'Zimmer')
-  assert.equal(zimmer.menge, 3, 'die drei Zimmernetze sind nicht zusammengefasst')
+  assert.equal(a.zeilen.length, 6, 'jedes Plissee braucht eine eigene Zeile')
+  assert.equal(a.zeilen.filter((z) => z.bezeichnung === 'Zimmer').length, 3)
+})
+
+pruefe('Jede Zeile traegt ihre Paketkennung und eine laufende Nummer', () => {
+  const a = auftragAufbauen([bestellung('PF-1A', [{ menge: 2, bezeichnung: 'Wohnzimmer', detail: '', preisChf: 170, breiteCm: 128.6, hoeheCm: 182.5, ...KOMPLETT }])])
+  assert.equal(a.zeilen.length, 2)
+  assert.deepEqual(a.zeilen.map((z) => z.nummer), [1, 2])
+  assert.ok(a.zeilen.every((z) => z.kennung === 'PF-1A'))
+  assert.ok(a.zeilen.every((z) => z.menge === 1), 'eine Zeile ist genau ein Stueck')
+})
+
+pruefe('Gleiche Bauarten stehen hintereinander, auch ueber Kunden hinweg', () => {
+  // Sonst muesste er dieselbe Einstellung zweimal aufbauen.
+  const gross = { menge: 1, bezeichnung: 'Wohnzimmer', detail: '', preisChf: 170, breiteCm: 128.6, hoeheCm: 182.5, ...KOMPLETT }
+  const klein = { menge: 1, bezeichnung: 'Bad', detail: '', preisChf: 130, breiteCm: 64, hoeheCm: 95.7, ...KOMPLETT }
+  const a = auftragAufbauen([bestellung('PF-1B', [gross, klein]), bestellung('PF-1C', [gross])])
+  const breiten = a.zeilen.map((z) => z.breiteCm)
+  assert.deepEqual(breiten, [128.6, 128.6, 64], 'gleiche Bauarten sind nicht beieinander')
+  assert.deepEqual(a.zeilen.map((z) => z.kennung), ['PF-1B', 'PF-1C', 'PF-1B'])
 })
 
 pruefe('Das Zimmernetz traegt die Oeffnung aus dem Katalog: ein Plissee, Mitte', () => {
   const a = auftragAufbauen([bestellung('PF-2', [{ menge: 1, bezeichnung: 'Set Mittel', detail: '', preisChf: 775, setId: 'set-mittel', ...KOMPLETT }])])
-  const zimmer = a.bloecke[0].netze.find((n) => n.bezeichnung === 'Zimmer')
+  const zimmer = a.zeilen.find((n) => n.bezeichnung === 'Zimmer')
   assert.equal(zimmer.oeffnung, 'mitte')
   assert.equal(zimmer.breiteCm, 160.5)
 })
 
-pruefe('Zwei gleiche Sets ergeben doppelte Mengen, nicht doppelte Zeilen', () => {
+pruefe('Zwei gleiche Sets ergeben doppelt so viele Zeilen', () => {
   const a = auftragAufbauen([bestellung('PF-3', [{ menge: 2, bezeichnung: 'Set Mittel', detail: '', preisChf: 1550, setId: 'set-mittel', ...KOMPLETT }])])
   assert.equal(a.bloecke[0].anzahl, 12)
-  assert.equal(a.bloecke[0].netze.length, 4)
+  assert.equal(a.zeilen.length, 12)
 })
 
-pruefe('Gleiche Netze verschiedener Kunden zaehlen in der Fertigungstabelle zusammen', () => {
+pruefe('Gleiche Netze verschiedener Kunden bleiben getrennte Zeilen mit eigener Kennung', () => {
   const netz = { menge: 1, bezeichnung: 'Wohnzimmer', detail: '', preisChf: 170, breiteCm: 128.6, hoeheCm: 182.5, ...KOMPLETT }
   const a = auftragAufbauen([bestellung('PF-4', [netz]), bestellung('PF-5', [{ ...netz, bezeichnung: 'Schlafzimmer' }])])
-  // Zwei Kunden, zwei Bloecke – aber fuer die Fertigung eine Zeile mit 2.
   assert.equal(a.bloecke.length, 2)
-  assert.equal(a.fertigung.length, 1, 'die Bauart ist identisch, es muesste eine Zeile sein')
-  assert.equal(a.fertigung[0].menge, 2)
+  assert.equal(a.zeilen.length, 2)
   assert.equal(a.anzahl, 2)
+  // Verschiedene Pakete, aber gleiche Bauart: hintereinander.
+  assert.deepEqual(a.zeilen.map((z) => z.kennung), ['PF-4', 'PF-5'])
 })
 
 pruefe('Verschiedene Bauart wird NICHT zusammengefasst', () => {
   const netz = { menge: 1, bezeichnung: 'Wohnzimmer', detail: '', preisChf: 170, breiteCm: 128.6, hoeheCm: 182.5, ...KOMPLETT }
   const a = auftragAufbauen([bestellung('PF-6', [netz, { ...netz, rahmenfarbe: 'schwarz' }])])
-  assert.equal(a.fertigung.length, 2, 'weisser und schwarzer Rahmen sind nicht dasselbe Netz')
+  assert.equal(a.zeilen.length, 2)
+  assert.deepEqual(a.zeilen.map((z) => z.rahmenfarbe), ['weiss', 'schwarz'])
 })
 
 pruefe('Fehlende Angaben werden gemeldet und nicht gefuellt', () => {
@@ -86,7 +104,7 @@ pruefe('Fehlende Angaben werden gemeldet und nicht gefuellt', () => {
   ])
   assert.equal(a.luecken.length, 1)
   assert.deepEqual(a.luecken[0].fehlt, ['Rahmendicke', 'Öffnungsrichtung'])
-  const netz = a.bloecke[0].netze[0]
+  const netz = a.zeilen[0]
   assert.equal(netz.rahmendicke, undefined, 'die Luecke wurde mit einer Annahme gefuellt')
   assert.equal(netz.oeffnung, undefined, 'die Luecke wurde mit einer Annahme gefuellt')
 })
@@ -98,7 +116,7 @@ pruefe('Ein vollstaendiges Netz meldet keine Luecke', () => {
 
 pruefe('Ein Katalognetz traegt Masse und Rahmendicke aus dem Katalog', () => {
   const a = auftragAufbauen([bestellung('PF-9', [{ menge: 1, bezeichnung: 'Bad', detail: '', preisChf: 130, typId: 'bad', rahmenfarbe: 'weiss', netzfarbe: 'grau', mechanismus: 'akkordeon' }])])
-  const netz = a.bloecke[0].netze[0]
+  const netz = a.zeilen[0]
   assert.equal(netz.breiteCm, 117)
   assert.equal(netz.hoeheCm, 82.5)
   assert.equal(netz.rahmendicke, '3-4 cm')
@@ -109,7 +127,7 @@ pruefe('Was in der Bestellung steht, gilt vor dem Katalog', () => {
   // Sonst wuerde eine Preis- oder Massanpassung im Katalog eine laengst
   // erteilte Bestellung ruecklaeufig aendern.
   const a = auftragAufbauen([bestellung('PF-10', [{ menge: 1, bezeichnung: 'Bad', detail: '', preisChf: 130, typId: 'bad', breiteCm: 119, hoeheCm: 84, ...KOMPLETT }])])
-  assert.equal(a.bloecke[0].netze[0].breiteCm, 119)
+  assert.equal(a.zeilen[0].breiteCm, 119)
 })
 
 pruefe('Die Kennung ist kurz und ohne Sonderzeichen', () => {

@@ -1,7 +1,16 @@
 import { useState } from 'react'
 import type { Bestellung } from '../../types'
 import { auftragAufbauen, type AuftragsNetz } from '../../lib/bestellauftrag'
-import { MASSREGEL, MECHANISMEN, NETZFARBEN, OEFFNUNGEN, RAHMENFARBEN, RICHTUNGSREGEL } from '../../data/produktion'
+import {
+  ABSENDER,
+  LIEFERKOSTEN,
+  MASSREGEL,
+  MECHANISMEN,
+  NETZFARBEN,
+  OEFFNUNGEN,
+  RAHMENFARBEN,
+  RICHTUNGSREGEL,
+} from '../../data/produktion'
 import { operator } from '../../data/operator'
 import './Bestellauftrag.css'
 
@@ -47,6 +56,7 @@ function netzZeile(n: AuftragsNetz) {
 
 export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps) {
   const [art, setArt] = useState<Art>('anfrage')
+  const [nummer, setNummer] = useState('')
   const [termin, setTermin] = useState('')
   const [bemerkung, setBemerkung] = useState('')
 
@@ -66,10 +76,24 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
             <input type="radio" name="auftragsart" checked={art === 'bestellung'} onChange={() => setArt('bestellung')} />
             <span>Bestellung</span>
           </label>
+          <label className="auftrag__termin">
+            <span>Lieferung Nr.</span>
+            <input
+              className="input auftrag__feld auftrag__feld--kurz"
+              value={nummer}
+              onChange={(e) => setNummer(e.target.value)}
+              placeholder="L-2026-01"
+            />
+          </label>
           {art === 'bestellung' && (
             <label className="auftrag__termin">
               <span>Erwarteter Liefertermin</span>
-              <input className="input auftrag__feld" value={termin} onChange={(e) => setTermin(e.target.value)} placeholder="z. B. Ende Oktober 2026" />
+              <input
+                className="input auftrag__feld"
+                value={termin}
+                onChange={(e) => setTermin(e.target.value)}
+                placeholder="z. B. Ende Oktober 2026"
+              />
             </label>
           )}
         </div>
@@ -105,18 +129,23 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
         )}
       </div>
 
-      {/* Ab hier das Dokument, das gedruckt wird. */}
+      {/* Ab hier das Dokument, das gedruckt wird. Querformat. */}
       <article className="blatt">
         <header className="blatt__kopf">
-          <div>
-            <p className="blatt__marke">{operator.businessName}</p>
-            <p className="blatt__zeile">
-              {operator.people[0].street}, {operator.people[0].zip} {operator.people[0].city} · {operator.email}
-            </p>
-          </div>
+          <address className="blatt__absender">
+            <strong>{ABSENDER.firma}</strong>
+            <span>{ABSENDER.person}</span>
+            <span>{ABSENDER.strasse}</span>
+            <span>
+              {ABSENDER.ort} ({ABSENDER.land.deutsch})
+            </span>
+          </address>
           <div className="blatt__rechts">
             <h1>{art === 'anfrage' ? 'Preisanfrage' : 'Bestellung'}</h1>
-            <p className="blatt__zeile">{heute}</p>
+            <p className="blatt__zeile">
+              {nummer && <strong>{nummer} · </strong>}
+              {heute}
+            </p>
           </div>
         </header>
 
@@ -131,6 +160,8 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
           {art === 'anfrage' ? (
             <p>
               Ungefährer Liefertermin: <span className="blatt__leer" />
+              <span className="blatt__abstand" />
+              {LIEFERKOSTEN.deutsch}: <span className="blatt__leer blatt__leer--kurz" />
             </p>
           ) : (
             <p>
@@ -143,12 +174,20 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
 
         <section>
           <h2>
-            Zu fertigen · {auftrag.anzahl} {auftrag.anzahl === 1 ? 'Plissee' : 'Plissees'}
+            {auftrag.anzahl} {auftrag.anzahl === 1 ? 'Plissee' : 'Plissees'} · jede Zeile ist ein Stück
           </h2>
+          {/*
+            EINE Tabelle, nicht zwei. Jede Zeile ist ein Plissee und traegt
+            seine Paketkennung – damit ist die Liste zugleich die Fertigungs-
+            und die Packanweisung. Gleiche Bauarten stehen hintereinander,
+            damit er sie in einem Zug fertigen kann.
+          */}
           <table className="blatt__tabelle">
             <thead>
               <tr>
-                <th className="blatt__eng">Anz.</th>
+                <th className="blatt__eng">Nr.</th>
+                <th>Paket</th>
+                <th>Fenster</th>
                 <th className="blatt__eng">Breite</th>
                 <th className="blatt__eng">Höhe</th>
                 <th>Rahmendicke</th>
@@ -160,18 +199,20 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
               </tr>
             </thead>
             <tbody>
-              {auftrag.fertigung.map((n, i) => {
-                const z = netzZeile(n)
+              {auftrag.zeilen.map((z) => {
+                const w = netzZeile(z)
                 return (
-                  <tr key={i}>
-                    <td className="blatt__zahl">{n.menge} ×</td>
-                    <td className="blatt__zahl">{z.breite}</td>
-                    <td className="blatt__zahl">{z.hoehe}</td>
-                    <td>{z.dicke}</td>
-                    <td>{z.rahmen}</td>
-                    <td>{z.netz}</td>
-                    <td>{z.mechanismus}</td>
-                    <td>{z.oeffnung}</td>
+                  <tr key={z.nummer}>
+                    <td className="blatt__zahl">{z.nummer}</td>
+                    <td className="blatt__paketzelle">{z.kennung}</td>
+                    <td className="blatt__raum">{z.bezeichnung}</td>
+                    <td className="blatt__zahl">{w.breite}</td>
+                    <td className="blatt__zahl">{w.hoehe}</td>
+                    <td>{w.dicke}</td>
+                    <td>{w.rahmen}</td>
+                    <td>{w.netz}</td>
+                    <td>{w.mechanismus}</td>
+                    <td>{w.oeffnung}</td>
                     {art === 'anfrage' && <td className="blatt__preis blatt__leer-feld" />}
                   </tr>
                 )
@@ -182,49 +223,19 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
         </section>
 
         {/*
-          Die Pakete. Der Produzent fertigt nach der Tabelle oben und packt
-          nach dieser Liste. Die Kennung kommt auf das Paket – ohne sie ist
-          bei der Ankunft nicht mehr zu erkennen, welches Netz zu wem gehoert.
+          Nur noch eine Zeile zum Nachzaehlen beim Packen – die einzelnen
+          Netze stehen oben und tragen ihre Kennung selbst.
         */}
         <section className="blatt__pakete">
           <h2>Pakete · bitte getrennt verpacken und beschriften</h2>
-          {auftrag.bloecke.map((block) => (
-            <div className="blatt__paket" key={block.bestellung.id}>
-              <h3>
+          <p className="blatt__paketzeile">
+            {auftrag.bloecke.map((block) => (
+              <span className="blatt__paketmarke" key={block.bestellung.id}>
                 <span className="blatt__kennung">{block.kennung}</span>
-                <span className="blatt__anzahl">
-                  {block.anzahl} {block.anzahl === 1 ? 'Plissee' : 'Plissees'}
-                </span>
-              </h3>
-              <table className="blatt__tabelle">
-                <tbody>
-                  {block.netze.map((n, i) => {
-                    const z = netzZeile(n)
-                    return (
-                      <tr key={i}>
-                        <td className="blatt__zahl">{n.menge} ×</td>
-                        {/*
-                          Der Raum steht nur in der Paketliste, nicht in der
-                          Fertigungstabelle: Der Produzent fertigt nach Mass,
-                          wir packen nach Raum aus. Ohne diese Spalte waere
-                          bei der Ankunft nicht mehr zu erkennen, welches der
-                          drei gleich grossen Netze ins Schlafzimmer gehoert.
-                        */}
-                        <td className="blatt__raum">{n.bezeichnung}</td>
-                        <td className="blatt__zahl">{z.breite}</td>
-                        <td className="blatt__zahl">{z.hoehe}</td>
-                        <td>{z.dicke}</td>
-                        <td>{z.rahmen}</td>
-                        <td>{z.netz}</td>
-                        <td>{z.mechanismus}</td>
-                        <td>{z.oeffnung}</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ))}
+                <span className="blatt__anzahl">{block.anzahl} Stück</span>
+              </span>
+            ))}
+          </p>
         </section>
 
         <footer className="blatt__fuss">
