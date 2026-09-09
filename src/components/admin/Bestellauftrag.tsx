@@ -182,7 +182,7 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
             und die Packanweisung. Gleiche Bauarten stehen hintereinander,
             damit er sie in einem Zug fertigen kann.
           */}
-          <table className="blatt__tabelle">
+          <table className={art === 'anfrage' ? 'blatt__tabelle blatt__tabelle--handschrift' : 'blatt__tabelle'}>
             <thead>
               <tr>
                 <th className="blatt__eng">Nr.</th>
@@ -219,7 +219,10 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
               })}
             </tbody>
           </table>
-          <p className="blatt__hinweis">Alle Masse in Zentimetern, Breite × Höhe.</p>
+          <p className="blatt__hinweis">
+            Alle Masse in Zentimetern, Breite × Höhe.
+            {art === 'anfrage' && ' Bitte den Stückpreis je Zeile eintragen.'}
+          </p>
         </section>
 
         {/*

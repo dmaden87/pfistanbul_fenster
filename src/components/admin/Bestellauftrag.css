@@ -167,7 +167,9 @@
 .blatt__leer {
   display: inline-block;
   width: 60mm;
-  border-bottom: 1px solid #111111;
+  height: 6mm;
+  border: 1px solid #111111;
+  vertical-align: middle;
 }
 
 .blatt__bemerkung {
@@ -239,7 +241,7 @@
 }
 
 .blatt__preis {
-  width: 26mm;
+  width: 30mm;
   text-align: right;
 }
 
@@ -248,10 +250,28 @@
   font-weight: 600;
 }
 
-/* Die Zelle, in die er den Preis schreibt. Muss als Feld erkennbar sein. */
+/*
+ * Die Zelle, in die der Preis von Hand geschrieben wird.
+ *
+ * Bora druckt das Blatt aus und traegt die Preise beim Produzenten mit dem
+ * Stift ein. Eine zart angedeutete Zelle genuegt dafuer nicht: Sie braucht
+ * einen ganzen Rahmen, damit sie als Feld zu erkennen ist, und Hoehe, damit
+ * eine Handschrift hineinpasst. Ein Kasten, in den man nicht schreiben kann,
+ * ist schlimmer als keiner – dann steht die Zahl irgendwo am Rand.
+ */
 .blatt__leer-feld {
-  border-bottom: 1px solid #111111;
-  background: #fafafa;
+  border: 1px solid #111111;
+  background: #ffffff;
+  height: 7mm;
+}
+
+/*
+ * Wird von Hand ausgefuellt, also mehr Luft zwischen den Zeilen. In der
+ * Bestellung, die niemand mehr beschreibt, waere das verschenkter Platz.
+ */
+.blatt__tabelle--handschrift td {
+  padding-top: 2mm;
+  padding-bottom: 2mm;
 }
 
 .blatt__hinweis {
