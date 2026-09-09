@@ -1,5 +1,15 @@
 import { useState } from 'react'
-import type { BestellPosition } from '../../types'
+import type { BestellPosition, OpeningDirection } from '../../types'
+import {
+  MECHANISMEN,
+  NETZFARBEN,
+  OEFFNUNGEN,
+  RAHMENFARBEN,
+  STANDARD,
+  type Mechanismus,
+  type Netzfarbe,
+  type Rahmenfarbe,
+} from '../../data/produktion'
 import { formatChf } from '../../lib/format'
 import { positionenSumme } from './hilfen'
 
@@ -15,6 +25,10 @@ import { positionenSumme } from './hilfen'
  * Alle Felder sind Text und nicht Zahl, obwohl Zahlen herauskommen. Ein
  * `number`-Zustand kann das leere Feld nicht darstellen: Wer die Menge
  * loeschen will, um sie neu zu tippen, bekaeme sofort eine 0 zurueck.
+ *
+ * Die zweite Zeile je Netz ist das, was der Produzent braucht. Sie steht hier
+ * und nicht erst im Bestellauftrag, weil sie am Fenster erhoben wird – wer
+ * beim Ausmessen steht, soll sie gleich eintragen koennen.
  */
 
 interface Entwurf {
@@ -23,6 +37,13 @@ interface Entwurf {
   breiteCm: string
   hoeheCm: string
   preisChf: string
+  rahmendicke: string
+  rahmenfarbe: Rahmenfarbe
+  netzfarbe: Netzfarbe
+  mechanismus: Mechanismus
+  oeffnung: OpeningDirection | ''
+  typId?: string
+  setId?: string
 }
 
 interface NetzEditorProps {
@@ -45,29 +66,63 @@ function zuEntwurf(p: BestellPosition): Entwurf {
     breiteCm: p.breiteCm ? String(p.breiteCm) : '',
     hoeheCm: p.hoeheCm ? String(p.hoeheCm) : '',
     preisChf: String(p.preisChf),
+    rahmendicke: p.rahmendicke ?? STANDARD.rahmendicke,
+    rahmenfarbe: p.rahmenfarbe ?? STANDARD.rahmenfarbe,
+    netzfarbe: p.netzfarbe ?? STANDARD.netzfarbe,
+    mechanismus: p.mechanismus ?? STANDARD.mechanismus,
+    // Die Oeffnungsrichtung wird NICHT vorbelegt. Sie sieht man nur am
+    // Fenster, und ein falsch geratener Standard liefert die halbe Runde
+    // spiegelverkehrt.
+    oeffnung: p.oeffnung ?? '',
+    typId: p.typId,
+    setId: p.setId,
   }
 }
 
-const LEER: Entwurf = { menge: '1', bezeichnung: '', breiteCm: '', hoeheCm: '', preisChf: '' }
+function leer(): Entwurf {
+  return {
+    menge: '1',
+    bezeichnung: '',
+    breiteCm: '',
+    hoeheCm: '',
+    preisChf: '',
+    rahmendicke: STANDARD.rahmendicke,
+    rahmenfarbe: STANDARD.rahmenfarbe,
+    netzfarbe: STANDARD.netzfarbe,
+    mechanismus: STANDARD.mechanismus,
+    oeffnung: '',
+  }
+}
 
 function zahl(wert: string): number {
   const n = Number(wert.replace(',', '.'))
   return Number.isFinite(n) ? n : 0
 }
 
+/** Auf den Millimeter, nicht auf den Zentimeter: 128.6 gerundet passt nicht. */
+function masszahl(wert: string): number | undefined {
+  const n = zahl(wert)
+  return n > 0 ? Math.min(600, Math.round(n * 10) / 10) : undefined
+}
+
 function ausEntwurf(e: Entwurf): BestellPosition {
   const position: BestellPosition = {
     menge: Math.min(99, Math.max(1, Math.round(zahl(e.menge)) || 1)),
     bezeichnung: e.bezeichnung.trim(),
-    // `detail` bleibt der Text fuer alles, was kein Mass ist. Sind Breite und
-    // Hoehe gesetzt, zeigt die Liste ohnehin diese an.
     detail: '',
     preisChf: Math.round(zahl(e.preisChf) * 100) / 100,
+    rahmendicke: e.rahmendicke.trim() || undefined,
+    rahmenfarbe: e.rahmenfarbe,
+    netzfarbe: e.netzfarbe,
+    mechanismus: e.mechanismus,
   }
-  const breite = Math.round(zahl(e.breiteCm))
-  const hoehe = Math.round(zahl(e.hoeheCm))
-  if (breite > 0) position.breiteCm = Math.min(600, breite)
-  if (hoehe > 0) position.hoeheCm = Math.min(600, hoehe)
+  const breite = masszahl(e.breiteCm)
+  const hoehe = masszahl(e.hoeheCm)
+  if (breite !== undefined) position.breiteCm = breite
+  if (hoehe !== undefined) position.hoeheCm = hoehe
+  if (e.oeffnung) position.oeffnung = e.oeffnung
+  if (e.typId) position.typId = e.typId
+  if (e.setId) position.setId = e.setId
   return position
 }
 
@@ -81,14 +136,14 @@ export function NetzEditor({
   deaktiviert = false,
 }: NetzEditorProps) {
   const [entwuerfe, setEntwuerfe] = useState<Entwurf[]>(() =>
-    positionen.length > 0 ? positionen.map(zuEntwurf) : [{ ...LEER }],
+    positionen.length > 0 ? positionen.map(zuEntwurf) : [leer()],
   )
   const [montage, setMontage] = useState(String(montageChf))
   const [sendet, setSendet] = useState(false)
   const [fehler, setFehler] = useState<string | null>(null)
 
-  const aendere = (index: number, feld: keyof Entwurf, wert: string) => {
-    setEntwuerfe((liste) => liste.map((e, i) => (i === index ? { ...e, [feld]: wert } : e)))
+  const aendere = (index: number, teil: Partial<Entwurf>) => {
+    setEntwuerfe((liste) => liste.map((e, i) => (i === index ? { ...e, ...teil } : e)))
   }
 
   const netze = entwuerfe.map(ausEntwurf)
@@ -113,84 +168,105 @@ export function NetzEditor({
 
   return (
     <div className="netze">
-      <table className="netze__tabelle">
-        <thead>
-          <tr>
-            <th className="netze__eng">Anz.</th>
-            <th>Bezeichnung</th>
-            <th className="netze__eng">Breite</th>
-            <th className="netze__eng">Höhe</th>
-            <th className="netze__eng">Preis</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {entwuerfe.map((e, i) => (
-            <tr key={i}>
-              <td>
-                <input
-                  className="input netze__feld"
-                  inputMode="numeric"
-                  aria-label={`Menge Netz ${i + 1}`}
-                  value={e.menge}
-                  onChange={(ev) => aendere(i, 'menge', ev.target.value)}
-                />
-              </td>
-              <td>
-                <input
-                  className="input netze__feld"
-                  aria-label={`Bezeichnung Netz ${i + 1}`}
-                  placeholder="z. B. Schlafzimmer links"
-                  value={e.bezeichnung}
-                  onChange={(ev) => aendere(i, 'bezeichnung', ev.target.value)}
-                />
-              </td>
-              <td>
-                <input
-                  className="input netze__feld"
-                  inputMode="numeric"
-                  aria-label={`Breite in cm, Netz ${i + 1}`}
-                  placeholder="cm"
-                  value={e.breiteCm}
-                  onChange={(ev) => aendere(i, 'breiteCm', ev.target.value)}
-                />
-              </td>
-              <td>
-                <input
-                  className="input netze__feld"
-                  inputMode="numeric"
-                  aria-label={`Höhe in cm, Netz ${i + 1}`}
-                  placeholder="cm"
-                  value={e.hoeheCm}
-                  onChange={(ev) => aendere(i, 'hoeheCm', ev.target.value)}
-                />
-              </td>
-              <td>
-                <input
-                  className="input netze__feld"
-                  inputMode="decimal"
-                  aria-label={`Preis pro Stück, Netz ${i + 1}`}
-                  placeholder="CHF"
-                  value={e.preisChf}
-                  onChange={(ev) => aendere(i, 'preisChf', ev.target.value)}
-                />
-              </td>
-              <td>
-                <button
-                  type="button"
-                  className="netze__weg"
-                  aria-label={`Netz ${i + 1} entfernen`}
-                  onClick={() => setEntwuerfe((liste) => liste.filter((_, j) => j !== i))}
-                >
-                  ×
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {entwuerfe.map((e, i) => (
+        <fieldset className="netz" key={i}>
+          <legend className="netz__nummer">
+            Netz {i + 1}
+            {e.setId && <span className="netz__quelle">Set aus dem Katalog</span>}
+          </legend>
 
-      <button type="button" className="btn btn--quiet" onClick={() => setEntwuerfe((l) => [...l, { ...LEER }])}>
+          <div className="netz__reihe">
+            <label className="netz__feld netz__feld--winzig">
+              <span>Anz.</span>
+              <input className="input" inputMode="numeric" value={e.menge} onChange={(ev) => aendere(i, { menge: ev.target.value })} />
+            </label>
+            <label className="netz__feld netz__feld--breit">
+              <span>Bezeichnung / Raum</span>
+              <input
+                className="input"
+                placeholder="z. B. Schlafzimmer Süd"
+                value={e.bezeichnung}
+                onChange={(ev) => aendere(i, { bezeichnung: ev.target.value })}
+              />
+            </label>
+            <label className="netz__feld netz__feld--klein">
+              <span>Breite cm</span>
+              <input className="input" inputMode="decimal" placeholder="128.6" value={e.breiteCm} onChange={(ev) => aendere(i, { breiteCm: ev.target.value })} />
+            </label>
+            <label className="netz__feld netz__feld--klein">
+              <span>Höhe cm</span>
+              <input className="input" inputMode="decimal" placeholder="182.5" value={e.hoeheCm} onChange={(ev) => aendere(i, { hoeheCm: ev.target.value })} />
+            </label>
+            <label className="netz__feld netz__feld--klein">
+              <span>Preis CHF</span>
+              <input className="input" inputMode="decimal" value={e.preisChf} onChange={(ev) => aendere(i, { preisChf: ev.target.value })} />
+            </label>
+            <button
+              type="button"
+              className="netze__weg"
+              aria-label={`Netz ${i + 1} entfernen`}
+              onClick={() => setEntwuerfe((liste) => liste.filter((_, j) => j !== i))}
+            >
+              ×
+            </button>
+          </div>
+
+          {/* Was der Produzent braucht. Er kennt unser Sortiment nicht. */}
+          <div className="netz__reihe netz__reihe--produktion">
+            <label className="netz__feld netz__feld--klein">
+              <span>Rahmendicke</span>
+              <input className="input" value={e.rahmendicke} onChange={(ev) => aendere(i, { rahmendicke: ev.target.value })} />
+            </label>
+            <label className="netz__feld netz__feld--klein">
+              <span>Rahmen</span>
+              <select className="input" value={e.rahmenfarbe} onChange={(ev) => aendere(i, { rahmenfarbe: ev.target.value as Rahmenfarbe })}>
+                {Object.entries(RAHMENFARBEN).map(([wert, b]) => (
+                  <option key={wert} value={wert}>
+                    {b.deutsch}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="netz__feld netz__feld--klein">
+              <span>Netz</span>
+              <select className="input" value={e.netzfarbe} onChange={(ev) => aendere(i, { netzfarbe: ev.target.value as Netzfarbe })}>
+                {Object.entries(NETZFARBEN).map(([wert, b]) => (
+                  <option key={wert} value={wert}>
+                    {b.deutsch}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="netz__feld">
+              <span>Mechanismus</span>
+              <select className="input" value={e.mechanismus} onChange={(ev) => aendere(i, { mechanismus: ev.target.value as Mechanismus })}>
+                {Object.entries(MECHANISMEN).map(([wert, b]) => (
+                  <option key={wert} value={wert}>
+                    {b.deutsch}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="netz__feld netz__feld--breit">
+              <span>Öffnungsrichtung, von innen gesehen</span>
+              <select
+                className={e.oeffnung ? 'input' : 'input netz__fehlt'}
+                value={e.oeffnung}
+                onChange={(ev) => aendere(i, { oeffnung: ev.target.value as OpeningDirection | '' })}
+              >
+                <option value="">— noch offen —</option>
+                {Object.entries(OEFFNUNGEN).map(([wert, b]) => (
+                  <option key={wert} value={wert}>
+                    {b.deutsch}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </fieldset>
+      ))}
+
+      <button type="button" className="btn btn--quiet" onClick={() => setEntwuerfe((l) => [...l, leer()])}>
         Netz hinzufügen
       </button>
 

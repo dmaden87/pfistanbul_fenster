@@ -33,6 +33,9 @@ interface BestellKarteProps {
   onStatus: (id: string, status: BestellStatus) => void
   onAendern: (id: string, aenderung: BestellAenderung) => Promise<void>
   onLoeschen: (id: string) => void
+  /** Fuer die Lieferrunde gewaehlt. Fehlt bei abgeschlossenen Eintraegen. */
+  gewaehlt?: boolean
+  onWahl?: (id: string, gewaehlt: boolean) => void
 }
 
 /**
@@ -76,7 +79,15 @@ function netzZahl(positionen: BestellPosition[]): number {
   return positionen.reduce((summe, p) => summe + p.menge, 0)
 }
 
-export function BestellKarte({ bestellung: b, montageProNetz, onStatus, onAendern, onLoeschen }: BestellKarteProps) {
+export function BestellKarte({
+  bestellung: b,
+  montageProNetz,
+  onStatus,
+  onAendern,
+  onLoeschen,
+  gewaehlt,
+  onWahl,
+}: BestellKarteProps) {
   const [offen, setOffen] = useState(false)
   const [bearbeitet, setBearbeitet] = useState(false)
   const [loeschFrage, setLoeschFrage] = useState(false)
@@ -95,6 +106,12 @@ export function BestellKarte({ bestellung: b, montageProNetz, onStatus, onAender
   return (
     <li className={`admin__karte admin__karte--${b.status}`}>
       <div className="admin__karte-kopf">
+        {onWahl && (
+          <label className="admin__wahl">
+            <input type="checkbox" checked={Boolean(gewaehlt)} onChange={(e) => onWahl(b.id, e.target.checked)} />
+            <span className="admin__wahl-text">für die Lieferrunde</span>
+          </label>
+        )}
         <span className={`admin__art admin__art--${b.art}`}>{ART_TEXT[b.art]}</span>
         <span className="admin__referenz">{b.referenz || b.id}</span>
         <span className="admin__datum">{datum(b.eingang)}</span>

@@ -523,3 +523,112 @@
     min-width: 32rem;
   }
 }
+
+/* --- Lieferrunde ------------------------------------------------------------ */
+
+.admin__wahl {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.admin__wahl input {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--accent);
+}
+
+.admin__wahl-text {
+  color: var(--text-subtle);
+}
+
+.admin__runde {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: var(--step--1);
+}
+
+/* --- Netze bearbeiten: ein Block je Netz ------------------------------------ */
+
+.netz {
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.netz__nummer {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: 0 var(--space-2);
+  color: var(--text-subtle);
+  font-size: var(--step--2);
+  font-weight: 600;
+}
+
+.netz__quelle {
+  font-weight: 400;
+}
+
+.netz__reihe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.netz__reihe--produktion {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--border);
+}
+
+.netz__feld {
+  flex: 1 1 8rem;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.netz__feld > span {
+  color: var(--text-subtle);
+  font-size: var(--step--2);
+}
+
+.netz__feld .input,
+.netz__feld select {
+  padding: 0.35rem 0.5rem;
+  font-size: var(--step--1);
+}
+
+.netz__feld--winzig {
+  flex: 0 0 3.5rem;
+}
+
+.netz__feld--klein {
+  flex: 0 1 7rem;
+}
+
+.netz__feld--breit {
+  flex: 2 1 14rem;
+}
+
+/* Die Öffnungsrichtung wird nicht vorbelegt – solange sie fehlt, sieht man es. */
+.netz__fehlt {
+  border-color: var(--highlight);
+  background: var(--highlight-soft);
+  color: var(--highlight-ink);
+}
+
+.netz .netze__weg {
+  margin-bottom: 0.15rem;
+}

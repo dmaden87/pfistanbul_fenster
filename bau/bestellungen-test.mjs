@@ -268,6 +268,35 @@ await pruefe('Ein Netz laesst sich ergaenzen', async () => {
   assert.equal(a.daten.bestellung.summeChf, 150 + 420 + 45)
 })
 
+await pruefe('Masse behalten die Nachkommastelle', async () => {
+  // 128.6 auf 129 gerundet ist ein Netz, das nicht passt.
+  const a = await ruf({
+    method: 'PATCH', cookie,
+    body: { id: vonHand.id, positionen: [{ menge: 1, bezeichnung: 'Wohnzimmer', breiteCm: 128.6, hoeheCm: 182.5, preisChf: 170 }] },
+  })
+  assert.equal(a.daten.bestellung.positionen[0].breiteCm, 128.6)
+  assert.equal(a.daten.bestellung.positionen[0].hoeheCm, 182.5)
+})
+
+await pruefe('Die Angaben fuer den Produzenten kommen durch', async () => {
+  const a = await ruf({
+    method: 'PATCH', cookie,
+    body: {
+      id: vonHand.id,
+      positionen: [{
+        menge: 1, bezeichnung: 'Wohnzimmer', breiteCm: 128.6, hoeheCm: 182.5, preisChf: 170,
+        rahmendicke: '3-4 cm', rahmenfarbe: 'weiss', netzfarbe: 'grau', mechanismus: 'akkordeon',
+        oeffnung: 'nach-links', typId: 'zimmer',
+      }],
+    },
+  })
+  const p = a.daten.bestellung.positionen[0]
+  assert.equal(p.rahmenfarbe, 'weiss')
+  assert.equal(p.mechanismus, 'akkordeon')
+  assert.equal(p.oeffnung, 'nach-links')
+  assert.equal(p.typId, 'zimmer')
+})
+
 await pruefe('Unsinnige Masse fallen weg statt als 0 zu erscheinen', async () => {
   const a = await ruf({
     method: 'PATCH',

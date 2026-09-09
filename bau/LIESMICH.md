@@ -93,8 +93,9 @@ einmal laufen lassen.
 npm test
 ```
 
-Fährt `api/bestellungen.ts` mit einem Speicher im Arbeitsspeicher hoch und
-geht 26 Fälle durch. Zwei davon sind der eigentliche Grund für den Testlauf:
+Zwei Testläufe. Der erste fährt `api/bestellungen.ts` mit einem Speicher im
+Arbeitsspeicher hoch und geht 28 Fälle durch. Zwei davon sind der eigentliche
+Grund für den Testlauf:
 
 - **Die Summe beim Ändern der Netze.** Sie wird neu gerechnet, und bei
   Einträgen aus der Zeit vor dem Feld `montageChf` muss die Montage aus der
@@ -108,9 +109,42 @@ geht 26 Fälle durch. Zwei davon sind der eigentliche Grund für den Testlauf:
   Fehlklick eine unbezahlte Bestellung als bezahlt markieren – und sie würde
   ausgeliefert.
 
-Der Testlauf braucht keine Übersetzung: Node liest die `.ts`-Dateien mit
-`--experimental-strip-types` direkt. Nur die Konvention, dass die Importe dort
-auf `.js` enden, muss nachgeholt werden – das erledigt `bau/ts-aufloeser.mjs`.
+Der zweite prüft `src/lib/bestellauftrag.ts` – die Umrechnung von Bestellungen
+in einen Auftrag an den Produzenten. Auch hier zwei Punkte, die den Testlauf
+tragen:
+
+- **Ein Set wird in seine einzelnen Netze aufgelöst.** Für das Geld ist „Set
+  Mittel" eine Position mit einem Preis, für den Produzenten sind es sechs
+  Netze mit sechs Massen. Beides muss gleichzeitig stimmen.
+- **Fehlende Angaben werden gemeldet, nicht gefüllt.** Fehlt einem Netz die
+  Rahmendicke oder die Öffnungsrichtung, entsteht kein Auftrag mit einer
+  Annahme darin. Eine Lieferung aus der Türkei, die nicht passt, kostet
+  Wochen; die Meldung kostet fünf Minuten.
+
+Die Testläufe brauchen keine Übersetzung: Node liest die `.ts`-Dateien mit
+`--experimental-strip-types` direkt. Nur die Auflösung der Importe muss
+nachgeholt werden – unter `api/` enden sie auf `.js` und meinen `.ts`, unter
+`src/` haben sie gar keine Endung, weil dort sonst Vite auflöst. Beides
+erledigt `bau/ts-aufloeser.mjs`, das auch `npm run pruefen` vorgeschaltet ist.
+
+## Der Auftrag an den Produzenten
+
+Entsteht im Adminbereich: Bestellungen ankreuzen, „Auftrag an den
+Produzenten", dann Preisanfrage oder Bestellung wählen und über die
+Druckfunktion des Browsers als PDF sichern. Bewusst ohne PDF-Bibliothek – das
+funktioniert auf dem Telefon genauso und kann nicht veralten.
+
+Das Dokument hat zwei Teile, und das ist keine Doppelung: Die
+**Fertigungstabelle** fasst alle Netze aller Kunden nach Bauart zusammen,
+danach fertigt er. Die **Paketliste** zeigt sie je Kunde mit Raum, danach
+packt er – und danach packen wir aus. Ohne die Kennung auf dem Paket ist bei
+der Ankunft nicht mehr zu erkennen, welches der gleich grossen Netze zu wem
+gehört.
+
+**Die Sprache steht ausschliesslich in `src/data/produktion.ts`.** Der Auftrag
+geht auf Türkisch raus; dort steht neben jeder deutschen Beschriftung die
+türkische. Eine Änderung an der Sprache ist ein Eintrag in dieser Datei, keine
+neue Fassung des Dokuments.
 
 ## Wenn eine eigene Domain dazukommt
 

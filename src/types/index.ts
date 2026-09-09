@@ -1,3 +1,5 @@
+import type { Mechanismus, Netzfarbe, Rahmenfarbe } from '../data/produktion'
+
 /** Eine Überbauung, deren Fenster wir ausgemessen haben. */
 export interface Ueberbauung {
   id: string
@@ -34,7 +36,7 @@ export interface MeshOption {
  * Wohin sich das Netz beim Öffnen bewegt. "mitte" heisst: zwei Netze, die
  * sich beim Schliessen in der Mitte treffen.
  */
-export type OpeningDirection = 'nach-links' | 'nach-oben' | 'nach-rechts' | 'mitte'
+export type OpeningDirection = 'nach-links' | 'nach-oben' | 'nach-rechts' | 'nach-unten' | 'mitte'
 
 /** Einer der ausgemessenen Fenstertypen einer Überbauung. */
 export interface WindowType {
@@ -53,6 +55,13 @@ export interface WindowType {
   opening: OpeningDirection
   /** Wie die Bedienung in einem Satz erklärt wird. */
   openingLabel: string
+  /**
+   * Dicke des Fensterrahmens, in den geklebt wird. Steht hier und nicht als
+   * Vorbelegung im Formular, weil sie eine Eigenschaft der Ueberbauung ist:
+   * Ohne diese Angabe koennte selbst eine gewoehnliche Warenkorb-Bestellung
+   * nicht zum Produzenten, weil ihm eine Angabe fehlte.
+   */
+  rahmendicke: string
 }
 
 /** Ein Set aus mehreren Netzen zum festen Zielpreis. */
@@ -156,6 +165,24 @@ export interface BestellPosition {
   preisChf: number
   breiteCm?: number
   hoeheCm?: number
+  /**
+   * Die Angaben, die der Produzent braucht. Fehlen sie, wird der
+   * Bestellauftrag nicht erzeugt, sondern sagt, was fehlt – lieber eine
+   * Meldung als eine Lieferung aus der Tuerkei, die nicht passt.
+   */
+  rahmendicke?: string
+  rahmenfarbe?: Rahmenfarbe
+  netzfarbe?: Netzfarbe
+  mechanismus?: Mechanismus
+  oeffnung?: OpeningDirection
+  /**
+   * Verweis in den Katalog, wenn die Zeile aus dem Warenkorb kommt. Damit
+   * loest der Bestellauftrag ein Set in seine einzelnen Netze auf, ohne dass
+   * die Preiszeile angetastet wird: Fuer das Geld ist das Set eine Position,
+   * fuer den Produzenten sind es sechs Netze.
+   */
+  typId?: string
+  setId?: string
 }
 
 /**

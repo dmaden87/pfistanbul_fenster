@@ -1,5 +1,6 @@
 import type { BestellArt, BestellPosition, CartLine, CustomRequestLine, CustomerDetails, PaymentMethod } from '../types'
 import { netsInSet, setById, typeById } from '../data/catalog'
+import { STANDARD } from '../data/produktion'
 import { cartTotals, priceForLine } from './pricing'
 import { estimateCustomRequest } from './estimate'
 import { formatSize } from './format'
@@ -31,11 +32,15 @@ function positionenAusWarenkorb(lines: CartLine[]): BestellPosition[] {
       const inhalt = set
         ? set.items.map((i) => `${i.count}× ${typeById(i.typeId)?.label ?? i.typeId}`).join(', ')
         : ''
+      // Fuer das Geld ist das Set eine Position. Der Bestellauftrag loest es
+      // ueber `setId` in seine einzelnen Netze auf – deshalb steht hier keine
+      // Angabe zur Bauart, sie kaeme aus dem Katalog und waere doppelt.
       return {
         menge: line.quantity,
         bezeichnung: set?.label ?? line.refId,
         detail: set ? `${netsInSet(set)} Netze: ${inhalt}` : '',
         preisChf: priceForLine(line),
+        setId: line.refId,
       }
     }
     const typ = typeById(line.refId)
@@ -44,6 +49,22 @@ function positionenAusWarenkorb(lines: CartLine[]): BestellPosition[] {
       bezeichnung: typ?.label ?? line.refId,
       detail: typ ? formatSize(typ.widthCm, typ.heightCm) : '',
       preisChf: priceForLine(line),
+      typId: line.refId,
+      // Die Angaben fuer den Produzenten stehen im Katalog, weil sie
+      // Eigenschaften der Ueberbauung sind. Sie werden hier mitgeschrieben
+      // und nicht spaeter nachgeschlagen: Aendert sich der Katalog, soll eine
+      // laengst erteilte Bestellung nicht ruecklaeufig anders lauten.
+      ...(typ
+        ? {
+            breiteCm: typ.widthCm,
+            hoeheCm: typ.heightCm,
+            rahmendicke: typ.rahmendicke,
+            rahmenfarbe: STANDARD.rahmenfarbe,
+            netzfarbe: STANDARD.netzfarbe,
+            mechanismus: STANDARD.mechanismus,
+            oeffnung: typ.opening,
+          }
+        : {}),
     }
   })
 }
@@ -62,6 +83,13 @@ function positionenAusAnfrage(items: CustomRequestLine[]): BestellPosition[] {
       preisChf: zeile?.perNetChf ?? 0,
       breiteCm: Number(item.widthCm) || undefined,
       hoeheCm: Number(item.heightCm) || undefined,
+      // Rahmenfarbe, Netz und Mechanismus sind unser Standard und werden
+      // vorbelegt. Rahmendicke und Oeffnungsrichtung bleiben BEWUSST leer:
+      // Beides sieht man erst am Fenster. Der Bestellauftrag meldet die
+      // Luecke, statt sie mit einer Annahme zu fuellen.
+      rahmenfarbe: STANDARD.rahmenfarbe,
+      netzfarbe: STANDARD.netzfarbe,
+      mechanismus: STANDARD.mechanismus,
     }
   })
 }

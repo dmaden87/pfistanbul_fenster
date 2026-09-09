@@ -1,0 +1,292 @@
+/*
+ * Der Auftrag an den Produzenten.
+ *
+ * Zwei Darstellungen in einer Datei: am Bildschirm ein Blatt zum Prüfen, im
+ * Druck das, was als PDF rausgeht. Das PDF entsteht über die Druckfunktion
+ * des Browsers – das spart eine Programmbibliothek, geht auf dem Telefon
+ * genauso und kann nicht veralten.
+ *
+ * Die Schrift ist bewusst Inter und nicht Fraunces: Der Produzent liest
+ * Zahlen, keine Prosa, und eine Serifenschrift mit Ligaturen ist bei
+ * "128.6" die falsche Wahl.
+ */
+
+.auftrag__steuerung {
+  display: grid;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+}
+
+.auftrag__wahl {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+.auftrag__termin {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--step--1);
+}
+
+.auftrag__feld {
+  width: 16rem;
+  padding: 0.35rem 0.5rem;
+}
+
+.auftrag__schritte {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.auftrag__luecken {
+  padding: var(--space-4);
+  border-left: 3px solid var(--danger);
+  border-radius: var(--radius-sm);
+  background: var(--danger-soft);
+  color: var(--danger-ink);
+  font-size: var(--step--1);
+}
+
+.auftrag__luecken ul {
+  margin: var(--space-3) 0;
+  padding-left: 1.2rem;
+}
+
+.auftrag__luecken code {
+  font-weight: 700;
+}
+
+/* --- Das Blatt -------------------------------------------------------------- */
+
+.blatt {
+  max-width: 210mm;
+  margin: 0 auto;
+  padding: 16mm 14mm;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  color: #111111;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 10pt;
+  line-height: 1.4;
+}
+
+.blatt__kopf {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding-bottom: 4mm;
+  border-bottom: 2px solid #111111;
+}
+
+.blatt__marke {
+  font-size: 13pt;
+  font-weight: 700;
+}
+
+.blatt__zeile {
+  font-size: 9pt;
+  color: #444444;
+}
+
+.blatt__rechts {
+  text-align: right;
+}
+
+.blatt h1 {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 18pt;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.blatt h2 {
+  margin-top: 7mm;
+  margin-bottom: 2mm;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 11pt;
+  font-weight: 700;
+}
+
+.blatt h3 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: 1.5mm;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 10pt;
+  font-weight: 700;
+}
+
+/*
+ * Die beiden Regeln stehen zuoberst und umrandet, nicht in einer Fussnote.
+ * Wenn beide Seiten glauben, die andere ziehe das Mass ab, passt kein
+ * einziges Netz – das ist der teuerste Satz des Dokuments.
+ */
+.blatt__regeln {
+  margin-top: 5mm;
+  padding: 3mm 4mm;
+  border: 1.5px solid #111111;
+}
+
+.blatt__regeln p + p {
+  margin-top: 1.5mm;
+  font-size: 9pt;
+}
+
+.blatt__termin {
+  margin-top: 4mm;
+  font-size: 10pt;
+}
+
+/* Ein Feld zum Hineinschreiben – bei der Preisanfrage traegt er es ein. */
+.blatt__leer {
+  display: inline-block;
+  width: 60mm;
+  border-bottom: 1px solid #111111;
+}
+
+.blatt__bemerkung {
+  margin-top: 3mm;
+  padding: 2mm 3mm;
+  background: #f2f2f2;
+  font-size: 9.5pt;
+  white-space: pre-wrap;
+}
+
+.blatt__tabelle {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9pt;
+}
+
+.blatt__tabelle th {
+  padding: 1.5mm 2mm;
+  border-bottom: 1.5px solid #111111;
+  text-align: left;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.blatt__tabelle td {
+  padding: 1.5mm 2mm;
+  border-bottom: 0.5px solid #cccccc;
+  vertical-align: top;
+}
+
+.blatt__zahl {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.blatt__eng {
+  width: 14mm;
+  text-align: right;
+}
+
+.blatt__preis {
+  width: 26mm;
+  text-align: right;
+}
+
+/* Der Raum, damit beim Auspacken klar ist, welches Netz wohin gehoert. */
+.blatt__raum {
+  font-weight: 600;
+}
+
+/* Die Zelle, in die er den Preis schreibt. Muss als Feld erkennbar sein. */
+.blatt__leer-feld {
+  border-bottom: 1px solid #111111;
+  background: #fafafa;
+}
+
+.blatt__hinweis {
+  margin-top: 2mm;
+  font-size: 8.5pt;
+  color: #444444;
+}
+
+.blatt__paket {
+  margin-top: 4mm;
+  padding-top: 2mm;
+  border-top: 0.5px solid #cccccc;
+  /* Ein Paket soll nicht ueber zwei Seiten zerrissen werden. */
+  break-inside: avoid;
+}
+
+.blatt__kennung {
+  padding: 0.5mm 2mm;
+  border: 1.5px solid #111111;
+  font-size: 11pt;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
+
+.blatt__anzahl {
+  font-weight: 400;
+  color: #444444;
+}
+
+.blatt__fuss {
+  margin-top: 8mm;
+  padding-top: 3mm;
+  border-top: 0.5px solid #cccccc;
+  font-size: 9pt;
+  color: #444444;
+}
+
+/* --- Druck ------------------------------------------------------------------ */
+
+@media print {
+  /*
+   * Nur das Blatt darf aufs Papier. Der Weg ueber `visibility` statt
+   * `display` ist Absicht: Er laesst die Seitenstruktur stehen, sodass das
+   * Blatt seine Breite behaelt, statt in einer ausgeblendeten Spalte zu
+   * kollabieren.
+   */
+  body * {
+    visibility: hidden;
+  }
+
+  .blatt,
+  .blatt * {
+    visibility: visible;
+  }
+
+  .blatt {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .blatt__paket,
+  .blatt__tabelle tr {
+    break-inside: avoid;
+  }
+
+  .blatt h2 {
+    break-after: avoid;
+  }
+}
+
+@page {
+  size: A4 portrait;
+  margin: 14mm;
+}

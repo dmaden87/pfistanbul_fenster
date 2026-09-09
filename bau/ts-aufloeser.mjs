@@ -19,9 +19,16 @@ import { fileURLToPath } from 'node:url'
  */
 registerHooks({
   resolve(spezifikator, kontext, naechster) {
-    if (spezifikator.startsWith('.') && spezifikator.endsWith('.js') && kontext.parentURL) {
-      const alsTs = new URL(spezifikator.slice(0, -3) + '.ts', kontext.parentURL)
-      if (existsSync(fileURLToPath(alsTs))) return { url: alsTs.href, shortCircuit: true }
+    if (spezifikator.startsWith('.') && kontext.parentURL) {
+      // api/: ".js" meint die gleichnamige ".ts".
+      // src/: gar keine Endung – dort loest sonst Vite auf.
+      const kandidaten = spezifikator.endsWith('.js')
+        ? [spezifikator.slice(0, -3) + '.ts']
+        : [spezifikator + '.ts', spezifikator + '/index.ts']
+      for (const kandidat of kandidaten) {
+        const url = new URL(kandidat, kontext.parentURL)
+        if (existsSync(fileURLToPath(url))) return { url: url.href, shortCircuit: true }
+      }
     }
     return naechster(spezifikator, kontext)
   },

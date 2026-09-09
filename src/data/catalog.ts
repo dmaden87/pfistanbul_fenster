@@ -1,4 +1,5 @@
 import type { MeshOption, NetSet, Ueberbauung, WindowType } from '../types'
+import { STANDARD } from './produktion'
 
 /**
  * Fenstertypen, Masse und Preise stammen aus dem Detailkonzept
@@ -24,6 +25,7 @@ const pfisterhoelzliTypes: WindowType[] = [
     priceChf: 130,
     opening: 'nach-links',
     openingLabel: 'Öffnet seitlich, von rechts nach links',
+    rahmendicke: STANDARD.rahmendicke,
   },
   {
     id: 'kueche',
@@ -35,6 +37,7 @@ const pfisterhoelzliTypes: WindowType[] = [
     priceChf: 130,
     opening: 'nach-oben',
     openingLabel: 'Öffnet von unten nach oben',
+    rahmendicke: STANDARD.rahmendicke,
   },
   {
     id: 'zimmer',
@@ -46,6 +49,7 @@ const pfisterhoelzliTypes: WindowType[] = [
     priceChf: 150,
     opening: 'mitte',
     openingLabel: 'Zwei Netze, die sich in der Mitte treffen – öffnen nach beiden Seiten',
+    rahmendicke: STANDARD.rahmendicke,
   },
   {
     id: 'balkontuer',
@@ -57,6 +61,7 @@ const pfisterhoelzliTypes: WindowType[] = [
     priceChf: 155,
     opening: 'nach-rechts',
     openingLabel: 'Öffnet seitlich, von links nach rechts',
+    rahmendicke: STANDARD.rahmendicke,
   },
 ]
 

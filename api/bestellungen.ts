@@ -48,9 +48,18 @@ interface Position {
   bezeichnung: string
   detail: string
   preisChf: number
-  /** Nur beim Sondermass gesetzt. Als Zahl, damit daraus ein Auftrag entstehen kann. */
+  /** Rahmenmass in cm, auf den Millimeter genau. */
   breiteCm?: number
   hoeheCm?: number
+  /** Was der Produzent wissen muss. Frei gehalten, die Werteliste steht im Browser. */
+  rahmendicke?: string
+  rahmenfarbe?: string
+  netzfarbe?: string
+  mechanismus?: string
+  oeffnung?: string
+  /** Verweis in den Katalog, damit der Auftrag ein Set in Netze aufloesen kann. */
+  typId?: string
+  setId?: string
 }
 
 /**
@@ -125,7 +134,10 @@ function masszahl(wert: unknown): number | undefined {
   if (wert === undefined || wert === null || wert === '') return undefined
   const n = typeof wert === 'number' ? wert : Number(wert)
   if (!Number.isFinite(n) || n <= 0) return undefined
-  return Math.min(600, Math.round(n))
+  // Eine Nachkommastelle, also auf den Millimeter. Fensteroeffnungen messen
+  // sich nicht in ganzen Zentimetern: 128.6 auf 129 gerundet ist ein Netz,
+  // das nicht passt.
+  return Math.min(600, Math.round(n * 10) / 10)
 }
 
 function positionen(wert: unknown): Position[] {
@@ -142,6 +154,13 @@ function positionen(wert: unknown): Position[] {
     const hoehe = masszahl(roh?.hoeheCm)
     if (breite !== undefined) position.breiteCm = breite
     if (hoehe !== undefined) position.hoeheCm = hoehe
+    // Die Angaben fuer den Produzenten und die Katalogverweise. Was leer
+    // ankommt, bleibt weg: Der Bestellauftrag prueft spaeter, ob alles da
+    // ist, und meldet die Luecke, statt sie mit einer Annahme zu fuellen.
+    for (const feld of ['rahmendicke', 'rahmenfarbe', 'netzfarbe', 'mechanismus', 'oeffnung', 'typId', 'setId'] as const) {
+      const wert = text(roh?.[feld], 40)
+      if (wert) position[feld] = wert
+    }
     return position
   })
 }

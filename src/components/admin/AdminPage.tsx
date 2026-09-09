@@ -3,6 +3,7 @@ import type { AdminStatus, Bestellung, BestellAenderung, BestellStatus } from '.
 import { abmelden, adminStatus, aendereBestellung, anmelden, entferneBestellung, ladeBestellungen, setzeStatus } from '../../lib/adminApi'
 import { shopConfig } from '../../data/shopConfig'
 import { BestellKarte } from './BestellKarte'
+import { Bestellauftrag } from './Bestellauftrag'
 import { NeueBestellung } from './NeueBestellung'
 import './AdminPage.css'
 
@@ -43,6 +44,11 @@ export function AdminPage({ onBack }: AdminPageProps) {
   const [laedt, setLaedt] = useState(true)
   const [sendet, setSendet] = useState(false)
   const [erfassen, setErfassen] = useState(false)
+  // Welche Bestellungen in die naechste Lieferrunde gehen. Die Runde wird von
+  // Hand zusammengestellt und nicht aus dem Status abgeleitet: Der Auftrag
+  // entsteht, BEVOR etwas als "beim Lieferanten bestellt" gilt.
+  const [runde, setRunde] = useState<string[]>([])
+  const [zeigeAuftrag, setZeigeAuftrag] = useState(false)
 
   const laden = useCallback(async () => {
     setFehler(null)
@@ -196,6 +202,24 @@ export function AdminPage({ onBack }: AdminPageProps) {
 
   const offen = bestellungen.filter((b) => b.status === 'neu').length
   const inOfferte = bestellungen.filter((b) => b.status === 'offerte').length
+  const gewaehlte = bestellungen.filter((b) => runde.includes(b.id))
+
+  const waehle = (id: string, an: boolean) =>
+    setRunde((liste) => (an ? [...liste, id] : liste.filter((x) => x !== id)))
+
+  if (zeigeAuftrag) {
+    // Bewusst ohne die Klasse "admin": Deren Ueberschriftenregel ist genauso
+    // spezifisch wie die des Blatts und wird spaeter geladen – der Auftrag
+    // bekaeme die Anzeigeschrift der Webseite. Der Produzent liest Zahlen,
+    // dafuer ist eine Serifenschrift die falsche Wahl.
+    return (
+      <section className="section">
+        <div className="shell">
+          <Bestellauftrag bestellungen={gewaehlte} onZurueck={() => setZeigeAuftrag(false)} />
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className="section admin">
@@ -233,6 +257,26 @@ export function AdminPage({ onBack }: AdminPageProps) {
 
         {fehler && <p className="form-status form-status--error">{fehler}</p>}
 
+        {/*
+          Die Leiste erscheint erst, wenn etwas gewaehlt ist. Sie steht oben
+          und nicht unten: Wer eine Runde zusammenstellt, klickt durch die
+          Liste und will danach nicht ans Seitenende scrollen.
+        */}
+        {gewaehlte.length > 0 && (
+          <div className="admin__runde">
+            <span>
+              <strong>{gewaehlte.length}</strong> {gewaehlte.length === 1 ? 'Bestellung' : 'Bestellungen'} für die
+              Lieferrunde gewählt
+            </span>
+            <button type="button" className="btn" onClick={() => setZeigeAuftrag(true)}>
+              Auftrag an den Produzenten
+            </button>
+            <button type="button" className="btn btn--quiet" onClick={() => setRunde([])}>
+              Auswahl aufheben
+            </button>
+          </div>
+        )}
+
         {erfassen && (
           <NeueBestellung
             montageProNetz={shopConfig.montageChf}
@@ -267,6 +311,9 @@ export function AdminPage({ onBack }: AdminPageProps) {
                       onStatus={handleStatus}
                       onAendern={handleAendern}
                       onLoeschen={handleLoeschen}
+                      gewaehlt={runde.includes(b.id)}
+                      // Abgeschlossenes gehoert in keine Runde mehr.
+                      onWahl={b.status === 'erledigt' || b.status === 'geloescht' ? undefined : waehle}
                     />
                   ))}
                 </ul>
