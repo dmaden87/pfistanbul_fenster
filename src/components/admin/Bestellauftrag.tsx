@@ -13,6 +13,8 @@ import {
   PREISHINWEIS,
   RAHMENFARBEN,
   RICHTUNGSREGEL,
+  TEXTE,
+  type Beschriftung,
 } from '../../data/produktion'
 import './Bestellauftrag.css'
 
@@ -35,6 +37,13 @@ import './Bestellauftrag.css'
 
 type Art = 'anfrage' | 'bestellung'
 
+/**
+ * Die Sprache des Blatts. Der Auftrag geht auf Tuerkisch raus; Deutsch bleibt
+ * zum Pruefen, bevor er abgeschickt wird. Umgeschaltet wird nur, welches Feld
+ * jeder Beschriftung genommen wird – der Aufbau ist derselbe.
+ */
+type Sprache = 'deutsch' | 'tuerkisch'
+
 interface BestellauftragProps {
   bestellungen: Bestellung[]
   onZurueck: () => void
@@ -44,26 +53,33 @@ function mass(wert: number | undefined): string {
   return wert === undefined ? '—' : String(wert)
 }
 
-function netzZeile(n: AuftragsNetz) {
+function netzZeile(n: AuftragsNetz, s: Sprache) {
   return {
     breite: mass(n.breiteCm),
     hoehe: mass(n.hoeheCm),
     dicke: n.rahmendicke ?? '—',
-    rahmen: n.rahmenfarbe ? RAHMENFARBEN[n.rahmenfarbe].deutsch : '—',
-    netz: n.netzfarbe ? NETZFARBEN[n.netzfarbe].deutsch : '—',
-    mechanismus: n.mechanismus ? MECHANISMEN[n.mechanismus].deutsch : '—',
-    oeffnung: n.oeffnung ? OEFFNUNGEN[n.oeffnung].deutsch : '—',
+    rahmen: n.rahmenfarbe ? RAHMENFARBEN[n.rahmenfarbe][s] : '—',
+    netz: n.netzfarbe ? NETZFARBEN[n.netzfarbe][s] : '—',
+    mechanismus: n.mechanismus ? MECHANISMEN[n.mechanismus][s] : '—',
+    oeffnung: n.oeffnung ? OEFFNUNGEN[n.oeffnung][s] : '—',
   }
 }
 
 export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps) {
   const [art, setArt] = useState<Art>('anfrage')
+  const [sprache, setSprache] = useState<Sprache>('tuerkisch')
   const [nummer, setNummer] = useState('')
   const [termin, setTermin] = useState('')
   const [bemerkung, setBemerkung] = useState('')
 
   const auftrag = auftragAufbauen(bestellungen)
-  const heute = new Date().toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  /** Kuerzel fuer "nimm die Fassung in der gewaehlten Sprache". */
+  const w = (b: Beschriftung) => b[sprache]
+  const heute = new Date().toLocaleDateString(sprache === 'tuerkisch' ? 'tr-TR' : 'de-CH', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
 
   return (
     <>
@@ -77,6 +93,15 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
           <label className="admin__haken">
             <input type="radio" name="auftragsart" checked={art === 'bestellung'} onChange={() => setArt('bestellung')} />
             <span>Bestellung</span>
+          </label>
+          <span className="auftrag__trenner" />
+          <label className="admin__haken">
+            <input type="radio" name="sprache" checked={sprache === 'tuerkisch'} onChange={() => setSprache('tuerkisch')} />
+            <span>Türkisch</span>
+          </label>
+          <label className="admin__haken">
+            <input type="radio" name="sprache" checked={sprache === 'deutsch'} onChange={() => setSprache('deutsch')} />
+            <span>Deutsch (nur zum Prüfen)</span>
           </label>
           <label className="auftrag__termin">
             <span>Lieferung Nr.</span>
@@ -139,11 +164,11 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
             <span>{ABSENDER.person}</span>
             <span>{ABSENDER.strasse}</span>
             <span>
-              {ABSENDER.ort} ({ABSENDER.land.deutsch})
+              {ABSENDER.ort} ({w(ABSENDER.land)})
             </span>
           </address>
           <div className="blatt__rechts">
-            <h1>{art === 'anfrage' ? 'Preisanfrage' : 'Bestellung'}</h1>
+            <h1>{w(art === 'anfrage' ? TEXTE.preisanfrage : TEXTE.bestellung)}</h1>
             <p className="blatt__zeile">
               {nummer && <strong>{nummer} · </strong>}
               {heute}
@@ -153,19 +178,19 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
 
         <section className="blatt__regeln">
           <p>
-            <strong>{MASSREGEL.deutsch}</strong>
+            <strong>{w(MASSREGEL)}</strong>
           </p>
-          <p>{RICHTUNGSREGEL.deutsch}</p>
+          <p>{w(RICHTUNGSREGEL)}</p>
         </section>
 
         <section className="blatt__termin">
           {art === 'anfrage' ? (
             <p>
-              Ungefährer Liefertermin: <span className="blatt__leer" />
+              {w(TEXTE.terminOffen)}: <span className="blatt__leer" />
             </p>
           ) : (
             <p>
-              Erwarteter Liefertermin: <strong>{termin || '—'}</strong>
+              {w(TEXTE.terminGesetzt)}: <strong>{termin || '—'}</strong>
             </p>
           )}
         </section>
@@ -174,7 +199,7 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
 
         <section>
           <h2>
-            {auftrag.anzahl} {auftrag.anzahl === 1 ? 'Plissee' : 'Plissees'} · jede Zeile ist ein Stück
+            {auftrag.anzahl} {w(auftrag.anzahl === 1 ? TEXTE.plissee : TEXTE.plissees)} · {w(TEXTE.stueckHinweis)}
           </h2>
           {/*
             EINE Tabelle, nicht zwei. Jede Zeile ist ein Plissee und traegt
@@ -185,47 +210,49 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
           <table className="blatt__tabelle blatt__tabelle--handschrift">
             <thead>
               <tr>
-                <th className="blatt__eng">Nr.</th>
-                <th>Paket</th>
-                <th>Fenster</th>
-                <th className="blatt__eng">Breite</th>
-                <th className="blatt__eng">Höhe</th>
-                <th>Rahmendicke</th>
-                <th>Rahmen</th>
-                <th>Netz</th>
-                <th>Mechanismus</th>
-                <th>Öffnungsrichtung</th>
+                <th className="blatt__eng">{w(TEXTE.nummer)}</th>
+                <th>{w(TEXTE.paket)}</th>
+                <th>{w(TEXTE.fenster)}</th>
+                <th className="blatt__eng">{w(TEXTE.breite)}</th>
+                <th className="blatt__eng">{w(TEXTE.hoehe)}</th>
+                <th>{w(TEXTE.rahmendicke)}</th>
+                <th>{w(TEXTE.rahmen)}</th>
+                <th>{w(TEXTE.netz)}</th>
+                <th>{w(TEXTE.mechanismus)}</th>
+                <th>{w(TEXTE.oeffnung)}</th>
                 {/*
                   Der Preis wird NIE gedruckt, auch nicht auf der Bestellung.
                   Er ist veraenderlich – bei groesseren Mengen guenstiger – und
                   wird beim Produzenten ausgehandelt. Eine gedruckte Zahl waere
                   entweder falsch oder eine Behauptung.
                 */}
-                <th className="blatt__preis">Stückpreis</th>
+                <th className="blatt__preis">{w(TEXTE.stueckpreis)}</th>
               </tr>
             </thead>
             <tbody>
               {auftrag.zeilen.map((z) => {
-                const w = netzZeile(z)
+                const z2 = netzZeile(z, sprache)
                 return (
                   <tr key={z.nummer}>
                     <td className="blatt__zahl">{z.nummer}</td>
                     <td className="blatt__paketzelle">{z.kennung}</td>
                     <td className="blatt__raum">{z.bezeichnung}</td>
-                    <td className="blatt__zahl">{w.breite}</td>
-                    <td className="blatt__zahl">{w.hoehe}</td>
-                    <td>{w.dicke}</td>
-                    <td>{w.rahmen}</td>
-                    <td>{w.netz}</td>
-                    <td>{w.mechanismus}</td>
-                    <td>{w.oeffnung}</td>
+                    <td className="blatt__zahl">{z2.breite}</td>
+                    <td className="blatt__zahl">{z2.hoehe}</td>
+                    <td>{z2.dicke}</td>
+                    <td>{z2.rahmen}</td>
+                    <td>{z2.netz}</td>
+                    <td>{z2.mechanismus}</td>
+                    <td>{z2.oeffnung}</td>
                     <td className="blatt__preis blatt__leer-feld" />
                   </tr>
                 )
               })}
             </tbody>
           </table>
-          <p className="blatt__hinweis">Alle Masse in Zentimetern, Breite × Höhe. {PREISHINWEIS.deutsch}</p>
+          <p className="blatt__hinweis">
+            {w(TEXTE.masseinheit)} {w(PREISHINWEIS)}
+          </p>
         </section>
 
         {/*
@@ -238,12 +265,12 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
           erspart eine Rueckfrage nach Istanbul.
         */}
         <section className="blatt__pakete">
-          <h2>Pakete · bitte getrennt verpacken und beschriften</h2>
+          <h2>{w(TEXTE.paketeTitel)}</h2>
           <table className="blatt__tabelle blatt__tabelle--handschrift blatt__paketliste">
             <thead>
               <tr>
-                <th>Paket</th>
-                <th className="blatt__eng">Stück</th>
+                <th>{w(TEXTE.paket)}</th>
+                <th className="blatt__eng">{w(TEXTE.stueck)}</th>
                 {/*
                   Nur eine Groessenordnung fuers Abschaetzen der Fracht, keine
                   Frachtangabe: Wie dick ein flach gepacktes Plissee wirklich
@@ -251,8 +278,8 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
                   src/data/produktion.ts und gehoeren nach der ersten Lieferung
                   korrigiert. Darum steht "ca." davor.
                 */}
-                <th>{PACKMASS_TITEL.deutsch}</th>
-                <th className="blatt__preis">{LIEFERKOSTEN.deutsch}</th>
+                <th>{w(PACKMASS_TITEL)}</th>
+                <th className="blatt__preis">{w(LIEFERKOSTEN)}</th>
               </tr>
             </thead>
             <tbody>
@@ -271,7 +298,7 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
                 </tr>
               ))}
               <tr className="blatt__gesamt">
-                <td>{GANZE_LIEFERUNG.deutsch}</td>
+                <td>{w(GANZE_LIEFERUNG)}</td>
                 <td className="blatt__zahl">{auftrag.anzahl}</td>
                 <td />
                 <td className="blatt__preis blatt__leer-feld" />

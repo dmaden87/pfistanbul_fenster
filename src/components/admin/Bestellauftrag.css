@@ -341,3 +341,10 @@
   size: A4 landscape;
   margin: 12mm;
 }
+
+/* Trennt die Auftragsart von der Sprachwahl in der Steuerleiste. */
+.auftrag__trenner {
+  width: 1px;
+  height: 1.6rem;
+  background: var(--border-strong);
+}

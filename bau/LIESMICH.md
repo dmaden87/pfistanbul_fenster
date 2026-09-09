@@ -142,9 +142,21 @@ der Ankunft nicht mehr zu erkennen, welches der gleich grossen Netze zu wem
 gehört.
 
 **Die Sprache steht ausschliesslich in `src/data/produktion.ts`.** Der Auftrag
-geht auf Türkisch raus; dort steht neben jeder deutschen Beschriftung die
-türkische. Eine Änderung an der Sprache ist ein Eintrag in dieser Datei, keine
-neue Fassung des Dokuments.
+geht auf Türkisch raus — das ist die Vorwahl; Deutsch lässt sich zum Prüfen
+umschalten, bevor er abgeschickt wird. Umgeschaltet wird nur, welches Feld
+jeder Beschriftung genommen wird; der Aufbau des Blatts ist derselbe. Eine
+Änderung an der Sprache ist ein Eintrag in dieser Datei, keine neue Fassung
+des Dokuments.
+
+Nicht übersetzt werden die **Raumbezeichnungen** in der Spalte „Pencere" —
+„Wohnzimmer", „Bad", „Küche". Das sind Daten, die wir eintippen, keine
+Beschriftungen. Für den Produzenten sind sie ohnehin nur Kennzeichen, die er
+aufs Paket schreibt; für uns sind sie beim Auspacken die Zuordnung zum Raum,
+und dort wollen wir sie auf Deutsch.
+
+Die türkischen Zeichen (ğ, ş, ı, İ) liegen im Bereich `latin-ext`, und die
+entsprechenden Schriftdateien sind eingebunden — sonst fielen genau diese
+Buchstaben auf eine Systemschrift zurück, mitten im Wort.
 
 ## Wenn eine eigene Domain dazukommt
 

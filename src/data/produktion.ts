@@ -48,8 +48,8 @@ export const NETZFARBEN: Record<Netzfarbe, Beschriftung> = {
 export type Mechanismus = 'akkordeon' | 'fix'
 
 export const MECHANISMEN: Record<Mechanismus, Beschriftung> = {
-  akkordeon: { deutsch: 'Akkordeon, verschiebbar', tuerkisch: 'akordeon, sürgülü' },
-  fix: { deutsch: 'fix, nicht zu öffnen', tuerkisch: 'sabit, açılmaz' },
+  akkordeon: { deutsch: 'Akkordeon, verschiebbar', tuerkisch: 'akordeon (açılır kapanır)' },
+  fix: { deutsch: 'fix, nicht zu öffnen', tuerkisch: 'sabit (açılmaz)' },
 }
 
 /* --- Öffnungsrichtung ------------------------------------------------------- */
@@ -97,12 +97,12 @@ export const MASSREGEL: Beschriftung = {
   deutsch:
     'Alle Masse sind Rahmenmasse (Aussenmass des fertigen Plissees). Bitte nichts abziehen und nichts dazurechnen – der Rahmen muss genau so breit und hoch werden, wie angegeben.',
   tuerkisch:
-    'Tüm ölçüler kasa ölçüsüdür (bitmiş plisenin dış ölçüsü). Lütfen hiçbir pay çıkarmayın ve eklemeyin – kasa tam olarak belirtilen genişlik ve yükseklikte olmalıdır.',
+    'Tüm ölçüler kasa ölçüsüdür (bitmiş plisenin dış ölçüsü). Lütfen ölçülerden pay düşmeyin ve pay eklemeyin – kasa tam olarak belirtilen genişlik ve yükseklikte olmalı.',
 }
 
 export const RICHTUNGSREGEL: Beschriftung = {
   deutsch: 'Alle Öffnungsrichtungen sind von innen nach aussen betrachtet.',
-  tuerkisch: 'Tüm açılma yönleri içeriden dışarıya doğru bakıldığında geçerlidir.',
+  tuerkisch: 'Tüm açılma yönleri içeriden dışarıya bakıldığında geçerlidir.',
 }
 
 /**
@@ -155,7 +155,7 @@ export const GANZE_LIEFERUNG: Beschriftung = {
  */
 export const PREISHINWEIS: Beschriftung = {
   deutsch: 'Bitte Stückpreis je Zeile und die Lieferkosten eintragen.',
-  tuerkisch: 'Lütfen her satır için birim fiyatı ve nakliye bedelini yazınız.',
+  tuerkisch: 'Lütfen her satır için birim fiyatı ve nakliye bedelini yazın.',
 }
 
 /**
@@ -181,3 +181,45 @@ export const PACKMASS_TITEL: Beschriftung = {
   deutsch: 'Packmass ca.',
   tuerkisch: 'Yaklaşık paket ölçüsü',
 }
+
+/**
+ * Alle uebrigen Beschriftungen des Auftrags.
+ *
+ * Das ist die einzige Stelle, an der die Sprache des Dokuments steht. Ein
+ * Wechsel ist ein Eintrag pro Zeile, keine neue Fassung.
+ *
+ * Der Ton ist bewusst nicht steif: Der Auftrag geht an einen Betrieb, mit dem
+ * wir ueber Bora in direktem Kontakt stehen, und in der Tuerkei ist
+ * uebertriebene Foermlichkeit im Handwerk unueblich. Deshalb "yazın" und
+ * nicht "yazınız".
+ */
+export const TEXTE = {
+  preisanfrage: { deutsch: 'Preisanfrage', tuerkisch: 'Fiyat Teklifi Talebi' },
+  bestellung: { deutsch: 'Bestellung', tuerkisch: 'Sipariş' },
+  terminOffen: { deutsch: 'Ungefährer Liefertermin', tuerkisch: 'Yaklaşık teslim tarihi' },
+  terminGesetzt: { deutsch: 'Erwarteter Liefertermin', tuerkisch: 'Beklenen teslim tarihi' },
+  stueckHinweis: { deutsch: 'jede Zeile ist ein Stück', tuerkisch: 'her satır bir adettir' },
+  plissee: { deutsch: 'Plissee', tuerkisch: 'plise' },
+  plissees: { deutsch: 'Plissees', tuerkisch: 'plise' },
+  masseinheit: {
+    deutsch: 'Alle Masse in Zentimetern, Breite × Höhe.',
+    tuerkisch: 'Tüm ölçüler santimetre cinsinden, genişlik × yükseklik.',
+  },
+  paketeTitel: {
+    deutsch: 'Pakete · bitte getrennt verpacken und beschriften',
+    tuerkisch: 'Paketler · lütfen ayrı ayrı paketleyip üzerine yazın',
+  },
+  /* Spaltenkoepfe */
+  nummer: { deutsch: 'Nr.', tuerkisch: 'No.' },
+  paket: { deutsch: 'Paket', tuerkisch: 'Paket' },
+  fenster: { deutsch: 'Fenster', tuerkisch: 'Pencere' },
+  breite: { deutsch: 'Breite', tuerkisch: 'Genişlik' },
+  hoehe: { deutsch: 'Höhe', tuerkisch: 'Yükseklik' },
+  rahmendicke: { deutsch: 'Rahmendicke', tuerkisch: 'Kasa kalınlığı' },
+  rahmen: { deutsch: 'Rahmen', tuerkisch: 'Kasa rengi' },
+  netz: { deutsch: 'Netz', tuerkisch: 'Tül rengi' },
+  mechanismus: { deutsch: 'Mechanismus', tuerkisch: 'Mekanizma' },
+  oeffnung: { deutsch: 'Öffnungsrichtung', tuerkisch: 'Açılma yönü' },
+  stueckpreis: { deutsch: 'Stückpreis', tuerkisch: 'Birim fiyat' },
+  stueck: { deutsch: 'Stück', tuerkisch: 'Adet' },
+} as const satisfies Record<string, Beschriftung>
