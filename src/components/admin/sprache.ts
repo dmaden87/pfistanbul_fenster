@@ -184,6 +184,47 @@ const PAARE = {
   knopfWiederOeffnen: ['Wieder öffnen', 'Yeniden aç'],
   knopfZurueckNeu: ['Zurück zu neu', 'Yeniye geri'],
 
+  /* --- Bestellungen einer Runde ------------------------------------------- */
+  bestellungenDerRunde: ['Bestellungen in dieser Runde', 'Bu turdaki siparişler'],
+  bestellungenDerRundeSatz: [
+    'Beim verbindlichen Bestellen gehen nur die zugesagten mit. Wer hier ohne Zusage steht, fällt automatisch heraus und wartet auf die nächste Runde.',
+    'Kesin siparişte yalnızca onaylananlar gider. Burada onaysız duran otomatik olarak çıkar ve bir sonraki turu bekler.',
+  ],
+  ohneZusageMarke: ['ohne Zusage', 'onay yok'],
+  ausDerRunde: ['Aus der Runde nehmen', 'Turdan çıkar'],
+  ausDerRundeFrage: ['Warum?', 'Neden?'],
+  grundKeineZusage: ['Keine Zusage – wartet auf den Kunden', 'Onay yok – müşteriyi bekliyor'],
+  grundKeineZusageSatz: [
+    'Die Einkaufspreise bleiben gültig. Sobald die Zusage kommt, geht sie in die nächste Bestellrunde – ohne Bora nochmals zu fragen.',
+    'Alış fiyatları geçerli kalır. Onay gelince bir sonraki sipariş turuna girer – Bora’ya tekrar sormadan.',
+  ],
+  grundAenderung: ['Muss geändert werden – nochmal messen', 'Değiştirilmeli – tekrar ölçülecek'],
+  grundAenderungSatz: [
+    'Neue Masse heissen neuer Preis: Die Einkaufszahlen werden gelöscht, und die Bestellung fängt bei «Preis anfragen» wieder an.',
+    'Yeni ölçü yeni fiyat demek: Alış rakamları silinir ve sipariş «fiyat sor» adımından yeniden başlar.',
+  ],
+  ausgestiegen: ['Aus der Runde genommen', 'Turdan çıkarıldı'],
+  ausgestiegenSatz: [
+    'Die Zeilen bleiben auf dem Dokument stehen und werden durchgestrichen – so findet Bora seine Preise an den gewohnten Nummern wieder.',
+    'Satırlar belgede kalır ve üstü çizilir – böylece Bora fiyatlarını alışık olduğu numaralarda bulur.',
+  ],
+  gestrichen: ['gestrichen', 'iptal'],
+  bestellenNurZugesagte: ['Nur die zugesagten werden bestellt:', 'Yalnızca onaylananlar sipariş edilir:'],
+  vonInsgesamt: ['von', '/'],
+
+  /* --- Einkauf und Marge --------------------------------------------------- */
+  einkaufTitel: ['Einkauf und Marge', 'Alış ve kâr'],
+  einkaufSumme: ['Einkauf', 'Alış'],
+  frachtAnteil: ['Fracht', 'Nakliye'],
+  frachtGeschaetzt: ['geschätzt', 'tahmini'],
+  ausRunde: ['aus', 'kaynak'],
+  datensatzUnvollstaendig: ['Datensatz unvollständig', 'Kayıt eksik'],
+  einkaufFehltSatz: [
+    'Bei {n} Position(en) fehlt der Einkaufspreis. Die Marge ist deshalb zu gut – es fehlen Kosten, nicht Erlöse.',
+    '{n} kalemde alış fiyatı eksik. Bu yüzden kâr olduğundan iyi görünüyor – gelir değil, maliyet eksik.',
+  ],
+  nurUnvollstaendige: ['Nur unvollständige', 'Yalnızca eksikler'],
+
   /* --- Netz-Editor ------------------------------------------------------- */
   anzahlKurz: ['Anz.', 'Adet'],
   bezeichnungRaum: ['Bezeichnung / Raum', 'Tanım / Oda'],

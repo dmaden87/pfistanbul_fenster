@@ -39,6 +39,20 @@ export interface Rechnung {
   einsatzJeNetzChf: number | null
 }
 
+/**
+ * Die Zeilen, die noch zur Runde gehoeren.
+ *
+ * Zeilen ausgestiegener Bestellungen bleiben stehen – sie werden auf dem
+ * Dokument durchgestrichen, damit Bora seine Preise an den gewohnten
+ * Nummern wiederfindet. Gerechnet wird mit ihnen aber nicht mehr: Was nicht
+ * bestellt wird, kostet nichts und bringt nichts.
+ */
+export function laufendeZeilen(lieferung: Lieferung): LieferungZeile[] {
+  const raus = new Set((lieferung.entfernt ?? []).map((a) => a.bestellungId))
+  if (raus.size === 0) return lieferung.zeilen
+  return lieferung.zeilen.filter((z) => !z.herkunft || !raus.has(z.herkunft.bestellungId))
+}
+
 /** Die Fracht der Runde. Der Gesamtbetrag gilt vor den Einzelbetraegen. */
 export function lieferkosten(lieferung: Lieferung): { betrag: number; doppelt: boolean } {
   const jePaket = Object.values(lieferung.lieferkostenJePaket ?? {})
@@ -52,7 +66,7 @@ export function lieferkosten(lieferung: Lieferung): { betrag: number; doppelt: b
 }
 
 export function rechne(lieferung: Lieferung, bestellungen: Bestellung[]): Rechnung {
-  const zeilen = lieferung.zeilen
+  const zeilen = laufendeZeilen(lieferung)
   const mitPreis = zeilen.filter((z) => typeof z.einkaufChf === 'number')
   const einkaufChf = Math.round(mitPreis.reduce((s, z) => s + (z.einkaufChf ?? 0), 0) * 100) / 100
 

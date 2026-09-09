@@ -133,8 +133,10 @@ await pruefe('Eine Runde ohne Bestellungen wird abgewiesen', async () => {
 
 await pruefe('Die Zeilen lassen sich einfrieren', async () => {
   const zeilen = [
-    { nummer: 1, kennung: 'PF-1', bezeichnung: 'Zimmer', breiteCm: 120, hoeheCm: 180 },
-    { nummer: 2, kennung: 'PF-2', bezeichnung: 'Zimmer', breiteCm: 120, hoeheCm: 180 },
+    { nummer: 1, kennung: 'PF-1', bezeichnung: 'Zimmer', breiteCm: 120, hoeheCm: 180,
+      herkunft: { bestellungId: b1.id, positionId: b1.positionen[0].id, stueck: 1 } },
+    { nummer: 2, kennung: 'PF-2', bezeichnung: 'Zimmer', breiteCm: 120, hoeheCm: 180,
+      herkunft: { bestellungId: b2.id, positionId: b2.positionen[0].id, stueck: 1 } },
   ]
   const antwort = await ruf(handler, { method: 'PATCH', cookie, body: { id: runde.id, status: 'angefragt', zeilen } })
   assert.equal(antwort.code, 200)
@@ -222,6 +224,97 @@ await pruefe('Ohne Gesamtbetrag zaehlen die Einzelbetraege zusammen', () => {
   const jePaket = { ...runde, lieferkostenJePaket: { 'PF-1': 30, 'PF-2': 25 } }
   assert.equal(lieferkosten(jePaket).betrag, 55)
   assert.equal(lieferkosten(jePaket).doppelt, false)
+})
+
+
+/* --- Einkaufspreise landen auf der Bestellung ------------------------------ */
+
+await pruefe('Boras Preise werden auf die Bestellung zurueckgeschrieben', async () => {
+  // Die Runde ist ein Arbeitspapier, die Bestellung der Datensatz. Ohne das
+  // hier waere jede spaetere Rentabilitaetsrechnung auf die Runde angewiesen –
+  // und die kann verworfen werden.
+  const liste = (await ruf(bestellHandler, { method: 'GET', cookie })).daten.bestellungen
+  const eins = liste.find((b) => b.id === b1.id)
+  assert.equal(eins.positionen[0].einkaufChf, 42.5)
+  assert.equal(eins.einkaufAusRunde, runde.nummer)
+  assert.ok(eins.einkaufAm)
+})
+
+await pruefe('Der Frachtanteil landet mit', async () => {
+  await ruf(handler, {
+    method: 'PATCH', cookie,
+    body: { id: runde.id, lieferkostenJePaket: { 'PF-1': 30, 'PF-2': 20 } },
+  })
+  const liste = (await ruf(bestellHandler, { method: 'GET', cookie })).daten.bestellungen
+  assert.equal(liste.find((b) => b.id === b1.id).lieferkostenChf, 30)
+  assert.equal(liste.find((b) => b.id === b1.id).lieferkostenGeschaetzt, undefined)
+  assert.equal(liste.find((b) => b.id === b2.id).lieferkostenChf, 20)
+})
+
+/* --- Aus der Runde nehmen -------------------------------------------------- */
+
+await pruefe('"Keine Zusage" stellt zurueck zum Kunden UND behaelt die Preise', async () => {
+  const antwort = await ruf(handler, {
+    method: 'PATCH', cookie,
+    body: { id: runde.id, entfernen: { bestellungId: b2.id, grund: 'keineZusage' } },
+  })
+  assert.equal(antwort.code, 200)
+  runde = antwort.daten.lieferung
+  assert.ok(!runde.bestellungIds.includes(b2.id), 'noch in der Runde')
+  assert.equal(runde.entfernt.length, 1)
+  assert.equal(runde.entfernt[0].grund, 'keineZusage')
+  assert.equal(runde.zeilen.length, 2, 'die Zeile wurde geloescht statt durchgestrichen')
+
+  const zwei = (await ruf(bestellHandler, { method: 'GET', cookie })).daten.bestellungen.find((b) => b.id === b2.id)
+  assert.equal(zwei.status, 'offeriert', 'sie wartet auf die Zusage, nicht auf einen Preis')
+  assert.equal(zwei.positionen[0].einkaufChf, 40, 'der Einkaufspreis wurde grundlos verworfen')
+})
+
+await pruefe('"Aenderung" stellt auf neu UND loescht die Einkaufszahlen', async () => {
+  // Neue Masse heissen neuer Einkaufspreis. Bliebe der alte stehen, rechnete
+  // eine spaetere Auswertung mit Zahlen zu Massen, die es nicht mehr gibt.
+  const antwort = await ruf(handler, {
+    method: 'PATCH', cookie,
+    body: { id: runde.id, entfernen: { bestellungId: b1.id, grund: 'aenderung', notiz: 'nochmal messen' } },
+  })
+  runde = antwort.daten.lieferung
+  assert.equal(runde.entfernt.length, 2)
+  assert.equal(runde.entfernt[1].notiz, 'nochmal messen')
+
+  const eins = (await ruf(bestellHandler, { method: 'GET', cookie })).daten.bestellungen.find((b) => b.id === b1.id)
+  assert.equal(eins.status, 'neu')
+  assert.equal(eins.positionen[0].einkaufChf, undefined)
+  assert.equal(eins.lieferkostenChf, undefined)
+  assert.equal(eins.einkaufAusRunde, undefined)
+})
+
+await pruefe('Eine Bestellung, die nicht drin ist, laesst sich nicht entfernen', async () => {
+  const antwort = await ruf(handler, {
+    method: 'PATCH', cookie,
+    body: { id: runde.id, entfernen: { bestellungId: b1.id, grund: 'aenderung' } },
+  })
+  assert.equal(antwort.code, 400)
+})
+
+/* --- Verbindlich bestellen nimmt nur die Zugesagten mit -------------------- */
+
+await pruefe('Ohne Zusage fliegt eine Bestellung beim Bestellen heraus', async () => {
+  const c1 = await bestellungAnlegen('PF-C1', 200, 0)
+  const c2 = await bestellungAnlegen('PF-C2', 200, 0)
+  // c2 hat keine Zusage: zurueck auf "offeriert".
+  await ruf(bestellHandler, { method: 'PATCH', cookie, body: { id: c2.id, status: 'offeriert' } })
+
+  const neu = (await ruf(handler, { method: 'POST', cookie, body: { bestellungIds: [c1.id, c2.id] } })).daten.lieferung
+  const antwort = await ruf(handler, { method: 'PATCH', cookie, body: { id: neu.id, status: 'bestellt' } })
+
+  assert.deepEqual(antwort.daten.ohneZusage, [c2.id])
+  assert.deepEqual(antwort.daten.lieferung.bestellungIds, [c1.id])
+  assert.equal(antwort.daten.lieferung.entfernt[0].grund, 'keineZusage')
+
+  const liste = (await ruf(bestellHandler, { method: 'GET', cookie })).daten.bestellungen
+  assert.equal(liste.find((b) => b.id === c1.id).status, 'zugesagt', 'die Zugesagte wurde angefasst')
+  assert.equal(liste.find((b) => b.id === c2.id).status, 'offeriert')
+  await ruf(handler, { method: 'DELETE', cookie, body: { id: neu.id } })
 })
 
 /* --- Loeschen -------------------------------------------------------------- */

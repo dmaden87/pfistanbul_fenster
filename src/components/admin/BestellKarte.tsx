@@ -15,6 +15,7 @@ import {
   zahlungsdifferenz,
   zahlungstext,
 } from './hilfen'
+import { margeFuer } from '../../lib/einkauf'
 import { NetzEditor } from './NetzEditor'
 import { fuelle, useSprache } from './sprache'
 
@@ -133,6 +134,7 @@ export function BestellKarte({
   const differenz = zahlungsdifferenz(b)
   const anzahl = netzZahl(b.positionen)
   const offerteTage = tageSeit(b.offerteAm)
+  const marge = margeFuer(b)
 
   const speichereNetze = async (positionen: BestellPosition[], montageChf: number) => {
     await onAendern(b.id, { positionen, montageChf })
@@ -161,6 +163,16 @@ export function BestellKarte({
           musste. Genau daran ist die alte Uebersicht gescheitert.
         */}
         {runde && <span className="admin__marke">{t.inRunde} {runde.nummer}</span>}
+        {/*
+          Der Datensatz ist unvollstaendig, sobald eine Position keinen
+          Einkaufspreis hat. Das faellt sonst nicht auf: Die Marge sieht dann
+          BESSER aus, nicht schlechter, denn es fehlen Kosten – nicht
+          Erloese. Gezeigt wird die Marke erst ab dem Punkt, an dem Preise
+          ueberhaupt vorliegen koennen.
+        */}
+        {!marge.vollstaendig && schritt !== 'neu' && schritt !== 'anfrageLaeuft' && schritt !== 'abgesagt' && (
+          <span className="admin__marke admin__marke--warnung">{t.datensatzUnvollstaendig}</span>
+        )}
         {schritt === 'abgesagt' && <span className="admin__marke">{t.abgesagtMarke}</span>}
         {schritt === 'abgeschlossen' && <span className="admin__marke admin__marke--gut">{t.erledigtMarke}</span>}
       </div>
@@ -289,6 +301,56 @@ export function BestellKarte({
                       differenz: formatChf(Math.abs(differenz)),
                     })}
                   </p>
+                )}
+
+                {/*
+                  Einkauf und Marge. Sie stehen nur da, wenn wenigstens eine
+                  Zahl vorliegt – ein Block aus lauter Nullen sagt nichts und
+                  sieht aus wie ein Verlust.
+                */}
+                {(marge.einkaufChf > 0 || marge.lieferkostenChf > 0) && (
+                  <div className="admin__einkauf">
+                    <h4>
+                      {t.einkaufTitel}
+                      {b.einkaufAusRunde && (
+                        <span className="admin__detail">
+                          {' '}
+                          {t.ausRunde} {b.einkaufAusRunde}
+                        </span>
+                      )}
+                    </h4>
+                    <dl>
+                      <div>
+                        <dt>{t.einkaufSumme}</dt>
+                        <dd>{formatChf(marge.einkaufChf)}</dd>
+                      </div>
+                      <div>
+                        <dt>
+                          {t.frachtAnteil}
+                          {b.lieferkostenGeschaetzt && (
+                            <span className="admin__detail"> · {t.frachtGeschaetzt}</span>
+                          )}
+                        </dt>
+                        <dd>{formatChf(marge.lieferkostenChf)}</dd>
+                      </div>
+                      <div>
+                        <dt>{t.warenerloes}</dt>
+                        <dd>{formatChf(marge.warenerloesChf)}</dd>
+                      </div>
+                      <div className="admin__einkauf-marge">
+                        <dt>{t.marge}</dt>
+                        <dd>
+                          {formatChf(marge.margeChf)}
+                          {marge.margeProzent !== null && (
+                            <span className="admin__detail"> · {marge.margeProzent}%</span>
+                          )}
+                        </dd>
+                      </div>
+                    </dl>
+                    {!marge.vollstaendig && (
+                      <p className="admin__abweichung">{fuelle(t.einkaufFehltSatz, { n: marge.ohnePreis })}</p>
+                    )}
+                  </div>
                 )}
 
                 <div className="admin__karte-knoepfe">

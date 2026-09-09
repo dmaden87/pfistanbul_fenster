@@ -9,9 +9,11 @@ import {
   hGetAll,
   hSet,
   SpeicherFehlt,
+  TABELLE_BESTELLUNGEN,
   TABELLE_LIEFERUNGEN,
 } from './_speicher.js'
 import { angemeldet } from './_sitzung.js'
+import { einkaufAusRunde } from '../src/lib/einkauf.js'
 
 /**
  * Lieferrunden: anlegen, auflisten, aendern, loeschen.
@@ -55,6 +57,8 @@ interface Lieferung {
   zeilen: Zeile[]
   ausgeschlossen?: string[]
   zusatz?: Zeile[]
+  /** Bestellungen, die die Runde verlassen haben. Ihre Zeilen bleiben stehen. */
+  entfernt?: { bestellungId: string; grund: 'keineZusage' | 'aenderung'; zeitpunkt: string; notiz?: string }[]
   lieferkostenJePaket?: Record<string, number>
   lieferkostenChf?: number
   termin?: string
@@ -268,7 +272,49 @@ async function aendern(req: VercelRequest, res: VercelResponse) {
     geaendert = true
   }
 
+  /*
+   * Eine Bestellung aus der Runde nehmen.
+   *
+   * Das ist der eine Fall, in dem die Runde doch in eine Bestellung
+   * schreibt – und der Widerspruch zur Regel "die Runde spiegelt keinen
+   * Bestellstatus" ist keiner: Hier wird nichts fortlaufend gespiegelt,
+   * sondern ein einzelnes Ereignis verbucht. Es muss serverseitig
+   * geschehen, weil sonst zwei getrennte Aufrufe noetig waeren und ein
+   * Abbruch dazwischen eine Bestellung zurueckliesse, die in keiner Runde
+   * steckt und trotzdem auf sie wartet.
+   */
+  if (koerper.entfernen !== undefined) {
+    const roh = koerper.entfernen as Record<string, unknown>
+    const bestellungId = text(roh.bestellungId, 40)
+    const grund = roh.grund === 'aenderung' ? 'aenderung' : 'keineZusage'
+    if (!bestellungId) return res.status(400).json({ error: 'Welche Bestellung?' })
+    if (!lieferung.bestellungIds.includes(bestellungId)) {
+      return res.status(400).json({ error: 'Diese Bestellung steckt nicht in dieser Runde.' })
+    }
+    lieferung.bestellungIds = lieferung.bestellungIds.filter((x) => x !== bestellungId)
+    lieferung.entfernt = [
+      ...(lieferung.entfernt ?? []).filter((a) => a.bestellungId !== bestellungId),
+      { bestellungId, grund, zeitpunkt: new Date().toISOString(), notiz: text(roh.notiz, 400) || undefined },
+    ]
+    await bestellungZurueck(bestellungId, grund)
+    geaendert = true
+  }
+
   if (!geaendert) return res.status(400).json({ error: 'Es war nichts zu ändern.' })
+
+  /*
+   * Verbindlich bestellen nimmt NUR die zugesagten mit.
+   *
+   * Zwischen "Preise da" und "bestellt" sitzt die Entscheidung der
+   * Kundschaft. Wer ohne Zusage mitbestellt, hat Ware, die niemand bestellt
+   * hat. Die anderen fliegen deshalb hier heraus – mit Grund "keineZusage",
+   * also unter Beibehaltung ihrer Einkaufspreise: Sachlich hat sich nichts
+   * geaendert, sie warten nur auf ein Ja.
+   */
+  let ohneZusage: string[] = []
+  if (koerper.status === 'bestellt') {
+    ohneZusage = await ohneZusageAussortieren(lieferung)
+  }
 
   lieferung.geaendert = new Date().toISOString()
   await hSet(TABELLE, id, JSON.stringify(lieferung))
@@ -278,8 +324,148 @@ async function aendern(req: VercelRequest, res: VercelResponse) {
    * Status. Das ist weg: Wo die Ware steht, steht in der Runde, und die
    * Uebersicht liest es dort. Ein zweiter Schreibweg auf denselben Sachverhalt
    * war genau die Quelle, aus der die widerspruechlichen Staende kamen.
+   *
+   * Was jetzt zurueckgeschrieben wird, ist etwas anderes: Boras Preise. Die
+   * sind kein Status, sondern Daten, die nur hier hereinkommen und auf der
+   * Bestellung gebraucht werden – siehe `einkaufZurueckschreiben`.
    */
-  return res.status(200).json({ ok: true, lieferung })
+  const einkauf = await einkaufZurueckschreiben(lieferung)
+  return res.status(200).json({ ok: true, lieferung, einkauf, ohneZusage })
+}
+
+/** Liest eine Bestellung, veraendert sie und speichert sie zurueck. */
+async function bestellungAendern(
+  id: string,
+  aendere: (b: Record<string, unknown>) => boolean,
+): Promise<boolean> {
+  const roh = await hGet(TABELLE_BESTELLUNGEN, id)
+  if (!roh) return false
+  try {
+    const bestellung = JSON.parse(roh) as Record<string, unknown>
+    if (!aendere(bestellung)) return false
+    bestellung.geaendert = new Date().toISOString()
+    await hSet(TABELLE_BESTELLUNGEN, id, JSON.stringify(bestellung))
+    return true
+  } catch {
+    // Eine kaputte Bestellung haelt die Runde nicht auf.
+    return false
+  }
+}
+
+/**
+ * Stellt eine Bestellung zurueck, die die Runde verlassen hat.
+ *
+ * Die beiden Gruende fuehren an verschiedene Orte, und das ist der Kern:
+ * Wer nur auf die Zusage wartet, braucht keine neue Preisanfrage – seine
+ * Einkaufspreise gelten weiter, und er geht in die naechste Bestellrunde.
+ * Wer nachgemessen werden muss, hat neue Masse, also einen neuen Preis: Da
+ * werden die Einkaufszahlen geloescht, sonst rechnet eine spaetere
+ * Auswertung mit Zahlen zu Massen, die es nicht mehr gibt.
+ */
+async function bestellungZurueck(id: string, grund: 'keineZusage' | 'aenderung'): Promise<void> {
+  await bestellungAendern(id, (b) => {
+    b.status = grund === 'keineZusage' ? 'offeriert' : 'neu'
+    if (grund === 'aenderung') {
+      const positionen = Array.isArray(b.positionen) ? (b.positionen as Record<string, unknown>[]) : []
+      for (const p of positionen) delete p.einkaufChf
+      delete b.lieferkostenChf
+      delete b.lieferkostenGeschaetzt
+      delete b.einkaufAusRunde
+      delete b.einkaufAm
+    }
+    return true
+  })
+}
+
+/** Nimmt alle Bestellungen ohne Zusage aus der Runde. Gibt ihre Ids zurueck. */
+async function ohneZusageAussortieren(lieferung: Lieferung): Promise<string[]> {
+  const raus: string[] = []
+  for (const bestellungId of [...lieferung.bestellungIds]) {
+    const roh = await hGet(TABELLE_BESTELLUNGEN, bestellungId)
+    if (!roh) continue
+    try {
+      const status = (JSON.parse(roh) as { status?: string }).status
+      // "bestellt" ist der alte Wert fuer "zugesagt" – siehe die Abbildung in
+      // bestellungen.ts. Hier zaehlt er mit, sonst faellt eine Altbestellung
+      // beim Bestellen grundlos heraus.
+      if (status === 'zugesagt' || status === 'bestellt') continue
+      raus.push(bestellungId)
+    } catch {
+      continue
+    }
+  }
+  for (const bestellungId of raus) {
+    lieferung.bestellungIds = lieferung.bestellungIds.filter((x) => x !== bestellungId)
+    lieferung.entfernt = [
+      ...(lieferung.entfernt ?? []).filter((a) => a.bestellungId !== bestellungId),
+      { bestellungId, grund: 'keineZusage', zeitpunkt: new Date().toISOString() },
+    ]
+    await bestellungZurueck(bestellungId, 'keineZusage')
+  }
+  return raus
+}
+
+/**
+ * Schreibt Boras Preise auf die Bestellungen.
+ *
+ * Sobald ein Preis dasteht, nicht erst beim verbindlichen Bestellen: Sonst
+ * waeren die Zahlen weg, wenn eine Bestellung mangels Zusage aus der Runde
+ * faellt – und die naechste Runde muesste Bora dieselbe Frage nochmals
+ * stellen.
+ *
+ * Gibt die Zahl der geaenderten Bestellungen zurueck.
+ */
+async function einkaufZurueckschreiben(lieferung: Lieferung): Promise<number> {
+  const anteile = einkaufAusRunde(lieferung, await bestellungenDerRunde(lieferung))
+  let gezaehlt = 0
+  for (const anteil of anteile) {
+    const preise = Object.entries(anteil.jePosition)
+    if (preise.length === 0 && anteil.lieferkostenChf === undefined) continue
+    const geschrieben = await bestellungAendern(anteil.bestellungId, (b) => {
+      const positionen = Array.isArray(b.positionen) ? (b.positionen as Record<string, unknown>[]) : []
+      let etwas = false
+      for (const [positionId, preis] of preise) {
+        const position = positionen.find((p) => p.id === positionId)
+        if (!position || position.einkaufChf === preis) continue
+        position.einkaufChf = preis
+        etwas = true
+      }
+      if (anteil.lieferkostenChf !== undefined && b.lieferkostenChf !== anteil.lieferkostenChf) {
+        b.lieferkostenChf = anteil.lieferkostenChf
+        b.lieferkostenGeschaetzt = anteil.lieferkostenGeschaetzt || undefined
+        etwas = true
+      }
+      if (etwas) {
+        b.einkaufAusRunde = lieferung.nummer
+        b.einkaufAm = new Date().toISOString()
+      }
+      return etwas
+    })
+    if (geschrieben) gezaehlt++
+  }
+  return gezaehlt
+}
+
+/**
+ * Die Bestellungen einer Runde, fuer die Zuordnung der Frachtkosten. Nur
+ * Referenz und Id werden gebraucht – daraus bildet `kennungFuer` die
+ * Paketkennung, unter der Bora seine Frachtkosten eintraegt.
+ */
+async function bestellungenDerRunde(lieferung: Lieferung): Promise<{ id: string; referenz: string }[]> {
+  const raus: { id: string; referenz: string }[] = []
+  for (const id of new Set([
+    ...lieferung.bestellungIds,
+    ...(lieferung.entfernt ?? []).map((a) => a.bestellungId),
+  ])) {
+    const roh = await hGet(TABELLE_BESTELLUNGEN, id)
+    if (!roh) continue
+    try {
+      raus.push(JSON.parse(roh) as { id: string; referenz: string })
+    } catch {
+      continue
+    }
+  }
+  return raus
 }
 
 async function entfernen(req: VercelRequest, res: VercelResponse) {

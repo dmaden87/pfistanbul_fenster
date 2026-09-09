@@ -1,4 +1,4 @@
-import type { Lieferung } from '../types'
+import type { AustrittsGrund, Lieferung } from '../types'
 
 /**
  * Zugriff auf die Lieferrunden. Alles verlangt die Anmeldung; es gibt keinen
@@ -38,11 +38,31 @@ export async function lieferungAnlegen(bestellungIds: string[]): Promise<Lieferu
   return daten.lieferung
 }
 
-export async function lieferungAendern(
-  id: string,
-  aenderung: Partial<Omit<Lieferung, 'id' | 'nummer' | 'erstellt' | 'geaendert'>>,
-): Promise<{ lieferung: Lieferung; mitgezogen: number }> {
-  return antwort<{ lieferung: Lieferung; mitgezogen: number }>(
+/**
+ * Was sich an einer Runde aendern laesst.
+ *
+ * `entfernen` ist kein Feld der Runde, sondern eine Anweisung: Nimm diese
+ * Bestellung heraus und stelle sie zurueck. Sie steht hier und nicht in
+ * zwei getrennten Aufrufen, weil ein Abbruch dazwischen eine Bestellung
+ * zuruecklaesst, die in keiner Runde steckt und trotzdem auf sie wartet.
+ */
+export type LieferungAenderung = Partial<
+  Omit<Lieferung, 'id' | 'nummer' | 'erstellt' | 'geaendert' | 'entfernt'>
+> & {
+  entfernen?: { bestellungId: string; grund: AustrittsGrund; notiz?: string }
+}
+
+/** Was der Server zurueckmeldet, wenn er von sich aus etwas getan hat. */
+export interface LieferungAntwort {
+  lieferung: Lieferung
+  /** Wie viele Bestellungen Einkaufszahlen bekommen haben. */
+  einkauf?: number
+  /** Wer beim verbindlichen Bestellen mangels Zusage herausfiel. */
+  ohneZusage?: string[]
+}
+
+export async function lieferungAendern(id: string, aenderung: LieferungAenderung): Promise<LieferungAntwort> {
+  return antwort<LieferungAntwort>(
     await fetch(PFAD, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },

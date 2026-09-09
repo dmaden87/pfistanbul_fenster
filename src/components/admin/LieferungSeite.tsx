@@ -1,14 +1,16 @@
 import { useState } from 'react'
-import type { Bestellung, BestellPosition, Lieferung, LieferungStatus, LieferungZeile } from '../../types'
+import type { AustrittsGrund, Bestellung, BestellPosition, Lieferung, LieferungStatus, LieferungZeile } from '../../types'
 import type { AdminTexte } from './sprache'
 import { auftragAufbauen, pakete } from '../../lib/bestellauftrag'
 import { RundenTabelle } from './RundenTabelle'
+import { RundenBestellungen } from './RundenBestellungen'
 import { rechne } from '../../lib/lieferung'
 import { formatChf } from '../../lib/format'
 import { shopConfig } from '../../data/shopConfig'
 import { Bestellauftrag } from './Bestellauftrag'
 import { datum } from './hilfen'
 import { fuelle, useSprache } from './sprache'
+import type { LieferungAenderung } from '../../lib/lieferungApi'
 import './LieferungSeite.css'
 
 /**
@@ -29,7 +31,7 @@ interface LieferungSeiteProps {
   lieferung: Lieferung
   /** Alle Bestellungen; die der Runde werden hier herausgesucht. */
   bestellungen: Bestellung[]
-  onAendern: (id: string, aenderung: Partial<Lieferung>) => Promise<void>
+  onAendern: (id: string, aenderung: LieferungAenderung) => Promise<void>
   onVerwerfen: (id: string) => Promise<void>
   /** Schreibt geaenderte Netze zurueck in die Bestellung. */
   onPositionen: (bestellungId: string, positionen: BestellPosition[]) => Promise<void>
@@ -92,7 +94,7 @@ export function LieferungSeite({
       : (auftrag.zeilen as never),
   )
 
-  const schritt = async (aenderung: Partial<Lieferung>, meldung?: string) => {
+  const schritt = async (aenderung: LieferungAenderung, meldung?: string) => {
     setSendet(true)
     setFehler(null)
     try {
@@ -113,6 +115,13 @@ export function LieferungSeite({
     const zeilen: LieferungZeile[] = auftrag.zeilen.map((z) => ({
       nummer: z.nummer,
       kennung: z.kennung,
+      /*
+       * Die Herkunft MUSS mit. Sie ist der Faden zurueck zur Bestellung, und
+       * ohne sie landen Boras Preise nirgends: Die Runde wuesste dann zwar,
+       * dass Zeile 7 vierzig Franken kostet, aber nicht mehr, zu welchem
+       * Netz welcher Bestellung Zeile 7 gehoert.
+       */
+      herkunft: z.herkunft,
       bezeichnung: z.bezeichnung,
       breiteCm: z.breiteCm,
       hoeheCm: z.hoeheCm,
@@ -263,6 +272,20 @@ export function LieferungSeite({
           </button>
         )}
       </div>
+
+      {/*
+        Wer ist ueberhaupt dabei? Die Frage steht vor den Netzzeilen, denn
+        entschieden wird je Bestellung – eine Bestellung ist immer ganz drin
+        oder ganz draussen.
+      */}
+      <RundenBestellungen
+        lieferung={lieferung}
+        bestellungen={bestellungen}
+        aenderbar={lieferung.status !== 'geliefert'}
+        onEntfernen={async (bestellungId: string, grund: AustrittsGrund) => {
+          await schritt({ entfernen: { bestellungId, grund } })
+        }}
+      />
 
       {/*
         Im Entwurf: die Zeilen kontrollieren, bevor der Auftrag rausgeht.

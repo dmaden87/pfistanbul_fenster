@@ -186,6 +186,17 @@ export interface BestellPosition {
   bezeichnung: string
   detail: string
   preisChf: number
+  /**
+   * Was der Produzent je Stueck verlangt. Kommt aus der Lieferrunde und wird
+   * dort eingetragen – hier steht die eingefrorene Kopie.
+   *
+   * Warum eine Kopie: Die Runde ist ein Arbeitspapier, die Bestellung ist der
+   * Datensatz. Nach einem Wechsel in eine zweite Runde, nach dem Verwerfen
+   * einer Runde oder Jahre spaeter bei der Frage "was hat dieser Kunde uns
+   * gebracht" muss der Einkaufspreis noch da sein. Steht er nur in der Runde,
+   * ist er weg, sobald die Runde weg ist.
+   */
+  einkaufChf?: number
   breiteCm?: number
   hoeheCm?: number
   /**
@@ -274,6 +285,18 @@ export interface Bestellung {
    */
   ausgeliefertAm?: string
   bezahltAm?: string
+  /**
+   * Der Frachtanteil dieser Bestellung, ebenfalls aus der Runde. Gibt Bora
+   * die Kosten je Paket an, ist das Paket genau diese Bestellung und der
+   * Anteil exakt. Nennt er nur ein Total, wird nach Netzanzahl geteilt –
+   * dann steht `lieferkostenGeschaetzt` dabei, damit eine spaetere Auswertung
+   * weiss, worauf sie sich stuetzt.
+   */
+  lieferkostenChf?: number
+  lieferkostenGeschaetzt?: boolean
+  /** Aus welcher Runde die Einkaufszahlen stammen, und wann. */
+  einkaufAusRunde?: string
+  einkaufAm?: string
   /** Interne Notiz aus dem Adminbereich. Sieht die Kundschaft nie. */
   notiz?: string
 }
@@ -337,6 +360,29 @@ export interface AdminStatus {
 export type LieferungStatus = 'entwurf' | 'angefragt' | 'preise' | 'bestellt' | 'geliefert'
 
 /**
+ * Warum eine Bestellung aus einer Runde geflogen ist. Die beiden Gruende
+ * fuehren an verschiedene Orte zurueck, und das ist der ganze Punkt:
+ *
+ * - "keineZusage": Der Kunde hat noch nicht Ja gesagt, als bestellt wurde.
+ *   Sachlich hat sich nichts geaendert, die Einkaufspreise gelten weiter,
+ *   und sobald die Zusage kommt, geht sie in die naechste Bestellrunde –
+ *   ohne Bora nochmals zu fragen.
+ *
+ * - "aenderung": Es muss nachgemessen werden, oder der Wunsch ist so nicht
+ *   machbar. Dann stimmen die Masse nicht mehr, also stimmt auch der Preis
+ *   nicht mehr: Die Einkaufszahlen werden geloescht, und die Bestellung
+ *   faengt bei "Preis anfragen" wieder an.
+ */
+export type AustrittsGrund = 'keineZusage' | 'aenderung'
+
+export interface Austritt {
+  bestellungId: string
+  grund: AustrittsGrund
+  zeitpunkt: string
+  notiz?: string
+}
+
+/**
  * Eine eingefrorene Zeile des Auftrags.
  *
  * Warum eingefroren: Bora traegt die Preise mit Bezug auf die laufende
@@ -387,6 +433,13 @@ export interface Lieferung {
    * erscheinen auf dem Auftrag, aber auf keiner Rechnung.
    */
   zusatz?: LieferungZeile[]
+  /**
+   * Bestellungen, die diese Runde verlassen haben. Ihre Zeilen bleiben im
+   * Dokument stehen und werden durchgestrichen: Bora hat seine Preise auf
+   * die Zeilennummern der Anfrage geschrieben, und wer neu durchnummeriert,
+   * zwingt ihn zum Suchen.
+   */
+  entfernt?: Austritt[]
   /** Lieferkosten je Paketkennung, wie Bora sie einträgt. */
   lieferkostenJePaket?: Record<string, number>
   /** Lieferkosten für die ganze Runde, falls er nicht je Paket rechnet. */

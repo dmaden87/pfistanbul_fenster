@@ -7,7 +7,13 @@ import { shopConfig } from '../../data/shopConfig'
 import { BestellKarte } from './BestellKarte'
 import { LieferungSeite } from './LieferungSeite'
 import { Offerte } from './Offerte'
-import { ladeLieferungen, lieferungAendern, lieferungAnlegen, lieferungEntfernen } from '../../lib/lieferungApi'
+import {
+  ladeLieferungen,
+  lieferungAendern,
+  lieferungAnlegen,
+  lieferungEntfernen,
+  type LieferungAenderung,
+} from '../../lib/lieferungApi'
 import { NeueBestellung } from './NeueBestellung'
 import { SprachRahmen } from './SprachRahmen'
 import { useSprache } from './sprache'
@@ -107,8 +113,10 @@ function AdminMaske({ onBack }: AdminPageProps) {
   const laden = useCallback(async () => {
     setFehler(null)
     try {
-      // Beides zusammen: Die Lieferrunden zeigen ihre Bestellungen, und die
-      // Bestellungen ihren Zustand, den eine Runde mitgezogen haben kann.
+      // Beides zusammen, und nicht nacheinander: Ohne die Runden weiss die
+      // Uebersicht nicht, wo die Ware steht – `arbeitsschritt()` braucht
+      // beide Seiten, sonst stuenden alle Bestellungen kurz an der falschen
+      // Stelle.
       const [b, l] = await Promise.all([ladeBestellungen(), ladeLieferungen()])
       setBestellungen(b)
       setLieferungen(l)
@@ -259,15 +267,19 @@ function AdminMaske({ onBack }: AdminPageProps) {
   const waehle = (id: string, an: boolean) =>
     setRunde((liste) => (an ? [...liste, id] : liste.filter((x) => x !== id)))
 
-  const handleLieferung = async (id: string, aenderung: Partial<Lieferung>) => {
-    const { lieferung } = await lieferungAendern(id, aenderung)
+  const handleLieferung = async (id: string, aenderung: LieferungAenderung) => {
+    const { lieferung, einkauf, ohneZusage } = await lieferungAendern(id, aenderung)
     setLieferungen((liste) => liste.map((l) => (l.id === id ? lieferung : l)))
     /*
-     * Kein Nachladen der Bestellungen mehr. Frueher zog der Uebergang nach
-     * "bestellt" ihren Status mit, und die Liste stimmte danach nicht. Jetzt
-     * steht der Stand der Ware nur noch in der Runde – die hier gerade neu
-     * gesetzt wurde, womit die Abschnitte von selbst stimmen.
+     * Nachgeladen wird nur, wenn der Server wirklich Bestellungen angefasst
+     * hat: beim Herausnehmen, beim Aussortieren ohne Zusage und wenn Boras
+     * Preise zurueckgeschrieben wurden. Ein blosser Statuswechsel der Runde
+     * aendert keine Bestellung mehr – die Uebersicht liest den Stand der
+     * Ware direkt aus der Runde, die hier gerade neu gesetzt wurde.
      */
+    if (aenderung.entfernen || (einkauf ?? 0) > 0 || (ohneZusage?.length ?? 0) > 0) {
+      setBestellungen(await ladeBestellungen())
+    }
   }
 
   /**

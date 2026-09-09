@@ -316,3 +316,35 @@
   height: 1.6rem;
   background: var(--border-strong);
 }
+
+/* --- Gestrichene Zeilen ---------------------------------------------------- */
+
+/*
+ * Bestellungen, die die Runde verlassen haben. Ihre Zeilen bleiben mit ihrer
+ * Nummer stehen, damit Bora seine Preise dort wiederfindet, wo er sie
+ * hingeschrieben hat.
+ *
+ * Der Strich geht durch den Text, nicht durch die ganze Zeile: Die Nummer
+ * muss lesbar bleiben, sie ist der Zweck der Uebung. Und bewusst kein
+ * blasses Grau – auf einer Fotokopie aus Istanbul verschwindet das.
+ */
+.blatt__zeile--gestrichen td {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.blatt__zeile--gestrichen .blatt__zahl:first-child {
+  text-decoration: none;
+}
+
+.blatt__gestrichen-feld {
+  text-decoration: none !important;
+  border: 1px solid #999999;
+  background: #f0f0f0;
+  color: #333333;
+  font-size: 7pt;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}

@@ -224,6 +224,23 @@ export const TEXTE = {
     deutsch: 'Alle Masse in Zentimetern, Breite × Höhe.',
     tuerkisch: 'Tüm ölçüler santimetre cinsinden, genişlik × yükseklik.',
   },
+  /*
+   * Gestrichene Zeilen bleiben stehen, statt zu verschwinden.
+   *
+   * Bora hat seine Preise auf die Zeilennummern der Anfrage geschrieben. Wer
+   * beim verbindlichen Auftrag neu ab eins durchnummeriert, zwingt ihn, jede
+   * Zahl neu zu suchen – und irgendwann landet eine am falschen Netz. Also
+   * behalten die Zeilen ihre Nummer, und was herausgefallen ist, wird
+   * durchgestrichen.
+   */
+  gestrichen: {
+    deutsch: 'gestrichen',
+    tuerkisch: 'iptal',
+  },
+  gestrichenHinweis: {
+    deutsch: 'Durchgestrichene Zeilen sind nicht bestellt. Die Nummern bleiben wie in der Anfrage.',
+    tuerkisch: 'Üstü çizili satırlar sipariş edilmemiştir. Numaralar talepteki gibi kalır.',
+  },
   paketeTitel: {
     deutsch: 'Pakete · bitte getrennt verpacken und beschriften',
     tuerkisch: 'Paketler · lütfen ayrı ayrı paketleyip üzerine yazın',

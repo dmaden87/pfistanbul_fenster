@@ -125,8 +125,20 @@ export function Bestellauftrag({ lieferung, bestellungen, onZurueck }: Bestellau
   useDokumentName(`pfistanbul_talep_siparis_${nummer.trim().replace(/[^A-Za-z0-9-]/g, '') || 'entwurf'}`)
 
   const auftrag = zeilenFuer(lieferung, bestellungen)
-  const paketliste = pakete(auftrag.zeilen)
-  const anzahl = auftrag.zeilen.length
+  /*
+   * Bestellungen, die die Runde verlassen haben. Ihre Zeilen bleiben mit
+   * ihrer Nummer stehen und werden durchgestrichen – siehe TEXTE.gestrichen.
+   */
+  const gestrichen = new Set((lieferung.entfernt ?? []).map((a) => a.bestellungId))
+  const istGestrichen = (z: AuftragsZeile) => Boolean(z.herkunft && gestrichen.has(z.herkunft.bestellungId))
+  /*
+   * Pakete und Stueckzahl zaehlen nur, was wirklich gefertigt wird. Eine
+   * gestrichene Zeile steht auf dem Blatt, damit Bora seine Nummern
+   * wiederfindet – sie wandert aber in kein Paket.
+   */
+  const laufende = auftrag.zeilen.filter((z) => !istGestrichen(z))
+  const paketliste = pakete(laufende)
+  const anzahl = laufende.length
   /** Kuerzel fuer "nimm die Fassung in der gewaehlten Sprache". */
   const w = (b: Beschriftung) => b[sprache]
   const heute = new Date().toLocaleDateString(sprache === 'tuerkisch' ? 'tr-TR' : 'de-CH', {
@@ -261,8 +273,9 @@ export function Bestellauftrag({ lieferung, bestellungen, onZurueck }: Bestellau
             <tbody>
               {auftrag.zeilen.map((z) => {
                 const z2 = netzZeile(z, sprache)
+                const weg = istGestrichen(z)
                 return (
-                  <tr key={z.nummer}>
+                  <tr key={z.nummer} className={weg ? 'blatt__zeile--gestrichen' : undefined}>
                     <td className="blatt__zahl">{z.nummer}</td>
                     <td className="blatt__paketzelle">{z.kennung}</td>
                     <td className="blatt__raum">{z.bezeichnung}</td>
@@ -273,7 +286,11 @@ export function Bestellauftrag({ lieferung, bestellungen, onZurueck }: Bestellau
                     <td>{z2.netz}</td>
                     <td>{z2.mechanismus}</td>
                     <td>{z2.oeffnung}</td>
-                    <td className="blatt__preis blatt__leer-feld" />
+                    {weg ? (
+                      <td className="blatt__preis blatt__gestrichen-feld">{w(TEXTE.gestrichen)}</td>
+                    ) : (
+                      <td className="blatt__preis blatt__leer-feld" />
+                    )}
                   </tr>
                 )
               })}
@@ -281,6 +298,7 @@ export function Bestellauftrag({ lieferung, bestellungen, onZurueck }: Bestellau
           </table>
           <p className="blatt__hinweis">
             {w(TEXTE.masseinheit)} {w(PREISHINWEIS)}
+            {gestrichen.size > 0 && ` ${w(TEXTE.gestrichenHinweis)}`}
           </p>
         </section>
 

@@ -168,7 +168,7 @@ function netzeAusPosition(p: BestellPosition): AuftragsNetz[] {
  * Die Kennung, die auf das Paket kommt. Kurz und ohne Umlaute: Sie wird von
  * Hand abgeschrieben, und alles Laengere wird dabei verstuemmelt.
  */
-export function kennungFuer(b: Bestellung): string {
+export function kennungFuer(b: { referenz: string; id: string }): string {
   return (b.referenz || b.id).toUpperCase().replace(/[^A-Z0-9-]/g, '')
 }
 
