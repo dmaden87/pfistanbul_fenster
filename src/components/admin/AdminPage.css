@@ -632,3 +632,61 @@
 .netz .netze__weg {
   margin-bottom: 0.15rem;
 }
+
+/* --- Liste der Lieferrunden ------------------------------------------------- */
+
+.admin__runden {
+  list-style: none;
+  margin-top: var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.admin__runde-knopf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-4);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font: inherit;
+  font-size: var(--step--1);
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin__runde-knopf:hover {
+  border-color: var(--accent);
+}
+
+.admin__runde-nummer {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin__runde-stand {
+  padding: 0.15em 0.6em;
+  border-radius: var(--radius-full);
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  font-size: var(--step--2);
+  font-weight: 600;
+}
+
+.admin__runde-stand--entwurf {
+  background: var(--highlight-soft);
+  color: var(--highlight-ink);
+}
+
+.admin__runde-stand--preise,
+.admin__runde-stand--bestellt {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.admin__runde-stand--geliefert {
+  color: var(--success);
+}

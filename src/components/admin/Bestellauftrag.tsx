@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import type { Bestellung } from '../../types'
-import { auftragAufbauen, type AuftragsNetz } from '../../lib/bestellauftrag'
+import type { Bestellung, Lieferung } from '../../types'
+import { auftragAufbauen, pakete, type AuftragsNetz, type AuftragsZeile, type Luecke } from '../../lib/bestellauftrag'
 import {
   ABSENDER,
   GANZE_LIEFERUNG,
@@ -45,8 +45,40 @@ type Art = 'anfrage' | 'bestellung'
 type Sprache = 'deutsch' | 'tuerkisch'
 
 interface BestellauftragProps {
+  /**
+   * Die Runde, zu der das Blatt gehoert. Aus ihrem Zustand ergibt sich, ob
+   * es eine Anfrage oder eine Bestellung ist – der Titel wird nicht mehr von
+   * Hand gewaehlt, er folgt dem Lebenslauf.
+   */
+  lieferung: Lieferung
+  /** Die Bestellungen der Runde. Nur noetig, solange die Zeilen nicht stehen. */
   bestellungen: Bestellung[]
   onZurueck: () => void
+}
+
+/**
+ * Die Zeilen des Blatts.
+ *
+ * Stehen sie in der Runde, gelten sie – auch wenn inzwischen jemand ein Netz
+ * geaendert hat. Bora bezieht seine Preise auf die laufende Nummer, und die
+ * darf sich nach dem Versand nicht mehr verschieben. Erst im Entwurf werden
+ * sie aus den Bestellungen gerechnet.
+ */
+function zeilenFuer(lieferung: Lieferung, bestellungen: Bestellung[]): { zeilen: AuftragsZeile[]; luecken: Luecke[] } {
+  if (lieferung.zeilen.length > 0) {
+    return {
+      zeilen: lieferung.zeilen.map((z) => ({
+        ...z,
+        menge: 1,
+        rahmenfarbe: z.rahmenfarbe as AuftragsZeile['rahmenfarbe'],
+        netzfarbe: z.netzfarbe as AuftragsZeile['netzfarbe'],
+        mechanismus: z.mechanismus as AuftragsZeile['mechanismus'],
+        oeffnung: z.oeffnung as AuftragsZeile['oeffnung'],
+      })),
+      luecken: [],
+    }
+  }
+  return auftragAufbauen(bestellungen)
 }
 
 function mass(wert: number | undefined): string {
@@ -65,12 +97,15 @@ function netzZeile(n: AuftragsNetz, s: Sprache) {
   }
 }
 
-export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps) {
-  const [art, setArt] = useState<Art>('anfrage')
+export function Bestellauftrag({ lieferung, bestellungen, onZurueck }: BestellauftragProps) {
   const [sprache, setSprache] = useState<Sprache>('tuerkisch')
-  const [nummer, setNummer] = useState('')
-  const [termin, setTermin] = useState('')
-  const [bemerkung, setBemerkung] = useState('')
+
+  // Alles Uebrige kommt aus der Runde. Was auf dem Blatt steht, ist damit
+  // dasselbe, was gespeichert ist – nicht etwas, das nur im Browser existiert.
+  const art: Art = lieferung.status === 'bestellt' || lieferung.status === 'geliefert' ? 'bestellung' : 'anfrage'
+  const nummer = lieferung.nummer
+  const termin = lieferung.termin ?? ''
+  const bemerkung = lieferung.bemerkung ?? ''
 
   /*
    * Der Dateiname beim Sichern als PDF.
@@ -90,7 +125,9 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
     }
   }, [nummer])
 
-  const auftrag = auftragAufbauen(bestellungen)
+  const auftrag = zeilenFuer(lieferung, bestellungen)
+  const paketliste = pakete(auftrag.zeilen)
+  const anzahl = auftrag.zeilen.length
   /** Kuerzel fuer "nimm die Fassung in der gewaehlten Sprache". */
   const w = (b: Beschriftung) => b[sprache]
   const heute = new Date().toLocaleDateString(sprache === 'tuerkisch' ? 'tr-TR' : 'de-CH', {
@@ -105,15 +142,6 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
       <div className="auftrag__steuerung">
         <div className="auftrag__wahl">
           <label className="admin__haken">
-            <input type="radio" name="auftragsart" checked={art === 'anfrage'} onChange={() => setArt('anfrage')} />
-            <span>Preisanfrage</span>
-          </label>
-          <label className="admin__haken">
-            <input type="radio" name="auftragsart" checked={art === 'bestellung'} onChange={() => setArt('bestellung')} />
-            <span>Bestellung</span>
-          </label>
-          <span className="auftrag__trenner" />
-          <label className="admin__haken">
             <input type="radio" name="sprache" checked={sprache === 'tuerkisch'} onChange={() => setSprache('tuerkisch')} />
             <span>Türkisch</span>
           </label>
@@ -121,37 +149,13 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
             <input type="radio" name="sprache" checked={sprache === 'deutsch'} onChange={() => setSprache('deutsch')} />
             <span>Deutsch (nur zum Prüfen)</span>
           </label>
-          <label className="auftrag__termin">
-            <span>Lieferung Nr.</span>
-            <input
-              className="input auftrag__feld auftrag__feld--kurz"
-              value={nummer}
-              onChange={(e) => setNummer(e.target.value)}
-              placeholder="L-2026-01"
-            />
-          </label>
-          {art === 'bestellung' && (
-            <label className="auftrag__termin">
-              <span>Erwarteter Liefertermin</span>
-              <input
-                className="input auftrag__feld"
-                value={termin}
-                onChange={(e) => setTermin(e.target.value)}
-                placeholder="z. B. Ende Oktober 2026"
-              />
-            </label>
-          )}
         </div>
-        <label className="field">
-          <span className="field__label">Bemerkung an den Produzenten (freiwillig)</span>
-          <textarea className="input" rows={2} value={bemerkung} onChange={(e) => setBemerkung(e.target.value)} />
-        </label>
         <div className="auftrag__schritte">
           <button type="button" className="btn" onClick={() => window.print()} disabled={auftrag.luecken.length > 0}>
             Drucken / als PDF sichern
           </button>
           <button type="button" className="btn btn--quiet" onClick={onZurueck}>
-            Zurück zur Liste
+            Zurück zur Lieferung
           </button>
         </div>
 
@@ -225,7 +229,7 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
 
         <section>
           <h2>
-            {auftrag.anzahl} {w(auftrag.anzahl === 1 ? TEXTE.plissee : TEXTE.plissees)} · {w(TEXTE.stueckHinweis)}
+            {anzahl} {w(anzahl === 1 ? TEXTE.plissee : TEXTE.plissees)} · {w(TEXTE.stueckHinweis)}
           </h2>
           {/*
             EINE Tabelle, nicht zwei. Jede Zeile ist ein Plissee und traegt
@@ -309,8 +313,8 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
               </tr>
             </thead>
             <tbody>
-              {auftrag.bloecke.map((block) => (
-                <tr key={block.bestellung.id}>
+              {paketliste.map((block) => (
+                <tr key={block.kennung}>
                   <td>
                     <span className="blatt__kennung">{block.kennung}</span>
                   </td>
@@ -325,7 +329,7 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
               ))}
               <tr className="blatt__gesamt">
                 <td>{w(GANZE_LIEFERUNG)}</td>
-                <td className="blatt__zahl">{auftrag.anzahl}</td>
+                <td className="blatt__zahl">{anzahl}</td>
                 <td />
                 <td className="blatt__preis blatt__leer-feld" />
               </tr>

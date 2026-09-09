@@ -269,3 +269,63 @@ export interface AdminStatus {
   passwort: boolean
   angemeldet: boolean
 }
+
+/* --- Lieferrunde ------------------------------------------------------------ */
+
+/**
+ * Wo eine Lieferrunde steht.
+ *
+ * Der Lebenslauf eines einzigen Dokuments: Es geht als Anfrage raus, kommt
+ * mit Preisen zurueck und wird zur Bestellung.
+ *
+ *   entwurf → angefragt → preise → bestellt → geliefert
+ *
+ * "entwurf" ist der einzige Zustand, in dem sich die Zusammenstellung noch
+ * aendern laesst. Ab "angefragt" sind die Zeilen eingefroren – siehe
+ * `zeilen`.
+ */
+export type LieferungStatus = 'entwurf' | 'angefragt' | 'preise' | 'bestellt' | 'geliefert'
+
+/**
+ * Eine eingefrorene Zeile des Auftrags.
+ *
+ * Warum eingefroren: Bora traegt die Preise mit Bezug auf die laufende
+ * Nummer ein ("Zeile 7"). Wuerde jemand danach ein Netz aendern oder
+ * ergaenzen, verschoebe sich die Nummerierung und seine Preise landeten am
+ * falschen Netz. Deshalb haelt die Lieferrunde ab dem Versand ihre eigene
+ * Kopie, statt die Bestellungen erneut auszuwerten.
+ */
+export interface LieferungZeile {
+  nummer: number
+  /** Paketkennung, entspricht der Referenz der Bestellung. */
+  kennung: string
+  bezeichnung: string
+  breiteCm?: number
+  hoeheCm?: number
+  rahmendicke?: string
+  rahmenfarbe?: string
+  netzfarbe?: string
+  mechanismus?: string
+  oeffnung?: string
+  /** Was der Produzent verlangt. Wird nach Boras Rueckmeldung eingetragen. */
+  einkaufChf?: number
+}
+
+export interface Lieferung {
+  id: string
+  /** Menschenlesbare Nummer, z. B. "L-2026-01". Steht auf dem Dokument. */
+  nummer: string
+  status: LieferungStatus
+  erstellt: string
+  geaendert: string
+  /** Welche Bestellungen in dieser Runde stecken. */
+  bestellungIds: string[]
+  zeilen: LieferungZeile[]
+  /** Lieferkosten je Paketkennung, wie Bora sie einträgt. */
+  lieferkostenJePaket?: Record<string, number>
+  /** Lieferkosten für die ganze Runde, falls er nicht je Paket rechnet. */
+  lieferkostenChf?: number
+  /** Liefertermin: erst seine Schätzung, später unser erwarteter Termin. */
+  termin?: string
+  bemerkung?: string
+}

@@ -93,7 +93,7 @@ einmal laufen lassen.
 npm test
 ```
 
-Zwei Testläufe. Der erste fährt `api/bestellungen.ts` mit einem Speicher im
+Drei Testläufe. Der erste fährt `api/bestellungen.ts` mit einem Speicher im
 Arbeitsspeicher hoch und geht 28 Fälle durch. Zwei davon sind der eigentliche
 Grund für den Testlauf:
 
@@ -121,17 +121,54 @@ tragen:
   Annahme darin. Eine Lieferung aus der Türkei, die nicht passt, kostet
   Wochen; die Meldung kostet fünf Minuten.
 
+Der dritte prüft die Lieferrunden (`api/lieferungen.ts`) und die
+Margenrechnung. Auch hier die drei Punkte, die still gefährlich sind: dass
+die Zeilen ab dem Versand stehen bleiben, dass der Übergang nach „Bestellt"
+keinen weiter fortgeschrittenen Status überschreibt, und dass die Montage
+nicht in den Warenerlös rutscht.
+
 Die Testläufe brauchen keine Übersetzung: Node liest die `.ts`-Dateien mit
 `--experimental-strip-types` direkt. Nur die Auflösung der Importe muss
 nachgeholt werden – unter `api/` enden sie auf `.js` und meinen `.ts`, unter
 `src/` haben sie gar keine Endung, weil dort sonst Vite auflöst. Beides
 erledigt `bau/ts-aufloeser.mjs`, das auch `npm run pruefen` vorgeschaltet ist.
 
+## Die Lieferrunde
+
+Bestellungen ankreuzen, „Lieferrunde anlegen" — daraus entsteht `L-2026-01`,
+und die Runde führt von da an ihren eigenen Lebenslauf:
+
+```
+Entwurf → Anfrage versendet → Preise erhalten → Bestellt → Geliefert
+```
+
+Der wichtige Übergang ist der erste. **Beim Versand der Anfrage werden die
+Zeilen eingefroren.** Bora trägt die Preise mit Bezug auf die laufende Nummer
+ein („Zeile 7"); würde danach jemand ein Netz ändern oder ergänzen,
+verschöbe sich die Nummerierung und seine Preise landeten am falschen Netz.
+Bis dahin lässt sich alles korrigieren, danach nichts mehr.
+
+Der Übergang nach „Bestellt" zieht die enthaltenen Bestellungen auf „beim
+Lieferanten bestellt" mit — aber er überschreibt nichts, was schon weiter
+ist. Eine längst ausgelieferte Bestellung bliebe sonst wieder offen.
+
+Die **Rechnung der Runde** setzt Einkauf und Fracht gegen das, was die
+Kundschaft für die Ware zahlt. Die Montage zählt dabei nicht zum Erlös: Sie
+ist unsere Arbeit, nicht Ware, und wer sie mitrechnet, sieht eine Marge, die
+es auf der Ware nicht gibt. Fehlende Einkaufspreise werden gezählt und nicht
+hochgerechnet — solange welche fehlen, sagt die Rechnung das.
+
+Das ist auch die Zahl, für die in `shopConfig` seit Anfang
+`minimumBatchNets: 25` steht: ab wann eine Runde ihre Fracht trägt. Bisher
+eine Schätzung, jetzt eine Rechnung.
+
 ## Der Auftrag an den Produzenten
 
-Entsteht im Adminbereich: Bestellungen ankreuzen, „Auftrag an den
-Produzenten", dann Preisanfrage oder Bestellung wählen und über die
-Druckfunktion des Browsers als PDF sichern. Bewusst ohne PDF-Bibliothek – das
+Das Dokument der Runde. Ob es eine Anfrage oder eine Bestellung ist, wählt
+niemand — es folgt dem Zustand der Runde. Gesichert wird es über die
+Druckfunktion des Browsers als PDF; der Dateiname kommt aus dem
+Dokumenttitel (`pfistanbul_talep_siparis_L-2026-01`), denn beim Drucken aus
+dem Browser gibt es dafür genau einen Hebel. Bewusst ohne PDF-Bibliothek – das
 funktioniert auf dem Telefon genauso und kann nicht veralten.
 
 Das Dokument hat zwei Teile, und das ist keine Doppelung: Die

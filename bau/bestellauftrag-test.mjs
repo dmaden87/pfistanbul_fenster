@@ -13,7 +13,7 @@
  *  - Fehlende Angaben werden GEMELDET und nicht mit einer Annahme gefuellt.
  */
 import assert from 'node:assert/strict'
-import { auftragAufbauen, kennungFuer, packmass } from '../src/lib/bestellauftrag.ts'
+import { auftragAufbauen, kennungFuer, packmass, pakete } from '../src/lib/bestellauftrag.ts'
 import { PACKMASS } from '../src/data/produktion.ts'
 
 let bestanden = 0
@@ -46,7 +46,7 @@ function bestellung(referenz, positionen) {
 pruefe('Ein Set wird in seine einzelnen Netze aufgeloest', () => {
   const a = auftragAufbauen([bestellung('PF-1', [{ menge: 1, bezeichnung: 'Set Mittel', detail: '', preisChf: 775, setId: 'set-mittel', ...KOMPLETT }])])
   // Set Mittel: 3 Zimmer, 1 Balkontuere, 1 Bad, 1 Kueche = 6 Plissees.
-  assert.equal(a.bloecke[0].anzahl, 6)
+  assert.equal(pakete(a.zeilen)[0].anzahl, 6)
   assert.equal(a.zeilen.length, 6, 'jedes Plissee braucht eine eigene Zeile')
   assert.equal(a.zeilen.filter((z) => z.bezeichnung === 'Zimmer').length, 3)
 })
@@ -78,16 +78,16 @@ pruefe('Das Zimmernetz traegt die Oeffnung aus dem Katalog: ein Plissee, Mitte',
 
 pruefe('Zwei gleiche Sets ergeben doppelt so viele Zeilen', () => {
   const a = auftragAufbauen([bestellung('PF-3', [{ menge: 2, bezeichnung: 'Set Mittel', detail: '', preisChf: 1550, setId: 'set-mittel', ...KOMPLETT }])])
-  assert.equal(a.bloecke[0].anzahl, 12)
+  assert.equal(pakete(a.zeilen)[0].anzahl, 12)
   assert.equal(a.zeilen.length, 12)
 })
 
 pruefe('Gleiche Netze verschiedener Kunden bleiben getrennte Zeilen mit eigener Kennung', () => {
   const netz = { menge: 1, bezeichnung: 'Wohnzimmer', detail: '', preisChf: 170, breiteCm: 128.6, hoeheCm: 182.5, ...KOMPLETT }
   const a = auftragAufbauen([bestellung('PF-4', [netz]), bestellung('PF-5', [{ ...netz, bezeichnung: 'Schlafzimmer' }])])
-  assert.equal(a.bloecke.length, 2)
+  assert.equal(pakete(a.zeilen).length, 2)
   assert.equal(a.zeilen.length, 2)
-  assert.equal(a.anzahl, 2)
+  assert.equal(a.zeilen.length, 2)
   // Verschiedene Pakete, aber gleiche Bauart: hintereinander.
   assert.deepEqual(a.zeilen.map((z) => z.kennung), ['PF-4', 'PF-5'])
 })
@@ -160,9 +160,9 @@ pruefe('Ohne Masse gibt es kein Packmass statt eines erfundenen', () => {
 
 pruefe('Jedes Paket bekommt sein eigenes Packmass', () => {
   const netz = { menge: 1, bezeichnung: 'Wohnzimmer', detail: '', preisChf: 170, breiteCm: 128.6, hoeheCm: 182.5, ...KOMPLETT }
-  const a = auftragAufbauen([bestellung('PF-20', [netz]), bestellung('PF-21', [netz, netz])])
-  assert.ok(a.bloecke[0].packmass)
-  assert.ok(a.bloecke[1].packmass.seiteCm > a.bloecke[0].packmass.seiteCm, 'zwei Stueck muessten dicker buendeln')
+  const p = pakete(auftragAufbauen([bestellung('PF-20', [netz]), bestellung('PF-21', [netz, netz])]).zeilen)
+  assert.ok(p[0].packmass)
+  assert.ok(p[1].packmass.seiteCm > p[0].packmass.seiteCm, 'zwei Stueck muessten dicker buendeln')
 })
 
 pruefe('Die Kennung ist kurz und ohne Sonderzeichen', () => {

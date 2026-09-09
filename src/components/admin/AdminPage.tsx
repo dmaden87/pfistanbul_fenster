@@ -1,14 +1,23 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { AdminStatus, Bestellung, BestellAenderung, BestellStatus } from '../../types'
+import type { AdminStatus, Bestellung, BestellAenderung, BestellStatus, Lieferung } from '../../types'
 import { abmelden, adminStatus, aendereBestellung, anmelden, entferneBestellung, ladeBestellungen, setzeStatus } from '../../lib/adminApi'
 import { shopConfig } from '../../data/shopConfig'
 import { BestellKarte } from './BestellKarte'
-import { Bestellauftrag } from './Bestellauftrag'
+import { LieferungSeite } from './LieferungSeite'
+import { ladeLieferungen, lieferungAendern, lieferungAnlegen } from '../../lib/lieferungApi'
 import { NeueBestellung } from './NeueBestellung'
 import './AdminPage.css'
 
 interface AdminPageProps {
   onBack: () => void
+}
+
+const STAND_TEXT: Record<Lieferung['status'], string> = {
+  entwurf: 'Entwurf',
+  angefragt: 'Anfrage versendet',
+  preise: 'Preise erhalten',
+  bestellt: 'Bestellt',
+  geliefert: 'Geliefert',
 }
 
 /** Die Abschnitte der Arbeitsliste, in der Reihenfolge des Ablaufs. */
@@ -48,12 +57,18 @@ export function AdminPage({ onBack }: AdminPageProps) {
   // Hand zusammengestellt und nicht aus dem Status abgeleitet: Der Auftrag
   // entsteht, BEVOR etwas als "beim Lieferanten bestellt" gilt.
   const [runde, setRunde] = useState<string[]>([])
-  const [zeigeAuftrag, setZeigeAuftrag] = useState(false)
+  const [lieferungen, setLieferungen] = useState<Lieferung[]>([])
+  /** Welche Lieferrunde gerade offen ist. */
+  const [offeneRunde, setOffeneRunde] = useState<string | null>(null)
 
   const laden = useCallback(async () => {
     setFehler(null)
     try {
-      setBestellungen(await ladeBestellungen())
+      // Beides zusammen: Die Lieferrunden zeigen ihre Bestellungen, und die
+      // Bestellungen ihren Zustand, den eine Runde mitgezogen haben kann.
+      const [b, l] = await Promise.all([ladeBestellungen(), ladeLieferungen()])
+      setBestellungen(b)
+      setLieferungen(l)
     } catch (f) {
       setFehler(f instanceof Error ? f.message : 'Die Liste konnte nicht geladen werden.')
     }
@@ -207,7 +222,16 @@ export function AdminPage({ onBack }: AdminPageProps) {
   const waehle = (id: string, an: boolean) =>
     setRunde((liste) => (an ? [...liste, id] : liste.filter((x) => x !== id)))
 
-  if (zeigeAuftrag) {
+  const handleLieferung = async (id: string, aenderung: Partial<Lieferung>) => {
+    const { lieferung } = await lieferungAendern(id, aenderung)
+    setLieferungen((liste) => liste.map((l) => (l.id === id ? lieferung : l)))
+    // Der Uebergang nach "bestellt" zieht die Bestellungen mit – die Liste
+    // stimmt danach nicht mehr, also frisch holen.
+    if (aenderung.status === 'bestellt') setBestellungen(await ladeBestellungen())
+  }
+
+  const offeneLieferung = offeneRunde ? lieferungen.find((l) => l.id === offeneRunde) : undefined
+  if (offeneLieferung) {
     // Bewusst ohne die Klasse "admin": Deren Ueberschriftenregel ist genauso
     // spezifisch wie die des Blatts und wird spaeter geladen – der Auftrag
     // bekaeme die Anzeigeschrift der Webseite. Der Produzent liest Zahlen,
@@ -215,7 +239,12 @@ export function AdminPage({ onBack }: AdminPageProps) {
     return (
       <section className="section">
         <div className="shell">
-          <Bestellauftrag bestellungen={gewaehlte} onZurueck={() => setZeigeAuftrag(false)} />
+          <LieferungSeite
+            lieferung={offeneLieferung}
+            bestellungen={bestellungen}
+            onAendern={handleLieferung}
+            onZurueck={() => setOffeneRunde(null)}
+          />
         </div>
       </section>
     )
@@ -268,8 +297,21 @@ export function AdminPage({ onBack }: AdminPageProps) {
               <strong>{gewaehlte.length}</strong> {gewaehlte.length === 1 ? 'Bestellung' : 'Bestellungen'} für die
               Lieferrunde gewählt
             </span>
-            <button type="button" className="btn" onClick={() => setZeigeAuftrag(true)}>
-              Auftrag an den Produzenten
+            <button
+              type="button"
+              className="btn"
+              onClick={async () => {
+                try {
+                  const neue = await lieferungAnlegen(gewaehlte.map((b) => b.id))
+                  setLieferungen((liste) => [neue, ...liste])
+                  setRunde([])
+                  setOffeneRunde(neue.id)
+                } catch (f) {
+                  setFehler(f instanceof Error ? f.message : 'Die Lieferrunde konnte nicht angelegt werden.')
+                }
+              }}
+            >
+              Lieferrunde anlegen
             </button>
             <button type="button" className="btn btn--quiet" onClick={() => setRunde([])}>
               Auswahl aufheben
@@ -286,6 +328,31 @@ export function AdminPage({ onBack }: AdminPageProps) {
               await laden()
             }}
           />
+        )}
+
+        {lieferungen.length > 0 && (
+          <section className="admin__sektion">
+            <div className="admin__sektion-kopf">
+              <h2>
+                Lieferrunden <span className="admin__zahl">{lieferungen.length}</span>
+              </h2>
+              <p>Anfrage, Preise, Bestellung. Ein Dokument, das seinen Zustand mit sich führt.</p>
+            </div>
+            <ul className="admin__runden">
+              {lieferungen.map((l) => (
+                <li key={l.id}>
+                  <button type="button" className="admin__runde-knopf" onClick={() => setOffeneRunde(l.id)}>
+                    <span className="admin__runde-nummer">{l.nummer}</span>
+                    <span className={`admin__runde-stand admin__runde-stand--${l.status}`}>{STAND_TEXT[l.status]}</span>
+                    <span className="admin__detail">
+                      {l.bestellungIds.length} {l.bestellungIds.length === 1 ? 'Bestellung' : 'Bestellungen'}
+                      {l.zeilen.length > 0 && ` · ${l.zeilen.length} Plissees`}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
 
         {SEKTIONEN.map((sektion) => {

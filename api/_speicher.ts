@@ -25,6 +25,9 @@ const token = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TO
  */
 export const TABELLE_BESTELLUNGEN = 'pf:bestellungen'
 
+/** Die Lieferrunden. Eine Runde buendelt mehrere Bestellungen zu einem Auftrag. */
+export const TABELLE_LIEFERUNGEN = 'pf:lieferungen'
+
 /** True, sobald ein Speicher verbunden ist. Ohne ihn bleibt der Adminbereich leer, statt zu lügen. */
 export const speicherBereit = Boolean(url && token)
 

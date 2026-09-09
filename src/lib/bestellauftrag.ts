@@ -37,16 +37,18 @@ export interface AuftragsNetz {
   oeffnung?: OpeningDirection
 }
 
-export interface AuftragsBlock {
-  bestellung: Bestellung
+/**
+ * Ein Paket, wie es auf dem Blatt erscheint.
+ *
+ * Wird aus den Zeilen abgeleitet und nicht aus den Bestellungen. So gilt
+ * dieselbe Rechnung fuer die frisch berechneten Zeilen einer Runde im Entwurf
+ * und fuer die eingefrorenen einer laengst versendeten Anfrage.
+ */
+export interface AuftragsPaket {
   /** Was auf das Paket geschrieben wird. Kurz, ohne Umlaute. */
   kennung: string
   anzahl: number
-  /**
-   * Ungefaehres Packmass in cm: die Laenge des Buendels und seine Seite. Das
-   * Buendel ist ungefaehr quadratisch im Querschnitt, deshalb nur zwei Zahlen.
-   * Fehlt, sobald einem Netz die Masse fehlen.
-   */
+  /** Ungefaehres Packmass in cm. Fehlt, sobald einer Zeile die Masse fehlen. */
   packmass?: { laengeCm: number; seiteCm: number }
 }
 
@@ -73,10 +75,8 @@ export interface Luecke {
 }
 
 export interface Auftrag {
-  bloecke: AuftragsBlock[]
   /** Alle Plissees einzeln, gleiche Bauarten hintereinander. */
   zeilen: AuftragsZeile[]
-  anzahl: number
   luecken: Luecke[]
 }
 
@@ -193,7 +193,7 @@ export function kennungFuer(b: Bestellung): string {
  * DAS IST EINE SCHAETZUNG und keine Frachtangabe. Der Querschnitt je Plissee
  * steht in PACKMASS und gehoert nach der ersten Lieferung korrigiert.
  */
-export function packmass(netze: AuftragsNetz[]): AuftragsBlock['packmass'] {
+export function packmass(netze: AuftragsNetz[]): AuftragsPaket['packmass'] {
   let laengsteStange = 0
   let stueck = 0
 
@@ -212,7 +212,6 @@ export function packmass(netze: AuftragsNetz[]): AuftragsBlock['packmass'] {
 }
 
 export function auftragAufbauen(bestellungen: Bestellung[]): Auftrag {
-  const bloecke: AuftragsBlock[] = []
   const luecken: Luecke[] = []
   // Nach Bauart gesammelt, in der Reihenfolge des ersten Auftretens. So
   // stehen gleiche Netze beieinander, ohne dass die Liste umsortiert wirkt.
@@ -221,7 +220,6 @@ export function auftragAufbauen(bestellungen: Bestellung[]): Auftrag {
   for (const bestellung of bestellungen) {
     const kennung = kennungFuer(bestellung)
     const netze = zusammenfassen(bestellung.positionen.flatMap(netzeAusPosition), true)
-    let anzahl = 0
 
     for (const netz of netze) {
       const fehlt = PFLICHT.filter(({ feld }) => netz[feld] === undefined || netz[feld] === '').map((f) => f.name)
@@ -232,12 +230,24 @@ export function auftragAufbauen(bestellungen: Bestellung[]): Auftrag {
       const liste = nachBauart.get(schluessel) ?? []
       for (let i = 0; i < netz.menge; i++) liste.push({ ...netz, menge: 1, nummer: 0, kennung })
       nachBauart.set(schluessel, liste)
-      anzahl += netz.menge
     }
-
-    bloecke.push({ bestellung, kennung, anzahl, packmass: packmass(netze) })
   }
 
   const zeilen = [...nachBauart.values()].flat().map((z, i) => ({ ...z, nummer: i + 1 }))
-  return { bloecke, zeilen, anzahl: zeilen.length, luecken }
+  return { zeilen, luecken }
+}
+
+/** Die Pakete einer Zeilenliste, in der Reihenfolge des ersten Auftretens. */
+export function pakete(zeilen: AuftragsZeile[]): AuftragsPaket[] {
+  const nachKennung = new Map<string, AuftragsZeile[]>()
+  for (const zeile of zeilen) {
+    const liste = nachKennung.get(zeile.kennung) ?? []
+    liste.push(zeile)
+    nachKennung.set(zeile.kennung, liste)
+  }
+  return [...nachKennung.entries()].map(([kennung, liste]) => ({
+    kennung,
+    anzahl: liste.length,
+    packmass: packmass(liste),
+  }))
 }
