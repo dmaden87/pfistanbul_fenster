@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import type { Bestellung, BestellAenderung, BestellPosition, BestellStatus } from '../../types'
+import type { AdminTexte } from './sprache'
 import { formatChf } from '../../lib/format'
 import {
-  ART_TEXT,
-  QUELLE_TEXT,
+  artText,
+  quelleText,
   datum,
   montageBetrag,
   positionDetail,
@@ -14,6 +15,7 @@ import {
   zahlungstext,
 } from './hilfen'
 import { NetzEditor } from './NetzEditor'
+import { fuelle, useSprache } from './sprache'
 
 /**
  * Eine Bestellung in der Arbeitsliste.
@@ -43,34 +45,34 @@ interface BestellKarteProps {
  * zurück steht bewusst auch offen: Wer versehentlich klickt, soll das ohne
  * Umweg über die Datenbank geraderücken können.
  */
-function schritte(b: Bestellung): { status: BestellStatus; text: string; art: 'haupt' | 'still' }[] {
+function schritte(b: Bestellung, t: AdminTexte): { status: BestellStatus; text: string; art: 'haupt' | 'still' }[] {
   switch (b.status) {
     case 'neu':
       return [
         // Beim Sondermass geht es zuerst zum Ausmessen und Offerieren; eine
         // feste Bestellung aus dem Warenkorb kann direkt zum Lieferanten.
-        { status: 'offerte', text: 'Ausmessen & offerieren', art: b.art === 'bestellung' ? 'still' : 'haupt' },
+        { status: 'offerte', text: t.schrittOfferieren, art: b.art === 'bestellung' ? 'still' : 'haupt' },
         {
           status: 'bestellt',
-          text: b.art === 'bestellung' ? 'Beim Lieferanten bestellt' : 'Angenommen, bestellt',
+          text: b.art === 'bestellung' ? t.schrittBestellt : t.schrittAngenommen,
           art: b.art === 'bestellung' ? 'haupt' : 'still',
         },
-        { status: 'geloescht', text: b.art === 'bestellung' ? 'Storniert' : 'Abgesagt', art: 'still' },
+        { status: 'geloescht', text: b.art === 'bestellung' ? t.schrittStorniert : t.schrittAbgesagt, art: 'still' },
       ]
     case 'offerte':
       return [
-        { status: 'bestellt', text: 'Zugesagt, beim Lieferanten bestellt', art: 'haupt' },
-        { status: 'neu', text: 'Zurück zu neu', art: 'still' },
-        { status: 'geloescht', text: 'Abgesagt', art: 'still' },
+        { status: 'bestellt', text: t.schrittZugesagt, art: 'haupt' },
+        { status: 'neu', text: t.schrittZurueckNeu, art: 'still' },
+        { status: 'geloescht', text: t.schrittAbgesagt, art: 'still' },
       ]
     case 'bestellt':
       return [
-        { status: 'erledigt', text: 'Ausgeliefert, erledigt', art: 'haupt' },
-        { status: 'offerte', text: 'Zurück zur Offerte', art: 'still' },
-        { status: 'geloescht', text: 'Doch storniert', art: 'still' },
+        { status: 'erledigt', text: t.schrittErledigt, art: 'haupt' },
+        { status: 'offerte', text: t.schrittZurueckOfferte, art: 'still' },
+        { status: 'geloescht', text: t.schrittDochStorniert, art: 'still' },
       ]
     default:
-      return [{ status: 'bestellt', text: 'Wieder öffnen', art: 'still' }]
+      return [{ status: 'bestellt', text: t.schrittWiederOeffnen, art: 'still' }]
   }
 }
 
@@ -92,6 +94,7 @@ export function BestellKarte({
   const [bearbeitet, setBearbeitet] = useState(false)
   const [loeschFrage, setLoeschFrage] = useState(false)
   const [notiz, setNotiz] = useState(b.notiz ?? '')
+  const { t, ort } = useSprache()
 
   const montage = montageBetrag(b)
   const differenz = zahlungsdifferenz(b)
@@ -109,25 +112,25 @@ export function BestellKarte({
         {onWahl && (
           <label className="admin__wahl">
             <input type="checkbox" checked={Boolean(gewaehlt)} onChange={(e) => onWahl(b.id, e.target.checked)} />
-            <span className="admin__wahl-text">für die Lieferrunde</span>
+            <span className="admin__wahl-text">{t.fuerDieLieferrunde}</span>
           </label>
         )}
-        <span className={`admin__art admin__art--${b.art}`}>{ART_TEXT[b.art]}</span>
+        <span className={`admin__art admin__art--${b.art}`}>{artText(b.art, t)}</span>
         <span className="admin__referenz">{b.referenz || b.id}</span>
         <span className="admin__datum">{datum(b.eingang)}</span>
-        {b.quelle && b.quelle !== 'web' && <span className="admin__marke">{QUELLE_TEXT[b.quelle]}</span>}
+        {b.quelle && b.quelle !== 'web' && <span className="admin__marke">{quelleText(b.quelle, t)}</span>}
         {b.bezahlung?.status === 'bezahlt' && (
-          <span className="admin__marke admin__marke--gut">bezahlt · {formatChf(b.bezahlung.betragChf)}</span>
+          <span className="admin__marke admin__marke--gut">{t.bezahltMarke} · {formatChf(b.bezahlung.betragChf)}</span>
         )}
-        {b.status === 'geloescht' && <span className="admin__marke">abgesagt</span>}
-        {b.status === 'erledigt' && <span className="admin__marke admin__marke--gut">erledigt</span>}
+        {b.status === 'geloescht' && <span className="admin__marke">{t.abgesagtMarke}</span>}
+        {b.status === 'erledigt' && <span className="admin__marke admin__marke--gut">{t.erledigtMarke}</span>}
       </div>
 
       <div className="admin__zeile">
         <strong>{b.kunde.name}</strong>
         <span className="admin__detail">
-          {anzahl > 0 ? `${anzahl} ${anzahl === 1 ? 'Netz' : 'Netze'}` : 'noch keine Netze'}
-          {b.montage && ' · mit Montage'}
+          {anzahl > 0 ? `${anzahl} ${anzahl === 1 ? t.netz : t.netzeMehrzahl}` : t.nochKeineNetze}
+          {b.montage && ` · ${t.mitMontage}`}
         </span>
         <strong className="admin__preis">{formatChf(b.summeChf)}</strong>
       </div>
@@ -149,8 +152,8 @@ export function BestellKarte({
               onChange={(e) => onAendern(b.id, { ausgemessen: e.target.checked })}
             />
             <span>
-              Ausgemessen
-              {b.ausgemessenAm && <span className="admin__detail"> am {tag(b.ausgemessenAm)}</span>}
+              {t.ausgemessen}
+              {b.ausgemessenAm && <span className="admin__detail"> {t.am} {tag(b.ausgemessenAm, ort)}</span>}
             </span>
           </label>
           <label className="admin__haken">
@@ -160,24 +163,24 @@ export function BestellKarte({
               onChange={(e) => onAendern(b.id, { offerteVersendet: e.target.checked })}
             />
             <span>
-              Offerte versendet
-              {b.offerteAm && <span className="admin__detail"> am {tag(b.offerteAm)}</span>}
+              {t.offerteVersendet}
+              {b.offerteAm && <span className="admin__detail"> {t.am} {tag(b.offerteAm, ort)}</span>}
             </span>
           </label>
           {offerteTage !== null && offerteTage >= 7 && (
-            <span className="admin__marke admin__marke--warnung">seit {offerteTage} Tagen ohne Antwort</span>
+            <span className="admin__marke admin__marke--warnung">{fuelle(t.ohneAntwortSeit, { n: offerteTage })}</span>
           )}
         </div>
       )}
 
       <button type="button" className="admin__aufklappen" aria-expanded={offen} onClick={() => setOffen((o) => !o)}>
-        {offen ? 'Zuklappen' : `Netze und Angaben anzeigen${anzahl > 0 ? ` (${anzahl})` : ''}`}
+        {offen ? t.zuklappen : `${t.netzeAnzeigen}${anzahl > 0 ? ` (${anzahl})` : ''}`}
       </button>
 
       {offen && (
         <div className="admin__karte-inhalt">
           <div className="admin__kunde">
-            <a href={`mailto:${b.kunde.email}`}>{b.kunde.email || 'keine E-Mail'}</a>
+            <a href={`mailto:${b.kunde.email}`}>{b.kunde.email || t.keineEmail}</a>
             {b.kunde.telefon && <a href={`tel:${b.kunde.telefon}`}>{b.kunde.telefon}</a>}
             {b.kunde.strasse && (
               <span>
@@ -185,8 +188,8 @@ export function BestellKarte({
                 {b.kunde.plz || b.kunde.ort ? `, ${b.kunde.plz} ${b.kunde.ort}`.trimEnd() : ''}
               </span>
             )}
-            <span className="admin__detail">Eingang {datum(b.eingang)}</span>
-            {b.geaendert !== b.eingang && <span className="admin__detail">zuletzt geändert {datum(b.geaendert)}</span>}
+            <span className="admin__detail">{t.eingang} {datum(b.eingang, ort)}</span>
+            {b.geaendert !== b.eingang && <span className="admin__detail">{t.zuletztGeaendert} {datum(b.geaendert, ort)}</span>}
           </div>
 
           <div className="admin__positionen">
@@ -215,14 +218,14 @@ export function BestellKarte({
                     </tbody>
                   </table>
                 ) : (
-                  <p className="admin__detail">Noch keine Netze erfasst.</p>
+                  <p className="admin__detail">{t.keineNetzeErfasst}</p>
                 )}
 
                 <p className="admin__summe">
                   <span>
-                    Netze {formatChf(positionenSumme(b.positionen))}
-                    {montage > 0 && ` · Montage ${formatChf(montage)}`} · {zahlungstext(b)}
-                    {b.zahlungswunsch && ' · Ratenwunsch'}
+                    {t.netzeSumme} {formatChf(positionenSumme(b.positionen))}
+                    {montage > 0 && ` · ${t.montageSumme} ${formatChf(montage)}`} · {zahlungstext(b, t, ort)}
+                    {b.zahlungswunsch && ` · ${t.ratenwunsch}`}
                   </span>
                   <strong>{formatChf(b.summeChf)}</strong>
                 </p>
@@ -235,14 +238,17 @@ export function BestellKarte({
                 */}
                 {differenz !== null && (
                   <p className="admin__abweichung">
-                    Achtung: Bezahlt wurden {formatChf(b.bezahlung!.betragChf)}, die Bestellung steht jetzt auf{' '}
-                    {formatChf(b.summeChf)} – {differenz > 0 ? 'offen' : 'zu viel bezahlt'}{' '}
-                    {formatChf(Math.abs(differenz))}. Über Stripe nachbuchen oder zurückerstatten.
+                    {fuelle(t.achtungBezahlt, {
+                      bezahlt: formatChf(b.bezahlung!.betragChf),
+                      summe: formatChf(b.summeChf),
+                      richtung: differenz > 0 ? t.offenRichtung : t.zuVielRichtung,
+                      differenz: formatChf(Math.abs(differenz)),
+                    })}
                   </p>
                 )}
 
                 <button type="button" className="btn btn--quiet" onClick={() => setBearbeitet(true)}>
-                  Netze bearbeiten
+                  {t.netzeBearbeiten}
                 </button>
               </>
             )}
@@ -255,7 +261,7 @@ export function BestellKarte({
       {offen && (
         <div className="field admin__notiz">
           <label className="field__label" htmlFor={`notiz-${b.id}`}>
-            Interne Notiz
+            {t.interneNotiz}
           </label>
           <textarea
             id={`notiz-${b.id}`}
@@ -266,7 +272,7 @@ export function BestellKarte({
           />
           {notiz !== (b.notiz ?? '') && (
             <button type="button" className="btn btn--quiet" onClick={() => onAendern(b.id, { notiz })}>
-              Notiz speichern
+              {t.notizSpeichern}
             </button>
           )}
         </div>
@@ -275,7 +281,7 @@ export function BestellKarte({
       {!offen && b.notiz && <p className="admin__bemerkung admin__bemerkung--notiz">{b.notiz}</p>}
 
       <div className="admin__schritte">
-        {schritte(b).map((s) => (
+        {schritte(b, t).map((s) => (
           <button
             key={s.status + s.text}
             type="button"
@@ -294,17 +300,17 @@ export function BestellKarte({
         {(b.status === 'erledigt' || b.status === 'geloescht') &&
           (loeschFrage ? (
             <span className="admin__loeschfrage">
-              Endgültig löschen?
+              {t.endgueltigLoeschen}
               <button type="button" className="btn btn--quiet admin__gefahr" onClick={() => onLoeschen(b.id)}>
-                Ja, Daten entfernen
+                {t.jaDatenEntfernen}
               </button>
               <button type="button" className="btn btn--quiet" onClick={() => setLoeschFrage(false)}>
-                Abbrechen
+                {t.abbrechen}
               </button>
             </span>
           ) : (
             <button type="button" className="btn btn--quiet admin__gefahr" onClick={() => setLoeschFrage(true)}>
-              Daten löschen
+              {t.datenLoeschen}
             </button>
           ))}
       </div>

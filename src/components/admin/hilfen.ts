@@ -1,4 +1,5 @@
 import type { Bestellung, BestellPosition, BestellQuelle } from '../../types'
+import type { AdminTexte } from './sprache'
 
 /**
  * Kleinkram, den mehrere Teile des Adminbereichs brauchen. Steht hier und
@@ -7,35 +8,36 @@ import type { Bestellung, BestellPosition, BestellQuelle } from '../../types'
  * Fehlerquelle, die niemand bemerkt, bis sie stoert.
  */
 
-export const ART_TEXT: Record<Bestellung['art'], string> = {
-  bestellung: 'Bestellung',
-  anfrage: 'Anfrage Sondermass',
-  zahlung: 'Anfrage Zahlung',
+export function artText(art: Bestellung['art'], t: AdminTexte): string {
+  return art === 'anfrage' ? t.artAnfrage : art === 'zahlung' ? t.artZahlung : t.artBestellung
 }
 
-export const QUELLE_TEXT: Record<BestellQuelle, string> = {
-  web: 'über die Seite',
-  whatsapp: 'WhatsApp',
-  instagram: 'Instagram',
-  telefon: 'Telefon',
-  persoenlich: 'persönlich',
+export function quelleText(quelle: BestellQuelle, t: AdminTexte): string {
+  const nach: Record<BestellQuelle, string> = {
+    web: t.quelleWeb,
+    whatsapp: t.quelleWhatsapp,
+    instagram: t.quelleInstagram,
+    telefon: t.quelleTelefon,
+    persoenlich: t.quellePersoenlich,
+  }
+  return nach[quelle]
 }
 
 /** Die Quellen zur Auswahl, in der Reihenfolge der Haeufigkeit. */
 export const QUELLEN: BestellQuelle[] = ['whatsapp', 'instagram', 'telefon', 'persoenlich', 'web']
 
-export function datum(iso: string | undefined): string {
+export function datum(iso: string | undefined, ort = 'de-CH'): string {
   if (!iso) return '–'
   const d = new Date(iso)
   return Number.isNaN(d.getTime())
     ? '–'
-    : d.toLocaleString('de-CH', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
+    : d.toLocaleString(ort, { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
-export function tag(iso: string | undefined): string {
+export function tag(iso: string | undefined, ort = 'de-CH'): string {
   if (!iso) return '–'
   const d = new Date(iso)
-  return Number.isNaN(d.getTime()) ? '–' : d.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: '2-digit' })
+  return Number.isNaN(d.getTime()) ? '–' : d.toLocaleDateString(ort, { day: '2-digit', month: '2-digit', year: '2-digit' })
 }
 
 /**
@@ -59,11 +61,11 @@ export function tageSeit(iso: string | undefined): number | null {
  * nicht "bezahlt": Eine Bestellung ausliefern, weil die Liste etwas
  * Falsches behauptet, wäre teurer als ein kurzer Blick ins Stripe-Konto.
  */
-export function zahlungstext(b: Bestellung): string {
-  if (b.zahlung !== 'online') return 'zahlt bei Übergabe'
-  if (b.bezahlung?.status === 'bezahlt') return `online bezahlt am ${datum(b.bezahlung.zeitpunkt)}`
-  if (b.bezahlung?.status === 'abgebrochen') return 'Onlinezahlung abgebrochen'
-  return 'Onlinezahlung noch offen'
+export function zahlungstext(b: Bestellung, t: AdminTexte, ort = 'de-CH'): string {
+  if (b.zahlung !== 'online') return t.zahltBeiUebergabe
+  if (b.bezahlung?.status === 'bezahlt') return `${t.onlineBezahltAm} ${datum(b.bezahlung.zeitpunkt, ort)}`
+  if (b.bezahlung?.status === 'abgebrochen') return t.onlineAbgebrochen
+  return t.onlineOffen
 }
 
 /** Die Masse eines Netzes als Text, wenn welche da sind. */

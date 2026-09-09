@@ -12,6 +12,7 @@ import {
   type Netzfarbe,
   type Rahmenfarbe,
 } from '../../data/produktion'
+import { fuelle, useSprache } from './sprache'
 import './RundenTabelle.css'
 
 /**
@@ -65,6 +66,7 @@ export function RundenTabelle({
   const [sendet, setSendet] = useState<string | null>(null)
   const [fehler, setFehler] = useState<string | null>(null)
   const [loeschFrage, setLoeschFrage] = useState<string | null>(null)
+  const { t, sprache } = useSprache()
 
   const dabei = bestellungen.filter((b) => lieferung.bestellungIds.includes(b.id))
   const zeilen = zeilenDerRunde(dabei, lieferung)
@@ -76,7 +78,7 @@ export function RundenTabelle({
     try {
       await lauf()
     } catch (f) {
-      setFehler(f instanceof Error ? f.message : 'Die Änderung konnte nicht gespeichert werden.')
+      setFehler(f instanceof Error ? f.message : 'Fehler')
     } finally {
       setSendet(null)
     }
@@ -134,17 +136,11 @@ export function RundenTabelle({
   return (
     <section className="lieferung__block">
       <h2 className="tabelle__titel">
-        Zeilen der Lieferung <span className="admin__zahl">{zeilen.length}</span>
+        {t.zeilenDerLieferung} <span className="admin__zahl">{zeilen.length}</span>
       </h2>
-      <p className="admin__zusammenfassung">
-        Genau das kommt aufs Dokument, ein Plissee je Zeile. Änderungen hier schreiben in die Bestellung – eine falsche
-        Breite ist auch bei der Montage falsch.
-      </p>
+      <p className="admin__zusammenfassung">{t.zeilenSatz}</p>
       {luecken > 0 && (
-        <p className="lieferung__warnung">
-          {luecken} {luecken === 1 ? 'Zeile hat' : 'Zeilen haben'} noch Lücken. Die orangen Felder füllen, dann kann der
-          Auftrag raus.
-        </p>
+        <p className="lieferung__warnung">{fuelle(t.zeilenLuecken, { n: luecken })}</p>
       )}
       {fehler && <p className="form-status form-status--error">{fehler}</p>}
 
@@ -152,15 +148,15 @@ export function RundenTabelle({
         <table className="tabelle">
           <thead>
             <tr>
-              <th>Paket</th>
-              <th>Fenster</th>
-              <th className="tabelle__eng">Breite</th>
-              <th className="tabelle__eng">Höhe</th>
-              <th className="tabelle__eng">Dicke</th>
-              <th>Rahmen</th>
-              <th>Netz</th>
-              <th>Mechanismus</th>
-              <th>Öffnung</th>
+              <th>{t.paket}</th>
+              <th>{t.fenster}</th>
+              <th className="tabelle__eng">{t.breiteCm}</th>
+              <th className="tabelle__eng">{t.hoeheCm}</th>
+              <th className="tabelle__eng">{t.dicke}</th>
+              <th>{t.rahmen}</th>
+              <th>{t.netzSpalte}</th>
+              <th>{t.mechanismus}</th>
+              <th>{t.oeffnung}</th>
               <th />
             </tr>
           </thead>
@@ -186,7 +182,7 @@ export function RundenTabelle({
                   <td>
                     <input
                       className="input tabelle__feld tabelle__feld--breit"
-                      aria-label={`Bezeichnung Zeile ${zeile.nummer}`}
+                      aria-label={`${t.bezeichnungRaum} ${zeile.nummer}`}
                       defaultValue={zeile.bezeichnung}
                       onBlur={(e) => e.target.value !== zeile.bezeichnung && aendere(zeile, { bezeichnung: e.target.value })}
                       disabled={beschaeftigt}
@@ -196,7 +192,7 @@ export function RundenTabelle({
                     <input
                       className={`input tabelle__feld ${fehlt.has('Breite') ? 'tabelle__fehlt' : ''}`}
                       inputMode="decimal"
-                      aria-label={`Breite Zeile ${zeile.nummer}`}
+                      aria-label={`${t.breiteCm} ${zeile.nummer}`}
                       defaultValue={zeile.breiteCm ?? ''}
                       onBlur={(e) => {
                         const wert = masszahl(e.target.value)
@@ -209,7 +205,7 @@ export function RundenTabelle({
                     <input
                       className={`input tabelle__feld ${fehlt.has('Höhe') ? 'tabelle__fehlt' : ''}`}
                       inputMode="decimal"
-                      aria-label={`Höhe Zeile ${zeile.nummer}`}
+                      aria-label={`${t.hoeheCm} ${zeile.nummer}`}
                       defaultValue={zeile.hoeheCm ?? ''}
                       onBlur={(e) => {
                         const wert = masszahl(e.target.value)
@@ -221,7 +217,7 @@ export function RundenTabelle({
                   <td>
                     <input
                       className={`input tabelle__feld ${fehlt.has('Rahmendicke') ? 'tabelle__fehlt' : ''}`}
-                      aria-label={`Rahmendicke Zeile ${zeile.nummer}`}
+                      aria-label={`${t.rahmendicke} ${zeile.nummer}`}
                       defaultValue={zeile.rahmendicke ?? ''}
                       onBlur={(e) => e.target.value !== zeile.rahmendicke && aendere(zeile, { rahmendicke: e.target.value })}
                       disabled={beschaeftigt}
@@ -230,7 +226,7 @@ export function RundenTabelle({
                   <td>
                     <select
                       className={`input tabelle__feld ${fehlt.has('Rahmenfarbe') ? 'tabelle__fehlt' : ''}`}
-                      aria-label={`Rahmenfarbe Zeile ${zeile.nummer}`}
+                      aria-label={`${t.rahmen} ${zeile.nummer}`}
                       value={zeile.rahmenfarbe ?? ''}
                       onChange={(e) => aendere(zeile, { rahmenfarbe: e.target.value as Rahmenfarbe })}
                       disabled={beschaeftigt}
@@ -238,7 +234,7 @@ export function RundenTabelle({
                       <option value="">—</option>
                       {Object.entries(RAHMENFARBEN).map(([wert, b]) => (
                         <option key={wert} value={wert}>
-                          {b.deutsch}
+                          {b[sprache]}
                         </option>
                       ))}
                     </select>
@@ -246,7 +242,7 @@ export function RundenTabelle({
                   <td>
                     <select
                       className={`input tabelle__feld ${fehlt.has('Netzfarbe') ? 'tabelle__fehlt' : ''}`}
-                      aria-label={`Netzfarbe Zeile ${zeile.nummer}`}
+                      aria-label={`${t.netzSpalte} ${zeile.nummer}`}
                       value={zeile.netzfarbe ?? ''}
                       onChange={(e) => aendere(zeile, { netzfarbe: e.target.value as Netzfarbe })}
                       disabled={beschaeftigt}
@@ -254,7 +250,7 @@ export function RundenTabelle({
                       <option value="">—</option>
                       {Object.entries(NETZFARBEN).map(([wert, b]) => (
                         <option key={wert} value={wert}>
-                          {b.deutsch}
+                          {b[sprache]}
                         </option>
                       ))}
                     </select>
@@ -262,7 +258,7 @@ export function RundenTabelle({
                   <td>
                     <select
                       className={`input tabelle__feld ${fehlt.has('Mechanismus') ? 'tabelle__fehlt' : ''}`}
-                      aria-label={`Mechanismus Zeile ${zeile.nummer}`}
+                      aria-label={`${t.mechanismus} ${zeile.nummer}`}
                       value={zeile.mechanismus ?? ''}
                       onChange={(e) => aendere(zeile, { mechanismus: e.target.value as Mechanismus })}
                       disabled={beschaeftigt}
@@ -270,7 +266,7 @@ export function RundenTabelle({
                       <option value="">—</option>
                       {Object.entries(MECHANISMEN).map(([wert, b]) => (
                         <option key={wert} value={wert}>
-                          {b.deutsch}
+                          {b[sprache]}
                         </option>
                       ))}
                     </select>
@@ -278,7 +274,7 @@ export function RundenTabelle({
                   <td>
                     <select
                       className={`input tabelle__feld tabelle__feld--breit ${fehlt.has('Öffnungsrichtung') ? 'tabelle__fehlt' : ''}`}
-                      aria-label={`Öffnungsrichtung Zeile ${zeile.nummer}`}
+                      aria-label={`${t.oeffnung} ${zeile.nummer}`}
                       value={zeile.oeffnung ?? ''}
                       onChange={(e) => aendere(zeile, { oeffnung: e.target.value as OpeningDirection })}
                       disabled={beschaeftigt}
@@ -286,7 +282,7 @@ export function RundenTabelle({
                       <option value="">—</option>
                       {Object.entries(OEFFNUNGEN).map(([wert, b]) => (
                         <option key={wert} value={wert}>
-                          {b.deutsch}
+                          {b[sprache]}
                         </option>
                       ))}
                     </select>
@@ -294,12 +290,12 @@ export function RundenTabelle({
                   <td className="tabelle__schritte">
                     {loeschen ? (
                       <span className="tabelle__frage">
-                        Aus der Bestellung löschen?
+                        {t.ausBestellungLoeschen}
                         <button type="button" className="btn btn--quiet admin__gefahr" onClick={() => ausBestellung(zeile)}>
-                          Ja
+                          {t.ja}
                         </button>
                         <button type="button" className="btn btn--quiet" onClick={() => setLoeschFrage(null)}>
-                          Nein
+                          {t.nein}
                         </button>
                       </span>
                     ) : (
@@ -307,20 +303,20 @@ export function RundenTabelle({
                         <button
                           type="button"
                           className="tabelle__knopf"
-                          title="Aus dieser Lieferung nehmen – das Netz bleibt in der Bestellung"
+                          title={t.ausLieferungHilfe}
                           onClick={() => ausLieferung(zeile)}
                           disabled={beschaeftigt}
                         >
-                          aus Lieferung
+                          {t.ausLieferung}
                         </button>
                         <button
                           type="button"
                           className="tabelle__knopf tabelle__knopf--gefahr"
-                          title="Netz aus der Bestellung löschen – die Kundschaft bekommt es nicht mehr"
+                          title={t.loeschenHilfe}
                           onClick={() => setLoeschFrage(String(zeile.nummer))}
                           disabled={beschaeftigt}
                         >
-                          löschen
+                          {t.loeschen}
                         </button>
                       </>
                     )}
@@ -334,11 +330,9 @@ export function RundenTabelle({
 
       <div className="tabelle__unten">
         <button type="button" className="btn btn--quiet" onClick={zusatzHinzufuegen} disabled={sendet !== null}>
-          Zeile ohne Bestellung hinzufügen
+          {t.zeileOhneBestellung}
         </button>
-        <span className="admin__detail">
-          Für ein Reservenetz oder ein Muster. Erscheint auf dem Auftrag, aber auf keiner Rechnung.
-        </span>
+        <span className="admin__detail">{t.zeileOhneBestellungSatz}</span>
       </div>
 
       {/*
@@ -348,8 +342,10 @@ export function RundenTabelle({
       */}
       {ausgeschlossen.length > 0 && (
         <div className="tabelle__ausgenommen">
-          <strong>Nicht in dieser Lieferung ({ausgeschlossen.length})</strong>
-          <p className="admin__detail">Diese Netze bleiben in der Bestellung und kommen in eine spätere Runde.</p>
+          <strong>
+            {t.nichtInDieserLieferung} ({ausgeschlossen.length})
+          </strong>
+          <p className="admin__detail">{t.nichtInDieserLieferungSatz}</p>
           <ul>
             {ausgeschlossen.map((schluessel) => {
               // Die Kennung des Pakets, nicht die interne Id der Bestellung.
@@ -359,7 +355,7 @@ export function RundenTabelle({
                   <code>{bestellung ? kennungFuer(bestellung) : '—'}</code>
                   <span className="admin__detail">{bestellung?.kunde.name}</span>
                   <button type="button" className="tabelle__knopf" onClick={() => zurueckholen(schluessel)}>
-                    zurück in die Lieferung
+                    {t.zurueckInDieLieferung}
                   </button>
                 </li>
               )

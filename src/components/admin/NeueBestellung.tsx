@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import type { BestellArt, BestellPosition, BestellQuelle } from '../../types'
 import { erfasseBestellung } from '../../lib/adminApi'
-import { QUELLEN, QUELLE_TEXT } from './hilfen'
+import { QUELLEN, quelleText } from './hilfen'
 import { NetzEditor } from './NetzEditor'
+import { useSprache } from './sprache'
 
 /**
  * Eine Bestellung von Hand erfassen.
@@ -22,11 +23,6 @@ interface NeueBestellungProps {
   onAbbrechen: () => void
 }
 
-const ARTEN: { wert: BestellArt; text: string }[] = [
-  { wert: 'bestellung', text: 'Bestellung' },
-  { wert: 'anfrage', text: 'Anfrage Sondermass' },
-]
-
 export function NeueBestellung({ montageProNetz, onFertig, onAbbrechen }: NeueBestellungProps) {
   const [art, setArt] = useState<BestellArt>('bestellung')
   const [quelle, setQuelle] = useState<BestellQuelle>('whatsapp')
@@ -39,6 +35,11 @@ export function NeueBestellung({ montageProNetz, onFertig, onAbbrechen }: NeueBe
   const [bemerkung, setBemerkung] = useState('')
   const [notiz, setNotiz] = useState('')
   const [montage, setMontage] = useState(false)
+  const { t } = useSprache()
+  const arten: { wert: BestellArt; text: string }[] = [
+    { wert: 'bestellung', text: t.artBestellung },
+    { wert: 'anfrage', text: t.artAnfrage },
+  ]
 
   // Ein Rueckweg genuegt: Wer ueber WhatsApp bestellt, hat oft keine
   // E-Mail-Adresse hinterlegt, und die Bestellung deswegen nicht aufzunehmen
@@ -67,18 +68,16 @@ export function NeueBestellung({ montageProNetz, onFertig, onAbbrechen }: NeueBe
 
   return (
     <section className="admin__erfassen">
-      <h2>Bestellung von Hand erfassen</h2>
-      <p className="admin__erfassen-satz">
-        Für alles, was nicht über das Formular kommt. Landet in derselben Liste wie die Bestellungen von der Seite.
-      </p>
+      <h2>{t.vonHandErfassen}</h2>
+      <p className="admin__erfassen-satz">{t.vonHandSatz}</p>
 
       <div className="admin__erfassen-reihe">
         <div className="field">
           <label className="field__label" htmlFor="neu-art">
-            Art
+            {t.art}
           </label>
           <select id="neu-art" className="input" value={art} onChange={(e) => setArt(e.target.value as BestellArt)}>
-            {ARTEN.map((a) => (
+            {arten.map((a) => (
               <option key={a.wert} value={a.wert}>
                 {a.text}
               </option>
@@ -87,7 +86,7 @@ export function NeueBestellung({ montageProNetz, onFertig, onAbbrechen }: NeueBe
         </div>
         <div className="field">
           <label className="field__label" htmlFor="neu-quelle">
-            Kam über
+            {t.kamUeber}
           </label>
           <select
             id="neu-quelle"
@@ -97,7 +96,7 @@ export function NeueBestellung({ montageProNetz, onFertig, onAbbrechen }: NeueBe
           >
             {QUELLEN.map((q) => (
               <option key={q} value={q}>
-                {QUELLE_TEXT[q]}
+                {quelleText(q, t)}
               </option>
             ))}
           </select>
@@ -107,19 +106,19 @@ export function NeueBestellung({ montageProNetz, onFertig, onAbbrechen }: NeueBe
       <div className="admin__erfassen-reihe">
         <div className="field">
           <label className="field__label" htmlFor="neu-name">
-            Name
+            {t.name}
           </label>
           <input id="neu-name" className="input" value={name} onChange={(e) => setName(e.target.value)} />
         </div>
         <div className="field">
           <label className="field__label" htmlFor="neu-telefon">
-            Telefon
+            {t.telefon}
           </label>
           <input id="neu-telefon" className="input" value={telefon} onChange={(e) => setTelefon(e.target.value)} />
         </div>
         <div className="field">
           <label className="field__label" htmlFor="neu-email">
-            E-Mail
+            {t.email}
           </label>
           <input id="neu-email" className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         </div>
@@ -128,19 +127,19 @@ export function NeueBestellung({ montageProNetz, onFertig, onAbbrechen }: NeueBe
       <div className="admin__erfassen-reihe">
         <div className="field">
           <label className="field__label" htmlFor="neu-strasse">
-            Strasse
+            {t.strasse}
           </label>
           <input id="neu-strasse" className="input" value={strasse} onChange={(e) => setStrasse(e.target.value)} />
         </div>
         <div className="field field--eng">
           <label className="field__label" htmlFor="neu-plz">
-            PLZ
+            {t.plz}
           </label>
           <input id="neu-plz" className="input" value={plz} onChange={(e) => setPlz(e.target.value)} />
         </div>
         <div className="field">
           <label className="field__label" htmlFor="neu-ort">
-            Ort
+            {t.ort}
           </label>
           <input id="neu-ort" className="input" value={ort} onChange={(e) => setOrt(e.target.value)} />
         </div>
@@ -148,7 +147,7 @@ export function NeueBestellung({ montageProNetz, onFertig, onAbbrechen }: NeueBe
 
       <div className="field">
         <label className="field__label" htmlFor="neu-bemerkung">
-          Bemerkung der Kundschaft
+          {t.bemerkungKundschaft}
         </label>
         <textarea
           id="neu-bemerkung"
@@ -161,27 +160,25 @@ export function NeueBestellung({ montageProNetz, onFertig, onAbbrechen }: NeueBe
 
       <div className="field">
         <label className="field__label" htmlFor="neu-notiz">
-          Interne Notiz
+          {t.interneNotiz}
         </label>
         <textarea id="neu-notiz" className="input" rows={2} value={notiz} onChange={(e) => setNotiz(e.target.value)} />
       </div>
 
       <label className="admin__haken">
         <input type="checkbox" checked={montage} onChange={(e) => setMontage(e.target.checked)} />
-        <span>Montage durch uns</span>
+        <span>{t.montageDurchUns}</span>
       </label>
 
       {!bereit && (
-        <p className="admin__erfassen-hinweis">
-          Es fehlt der Name und ein Rückweg – E-Mail oder Telefonnummer, eines von beidem genügt.
-        </p>
+        <p className="admin__erfassen-hinweis">{t.fehltNameRueckweg}</p>
       )}
 
       <NetzEditor
         positionen={[]}
         montageChf={0}
         montageProNetz={montageProNetz}
-        speichernText="Bestellung anlegen"
+        speichernText={t.bestellungAnlegen}
         deaktiviert={!bereit}
         onSpeichern={anlegen}
         onAbbrechen={onAbbrechen}

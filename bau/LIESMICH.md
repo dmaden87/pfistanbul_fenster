@@ -133,6 +133,32 @@ nachgeholt werden – unter `api/` enden sie auf `.js` und meinen `.ts`, unter
 `src/` haben sie gar keine Endung, weil dort sonst Vite auflöst. Beides
 erledigt `bau/ts-aufloeser.mjs`, das auch `npm run pruefen` vorgeschaltet ist.
 
+## Der Adminbereich auf Deutsch oder Türkisch
+
+Oben in der Werkzeugleiste steht ein Schalter **DE / TR**. Grund: Ufuk
+arbeitet mit derselben Liste, und seine Sprache ist Türkisch — eine
+Verwaltungsmaske, die man nur halb versteht, führt zu Fehlern, die niemand
+bemerkt, gerade bei Massen und Öffnungsrichtungen. Die Wahl bleibt im
+Browser gespeichert.
+
+Alle Beschriftungen stehen in `src/components/admin/sprache.ts`, ein Paar
+`[deutsch, türkisch]` je Eintrag. Das ist Absicht: So sieht man beim Ändern
+sofort, ob die andere Sprache nachgeführt ist, und eine schiefe Übersetzung
+lässt sich an genau einer Stelle geraderücken.
+
+Zwei Dinge folgen der Sprache **nicht**:
+
+- **Beträge.** CHF bleibt in Schweizer Schreibweise (1'234.50), weil die
+  Zahlen mit Rechnungen und Belegen übereinstimmen müssen.
+- **Raumbezeichnungen** wie „Zimmer", „Bad". Das sind Daten, die wir
+  eintippen, keine Beschriftungen.
+
+Der Rahmen der Website darum herum (Kopfzeile, Fussleiste) bleibt deutsch —
+das ist die Seite für die Kundschaft, nicht die Maske.
+
+Die Sprache des **Dokuments** an den Produzenten ist davon unabhängig: Es
+geht immer auf Türkisch raus, egal in welcher Sprache die Maske steht.
+
 ## Die Lieferrunde
 
 Bestellungen ankreuzen, „Lieferrunde anlegen" — daraus entsteht `L-2026-01`,

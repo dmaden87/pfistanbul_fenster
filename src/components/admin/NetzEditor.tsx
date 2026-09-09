@@ -12,6 +12,7 @@ import {
 } from '../../data/produktion'
 import { formatChf } from '../../lib/format'
 import { positionenSumme } from './hilfen'
+import { fuelle, useSprache } from './sprache'
 
 /**
  * Die Netze einer Bestellung bearbeiten: ergaenzen, aendern, entfernen.
@@ -132,9 +133,10 @@ export function NetzEditor({
   montageProNetz,
   onSpeichern,
   onAbbrechen,
-  speichernText = 'Netze speichern',
+  speichernText,
   deaktiviert = false,
 }: NetzEditorProps) {
+  const { t, sprache } = useSprache()
   const [entwuerfe, setEntwuerfe] = useState<Entwurf[]>(() =>
     positionen.length > 0 ? positionen.map(zuEntwurf) : [leer()],
   )
@@ -153,7 +155,7 @@ export function NetzEditor({
   const speichern = async () => {
     const gefuellt = netze.filter((p) => p.bezeichnung || p.preisChf > 0 || p.breiteCm || p.hoeheCm)
     if (gefuellt.some((p) => !p.bezeichnung)) {
-      setFehler('Jedes Netz braucht eine Bezeichnung – sonst weiss später niemand, welches Fenster gemeint ist.')
+      setFehler(t.bezeichnungFehlt)
       return
     }
     setFehler(null)
@@ -161,7 +163,7 @@ export function NetzEditor({
     try {
       await onSpeichern(gefuellt, Math.round(zahl(montage) * 100) / 100)
     } catch (f) {
-      setFehler(f instanceof Error ? f.message : 'Konnte nicht gespeichert werden.')
+      setFehler(f instanceof Error ? f.message : 'Fehler')
       setSendet(false)
     }
   }
@@ -171,17 +173,17 @@ export function NetzEditor({
       {entwuerfe.map((e, i) => (
         <fieldset className="netz" key={i}>
           <legend className="netz__nummer">
-            Netz {i + 1}
-            {e.setId && <span className="netz__quelle">Set aus dem Katalog</span>}
+            {t.netzNummer} {i + 1}
+            {e.setId && <span className="netz__quelle">{t.setAusKatalog}</span>}
           </legend>
 
           <div className="netz__reihe">
             <label className="netz__feld netz__feld--winzig">
-              <span>Anz.</span>
+              <span>{t.anzahlKurz}</span>
               <input className="input" inputMode="numeric" value={e.menge} onChange={(ev) => aendere(i, { menge: ev.target.value })} />
             </label>
             <label className="netz__feld netz__feld--breit">
-              <span>Bezeichnung / Raum</span>
+              <span>{t.bezeichnungRaum}</span>
               <input
                 className="input"
                 placeholder="z. B. Schlafzimmer Süd"
@@ -190,21 +192,21 @@ export function NetzEditor({
               />
             </label>
             <label className="netz__feld netz__feld--klein">
-              <span>Breite cm</span>
+              <span>{t.breiteCm}</span>
               <input className="input" inputMode="decimal" placeholder="128.6" value={e.breiteCm} onChange={(ev) => aendere(i, { breiteCm: ev.target.value })} />
             </label>
             <label className="netz__feld netz__feld--klein">
-              <span>Höhe cm</span>
+              <span>{t.hoeheCm}</span>
               <input className="input" inputMode="decimal" placeholder="182.5" value={e.hoeheCm} onChange={(ev) => aendere(i, { hoeheCm: ev.target.value })} />
             </label>
             <label className="netz__feld netz__feld--klein">
-              <span>Preis CHF</span>
+              <span>{t.preisChf}</span>
               <input className="input" inputMode="decimal" value={e.preisChf} onChange={(ev) => aendere(i, { preisChf: ev.target.value })} />
             </label>
             <button
               type="button"
               className="netze__weg"
-              aria-label={`Netz ${i + 1} entfernen`}
+              aria-label={`${t.netzNummer} ${i + 1} ${t.netzEntfernen}`}
               onClick={() => setEntwuerfe((liste) => liste.filter((_, j) => j !== i))}
             >
               ×
@@ -214,50 +216,50 @@ export function NetzEditor({
           {/* Was der Produzent braucht. Er kennt unser Sortiment nicht. */}
           <div className="netz__reihe netz__reihe--produktion">
             <label className="netz__feld netz__feld--klein">
-              <span>Rahmendicke</span>
+              <span>{t.rahmendicke}</span>
               <input className="input" value={e.rahmendicke} onChange={(ev) => aendere(i, { rahmendicke: ev.target.value })} />
             </label>
             <label className="netz__feld netz__feld--klein">
-              <span>Rahmen</span>
+              <span>{t.rahmen}</span>
               <select className="input" value={e.rahmenfarbe} onChange={(ev) => aendere(i, { rahmenfarbe: ev.target.value as Rahmenfarbe })}>
                 {Object.entries(RAHMENFARBEN).map(([wert, b]) => (
                   <option key={wert} value={wert}>
-                    {b.deutsch}
+                    {b[sprache]}
                   </option>
                 ))}
               </select>
             </label>
             <label className="netz__feld netz__feld--klein">
-              <span>Netz</span>
+              <span>{t.netzSpalte}</span>
               <select className="input" value={e.netzfarbe} onChange={(ev) => aendere(i, { netzfarbe: ev.target.value as Netzfarbe })}>
                 {Object.entries(NETZFARBEN).map(([wert, b]) => (
                   <option key={wert} value={wert}>
-                    {b.deutsch}
+                    {b[sprache]}
                   </option>
                 ))}
               </select>
             </label>
             <label className="netz__feld">
-              <span>Mechanismus</span>
+              <span>{t.mechanismus}</span>
               <select className="input" value={e.mechanismus} onChange={(ev) => aendere(i, { mechanismus: ev.target.value as Mechanismus })}>
                 {Object.entries(MECHANISMEN).map(([wert, b]) => (
                   <option key={wert} value={wert}>
-                    {b.deutsch}
+                    {b[sprache]}
                   </option>
                 ))}
               </select>
             </label>
             <label className="netz__feld netz__feld--breit">
-              <span>Öffnungsrichtung, von innen gesehen</span>
+              <span>{t.oeffnungVonInnen}</span>
               <select
                 className={e.oeffnung ? 'input' : 'input netz__fehlt'}
                 value={e.oeffnung}
                 onChange={(ev) => aendere(i, { oeffnung: ev.target.value as OpeningDirection | '' })}
               >
-                <option value="">— noch offen —</option>
+                <option value="">{t.nochOffen}</option>
                 {Object.entries(OEFFNUNGEN).map(([wert, b]) => (
                   <option key={wert} value={wert}>
-                    {b.deutsch}
+                    {b[sprache]}
                   </option>
                 ))}
               </select>
@@ -267,12 +269,12 @@ export function NetzEditor({
       ))}
 
       <button type="button" className="btn btn--quiet" onClick={() => setEntwuerfe((l) => [...l, leer()])}>
-        Netz hinzufügen
+        {t.netzHinzufuegen}
       </button>
 
       <div className="netze__montage">
         <label className="field__label" htmlFor="netze-montage">
-          Montage insgesamt (CHF)
+          {t.montageInsgesamt}
         </label>
         <input
           id="netze-montage"
@@ -281,15 +283,13 @@ export function NetzEditor({
           value={montage}
           onChange={(e) => setMontage(e.target.value)}
         />
-        <span className="netze__hinweis">
-          {formatChf(montageProNetz)} pro Fenster. Leer lassen oder 0, wenn selbst montiert wird.
-        </span>
+        <span className="netze__hinweis">{fuelle(t.montageProFenster, { preis: formatChf(montageProNetz) })}</span>
       </div>
 
       <p className="netze__summe">
         <span>
-          Netze {formatChf(summeNetze)}
-          {zahl(montage) > 0 && ` · Montage ${formatChf(zahl(montage))}`}
+          {t.netzeSumme} {formatChf(summeNetze)}
+          {zahl(montage) > 0 && ` · ${t.montageSumme} ${formatChf(zahl(montage))}`}
         </span>
         <strong>{formatChf(summe)}</strong>
       </p>
@@ -298,10 +298,10 @@ export function NetzEditor({
 
       <div className="netze__schritte">
         <button type="button" className="btn" onClick={speichern} disabled={sendet || deaktiviert}>
-          {sendet ? 'Wird gespeichert …' : speichernText}
+          {sendet ? t.wirdGespeichert : (speichernText ?? t.netzeSpeichern)}
         </button>
         <button type="button" className="btn btn--quiet" onClick={onAbbrechen} disabled={sendet}>
-          Abbrechen
+          {t.abbrechen}
         </button>
       </div>
     </div>

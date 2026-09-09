@@ -690,3 +690,34 @@
 .admin__runde-stand--geliefert {
   color: var(--success);
 }
+
+/* --- Sprachschalter --------------------------------------------------------- */
+
+/*
+ * Ganz vorn in der Werkzeugleiste. Ufuk arbeitet mit derselben Liste, und
+ * seine Sprache ist Türkisch – eine Maske, die man nur halb versteht, führt
+ * zu Fehlern, die niemand bemerkt.
+ */
+.admin__sprache {
+  display: inline-flex;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.admin__sprache-knopf {
+  padding: 0.35rem 0.8rem;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.admin__sprache-knopf--an {
+  background: var(--accent);
+  color: var(--surface);
+}

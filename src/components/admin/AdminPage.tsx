@@ -1,51 +1,53 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { AdminStatus, Bestellung, BestellAenderung, BestellPosition, BestellStatus, Lieferung } from '../../types'
+import type { AdminTexte } from './sprache'
 import { abmelden, adminStatus, aendereBestellung, anmelden, entferneBestellung, ladeBestellungen, setzeStatus } from '../../lib/adminApi'
 import { shopConfig } from '../../data/shopConfig'
 import { BestellKarte } from './BestellKarte'
 import { LieferungSeite } from './LieferungSeite'
 import { ladeLieferungen, lieferungAendern, lieferungAnlegen, lieferungEntfernen } from '../../lib/lieferungApi'
 import { NeueBestellung } from './NeueBestellung'
+import { SprachRahmen } from './SprachRahmen'
+import { useSprache } from './sprache'
 import './AdminPage.css'
 
 interface AdminPageProps {
   onBack: () => void
 }
 
-const STAND_TEXT: Record<Lieferung['status'], string> = {
-  entwurf: 'Entwurf',
-  angefragt: 'Anfrage versendet',
-  preise: 'Preise erhalten',
-  bestellt: 'Bestellt',
-  geliefert: 'Geliefert',
+function standTexte(t: AdminTexte): Record<Lieferung['status'], string> {
+  return {
+    entwurf: t.standEntwurf,
+    angefragt: t.standAngefragt,
+    preise: t.standPreise,
+    bestellt: t.standBestellt,
+    geliefert: t.standGeliefert,
+  }
 }
 
 /** Die Abschnitte der Arbeitsliste, in der Reihenfolge des Ablaufs. */
-const SEKTIONEN: { status: BestellStatus[]; titel: string; erklaerung: string }[] = [
-  {
-    status: ['neu'],
-    titel: 'Neu eingegangen',
-    erklaerung: 'Noch nichts unternommen. Weiterreichen, offerieren oder absagen.',
-  },
-  {
-    status: ['offerte'],
-    titel: 'Offerte',
-    erklaerung:
-      'Ausmessen und offerieren. Die beiden Haken sagen, wie weit es ist – und seit wann die Offerte draussen ist.',
-  },
-  {
-    status: ['bestellt'],
-    titel: 'Beim Lieferanten bestellt',
-    erklaerung: 'Läuft. Sobald wir ausgeliefert haben, hier abschliessen.',
-  },
-  {
-    status: ['erledigt', 'geloescht'],
-    titel: 'Abgeschlossen',
-    erklaerung: 'Ausgeliefert oder abgesagt. Bleibt zum Nachschlagen stehen.',
-  },
-]
+function sektionen(t: AdminTexte): { status: BestellStatus[]; titel: string; erklaerung: string }[] {
+  return [
+    { status: ['neu'], titel: t.sektionNeu, erklaerung: t.sektionNeuSatz },
+    { status: ['offerte'], titel: t.sektionOfferte, erklaerung: t.sektionOfferteSatz },
+    { status: ['bestellt'], titel: t.sektionBestellt, erklaerung: t.sektionBestelltSatz },
+    { status: ['erledigt', 'geloescht'], titel: t.sektionAbgeschlossen, erklaerung: t.sektionAbgeschlossenSatz },
+  ]
+}
 
-export function AdminPage({ onBack }: AdminPageProps) {
+/**
+ * Der Adminbereich. Die aeussere Huelle setzt nur den Sprachrahmen; die
+ * Maske selbst steckt in AdminMaske, damit sie den Rahmen benutzen kann.
+ */
+export function AdminPage(props: AdminPageProps) {
+  return (
+    <SprachRahmen>
+      <AdminMaske {...props} />
+    </SprachRahmen>
+  )
+}
+
+function AdminMaske({ onBack }: AdminPageProps) {
   const [status, setStatus] = useState<AdminStatus | null>(null)
   const [bestellungen, setBestellungen] = useState<Bestellung[]>([])
   const [passwort, setPasswort] = useState('')
@@ -60,6 +62,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
   const [lieferungen, setLieferungen] = useState<Lieferung[]>([])
   /** Welche Lieferrunde gerade offen ist. */
   const [offeneRunde, setOffeneRunde] = useState<string | null>(null)
+  const { sprache, setzeSprache, t } = useSprache()
 
   const laden = useCallback(async () => {
     setFehler(null)
@@ -148,7 +151,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
     return (
       <section className="section admin">
         <div className="shell">
-          <p className="admin__laedt">Wird geladen …</p>
+          <p className="admin__laedt">{t.laedt}</p>
         </div>
       </section>
     )
@@ -158,25 +161,23 @@ export function AdminPage({ onBack }: AdminPageProps) {
     return (
       <section className="section admin">
         <div className="shell admin__schmal">
-          <h1>Adminbereich</h1>
-          <p className="admin__hinweis">Der Bereich ist noch nicht fertig eingerichtet:</p>
+          <h1>{t.adminbereich}</h1>
+          <p className="admin__hinweis">{t.nochNichtEingerichtet}</p>
           <ul className="admin__liste">
             {!status.speicher && (
               <li>
-                <strong>Es fehlt der Speicher.</strong> In Vercel unter <em>Storage</em> ein Upstash-Redis anlegen und
-                mit diesem Projekt verbinden. Die Zugangsdaten setzt Vercel danach selbst.
+                <strong>{t.speicherFehlt}</strong> {t.speicherFehltSatz}
               </li>
             )}
             {!status.passwort && (
               <li>
-                <strong>Es fehlt das Passwort.</strong> In Vercel die Umgebungsvariable <code>ADMIN_PASSWORT</code>{' '}
-                anlegen – mindestens acht Zeichen, ohne <code>VITE_</code> davor, damit sie nicht im Browser landet.
+                <strong>{t.passwortFehlt}</strong> {t.passwortFehltSatz}
               </li>
             )}
-            <li>Nach beidem einmal neu deployen.</li>
+            <li>{t.neuDeployen}</li>
           </ul>
           <button type="button" className="btn btn--ghost" onClick={onBack}>
-            Zurück zur Seite
+            {t.zurueckZurSeite}
           </button>
         </div>
       </section>
@@ -187,11 +188,11 @@ export function AdminPage({ onBack }: AdminPageProps) {
     return (
       <section className="section admin">
         <div className="shell admin__schmal">
-          <h1>Adminbereich</h1>
+          <h1>{t.adminbereich}</h1>
           <form className="admin__anmeldung" onSubmit={handleAnmelden}>
             <div className="field">
               <label className="field__label" htmlFor="admin-passwort">
-                Passwort
+                {t.passwort}
               </label>
               <input
                 id="admin-passwort"
@@ -204,11 +205,11 @@ export function AdminPage({ onBack }: AdminPageProps) {
             </div>
             {fehler && <p className="form-status form-status--error">{fehler}</p>}
             <button type="submit" className="btn" disabled={sendet || passwort.length === 0}>
-              {sendet ? 'Wird geprüft …' : 'Anmelden'}
+              {sendet ? t.wirdGeprueft : t.anmelden}
             </button>
           </form>
           <button type="button" className="btn btn--quiet" onClick={onBack}>
-            Zurück zur Seite
+            {t.zurueckZurSeite}
           </button>
         </div>
       </section>
@@ -274,17 +275,40 @@ export function AdminPage({ onBack }: AdminPageProps) {
       <div className="shell">
         <div className="admin__kopf">
           <div>
-            <h1>Bestellungen</h1>
+            <h1>{t.bestellungen}</h1>
             <p className="admin__zusammenfassung">
-              {bestellungen.length} insgesamt, davon {offen} neu und {inOfferte} in Offerte.
+              {bestellungen.length} {t.insgesamt}, {t.davonNeu} {offen} {t.neuKlein} · {inOfferte} {t.inOfferte}
             </p>
           </div>
           <div className="admin__werkzeuge">
+            {/*
+              Der Sprachschalter steht ganz vorn und nicht in einem Menue:
+              Ufuk soll ihn beim ersten Blick finden, nicht suchen. Die Wahl
+              bleibt ueber Besuche hinweg gespeichert.
+            */}
+            <div className="admin__sprache" role="group" aria-label={t.sprache}>
+              <button
+                type="button"
+                className={sprache === 'deutsch' ? 'admin__sprache-knopf admin__sprache-knopf--an' : 'admin__sprache-knopf'}
+                aria-pressed={sprache === 'deutsch'}
+                onClick={() => setzeSprache('deutsch')}
+              >
+                DE
+              </button>
+              <button
+                type="button"
+                className={sprache === 'tuerkisch' ? 'admin__sprache-knopf admin__sprache-knopf--an' : 'admin__sprache-knopf'}
+                aria-pressed={sprache === 'tuerkisch'}
+                onClick={() => setzeSprache('tuerkisch')}
+              >
+                TR
+              </button>
+            </div>
             <button type="button" className="btn" onClick={() => setErfassen((e) => !e)}>
-              {erfassen ? 'Erfassen schliessen' : 'Bestellung erfassen'}
+              {erfassen ? t.erfassenSchliessen : t.bestellungErfassen}
             </button>
             <button type="button" className="btn btn--ghost" onClick={laden}>
-              Aktualisieren
+              {t.aktualisieren}
             </button>
             <button
               type="button"
@@ -295,10 +319,10 @@ export function AdminPage({ onBack }: AdminPageProps) {
                 setBestellungen([])
               }}
             >
-              Abmelden
+              {t.abmelden}
             </button>
             <button type="button" className="btn btn--quiet" onClick={onBack}>
-              Zur Seite
+              {t.zurSeite}
             </button>
           </div>
         </div>
@@ -313,8 +337,8 @@ export function AdminPage({ onBack }: AdminPageProps) {
         {gewaehlte.length > 0 && (
           <div className="admin__runde">
             <span>
-              <strong>{gewaehlte.length}</strong> {gewaehlte.length === 1 ? 'Bestellung' : 'Bestellungen'} für die
-              Lieferrunde gewählt
+              <strong>{gewaehlte.length}</strong> {gewaehlte.length === 1 ? t.bestellung : t.bestellungen}{' '}
+              {t.fuerLieferrundeGewaehlt}
             </span>
             <button
               type="button"
@@ -330,10 +354,10 @@ export function AdminPage({ onBack }: AdminPageProps) {
                 }
               }}
             >
-              Lieferrunde anlegen
+              {t.lieferrundeAnlegen}
             </button>
             <button type="button" className="btn btn--quiet" onClick={() => setRunde([])}>
-              Auswahl aufheben
+              {t.auswahlAufheben}
             </button>
           </div>
         )}
@@ -353,19 +377,19 @@ export function AdminPage({ onBack }: AdminPageProps) {
           <section className="admin__sektion">
             <div className="admin__sektion-kopf">
               <h2>
-                Lieferrunden <span className="admin__zahl">{lieferungen.length}</span>
+                {t.lieferrunden} <span className="admin__zahl">{lieferungen.length}</span>
               </h2>
-              <p>Anfrage, Preise, Bestellung. Ein Dokument, das seinen Zustand mit sich führt.</p>
+              <p>{t.lieferrundenSatz}</p>
             </div>
             <ul className="admin__runden">
               {lieferungen.map((l) => (
                 <li key={l.id}>
                   <button type="button" className="admin__runde-knopf" onClick={() => setOffeneRunde(l.id)}>
                     <span className="admin__runde-nummer">{l.nummer}</span>
-                    <span className={`admin__runde-stand admin__runde-stand--${l.status}`}>{STAND_TEXT[l.status]}</span>
+                    <span className={`admin__runde-stand admin__runde-stand--${l.status}`}>{standTexte(t)[l.status]}</span>
                     <span className="admin__detail">
-                      {l.bestellungIds.length} {l.bestellungIds.length === 1 ? 'Bestellung' : 'Bestellungen'}
-                      {l.zeilen.length > 0 && ` · ${l.zeilen.length} Plissees`}
+                      {l.bestellungIds.length} {l.bestellungIds.length === 1 ? t.bestellung : t.bestellungen}
+                      {l.zeilen.length > 0 && ` · ${l.zeilen.length} ${t.plissees}`}
                     </span>
                   </button>
                 </li>
@@ -374,7 +398,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
           </section>
         )}
 
-        {SEKTIONEN.map((sektion) => {
+        {sektionen(t).map((sektion) => {
           const treffer = bestellungen.filter((b) => sektion.status.includes(b.status))
           return (
             <section className="admin__sektion" key={sektion.titel}>
@@ -386,7 +410,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
               </div>
 
               {treffer.length === 0 ? (
-                <p className="admin__leer">Nichts hier.</p>
+                <p className="admin__leer">{t.nichtsHier}</p>
               ) : (
                 <ul className="admin__karten">
                   {treffer.map((b) => (

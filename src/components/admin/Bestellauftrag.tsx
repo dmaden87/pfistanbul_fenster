@@ -16,6 +16,7 @@ import {
   TEXTE,
   type Beschriftung,
 } from '../../data/produktion'
+import { useSprache } from './sprache'
 import './Bestellauftrag.css'
 
 /**
@@ -98,7 +99,10 @@ function netzZeile(n: AuftragsNetz, s: Sprache) {
 }
 
 export function Bestellauftrag({ lieferung, bestellungen, onZurueck }: BestellauftragProps) {
+  // Die Sprache des BLATTS. Sie hat mit der Sprache der Maske nichts zu tun:
+  // Das Blatt geht in die Tuerkei, die Maske bedient, wer hier sitzt.
   const [sprache, setSprache] = useState<Sprache>('tuerkisch')
+  const { t: m } = useSprache()
 
   // Alles Uebrige kommt aus der Runde. Was auf dem Blatt steht, ist damit
   // dasselbe, was gespeichert ist – nicht etwas, das nur im Browser existiert.
@@ -143,19 +147,19 @@ export function Bestellauftrag({ lieferung, bestellungen, onZurueck }: Bestellau
         <div className="auftrag__wahl">
           <label className="admin__haken">
             <input type="radio" name="sprache" checked={sprache === 'tuerkisch'} onChange={() => setSprache('tuerkisch')} />
-            <span>Türkisch</span>
+            <span>{m.tuerkisch}</span>
           </label>
           <label className="admin__haken">
             <input type="radio" name="sprache" checked={sprache === 'deutsch'} onChange={() => setSprache('deutsch')} />
-            <span>Deutsch (nur zum Prüfen)</span>
+            <span>{m.deutschNurPruefen}</span>
           </label>
         </div>
         <div className="auftrag__schritte">
           <button type="button" className="btn" onClick={() => window.print()} disabled={auftrag.luecken.length > 0}>
-            Drucken / als PDF sichern
+            {m.druckenAlsPdf}
           </button>
           <button type="button" className="btn btn--quiet" onClick={onZurueck}>
-            Zurück zur Lieferung
+            {m.zurueckZurLieferung}
           </button>
         </div>
 
@@ -165,7 +169,7 @@ export function Bestellauftrag({ lieferung, bestellungen, onZurueck }: Bestellau
         */}
         {auftrag.luecken.length > 0 && (
           <div className="auftrag__luecken">
-            <strong>So kann der Auftrag nicht raus – es fehlen Angaben:</strong>
+            <strong>{m.auftragKannNichtRaus}</strong>
             <ul>
               {auftrag.luecken.map((l, i) => (
                 <li key={i}>
@@ -173,7 +177,7 @@ export function Bestellauftrag({ lieferung, bestellungen, onZurueck }: Bestellau
                 </li>
               ))}
             </ul>
-            <p>Die Angaben stehen im Netz-Editor der jeweiligen Bestellung. Danach hier nochmals aufrufen.</p>
+            <p>{m.angabenImNetzEditor}</p>
           </div>
         )}
       </div>

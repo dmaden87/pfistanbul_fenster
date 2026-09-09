@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Bestellung, BestellPosition, Lieferung, LieferungStatus, LieferungZeile } from '../../types'
+import type { AdminTexte } from './sprache'
 import { auftragAufbauen, pakete } from '../../lib/bestellauftrag'
 import { RundenTabelle } from './RundenTabelle'
 import { rechne } from '../../lib/lieferung'
@@ -7,6 +8,7 @@ import { formatChf } from '../../lib/format'
 import { shopConfig } from '../../data/shopConfig'
 import { Bestellauftrag } from './Bestellauftrag'
 import { datum } from './hilfen'
+import { fuelle, useSprache } from './sprache'
 import './LieferungSeite.css'
 
 /**
@@ -34,21 +36,14 @@ interface LieferungSeiteProps {
   onZurueck: () => void
 }
 
-const STAND: Record<LieferungStatus, { titel: string; satz: string }> = {
-  entwurf: {
-    titel: 'Entwurf',
-    satz: 'Noch nichts verschickt. Solange kann an den Netzen der Bestellungen geändert werden.',
-  },
-  angefragt: {
-    titel: 'Anfrage versendet',
-    satz: 'Bei Bora. Die Zeilen sind eingefroren – seine Preise beziehen sich auf die Nummern.',
-  },
-  preise: {
-    titel: 'Preise erhalten',
-    satz: 'Preise eintragen und die Marge prüfen. Danach als Bestellung erteilen.',
-  },
-  bestellt: { titel: 'Bestellt', satz: 'Beim Produzenten in Fertigung.' },
-  geliefert: { titel: 'Geliefert', satz: 'Angekommen. Bleibt zum Nachschlagen stehen.' },
+function staende(t: AdminTexte): Record<LieferungStatus, { titel: string; satz: string }> {
+  return {
+    entwurf: { titel: t.standEntwurf, satz: t.standEntwurfSatz },
+    angefragt: { titel: t.standAngefragt, satz: t.standAngefragtSatz },
+    preise: { titel: t.standPreise, satz: t.standPreiseSatz },
+    bestellt: { titel: t.standBestellt, satz: t.standBestelltSatz },
+    geliefert: { titel: t.standGeliefert, satz: t.standGeliefertSatz },
+  }
 }
 
 function zahl(wert: string): number | undefined {
@@ -69,6 +64,7 @@ export function LieferungSeite({
   // Verwerfen fragt nach. Ab "angefragt" haengen eingefrorene Zeilen und
   // moeglicherweise Boras Preise daran – das soll kein Fehlklick treffen.
   const [verwerfenFrage, setVerwerfenFrage] = useState(false)
+  const { t, ort } = useSprache()
   const [fehler, setFehler] = useState<string | null>(null)
   const [sendet, setSendet] = useState(false)
 
@@ -103,7 +99,7 @@ export function LieferungSeite({
       await onAendern(lieferung.id, aenderung)
       if (meldung) setFehler(null)
     } catch (f) {
-      setFehler(f instanceof Error ? f.message : 'Der Schritt konnte nicht gespeichert werden.')
+      setFehler(f instanceof Error ? f.message : 'Fehler')
     } finally {
       setSendet(false)
     }
@@ -149,7 +145,7 @@ export function LieferungSeite({
     return <Bestellauftrag lieferung={lieferung} bestellungen={dabei} onZurueck={() => setZeigeDokument(false)} />
   }
 
-  const stand = STAND[lieferung.status]
+  const stand = staende(t)[lieferung.status]
 
   return (
     <div className="lieferung">
@@ -160,17 +156,17 @@ export function LieferungSeite({
             <strong>{stand.titel}</strong> · {stand.satz}
           </p>
           <p className="admin__zusammenfassung">
-            {dabei.length} {dabei.length === 1 ? 'Bestellung' : 'Bestellungen'} ·{' '}
-            {eingefroren ? lieferung.zeilen.length : auftrag.zeilen.length} Plissees · angelegt{' '}
-            {datum(lieferung.erstellt)}
+            {dabei.length} {dabei.length === 1 ? t.bestellung : t.bestellungen} ·{' '}
+            {eingefroren ? lieferung.zeilen.length : auftrag.zeilen.length} {t.plissees} · {t.angelegt}{' '}
+            {datum(lieferung.erstellt, ort)}
           </p>
         </div>
         <div className="admin__werkzeuge">
           <button type="button" className="btn btn--ghost" onClick={() => setZeigeDokument(true)}>
-            Dokument anzeigen
+            {t.dokumentAnzeigen}
           </button>
           <button type="button" className="btn btn--quiet" onClick={onZurueck}>
-            Zurück zur Liste
+            {t.zurueckZurListe}
           </button>
         </div>
       </div>
@@ -182,18 +178,18 @@ export function LieferungSeite({
         {lieferung.status === 'entwurf' && (
           <>
             <button type="button" className="btn" onClick={anfrageVersendet} disabled={sendet || auftrag.luecken.length > 0}>
-              Dokument erzeugen und Zeilen einfrieren
+              {t.dokumentErzeugen}
             </button>
             {auftrag.luecken.length > 0 && (
               <span className="lieferung__warnung">
-                Erst fehlen noch Angaben ({auftrag.luecken.length}). Im Dokument steht, welche.
+                {fuelle(t.erstFehlenAngaben, { n: auftrag.luecken.length })}
               </span>
             )}
           </>
         )}
         {lieferung.status === 'angefragt' && (
           <button type="button" className="btn" onClick={() => schritt({ status: 'preise' })} disabled={sendet}>
-            Antwort da – Preise eintragen
+            {t.antwortDaPreise}
           </button>
         )}
         {lieferung.status === 'preise' && (
@@ -203,12 +199,12 @@ export function LieferungSeite({
             onClick={() => schritt({ status: 'bestellt' })}
             disabled={sendet || rechnung.zeilenOhnePreis > 0}
           >
-            Bestellung erteilen
+            {t.bestellungErteilen}
           </button>
         )}
         {lieferung.status === 'bestellt' && (
           <button type="button" className="btn" onClick={() => schritt({ status: 'geliefert' })} disabled={sendet}>
-            Ist angekommen
+            {t.istAngekommen}
           </button>
         )}
         {lieferung.status !== 'entwurf' && lieferung.status !== 'geliefert' && (
@@ -218,7 +214,7 @@ export function LieferungSeite({
             onClick={() => schritt({ status: 'angefragt' })}
             disabled={sendet}
           >
-            Zurück zu „Anfrage versendet"
+            {t.zurueckZuAnfrage}
           </button>
         )}
 
@@ -232,8 +228,8 @@ export function LieferungSeite({
         {verwerfenFrage ? (
           <span className="lieferung__verwerfen">
             {lieferung.status === 'entwurf'
-              ? 'Verwerfen? Die Bestellungen bleiben, nur die Runde verschwindet.'
-              : `Verwerfen? Die ${lieferung.zeilen.length} eingefrorenen Zeilen und die eingetragenen Preise sind dann weg. Die Bestellungen behalten den Status, den sie jetzt haben.`}
+              ? t.verwerfenEntwurf
+              : fuelle(t.verwerfenSpaeter, { n: lieferung.zeilen.length })}
             <button
               type="button"
               className="btn btn--quiet admin__gefahr"
@@ -250,10 +246,10 @@ export function LieferungSeite({
                 }
               }}
             >
-              Ja, verwerfen
+              {t.jaVerwerfen}
             </button>
             <button type="button" className="btn btn--quiet" onClick={() => setVerwerfenFrage(false)}>
-              Abbrechen
+              {t.abbrechen}
             </button>
           </span>
         ) : (
@@ -263,7 +259,7 @@ export function LieferungSeite({
             onClick={() => setVerwerfenFrage(true)}
             disabled={sendet}
           >
-            Lieferrunde verwerfen
+            {t.lieferrundeVerwerfen}
           </button>
         )}
       </div>
@@ -285,19 +281,17 @@ export function LieferungSeite({
       {/* --- Preise eintragen --------------------------------------------- */}
       {eingefroren && lieferung.status !== 'entwurf' && (
         <section className="lieferung__block">
-          <h2>Preise vom Produzenten</h2>
-          <p className="admin__zusammenfassung">
-            Die Zeilennummern sind dieselben wie auf dem Dokument, das Bora ausgefüllt zurückschickt.
-          </p>
+          <h2>{t.preiseVomProduzenten}</h2>
+          <p className="admin__zusammenfassung">{t.zeilennummernSatz}</p>
 
           <table className="lieferung__tabelle">
             <thead>
               <tr>
-                <th className="lieferung__eng">Nr.</th>
-                <th>Paket</th>
-                <th>Fenster</th>
-                <th className="lieferung__eng">Masse</th>
-                <th className="lieferung__eng">Einkauf</th>
+                <th className="lieferung__eng">{t.nummerKurz}</th>
+                <th>{t.paket}</th>
+                <th>{t.fenster}</th>
+                <th className="lieferung__eng">{t.masse}</th>
+                <th className="lieferung__eng">{t.einkauf}</th>
               </tr>
             </thead>
             <tbody>
@@ -313,7 +307,7 @@ export function LieferungSeite({
                     <input
                       className="input lieferung__feld"
                       inputMode="decimal"
-                      aria-label={`Einkaufspreis Zeile ${z.nummer}`}
+                      aria-label={`${t.einkauf} ${z.nummer}`}
                       value={preise[z.nummer] ?? ''}
                       onChange={(e) => setPreise((p) => ({ ...p, [z.nummer]: e.target.value }))}
                     />
@@ -323,7 +317,7 @@ export function LieferungSeite({
             </tbody>
           </table>
 
-          <h3 className="lieferung__untertitel">Lieferkosten</h3>
+          <h3 className="lieferung__untertitel">{t.lieferkosten}</h3>
           <div className="lieferung__fracht">
             {paketliste.map((p) => (
               <label className="lieferung__frachtfeld" key={p.kennung}>
@@ -337,7 +331,7 @@ export function LieferungSeite({
               </label>
             ))}
             <label className="lieferung__frachtfeld">
-              <span>Ganze Lieferung</span>
+              <span>{t.ganzeLieferung}</span>
               <input
                 className="input lieferung__feld"
                 inputMode="decimal"
@@ -346,18 +340,16 @@ export function LieferungSeite({
               />
             </label>
           </div>
-          <p className="admin__zusammenfassung">
-            Steht bei „Ganze Lieferung" ein Betrag, gilt dieser – die Einzelbeträge dienen dann nur der Übersicht.
-          </p>
+          <p className="admin__zusammenfassung">{t.ganzeLieferungGilt}</p>
 
           {/*
             Eigener Abschnitt und nicht in der Reihe der Kostenfelder: Ein
             Textfeld, das zwischen Betraegen steht, wird fuer einen Betrag
             gehalten – beim Ausprobieren ist genau das passiert.
           */}
-          <h3 className="lieferung__untertitel">Liefertermin</h3>
+          <h3 className="lieferung__untertitel">{t.liefertermin}</h3>
           <label className="lieferung__termin">
-            <span>Was der Produzent nennt – später unser erwarteter Termin</span>
+            <span>{t.lieferterminSatz}</span>
             <input
               className="input"
               value={termin}
@@ -367,7 +359,7 @@ export function LieferungSeite({
           </label>
 
           <button type="button" className="btn" onClick={preiseSpeichern} disabled={sendet}>
-            {sendet ? 'Wird gespeichert …' : 'Preise speichern'}
+            {sendet ? t.wirdGespeichert : t.preiseSpeichern}
           </button>
         </section>
       )}
@@ -375,40 +367,36 @@ export function LieferungSeite({
       {/* --- Was die Runde kostet und einbringt --------------------------- */}
       {eingefroren && rechnung.einkaufChf > 0 && (
         <section className="lieferung__block">
-          <h2>Rechnung der Runde</h2>
+          <h2>{t.rechnungDerRunde}</h2>
 
           {rechnung.zeilenOhnePreis > 0 && (
             <p className="lieferung__warnung">
-              {rechnung.zeilenOhnePreis} von {rechnung.netze} Zeilen haben noch keinen Preis – die Zahlen unten sind
-              deshalb unvollständig.
+              {fuelle(t.zeilenOhnePreis, { n: rechnung.zeilenOhnePreis, gesamt: rechnung.netze })}
             </p>
           )}
           {rechnung.lieferkostenDoppelt && (
-            <p className="lieferung__warnung">
-              Es steht sowohl je Paket als auch für die ganze Lieferung ein Betrag da. Gerechnet wird mit dem
-              Gesamtbetrag – bitte bei Bora nachfragen, was gilt.
-            </p>
+            <p className="lieferung__warnung">{t.lieferkostenDoppelt}</p>
           )}
 
           <dl className="lieferung__zahlen">
             <div>
-              <dt>Einkauf</dt>
+              <dt>{t.einkauf}</dt>
               <dd>{formatChf(rechnung.einkaufChf)}</dd>
             </div>
             <div>
-              <dt>Lieferkosten</dt>
+              <dt>{t.lieferkosten}</dt>
               <dd>{formatChf(rechnung.lieferkostenChf)}</dd>
             </div>
             <div className="lieferung__zahlen-stark">
-              <dt>Einsatz</dt>
+              <dt>{t.einsatz}</dt>
               <dd>{formatChf(rechnung.einsatzChf)}</dd>
             </div>
             <div>
-              <dt>Warenerlös (ohne Montage)</dt>
+              <dt>{t.warenerloes}</dt>
               <dd>{formatChf(rechnung.warenerloesChf)}</dd>
             </div>
             <div className={rechnung.margeChf >= 0 ? 'lieferung__zahlen-stark' : 'lieferung__zahlen-schlecht'}>
-              <dt>Marge</dt>
+              <dt>{t.marge}</dt>
               <dd>
                 {formatChf(rechnung.margeChf)}
                 {rechnung.margeProzent !== null && <span className="admin__detail"> · {rechnung.margeProzent} %</span>}
@@ -416,7 +404,7 @@ export function LieferungSeite({
             </div>
             {rechnung.einsatzJeNetzChf !== null && (
               <div>
-                <dt>Einsatz je Netz</dt>
+                <dt>{t.einsatzJeNetz}</dt>
                 <dd>{formatChf(rechnung.einsatzJeNetzChf)}</dd>
               </div>
             )}
@@ -428,8 +416,7 @@ export function LieferungSeite({
             Rechnung.
           */}
           <p className="admin__zusammenfassung">
-            Angesetzt sind {shopConfig.minimumBatchNets} Netze, ab denen eine Runde ihre Fracht trägt. Diese Runde
-            hat {rechnung.netze}.
+            {fuelle(t.mindestmenge, { n: shopConfig.minimumBatchNets, ist: rechnung.netze })}
           </p>
         </section>
       )}
