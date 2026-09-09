@@ -228,16 +228,20 @@
   width: 34mm;
 }
 
-.blatt__paketzeile {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4mm;
+/* Nur so breit, wie die drei Spalten brauchen – nicht ueber das Blatt gezogen. */
+.blatt__paketliste {
+  width: auto;
+  min-width: 90mm;
 }
 
-.blatt__paketmarke {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 2mm;
+.blatt__gesamt td {
+  border-top: 1.5px solid #111111;
+  font-weight: 700;
+}
+
+/* Die Trennlinie faellt weg – nur nicht beim Feld, das ein Kasten bleiben muss. */
+.blatt__gesamt td:not(.blatt__leer-feld) {
+  border-bottom: 0;
 }
 
 .blatt__preis {
@@ -287,11 +291,6 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   font-variant-numeric: tabular-nums;
-}
-
-.blatt__anzahl {
-  font-weight: 400;
-  color: #444444;
 }
 
 .blatt__fuss {

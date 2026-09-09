@@ -126,8 +126,34 @@ export const ABSENDER = {
   land: { deutsch: 'SCHWEIZ', tuerkisch: 'İSVİÇRE' } as Beschriftung,
 } as const
 
-/** Was Bora je Lieferung eintraegt – zusaetzlich zu den Stueckpreisen. */
+/**
+ * Lieferkosten. Etwas anderes als der Stueckpreis und deshalb ein eigenes
+ * Feld: Verpackung und Transport stecken darin, Steuern nicht – die zahlen
+ * wir in der Schweiz und gehen den Produzenten nichts an.
+ *
+ * Eintragbar je Paket ODER fuer die ganze Lieferung, je nachdem, wie er
+ * rechnet. Beides anzubieten kostet eine Spalte und erspart eine Rueckfrage.
+ */
 export const LIEFERKOSTEN: Beschriftung = {
-  deutsch: 'Lieferkosten für die ganze Lieferung',
-  tuerkisch: 'Tüm sevkiyat için nakliye bedeli',
+  deutsch: 'Lieferkosten',
+  tuerkisch: 'Nakliye bedeli',
+}
+
+export const GANZE_LIEFERUNG: Beschriftung = {
+  deutsch: 'Ganze Lieferung',
+  tuerkisch: 'Tüm sevkiyat',
+}
+
+/**
+ * Warum auf dem Blatt NIE ein Preis gedruckt steht.
+ *
+ * Die Preise sind veraenderlich – bei groesseren Mengen werden sie guenstiger,
+ * und ausgehandelt wird beim Produzenten. Ein gedruckter Preis waere also
+ * entweder falsch oder eine Behauptung. Das Feld bleibt darum in beiden
+ * Faellen leer, auch auf der Bestellung; wir tragen die Zahlen danach bei uns
+ * ein, um die Marge gegen unsere Verkaufspreise zu pruefen.
+ */
+export const PREISHINWEIS: Beschriftung = {
+  deutsch: 'Bitte Stückpreis je Zeile und die Lieferkosten eintragen.',
+  tuerkisch: 'Lütfen her satır için birim fiyatı ve nakliye bedelini yazınız.',
 }

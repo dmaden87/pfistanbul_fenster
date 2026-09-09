@@ -3,11 +3,13 @@ import type { Bestellung } from '../../types'
 import { auftragAufbauen, type AuftragsNetz } from '../../lib/bestellauftrag'
 import {
   ABSENDER,
+  GANZE_LIEFERUNG,
   LIEFERKOSTEN,
   MASSREGEL,
   MECHANISMEN,
   NETZFARBEN,
   OEFFNUNGEN,
+  PREISHINWEIS,
   RAHMENFARBEN,
   RICHTUNGSREGEL,
 } from '../../data/produktion'
@@ -160,8 +162,6 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
           {art === 'anfrage' ? (
             <p>
               Ungefährer Liefertermin: <span className="blatt__leer" />
-              <span className="blatt__abstand" />
-              {LIEFERKOSTEN.deutsch}: <span className="blatt__leer blatt__leer--kurz" />
             </p>
           ) : (
             <p>
@@ -182,7 +182,7 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
             und die Packanweisung. Gleiche Bauarten stehen hintereinander,
             damit er sie in einem Zug fertigen kann.
           */}
-          <table className={art === 'anfrage' ? 'blatt__tabelle blatt__tabelle--handschrift' : 'blatt__tabelle'}>
+          <table className="blatt__tabelle blatt__tabelle--handschrift">
             <thead>
               <tr>
                 <th className="blatt__eng">Nr.</th>
@@ -195,7 +195,13 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
                 <th>Netz</th>
                 <th>Mechanismus</th>
                 <th>Öffnungsrichtung</th>
-                {art === 'anfrage' && <th className="blatt__preis">Stückpreis</th>}
+                {/*
+                  Der Preis wird NIE gedruckt, auch nicht auf der Bestellung.
+                  Er ist veraenderlich – bei groesseren Mengen guenstiger – und
+                  wird beim Produzenten ausgehandelt. Eine gedruckte Zahl waere
+                  entweder falsch oder eine Behauptung.
+                */}
+                <th className="blatt__preis">Stückpreis</th>
               </tr>
             </thead>
             <tbody>
@@ -213,32 +219,51 @@ export function Bestellauftrag({ bestellungen, onZurueck }: BestellauftragProps)
                     <td>{w.netz}</td>
                     <td>{w.mechanismus}</td>
                     <td>{w.oeffnung}</td>
-                    {art === 'anfrage' && <td className="blatt__preis blatt__leer-feld" />}
+                    <td className="blatt__preis blatt__leer-feld" />
                   </tr>
                 )
               })}
             </tbody>
           </table>
-          <p className="blatt__hinweis">
-            Alle Masse in Zentimetern, Breite × Höhe.
-            {art === 'anfrage' && ' Bitte den Stückpreis je Zeile eintragen.'}
-          </p>
+          <p className="blatt__hinweis">Alle Masse in Zentimetern, Breite × Höhe. {PREISHINWEIS.deutsch}</p>
         </section>
 
         {/*
-          Nur noch eine Zeile zum Nachzaehlen beim Packen – die einzelnen
-          Netze stehen oben und tragen ihre Kennung selbst.
+          Die Pakete zum Nachzaehlen beim Packen – die einzelnen Netze stehen
+          oben und tragen ihre Kennung selbst.
+
+          Die Lieferkosten sind etwas anderes als der Stueckpreis und stehen
+          deshalb hier. Eintragbar je Paket ODER fuer die ganze Lieferung, je
+          nachdem, wie er rechnet: Beides anzubieten kostet eine Zeile und
+          erspart eine Rueckfrage nach Istanbul.
         */}
         <section className="blatt__pakete">
           <h2>Pakete · bitte getrennt verpacken und beschriften</h2>
-          <p className="blatt__paketzeile">
-            {auftrag.bloecke.map((block) => (
-              <span className="blatt__paketmarke" key={block.bestellung.id}>
-                <span className="blatt__kennung">{block.kennung}</span>
-                <span className="blatt__anzahl">{block.anzahl} Stück</span>
-              </span>
-            ))}
-          </p>
+          <table className="blatt__tabelle blatt__tabelle--handschrift blatt__paketliste">
+            <thead>
+              <tr>
+                <th>Paket</th>
+                <th className="blatt__eng">Stück</th>
+                <th className="blatt__preis">{LIEFERKOSTEN.deutsch}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {auftrag.bloecke.map((block) => (
+                <tr key={block.bestellung.id}>
+                  <td>
+                    <span className="blatt__kennung">{block.kennung}</span>
+                  </td>
+                  <td className="blatt__zahl">{block.anzahl}</td>
+                  <td className="blatt__preis blatt__leer-feld" />
+                </tr>
+              ))}
+              <tr className="blatt__gesamt">
+                <td>{GANZE_LIEFERUNG.deutsch}</td>
+                <td className="blatt__zahl">{auftrag.anzahl}</td>
+                <td className="blatt__preis blatt__leer-feld" />
+              </tr>
+            </tbody>
+          </table>
         </section>
 
         <footer className="blatt__fuss">
