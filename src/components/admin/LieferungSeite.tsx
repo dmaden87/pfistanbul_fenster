@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import type { Bestellung, Lieferung, LieferungStatus, LieferungZeile } from '../../types'
+import type { Bestellung, BestellPosition, Lieferung, LieferungStatus, LieferungZeile } from '../../types'
 import { auftragAufbauen, pakete } from '../../lib/bestellauftrag'
+import { RundenTabelle } from './RundenTabelle'
 import { rechne } from '../../lib/lieferung'
 import { formatChf } from '../../lib/format'
 import { shopConfig } from '../../data/shopConfig'
@@ -28,6 +29,8 @@ interface LieferungSeiteProps {
   bestellungen: Bestellung[]
   onAendern: (id: string, aenderung: Partial<Lieferung>) => Promise<void>
   onVerwerfen: (id: string) => Promise<void>
+  /** Schreibt geaenderte Netze zurueck in die Bestellung. */
+  onPositionen: (bestellungId: string, positionen: BestellPosition[]) => Promise<void>
   onZurueck: () => void
 }
 
@@ -54,7 +57,14 @@ function zahl(wert: string): number | undefined {
   return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : undefined
 }
 
-export function LieferungSeite({ lieferung, bestellungen, onAendern, onVerwerfen, onZurueck }: LieferungSeiteProps) {
+export function LieferungSeite({
+  lieferung,
+  bestellungen,
+  onAendern,
+  onVerwerfen,
+  onPositionen,
+  onZurueck,
+}: LieferungSeiteProps) {
   const [zeigeDokument, setZeigeDokument] = useState(false)
   // Verwerfen fragt nach. Ab "angefragt" haengen eingefrorene Zeilen und
   // moeglicherweise Boras Preise daran – das soll kein Fehlklick treffen.
@@ -64,7 +74,7 @@ export function LieferungSeite({ lieferung, bestellungen, onAendern, onVerwerfen
 
   const dabei = bestellungen.filter((b) => lieferung.bestellungIds.includes(b.id))
   const eingefroren = lieferung.zeilen.length > 0
-  const auftrag = eingefroren ? { zeilen: [], luecken: [] } : auftragAufbauen(dabei)
+  const auftrag = eingefroren ? { zeilen: [], luecken: [] } : auftragAufbauen(dabei, lieferung)
 
   // Entwuerfe fuer die Preiserfassung, damit Tippen nicht sofort speichert.
   const [preise, setPreise] = useState<Record<number, string>>(() =>
@@ -172,7 +182,7 @@ export function LieferungSeite({ lieferung, bestellungen, onAendern, onVerwerfen
         {lieferung.status === 'entwurf' && (
           <>
             <button type="button" className="btn" onClick={anfrageVersendet} disabled={sendet || auftrag.luecken.length > 0}>
-              Anfrage ist raus – Zeilen einfrieren
+              Dokument erzeugen und Zeilen einfrieren
             </button>
             {auftrag.luecken.length > 0 && (
               <span className="lieferung__warnung">
@@ -257,6 +267,20 @@ export function LieferungSeite({ lieferung, bestellungen, onAendern, onVerwerfen
           </button>
         )}
       </div>
+
+      {/*
+        Im Entwurf: die Zeilen kontrollieren, bevor der Auftrag rausgeht.
+        Danach nicht mehr – ab dem Versand stehen sie fest, weil Boras Preise
+        sich auf die Nummern beziehen.
+      */}
+      {lieferung.status === 'entwurf' && (
+        <RundenTabelle
+          lieferung={lieferung}
+          bestellungen={bestellungen}
+          onBestellungAendern={onPositionen}
+          onLieferungAendern={(aenderung) => onAendern(lieferung.id, aenderung)}
+        />
+      )}
 
       {/* --- Preise eintragen --------------------------------------------- */}
       {eingefroren && lieferung.status !== 'entwurf' && (

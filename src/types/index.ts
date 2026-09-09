@@ -159,6 +159,17 @@ export type BestellArt = 'bestellung' | 'anfrage' | 'zahlung'
  * Bestellauftrag an den Lieferanten erzeugen, aus "ca. 120 breit" nicht.
  */
 export interface BestellPosition {
+  /**
+   * Kennung der Position innerhalb der Bestellung. Vergibt der Server beim
+   * Speichern.
+   *
+   * Sie ist noetig, damit eine Lieferrunde sich merken kann, welches Netz sie
+   * NICHT enthaelt. Ueber die Position im Feld ginge das nicht: Wird eine
+   * Zeile darueber geloescht, zeigte die Merkstelle plotzlich auf ein anderes
+   * Netz. Fehlt sie bei Alteintraegen, wird ersatzweise der Listenplatz
+   * genommen.
+   */
+  id?: string
   menge: number
   bezeichnung: string
   detail: string
@@ -242,6 +253,14 @@ export interface Bestellung {
   notiz?: string
 }
 
+/** Woher eine Auftragszeile stammt – oder dass sie nur zur Runde gehoert. */
+export interface ZeilenHerkunft {
+  bestellungId: string
+  positionId: string
+  /** Das wievielte Stueck einer Position mit Menge > 1. */
+  stueck: number
+}
+
 /**
  * Was sich im Adminbereich an einer Bestellung aendern laesst.
  *
@@ -299,6 +318,8 @@ export interface LieferungZeile {
   nummer: number
   /** Paketkennung, entspricht der Referenz der Bestellung. */
   kennung: string
+  /** Fehlt bei Zusatzzeilen, die zu keiner Bestellung gehoeren. */
+  herkunft?: ZeilenHerkunft
   bezeichnung: string
   breiteCm?: number
   hoeheCm?: number
@@ -321,6 +342,20 @@ export interface Lieferung {
   /** Welche Bestellungen in dieser Runde stecken. */
   bestellungIds: string[]
   zeilen: LieferungZeile[]
+  /**
+   * Zeilen, die aus dieser Runde genommen wurden. Die Netze bleiben in der
+   * Bestellung und kommen in die naechste Runde – "aus der Lieferung
+   * entfernen" ist etwas anderes als "dem Kunden das Netz streichen".
+   *
+   * Schluessel: `bestellungId#positionId#stueck`.
+   */
+  ausgeschlossen?: string[]
+  /**
+   * Zeilen, die nur zur Runde gehoeren und zu keiner Bestellung: ein
+   * Reservenetz, ein Muster, ein Ersatz fuer ein beschaedigtes Stueck. Sie
+   * erscheinen auf dem Auftrag, aber auf keiner Rechnung.
+   */
+  zusatz?: LieferungZeile[]
   /** Lieferkosten je Paketkennung, wie Bora sie einträgt. */
   lieferkostenJePaket?: Record<string, number>
   /** Lieferkosten für die ganze Runde, falls er nicht je Paket rechnet. */

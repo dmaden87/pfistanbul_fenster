@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { AdminStatus, Bestellung, BestellAenderung, BestellStatus, Lieferung } from '../../types'
+import type { AdminStatus, Bestellung, BestellAenderung, BestellPosition, BestellStatus, Lieferung } from '../../types'
 import { abmelden, adminStatus, aendereBestellung, anmelden, entferneBestellung, ladeBestellungen, setzeStatus } from '../../lib/adminApi'
 import { shopConfig } from '../../data/shopConfig'
 import { BestellKarte } from './BestellKarte'
@@ -241,6 +241,12 @@ export function AdminPage({ onBack }: AdminPageProps) {
     setOffeneRunde(null)
   }
 
+  /** Schreibt geaenderte Netze aus der Rundentabelle in die Bestellung. */
+  const handlePositionen = async (bestellungId: string, positionen: BestellPosition[]) => {
+    const neuerStand = await aendereBestellung(bestellungId, { positionen })
+    setBestellungen((liste) => liste.map((b) => (b.id === bestellungId ? neuerStand : b)))
+  }
+
   const offeneLieferung = offeneRunde ? lieferungen.find((l) => l.id === offeneRunde) : undefined
   if (offeneLieferung) {
     // Bewusst ohne die Klasse "admin": Deren Ueberschriftenregel ist genauso
@@ -255,6 +261,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
             bestellungen={bestellungen}
             onAendern={handleLieferung}
             onVerwerfen={handleVerwerfen}
+            onPositionen={handlePositionen}
             onZurueck={() => setOffeneRunde(null)}
           />
         </div>

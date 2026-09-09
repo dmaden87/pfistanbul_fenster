@@ -93,7 +93,7 @@ einmal laufen lassen.
 npm test
 ```
 
-Drei Testläufe. Der erste fährt `api/bestellungen.ts` mit einem Speicher im
+Vier Testläufe. Der erste fährt `api/bestellungen.ts` mit einem Speicher im
 Arbeitsspeicher hoch und geht 28 Fälle durch. Zwei davon sind der eigentliche
 Grund für den Testlauf:
 
@@ -142,8 +142,26 @@ und die Runde führt von da an ihren eigenen Lebenslauf:
 Entwurf → Anfrage versendet → Preise erhalten → Bestellt → Geliefert
 ```
 
-Der wichtige Übergang ist der erste. **Beim Versand der Anfrage werden die
-Zeilen eingefroren.** Bora trägt die Preise mit Bezug auf die laufende Nummer
+Im **Entwurf** steht die Tabelle aller Zeilen — genau das, was aufs Dokument
+kommt, ein Plissee je Zeile. Drei Eingriffe gibt es, und sie bedeuten
+Verschiedenes:
+
+- **Ändern** schreibt in die Bestellung. Eine falsche Breite ist überall
+  falsch; stünde die Korrektur nur in der Runde, ginge die richtige Zahl an
+  den Produzenten und bei der Montage läge die alte vor.
+- **Aus der Lieferung nehmen** betrifft nur diese Runde. Das Netz bleibt in
+  der Bestellung und kommt in die nächste.
+- **Löschen** entfernt das Netz aus der Bestellung.
+
+Dabei steckt eine Falle: In der Bestellung steht „3 × Zimmer" als eine
+Position, in der Runde sind es drei Zeilen. Wird eines der drei geändert,
+zerfällt die Position in drei einzelne — sonst zeigten die Merkstellen der
+Runde für ausgeschlossene Netze auf Stücke, die es nicht mehr gibt, und ein
+ausgeschlossenes Netz wäre stillschweigend wieder dabei. Deshalb liefert jede
+Änderung eine Umbenennung mit; `bau/zeilen-test.mjs` prüft genau das.
+
+Der wichtige Übergang bleibt der erste. **Beim Erzeugen des Dokuments werden
+die Zeilen eingefroren.** Bora trägt die Preise mit Bezug auf die laufende Nummer
 ein („Zeile 7"); würde danach jemand ein Netz ändern oder ergänzen,
 verschöbe sich die Nummerierung und seine Preise landeten am falschen Netz.
 Bis dahin lässt sich alles korrigieren, danach nichts mehr.

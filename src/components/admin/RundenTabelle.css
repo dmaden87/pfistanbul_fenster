@@ -1,0 +1,142 @@
+/*
+ * Die Zeilen einer Lieferrunde zum Kontrollieren.
+ *
+ * Elf Spalten in einer Verwaltungsmaske: Sie bekommen einen eigenen
+ * Scrollbereich statt gequetschter Felder. Wer Masse prüft, muss sie lesen
+ * können.
+ */
+
+/* Sonst zieht sich die Zahl als Rasterzelle ueber die ganze Breite. */
+.tabelle__titel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.tabelle__rahmen {
+  margin-top: var(--space-4);
+  overflow-x: auto;
+}
+
+.tabelle {
+  width: 100%;
+  min-width: 62rem;
+  border-collapse: collapse;
+  font-size: var(--step--2);
+}
+
+.tabelle th {
+  padding: 0 0.3rem var(--space-2);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-subtle);
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.tabelle td {
+  padding: 0.2rem 0.3rem 0.2rem 0;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.tabelle__kennung {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tabelle__eng {
+  width: 5rem;
+}
+
+.tabelle__feld {
+  width: 100%;
+  min-width: 4.5rem;
+  padding: 0.3rem 0.4rem;
+  font-size: var(--step--2);
+}
+
+.tabelle__feld--breit {
+  min-width: 9rem;
+}
+
+/*
+ * Was fehlt, sieht man sofort – und nicht erst, wenn das Dokument sich
+ * weigert. Dieselbe Farbe wie die Warnung im Netz-Editor.
+ */
+.tabelle__fehlt {
+  border-color: var(--highlight);
+  background: var(--highlight-soft);
+}
+
+/* Eine Zeile, die zu keiner Bestellung gehört. */
+.tabelle__zusatz td {
+  background: var(--surface-raised);
+}
+
+.tabelle__schritte {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+.tabelle__knopf {
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--step--2);
+  cursor: pointer;
+}
+
+.tabelle__knopf:hover {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.tabelle__knopf--gefahr:hover {
+  border-color: var(--danger);
+  color: var(--danger-ink);
+}
+
+.tabelle__frage {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--danger-ink);
+  font-size: var(--step--2);
+}
+
+.tabelle__unten {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.tabelle__ausgenommen {
+  margin-top: var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  font-size: var(--step--1);
+}
+
+.tabelle__ausgenommen ul {
+  list-style: none;
+  margin-top: var(--space-2);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.tabelle__ausgenommen li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}

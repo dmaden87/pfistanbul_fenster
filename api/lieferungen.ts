@@ -34,6 +34,7 @@ const STATUS: Status[] = ['entwurf', 'angefragt', 'preise', 'bestellt', 'geliefe
 interface Zeile {
   nummer: number
   kennung: string
+  herkunft?: { bestellungId: string; positionId: string; stueck: number }
   bezeichnung: string
   breiteCm?: number
   hoeheCm?: number
@@ -53,6 +54,8 @@ interface Lieferung {
   geaendert: string
   bestellungIds: string[]
   zeilen: Zeile[]
+  ausgeschlossen?: string[]
+  zusatz?: Zeile[]
   lieferkostenJePaket?: Record<string, number>
   lieferkostenChf?: number
   termin?: string
@@ -98,13 +101,21 @@ function zeilen(wert: unknown): Zeile[] {
     }
     const einkauf = betrag(z.einkaufChf)
     if (einkauf !== undefined) zeile.einkaufChf = einkauf
+    const h = z.herkunft as Record<string, unknown> | undefined
+    if (h && text(h.bestellungId, 40) && text(h.positionId, 40)) {
+      zeile.herkunft = {
+        bestellungId: text(h.bestellungId, 40),
+        positionId: text(h.positionId, 40),
+        stueck: Math.max(0, Math.round(Number(h.stueck)) || 0),
+      }
+    }
     return zeile
   })
 }
 
 function kennungen(wert: unknown): string[] {
   if (!Array.isArray(wert)) return []
-  return wert.slice(0, 200).map((x) => text(x, 40)).filter(Boolean)
+  return wert.slice(0, 400).map((x) => text(x, 120)).filter(Boolean)
 }
 
 function lieferkosten(wert: unknown): Record<string, number> | undefined {
@@ -231,6 +242,14 @@ async function aendern(req: VercelRequest, res: VercelResponse) {
   }
   if (koerper.bestellungIds !== undefined) {
     lieferung.bestellungIds = kennungen(koerper.bestellungIds)
+    geaendert = true
+  }
+  if (koerper.ausgeschlossen !== undefined) {
+    lieferung.ausgeschlossen = kennungen(koerper.ausgeschlossen)
+    geaendert = true
+  }
+  if (koerper.zusatz !== undefined) {
+    lieferung.zusatz = zeilen(koerper.zusatz)
     geaendert = true
   }
   if (koerper.lieferkostenJePaket !== undefined) {

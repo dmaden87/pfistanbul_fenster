@@ -1,4 +1,4 @@
-import type { Bestellung, BestellPosition, OpeningDirection } from '../types'
+import type { Bestellung, BestellPosition, Lieferung, LieferungZeile, OpeningDirection, ZeilenHerkunft } from '../types'
 import type { Mechanismus, Netzfarbe, Rahmenfarbe } from '../data/produktion'
 import { setById, typeById } from '../data/catalog'
 import { PACKMASS } from '../data/produktion'
@@ -66,6 +66,13 @@ export interface AuftragsPaket {
 export interface AuftragsZeile extends AuftragsNetz {
   nummer: number
   kennung: string
+  /** Woher die Zeile stammt. Fehlt bei Zusatzzeilen der Runde. */
+  herkunft?: ZeilenHerkunft
+}
+
+/** Der Schluessel, unter dem eine Runde eine Zeile ausschliessen kann. */
+export function zeilenSchluessel(h: ZeilenHerkunft): string {
+  return `${h.bestellungId}#${h.positionId}#${h.stueck}`
 }
 
 export interface Luecke {
@@ -157,18 +164,6 @@ function netzeAusPosition(p: BestellPosition): AuftragsNetz[] {
   ]
 }
 
-/** Gleiche Netze zu einer Zeile zusammenfassen, Reihenfolge bleibt erhalten. */
-function zusammenfassen(netze: AuftragsNetz[], mitBezeichnung: boolean): AuftragsNetz[] {
-  const nach = new Map<string, AuftragsNetz>()
-  for (const netz of netze) {
-    const schluessel = mitBezeichnung ? `${netz.bezeichnung}|${bauart(netz)}` : bauart(netz)
-    const da = nach.get(schluessel)
-    if (da) da.menge += netz.menge
-    else nach.set(schluessel, { ...netz })
-  }
-  return [...nach.values()]
-}
-
 /**
  * Die Kennung, die auf das Paket kommt. Kurz und ohne Umlaute: Sie wird von
  * Hand abgeschrieben, und alles Laengere wird dabei verstuemmelt.
@@ -211,26 +206,75 @@ export function packmass(netze: AuftragsNetz[]): AuftragsPaket['packmass'] {
   }
 }
 
-export function auftragAufbauen(bestellungen: Bestellung[]): Auftrag {
-  const luecken: Luecke[] = []
-  // Nach Bauart gesammelt, in der Reihenfolge des ersten Auftretens. So
-  // stehen gleiche Netze beieinander, ohne dass die Liste umsortiert wirkt.
-  const nachBauart = new Map<string, AuftragsZeile[]>()
+/**
+ * Alle Zeilen einer Runde, in stabiler Reihenfolge: Bestellung fuer
+ * Bestellung, Position fuer Position, Stueck fuer Stueck.
+ *
+ * Bewusst NICHT nach Bauart gruppiert. Diese Liste ist die zum Bearbeiten;
+ * wuerde sie sich beim Tippen umsortieren, spraenge einem die Zeile unter dem
+ * Finger weg. Nach Bauart sortiert erst `auftragAufbauen` fuer das Dokument.
+ *
+ * Ausgeschlossene Zeilen fehlen, Zusatzzeilen der Runde haengen hinten an.
+ */
+export function zeilenDerRunde(
+  bestellungen: Bestellung[],
+  runde?: Pick<Lieferung, 'ausgeschlossen' | 'zusatz'>,
+): AuftragsZeile[] {
+  const raus: AuftragsZeile[] = []
+  const ausgeschlossen = new Set(runde?.ausgeschlossen ?? [])
 
   for (const bestellung of bestellungen) {
     const kennung = kennungFuer(bestellung)
-    const netze = zusammenfassen(bestellung.positionen.flatMap(netzeAusPosition), true)
+    bestellung.positionen.forEach((position, index) => {
+      // Alteintraege ohne Kennung: ersatzweise der Listenplatz.
+      const positionId = position.id ?? `#${index}`
+      for (const netz of netzeAusPosition(position)) {
+        for (let stueck = 0; stueck < netz.menge; stueck++) {
+          const herkunft: ZeilenHerkunft = { bestellungId: bestellung.id, positionId, stueck }
+          if (ausgeschlossen.has(zeilenSchluessel(herkunft))) continue
+          raus.push({ ...netz, menge: 1, nummer: 0, kennung, herkunft })
+        }
+      }
+    })
+  }
 
-    for (const netz of netze) {
-      const fehlt = PFLICHT.filter(({ feld }) => netz[feld] === undefined || netz[feld] === '').map((f) => f.name)
-      if (fehlt.length > 0) luecken.push({ kennung, netz: netz.bezeichnung || 'ohne Bezeichnung', fehlt })
+  for (const zusatz of runde?.zusatz ?? []) {
+    raus.push({
+      ...(zusatz as LieferungZeile & AuftragsNetz),
+      menge: 1,
+      nummer: 0,
+      herkunft: undefined,
+    })
+  }
 
-      // Aus "3 ×" werden drei Zeilen. Jede traegt ihre Paketkennung.
-      const schluessel = bauart(netz)
-      const liste = nachBauart.get(schluessel) ?? []
-      for (let i = 0; i < netz.menge; i++) liste.push({ ...netz, menge: 1, nummer: 0, kennung })
-      nachBauart.set(schluessel, liste)
+  return raus.map((z, i) => ({ ...z, nummer: i + 1 }))
+}
+
+/** Was einer Zeile fehlt, damit sie gefertigt werden kann. */
+export function fehlendeAngaben(netz: AuftragsNetz): string[] {
+  return PFLICHT.filter(({ feld }) => netz[feld] === undefined || netz[feld] === '').map((f) => f.name)
+}
+
+/**
+ * Der Auftrag fuers Dokument: gleiche Bauarten hintereinander, damit der
+ * Produzent sie in einem Zug fertigen kann.
+ */
+export function auftragAufbauen(
+  bestellungen: Bestellung[],
+  runde?: Pick<Lieferung, 'ausgeschlossen' | 'zusatz'>,
+): Auftrag {
+  const luecken: Luecke[] = []
+  const nachBauart = new Map<string, AuftragsZeile[]>()
+
+  for (const zeile of zeilenDerRunde(bestellungen, runde)) {
+    const fehlt = fehlendeAngaben(zeile)
+    if (fehlt.length > 0) {
+      luecken.push({ kennung: zeile.kennung, netz: zeile.bezeichnung || 'ohne Bezeichnung', fehlt })
     }
+    const schluessel = bauart(zeile)
+    const liste = nachBauart.get(schluessel) ?? []
+    liste.push(zeile)
+    nachBauart.set(schluessel, liste)
   }
 
   const zeilen = [...nachBauart.values()].flat().map((z, i) => ({ ...z, nummer: i + 1 }))

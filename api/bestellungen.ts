@@ -44,6 +44,8 @@ export type Quelle = 'web' | 'whatsapp' | 'instagram' | 'telefon' | 'persoenlich
 const QUELLEN: Quelle[] = ['web', 'whatsapp', 'instagram', 'telefon', 'persoenlich']
 
 interface Position {
+  /** Kennung der Position, vom Server vergeben. Siehe src/types/index.ts. */
+  id?: string
   menge: number
   bezeichnung: string
   detail: string
@@ -145,6 +147,10 @@ function positionen(wert: unknown): Position[] {
   return wert.slice(0, 30).map((p) => {
     const roh = p as Record<string, unknown>
     const position: Position = {
+      // Vorhandene Kennung behalten, sonst eine vergeben. Sie darf sich nie
+      // aendern: Eine Lieferrunde merkt sich darueber, welches Netz sie nicht
+      // enthaelt.
+      id: text(roh?.id, 40) || `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
       menge: Math.min(99, Math.max(1, Math.round(zahl(roh?.menge)) || 1)),
       bezeichnung: text(roh?.bezeichnung, 120),
       detail: text(roh?.detail, 160),
