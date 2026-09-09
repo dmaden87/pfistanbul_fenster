@@ -117,17 +117,45 @@ export type SubmissionState =
 
 /* --- Adminbereich ----------------------------------------------------------- */
 
-/** Wo eine Bestellung in der Abwicklung steht. */
-export type BestellStatus = 'neu' | 'bestellt' | 'erledigt' | 'geloescht'
+/**
+ * Wo eine Bestellung in der Abwicklung steht.
+ *
+ * "offerte" liegt zwischen Eingang und Bestellung beim Lieferanten. Der
+ * Schritt kam dazu, weil Sondermasse haeufiger sind als erwartet: Dort wird
+ * zuerst ausgemessen und offeriert, und zwischen Offerte und Zusage vergehen
+ * Tage. Ohne eigenen Abschnitt sass das entweder faelschlich unter "neu"
+ * (nichts unternommen, stimmt nicht) oder unter "bestellt" (beim Lieferanten,
+ * stimmt auch nicht).
+ */
+export type BestellStatus = 'neu' | 'offerte' | 'bestellt' | 'erledigt' | 'geloescht'
+
+/**
+ * Woher der Eintrag kam. Die Seite legt immer "web" an; alles andere traegt
+ * jemand von Hand nach, weil die Bestellung ueber WhatsApp, Instagram oder
+ * am Gartenzaun kam. Nur so laesst sich spaeter sagen, welcher Kanal
+ * tatsaechlich Bestellungen bringt.
+ */
+export type BestellQuelle = 'web' | 'whatsapp' | 'instagram' | 'telefon' | 'persoenlich'
 
 /** Woher der Eintrag kommt. "zahlung" ist die Frage nach einer Ratenlösung. */
 export type BestellArt = 'bestellung' | 'anfrage' | 'zahlung'
 
+/**
+ * Ein einzelnes Netz (oder ein Set) innerhalb einer Bestellung.
+ *
+ * `breiteCm` und `hoeheCm` fehlen bei allem aus dem Warenkorb - dort steht
+ * das Format schon im Katalog - und bei Eintraegen aus der Zeit vor diesem
+ * Feld. Beim Sondermass sind sie das Wesentliche, deshalb stehen sie als
+ * Zahlen da und nicht als Text in `detail`: Aus Zahlen laesst sich der
+ * Bestellauftrag an den Lieferanten erzeugen, aus "ca. 120 breit" nicht.
+ */
 export interface BestellPosition {
   menge: number
   bezeichnung: string
   detail: string
   preisChf: number
+  breiteCm?: number
+  hoeheCm?: number
 }
 
 /**
@@ -162,13 +190,49 @@ export interface Bestellung {
     ort: string
     bemerkung: string
   }
+  /** Die einzelnen Netze. Eine Bestellung ist ein Eintrag, die Netze stecken darin. */
   positionen: BestellPosition[]
   montage: boolean
+  /**
+   * Was die Montage kostet, als eigener Betrag. Fehlt bei Alteintraegen -
+   * dort steckt sie in der Differenz zwischen `summeChf` und den Positionen.
+   * Sie muss separat stehen, damit das Bearbeiten einzelner Netze die
+   * Montagepauschale nicht verschluckt.
+   */
+  montageChf?: number
   zahlung: PaymentMethod
   zahlungswunsch: boolean
   summeChf: number
   /** Nur bei Onlinezahlung und erst, wenn Stripe sich gemeldet hat. */
   bezahlung?: Bezahlung
+  /** Fehlt bei Eintraegen aus der Zeit vor dem Feld – die kamen alle über die Seite. */
+  quelle?: BestellQuelle
+  /** Gesetzt, sobald vor Ort ausgemessen wurde. ISO-Zeitpunkt. */
+  ausgemessenAm?: string
+  /** Gesetzt, sobald die Offerte raus ist. ISO-Zeitpunkt. */
+  offerteAm?: string
+  /** Interne Notiz aus dem Adminbereich. Sieht die Kundschaft nie. */
+  notiz?: string
+}
+
+/**
+ * Was sich im Adminbereich an einer Bestellung aendern laesst.
+ *
+ * Bewusst eine Aufzaehlung und kein "alles, was ankommt": `bezahlung` steht
+ * absichtlich nicht darin. Der Zahlungsstand kommt allein von Stripe ueber
+ * api/stripe-webhook.ts. Waere er von hier aus setzbar, koennte ein
+ * Fehlklick eine Bestellung als bezahlt markieren, die es nicht ist.
+ */
+export interface BestellAenderung {
+  status?: BestellStatus
+  /** true setzt den Zeitpunkt auf jetzt, false loescht ihn. */
+  ausgemessen?: boolean
+  offerteVersendet?: boolean
+  positionen?: BestellPosition[]
+  montage?: boolean
+  montageChf?: number
+  notiz?: string
+  quelle?: BestellQuelle
 }
 
 /** Was der Server über die Einrichtung des Adminbereichs verrät. */

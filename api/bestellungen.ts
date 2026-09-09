@@ -27,14 +27,30 @@ const TABELLE = TABELLE_BESTELLUNGEN
 const MAX_VERSUCHE = 8
 const SPERRE_SEKUNDEN = 900
 
-export type Status = 'neu' | 'bestellt' | 'erledigt' | 'geloescht'
-const STATUS: Status[] = ['neu', 'bestellt', 'erledigt', 'geloescht']
+/**
+ * "offerte" liegt zwischen Eingang und Bestellung beim Lieferanten. Der
+ * Schritt kam dazu, weil Sondermasse haeufiger sind als erwartet: Dort wird
+ * zuerst ausgemessen und offeriert, und dazwischen vergehen Tage.
+ */
+export type Status = 'neu' | 'offerte' | 'bestellt' | 'erledigt' | 'geloescht'
+const STATUS: Status[] = ['neu', 'offerte', 'bestellt', 'erledigt', 'geloescht']
+
+/**
+ * Woher der Eintrag kam. Die Seite legt immer "web" an; alles andere traegt
+ * jemand im Adminbereich nach, weil die Bestellung ueber WhatsApp, Instagram
+ * oder am Gartenzaun kam.
+ */
+export type Quelle = 'web' | 'whatsapp' | 'instagram' | 'telefon' | 'persoenlich'
+const QUELLEN: Quelle[] = ['web', 'whatsapp', 'instagram', 'telefon', 'persoenlich']
 
 interface Position {
   menge: number
   bezeichnung: string
   detail: string
   preisChf: number
+  /** Nur beim Sondermass gesetzt. Als Zahl, damit daraus ein Auftrag entstehen kann. */
+  breiteCm?: number
+  hoeheCm?: number
 }
 
 /**
@@ -64,9 +80,23 @@ interface Bestellung {
   }
   positionen: Position[]
   montage: boolean
+  /**
+   * Die Montagepauschale als eigener Betrag. Fehlt bei Alteintraegen; dort
+   * steckt sie in der Differenz zwischen summeChf und den Positionen. Sie
+   * muss separat stehen, sonst verschluckt jede Aenderung an den Netzen die
+   * Montage - die Summe wuerde stillschweigend kleiner.
+   */
+  montageChf?: number
   zahlung: 'uebergabe' | 'online'
   zahlungswunsch: boolean
   summeChf: number
+  quelle?: Quelle
+  /** Gesetzt, sobald vor Ort ausgemessen wurde. */
+  ausgemessenAm?: string
+  /** Gesetzt, sobald die Offerte raus ist. */
+  offerteAm?: string
+  /** Interne Notiz. Sieht die Kundschaft nie. */
+  notiz?: string
   /**
    * Setzt allein stripe-webhook.ts, nachdem Stripe den Ausgang der Zahlung
    * gemeldet hat. Beim Anlegen fehlt das Feld - eine Bestellung gilt erst
@@ -86,48 +116,109 @@ function zahl(wert: unknown): number {
   return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0
 }
 
-function positionen(wert: unknown): Position[] {
-  if (!Array.isArray(wert)) return []
-  return wert.slice(0, 30).map((p) => ({
-    menge: Math.min(99, Math.max(1, Math.round(zahl((p as Position)?.menge)) || 1)),
-    bezeichnung: text((p as Position)?.bezeichnung, 120),
-    detail: text((p as Position)?.detail, 160),
-    preisChf: zahl((p as Position)?.preisChf),
-  }))
+/**
+ * Ein Mass in Zentimetern, oder nichts. Anders als `zahl` liefert das hier
+ * `undefined` statt 0: Ein Netz mit "0 cm Breite" waere eine Falschangabe,
+ * ein Netz ohne Massangabe ist einfach eines aus dem Katalog.
+ */
+function masszahl(wert: unknown): number | undefined {
+  if (wert === undefined || wert === null || wert === '') return undefined
+  const n = typeof wert === 'number' ? wert : Number(wert)
+  if (!Number.isFinite(n) || n <= 0) return undefined
+  return Math.min(600, Math.round(n))
 }
 
-function ausRohdaten(roh: Record<string, unknown>): Bestellung | null {
-  const art = ARTEN.includes(roh.art as Art) ? (roh.art as Art) : 'bestellung'
-  const name = text((roh.kunde as Record<string, unknown>)?.name, 120)
-  const email = text((roh.kunde as Record<string, unknown>)?.email, 160)
-  // Ohne Name und E-Mail ist die Bestellung nicht zuzuordnen – dann lieber
-  // ablehnen, als eine unbrauchbare Zeile in der Tabelle zu haben.
-  if (!name || !email) return null
+function positionen(wert: unknown): Position[] {
+  if (!Array.isArray(wert)) return []
+  return wert.slice(0, 30).map((p) => {
+    const roh = p as Record<string, unknown>
+    const position: Position = {
+      menge: Math.min(99, Math.max(1, Math.round(zahl(roh?.menge)) || 1)),
+      bezeichnung: text(roh?.bezeichnung, 120),
+      detail: text(roh?.detail, 160),
+      preisChf: zahl(roh?.preisChf),
+    }
+    const breite = masszahl(roh?.breiteCm)
+    const hoehe = masszahl(roh?.hoeheCm)
+    if (breite !== undefined) position.breiteCm = breite
+    if (hoehe !== undefined) position.hoeheCm = hoehe
+    return position
+  })
+}
 
-  const k = roh.kunde as Record<string, unknown>
+/** Was die Netze zusammen kosten, ohne Montage. */
+function positionenSumme(liste: Position[]): number {
+  return Math.round(liste.reduce((summe, p) => summe + p.preisChf * p.menge, 0) * 100) / 100
+}
+
+/**
+ * Die Montagepauschale einer Bestellung. Steht sie als eigenes Feld da, gilt
+ * dieses. Bei Alteintraegen aus der Zeit davor bleibt nur der Rueckschluss
+ * aus der Differenz - der stimmt, weil die Lieferung in der Siedlung nichts
+ * kostet und ausser Netzen und Montage nichts in die Summe eingeht.
+ */
+function montageBetrag(b: Bestellung): number {
+  if (typeof b.montageChf === 'number') return b.montageChf
+  const rest = b.summeChf - positionenSumme(b.positionen)
+  return rest > 0 ? Math.round(rest * 100) / 100 : 0
+}
+
+/**
+ * Baut aus dem Rohkoerper eine Bestellung.
+ *
+ * `vonHand` unterscheidet die beiden Wege, auf denen etwas hier ankommt:
+ *
+ * - Vom Bestellformular (offen, ohne Anmeldung). Dann sind Status, Quelle und
+ *   Eingangszeitpunkt nicht verhandelbar, und ohne E-Mail geht es nicht - die
+ *   Bestaetigung muss irgendwohin.
+ * - Aus dem Adminbereich (nur angemeldet). Dann darf jemand Status und Quelle
+ *   setzen, und statt der E-Mail genuegt eine Telefonnummer: Wer ueber
+ *   WhatsApp bestellt, hat oft keine hinterlegt, und die Bestellung deswegen
+ *   abzulehnen waere albern.
+ */
+function ausRohdaten(roh: Record<string, unknown>, vonHand = false): Bestellung | null {
+  const art = ARTEN.includes(roh.art as Art) ? (roh.art as Art) : 'bestellung'
+  const k = (roh.kunde ?? {}) as Record<string, unknown>
+  const name = text(k.name, 120)
+  const email = text(k.email, 160)
+  const telefon = text(k.telefon, 40)
+  // Ohne Name und Rueckweg ist die Bestellung nicht zuzuordnen – dann lieber
+  // ablehnen, als eine unbrauchbare Zeile in der Tabelle zu haben.
+  if (!name) return null
+  if (!email && !(vonHand && telefon)) return null
+
   const jetzt = new Date().toISOString()
+  const status = vonHand && STATUS.includes(roh.status as Status) ? (roh.status as Status) : 'neu'
+  const quelle = vonHand && QUELLEN.includes(roh.quelle as Quelle) ? (roh.quelle as Quelle) : 'web'
+  const netze = positionen(roh.positionen)
+  const montageChf = zahl(roh.montageChf)
 
   return {
     id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     referenz: text(roh.referenz, 40),
     art,
-    status: 'neu',
+    status,
     eingang: jetzt,
     geaendert: jetzt,
     kunde: {
       name,
       email,
-      telefon: text(k?.telefon, 40),
-      strasse: text(k?.strasse, 140),
-      plz: text(k?.plz, 12),
-      ort: text(k?.ort, 80),
-      bemerkung: text(k?.bemerkung, 1200),
+      telefon,
+      strasse: text(k.strasse, 140),
+      plz: text(k.plz, 12),
+      ort: text(k.ort, 80),
+      bemerkung: text(k.bemerkung, 1200),
     },
-    positionen: positionen(roh.positionen),
+    positionen: netze,
     montage: roh.montage === true,
+    montageChf,
     zahlung: roh.zahlung === 'online' ? 'online' : 'uebergabe',
     zahlungswunsch: roh.zahlungswunsch === true,
-    summeChf: zahl(roh.summeChf),
+    // Von Hand erfasst wird die Summe hier gerechnet und nicht uebernommen:
+    // Wer die Netze eintippt, soll nicht zusaetzlich den Betrag ausrechnen.
+    summeChf: vonHand ? Math.round((positionenSumme(netze) + montageChf) * 100) / 100 : zahl(roh.summeChf),
+    quelle,
+    notiz: text(roh.notiz, 1200) || undefined,
   }
 }
 
@@ -164,6 +255,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         angemeldet: angemeldet(req.headers.cookie),
       })
     }
+    if (req.method === 'POST' && aktion === 'erfassen') return await erfassen(req, res)
     if (req.method === 'POST') return await anlegen(req, res)
     if (req.method === 'GET') return await auflisten(req, res)
     if (req.method === 'PATCH') return await aendern(req, res)
@@ -215,6 +307,25 @@ async function anlegen(req: VercelRequest, res: VercelResponse) {
   return res.status(201).json({ ok: true, id: bestellung.id })
 }
 
+/**
+ * Legt eine Bestellung von Hand an – fuer alles, was ueber WhatsApp,
+ * Instagram oder am Gartenzaun hereinkommt.
+ *
+ * Bewusst ein eigener Einstieg und nicht ein Zusatzfeld am offenen POST: Der
+ * offene Weg ist die Angriffsflaeche der Seite, und er soll genau eine Sache
+ * koennen. Wer hier Status und Quelle setzen darf, muss angemeldet sein.
+ */
+async function erfassen(req: VercelRequest, res: VercelResponse) {
+  if (!angemeldet(req.headers.cookie)) return nichtAngemeldet(res)
+
+  const koerper = (typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body) ?? {}
+  const bestellung = ausRohdaten(koerper as Record<string, unknown>, true)
+  if (!bestellung) return res.status(400).json({ error: 'Es fehlt der Name oder ein Rückweg (E-Mail oder Telefon).' })
+
+  await hSet(TABELLE, bestellung.id, JSON.stringify(bestellung))
+  return res.status(201).json({ ok: true, bestellung })
+}
+
 async function auflisten(req: VercelRequest, res: VercelResponse) {
   if (!angemeldet(req.headers.cookie)) return nichtAngemeldet(res)
 
@@ -252,19 +363,87 @@ async function entfernen(req: VercelRequest, res: VercelResponse) {
   return res.status(200).json({ ok: true })
 }
 
+/**
+ * Aendert eine bestehende Bestellung.
+ *
+ * Uebernommen wird nur, was hier ausdruecklich aufgezaehlt ist. Ein
+ * Zusammenfuehren von "allem, was ankommt" waere kuerzer und waere falsch:
+ * `bezahlung` gehoert dazu, und dieses Feld setzt allein stripe-webhook.ts.
+ * Kaeme es von hier aus durch, koennte ein Fehlklick eine Bestellung als
+ * bezahlt markieren, die niemand bezahlt hat - und danach wuerde sie
+ * ausgeliefert.
+ *
+ * Ebenfalls nicht aenderbar: id, referenz, eingang, art. Das ist die
+ * Identitaet des Eintrags; wer sie braucht, legt einen neuen an.
+ */
 async function aendern(req: VercelRequest, res: VercelResponse) {
   if (!angemeldet(req.headers.cookie)) return nichtAngemeldet(res)
 
   const koerper = (typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body) ?? {}
   const id = text(koerper.id, 40)
-  const status = koerper.status as Status
-  if (!id || !STATUS.includes(status)) return res.status(400).json({ error: 'Id oder Status fehlt.' })
+  if (!id) return res.status(400).json({ error: 'Id fehlt.' })
 
   const vorhanden = await hGet(TABELLE, id)
   if (!vorhanden) return res.status(404).json({ error: 'Bestellung nicht gefunden.' })
 
   const bestellung = JSON.parse(vorhanden) as Bestellung
-  bestellung.status = status
+  let geaendert = false
+
+  if (koerper.status !== undefined) {
+    if (!STATUS.includes(koerper.status as Status)) return res.status(400).json({ error: 'Unbekannter Status.' })
+    bestellung.status = koerper.status as Status
+    geaendert = true
+  }
+
+  if (koerper.quelle !== undefined) {
+    if (!QUELLEN.includes(koerper.quelle as Quelle)) return res.status(400).json({ error: 'Unbekannte Quelle.' })
+    bestellung.quelle = koerper.quelle as Quelle
+    geaendert = true
+  }
+
+  // Die beiden Haken im Offert-Abschnitt. Gespeichert wird ein Zeitpunkt und
+  // nicht ein Ja/Nein: Dieselbe Aussage, dazu die Antwort auf "seit wann
+  // liegt das eigentlich?" – die Frage kommt beim Nachfassen immer.
+  if (koerper.ausgemessen !== undefined) {
+    bestellung.ausgemessenAm = koerper.ausgemessen === true ? new Date().toISOString() : undefined
+    geaendert = true
+  }
+  if (koerper.offerteVersendet !== undefined) {
+    bestellung.offerteAm = koerper.offerteVersendet === true ? new Date().toISOString() : undefined
+    geaendert = true
+  }
+
+  if (koerper.notiz !== undefined) {
+    bestellung.notiz = text(koerper.notiz, 1200) || undefined
+    geaendert = true
+  }
+
+  if (koerper.montage !== undefined) {
+    bestellung.montage = koerper.montage === true
+    geaendert = true
+  }
+
+  // Netze und Montagebetrag haengen an der Summe. Wird eines davon
+  // angefasst, wird die Summe neu gerechnet - sonst stuende in der Liste ein
+  // Betrag, der zu den sichtbaren Positionen nicht mehr passt.
+  const netzeNeu = koerper.positionen !== undefined
+  const montageNeu = koerper.montageChf !== undefined
+  if (netzeNeu || montageNeu) {
+    // Die Montage MUSS vor dem Austausch der Positionen bestimmt werden. Bei
+    // Alteintraegen ohne eigenes Feld ergibt sie sich aus der Differenz
+    // zwischen Summe und Positionen – wird danach gerechnet, bezieht sich die
+    // Differenz auf die neuen Netze und ist Unsinn. Bei mehr Netzen als
+    // vorher wird sie sogar negativ und faellt auf 0: Die Montagepauschale
+    // waere spurlos aus der Bestellung verschwunden.
+    const montage = montageNeu ? zahl(koerper.montageChf) : montageBetrag(bestellung)
+    if (netzeNeu) bestellung.positionen = positionen(koerper.positionen)
+    bestellung.montageChf = montage
+    bestellung.summeChf = Math.round((positionenSumme(bestellung.positionen) + montage) * 100) / 100
+    geaendert = true
+  }
+
+  if (!geaendert) return res.status(400).json({ error: 'Es war nichts zu ändern.' })
+
   bestellung.geaendert = new Date().toISOString()
   await hSet(TABELLE, id, JSON.stringify(bestellung))
 

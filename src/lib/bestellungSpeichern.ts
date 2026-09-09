@@ -52,11 +52,16 @@ function positionenAusAnfrage(items: CustomRequestLine[]): BestellPosition[] {
   const schaetzung = estimateCustomRequest(items)
   return items.map((item) => {
     const zeile = schaetzung?.lines.find((l) => l.id === item.id)
+    // Breite und Hoehe gehen zusaetzlich als Zahlen mit, nicht nur im
+    // Anzeigetext: Aus ihnen entsteht spaeter der Auftrag an den Lieferanten,
+    // und aus "? × ? cm" entsteht gar nichts.
     return {
       menge: Number(item.quantity) || 1,
       bezeichnung: item.room ? `Sondermass ${item.room}` : 'Sondermass',
       detail: `${item.widthCm || '?'} × ${item.heightCm || '?'} cm`,
       preisChf: zeile?.perNetChf ?? 0,
+      breiteCm: Number(item.widthCm) || undefined,
+      hoeheCm: Number(item.heightCm) || undefined,
     }
   })
 }
@@ -71,10 +76,12 @@ export async function speichereBestellung(eingang: Eingang): Promise<void> {
   const positionen =
     art === 'bestellung' ? positionenAusWarenkorb(lines) : art === 'anfrage' ? positionenAusAnfrage(items) : []
 
-  const summeChf =
-    art === 'bestellung'
-      ? cartTotals(lines, montage).totalChf
-      : positionen.reduce((summe, p) => summe + p.preisChf * p.menge, 0)
+  const summen = art === 'bestellung' ? cartTotals(lines, montage) : null
+  const summeChf = summen ? summen.totalChf : positionen.reduce((summe, p) => summe + p.preisChf * p.menge, 0)
+  // Die Montagepauschale geht als eigener Betrag mit. Sonst laesst sie sich
+  // im Adminbereich nicht von den Netzen trennen, und jede Aenderung an den
+  // Netzen wuerde sie stillschweigend verschlucken.
+  const montageChf = summen ? summen.montageChf : 0
 
   const antwort = await fetch('/api/bestellungen', {
     method: 'POST',
@@ -93,6 +100,7 @@ export async function speichereBestellung(eingang: Eingang): Promise<void> {
       },
       positionen,
       montage,
+      montageChf,
       zahlung: payment,
       zahlungswunsch: eingang.zahlungswunsch === true,
       summeChf,

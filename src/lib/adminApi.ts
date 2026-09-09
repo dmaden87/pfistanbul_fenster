@@ -1,4 +1,4 @@
-import type { AdminStatus, Bestellung, BestellStatus } from '../types'
+import type { AdminStatus, Bestellung, BestellAenderung, BestellStatus } from '../types'
 
 /**
  * Zugriff auf den Adminbereich. Alles läuft über /api/bestellungen; das
@@ -62,14 +62,41 @@ export async function entferneBestellung(id: string): Promise<void> {
   )
 }
 
-export async function setzeStatus(id: string, status: BestellStatus): Promise<Bestellung> {
+/**
+ * Aendert eine Bestellung. Der Server nimmt nur die Felder aus
+ * `BestellAenderung` an – der Zahlungsstand steht ausdruecklich nicht darin,
+ * den setzt allein Stripe.
+ */
+export async function aendereBestellung(id: string, aenderung: BestellAenderung): Promise<Bestellung> {
   const daten = await antwort<{ bestellung: Bestellung }>(
     await fetch(PFAD, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
-      body: JSON.stringify({ id, status }),
+      body: JSON.stringify({ id, ...aenderung }),
     }),
   )
   return daten.bestellung
+}
+
+export function setzeStatus(id: string, status: BestellStatus): Promise<Bestellung> {
+  return aendereBestellung(id, { status })
+}
+
+/**
+ * Legt eine Bestellung von Hand an – fuer alles, was ueber WhatsApp,
+ * Instagram oder am Gartenzaun hereinkommt. Geht ueber einen eigenen
+ * Einstieg, weil hier Status und Quelle gesetzt werden duerfen; das offene
+ * Bestellformular darf das nicht.
+ */
+export async function erfasseBestellung(daten: Record<string, unknown>): Promise<Bestellung> {
+  const antw = await antwort<{ bestellung: Bestellung }>(
+    await fetch(`${PFAD}?aktion=erfassen`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(daten),
+    }),
+  )
+  return antw.bestellung
 }

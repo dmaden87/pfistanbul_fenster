@@ -82,10 +82,35 @@ npm run vorschau
 npm run pruefen
 ```
 
-Baut und prüft danach 25 Punkte am ausgelieferten Ergebnis: Kopfangaben,
+Baut und prüft danach 65 Punkte am ausgelieferten Ergebnis: Kopfangaben,
 Aufbau des JSON-LD, ob jeder interne Verweis einen Knoten trifft, und ob die
 Preise mit `src/data/catalog.ts` übereinstimmen. Nach jeder Preisänderung
 einmal laufen lassen.
+
+## Die Bestell-API prüfen
+
+```
+npm test
+```
+
+Fährt `api/bestellungen.ts` mit einem Speicher im Arbeitsspeicher hoch und
+geht 26 Fälle durch. Zwei davon sind der eigentliche Grund für den Testlauf:
+
+- **Die Summe beim Ändern der Netze.** Sie wird neu gerechnet, und bei
+  Einträgen aus der Zeit vor dem Feld `montageChf` muss die Montage aus der
+  Differenz hergeleitet werden. Genau dort steckte ein Fehler, den der Test
+  beim ersten Lauf gefunden hat: Die Herleitung geschah nach dem Austausch der
+  Positionen und bezog sich damit auf die falschen Zahlen. Bei mehr Netzen als
+  vorher wurde sie negativ und fiel auf null – die Montagepauschale wäre
+  spurlos aus der Bestellung verschwunden, ohne Fehlermeldung.
+- **`bezahlung` ist über PATCH nicht setzbar.** Der Zahlungsstand kommt allein
+  von Stripe über `api/stripe-webhook.ts`. Käme er von hier durch, könnte ein
+  Fehlklick eine unbezahlte Bestellung als bezahlt markieren – und sie würde
+  ausgeliefert.
+
+Der Testlauf braucht keine Übersetzung: Node liest die `.ts`-Dateien mit
+`--experimental-strip-types` direkt. Nur die Konvention, dass die Importe dort
+auf `.js` enden, muss nachgeholt werden – das erledigt `bau/ts-aufloeser.mjs`.
 
 ## Wenn eine eigene Domain dazukommt
 

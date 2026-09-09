@@ -1,19 +1,27 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { AdminStatus, Bestellung, BestellStatus } from '../../types'
-import { abmelden, adminStatus, anmelden, entferneBestellung, ladeBestellungen, setzeStatus } from '../../lib/adminApi'
-import { formatChf } from '../../lib/format'
+import type { AdminStatus, Bestellung, BestellAenderung, BestellStatus } from '../../types'
+import { abmelden, adminStatus, aendereBestellung, anmelden, entferneBestellung, ladeBestellungen, setzeStatus } from '../../lib/adminApi'
+import { shopConfig } from '../../data/shopConfig'
+import { BestellKarte } from './BestellKarte'
+import { NeueBestellung } from './NeueBestellung'
 import './AdminPage.css'
 
 interface AdminPageProps {
   onBack: () => void
 }
 
-/** Die drei Sektionen der Arbeitsliste, in der Reihenfolge des Ablaufs. */
+/** Die Abschnitte der Arbeitsliste, in der Reihenfolge des Ablaufs. */
 const SEKTIONEN: { status: BestellStatus[]; titel: string; erklaerung: string }[] = [
   {
     status: ['neu'],
     titel: 'Neu eingegangen',
-    erklaerung: 'Noch nichts unternommen. Bestellungen weiterreichen, Anfragen beantworten oder absagen.',
+    erklaerung: 'Noch nichts unternommen. Weiterreichen, offerieren oder absagen.',
+  },
+  {
+    status: ['offerte'],
+    titel: 'Offerte',
+    erklaerung:
+      'Ausmessen und offerieren. Die beiden Haken sagen, wie weit es ist – und seit wann die Offerte draussen ist.',
   },
   {
     status: ['bestellt'],
@@ -27,58 +35,6 @@ const SEKTIONEN: { status: BestellStatus[]; titel: string; erklaerung: string }[
   },
 ]
 
-const ART_TEXT: Record<Bestellung['art'], string> = {
-  bestellung: 'Bestellung',
-  anfrage: 'Anfrage Sondermass',
-  zahlung: 'Anfrage Zahlung',
-}
-
-function datum(iso: string): string {
-  const d = new Date(iso)
-  return Number.isNaN(d.getTime())
-    ? '–'
-    : d.toLocaleString('de-CH', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
-}
-
-/**
- * Was über die Zahlung wirklich bekannt ist.
- *
- * "Zahlungsart online" heisst nur, dass die Kundin diesen Weg gewählt hat –
- * ob Geld geflossen ist, weiss allein Stripe und meldet es an
- * api/stripe-webhook.ts. Solange diese Meldung fehlt, steht hier "offen" und
- * nicht "bezahlt": Eine Bestellung ausliefern, weil die Liste etwas
- * Falsches behauptet, wäre teurer als ein kurzer Blick ins Stripe-Konto.
- */
-function zahlungstext(b: Bestellung): string {
-  if (b.zahlung !== 'online') return 'zahlt bei Übergabe'
-  if (b.bezahlung?.status === 'bezahlt') return `online bezahlt am ${datum(b.bezahlung.zeitpunkt)}`
-  if (b.bezahlung?.status === 'abgebrochen') return 'Onlinezahlung abgebrochen'
-  return 'Onlinezahlung noch offen'
-}
-
-/**
- * Welche Schritte von hier aus möglich sind. Vorwärts ist der Normalfall,
- * zurück steht bewusst auch offen: Wer versehentlich klickt, soll das ohne
- * Umweg über die Datenbank geraderücken können.
- */
-function schritte(b: Bestellung): { status: BestellStatus; text: string; art: 'haupt' | 'still' }[] {
-  switch (b.status) {
-    case 'neu':
-      return [
-        { status: 'bestellt', text: b.art === 'bestellung' ? 'Beim Lieferanten bestellt' : 'Angenommen, bestellt', art: 'haupt' },
-        { status: 'geloescht', text: b.art === 'bestellung' ? 'Storniert' : 'Abgesagt', art: 'still' },
-      ]
-    case 'bestellt':
-      return [
-        { status: 'erledigt', text: 'Ausgeliefert, erledigt', art: 'haupt' },
-        { status: 'neu', text: 'Zurück zu neu', art: 'still' },
-        { status: 'geloescht', text: 'Doch storniert', art: 'still' },
-      ]
-    default:
-      return [{ status: 'bestellt', text: 'Wieder öffnen', art: 'still' }]
-  }
-}
-
 export function AdminPage({ onBack }: AdminPageProps) {
   const [status, setStatus] = useState<AdminStatus | null>(null)
   const [bestellungen, setBestellungen] = useState<Bestellung[]>([])
@@ -86,9 +42,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
   const [fehler, setFehler] = useState<string | null>(null)
   const [laedt, setLaedt] = useState(true)
   const [sendet, setSendet] = useState(false)
-  // Welcher Eintrag gerade nach dem zweiten Klick fragt. Endgueltiges
-  // Loeschen soll nicht aus Versehen passieren.
-  const [loeschFrage, setLoeschFrage] = useState<string | null>(null)
+  const [erfassen, setErfassen] = useState(false)
 
   const laden = useCallback(async () => {
     setFehler(null)
@@ -142,9 +96,25 @@ export function AdminPage({ onBack }: AdminPageProps) {
     }
   }
 
+  /**
+   * Aendert eine Bestellung und uebernimmt die Antwort des Servers, statt den
+   * lokalen Stand fortzuschreiben. Der Server rechnet die Summe neu, sobald
+   * Netze oder Montage angefasst werden; wer hier selbst weiterrechnete,
+   * bekaeme frueher oder spaeter eine andere Zahl als die Datenbank.
+   */
+  const handleAendern = async (id: string, aenderung: BestellAenderung) => {
+    try {
+      const neuerStand = await aendereBestellung(id, aenderung)
+      setBestellungen((liste) => liste.map((b) => (b.id === id ? neuerStand : b)))
+    } catch (f) {
+      setFehler(f instanceof Error ? f.message : 'Die Änderung konnte nicht gespeichert werden.')
+      await laden()
+      throw f
+    }
+  }
+
   const handleLoeschen = async (id: string) => {
     setBestellungen((liste) => liste.filter((b) => b.id !== id))
-    setLoeschFrage(null)
     try {
       await entferneBestellung(id)
     } catch (f) {
@@ -225,6 +195,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
   }
 
   const offen = bestellungen.filter((b) => b.status === 'neu').length
+  const inOfferte = bestellungen.filter((b) => b.status === 'offerte').length
 
   return (
     <section className="section admin">
@@ -233,10 +204,13 @@ export function AdminPage({ onBack }: AdminPageProps) {
           <div>
             <h1>Bestellungen</h1>
             <p className="admin__zusammenfassung">
-              {bestellungen.length} insgesamt, davon {offen} neu.
+              {bestellungen.length} insgesamt, davon {offen} neu und {inOfferte} in Offerte.
             </p>
           </div>
           <div className="admin__werkzeuge">
+            <button type="button" className="btn" onClick={() => setErfassen((e) => !e)}>
+              {erfassen ? 'Erfassen schliessen' : 'Bestellung erfassen'}
+            </button>
             <button type="button" className="btn btn--ghost" onClick={laden}>
               Aktualisieren
             </button>
@@ -259,6 +233,17 @@ export function AdminPage({ onBack }: AdminPageProps) {
 
         {fehler && <p className="form-status form-status--error">{fehler}</p>}
 
+        {erfassen && (
+          <NeueBestellung
+            montageProNetz={shopConfig.montageChf}
+            onAbbrechen={() => setErfassen(false)}
+            onFertig={async () => {
+              setErfassen(false)
+              await laden()
+            }}
+          />
+        )}
+
         {SEKTIONEN.map((sektion) => {
           const treffer = bestellungen.filter((b) => sektion.status.includes(b.status))
           return (
@@ -275,101 +260,14 @@ export function AdminPage({ onBack }: AdminPageProps) {
               ) : (
                 <ul className="admin__karten">
                   {treffer.map((b) => (
-                    <li className={`admin__karte admin__karte--${b.status}`} key={b.id}>
-                      <div className="admin__karte-kopf">
-                        <span className={`admin__art admin__art--${b.art}`}>{ART_TEXT[b.art]}</span>
-                        <span className="admin__referenz">{b.referenz || b.id}</span>
-                        <span className="admin__datum">{datum(b.eingang)}</span>
-                        {b.bezahlung?.status === 'bezahlt' && (
-                          <span className="admin__marke admin__marke--gut">
-                            bezahlt · {formatChf(b.bezahlung.betragChf)}
-                          </span>
-                        )}
-                        {b.status === 'geloescht' && <span className="admin__marke">abgesagt</span>}
-                        {b.status === 'erledigt' && <span className="admin__marke admin__marke--gut">erledigt</span>}
-                      </div>
-
-                      <div className="admin__karte-inhalt">
-                        <div className="admin__kunde">
-                          <strong>{b.kunde.name}</strong>
-                          <a href={`mailto:${b.kunde.email}`}>{b.kunde.email}</a>
-                          {b.kunde.telefon && <a href={`tel:${b.kunde.telefon}`}>{b.kunde.telefon}</a>}
-                          {b.kunde.strasse && (
-                            <span>
-                              {b.kunde.strasse}
-                              {b.kunde.plz || b.kunde.ort ? `, ${b.kunde.plz} ${b.kunde.ort}`.trimEnd() : ''}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="admin__positionen">
-                          {b.positionen.length > 0 ? (
-                            <table>
-                              <tbody>
-                                {b.positionen.map((p, i) => (
-                                  <tr key={`${b.id}-${i}`}>
-                                    <td>
-                                      {p.menge}× {p.bezeichnung}
-                                      {p.detail && <span className="admin__detail"> {p.detail}</span>}
-                                    </td>
-                                    <td className="admin__preis">{formatChf(p.preisChf * p.menge)}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          ) : (
-                            <p className="admin__detail">Keine Positionen – reine Anfrage.</p>
-                          )}
-
-                          <p className="admin__summe">
-                            <span>
-                              {b.montage ? 'mit Montage' : 'Selbstmontage'} ·{' '}
-                              {zahlungstext(b)}
-                              {b.zahlungswunsch && ' · Ratenwunsch'}
-                            </span>
-                            <strong>{formatChf(b.summeChf)}</strong>
-                          </p>
-                        </div>
-                      </div>
-
-                      {b.kunde.bemerkung && <p className="admin__bemerkung">{b.kunde.bemerkung}</p>}
-
-                      <div className="admin__schritte">
-                        {schritte(b).map((s) => (
-                          <button
-                            key={s.status + s.text}
-                            type="button"
-                            className={s.art === 'haupt' ? 'btn' : 'btn btn--quiet'}
-                            onClick={() => handleStatus(b.id, s.status)}
-                          >
-                            {s.text}
-                          </button>
-                        ))}
-
-                        {/*
-                          Endgueltiges Loeschen gibt es nur bei abgeschlossenen
-                          Eintraegen und nur nach einer Rueckfrage. Es ist der
-                          Weg, das Loeschversprechen aus der
-                          Datenschutzerklaerung einzuloesen.
-                        */}
-                        {(b.status === 'erledigt' || b.status === 'geloescht') &&
-                          (loeschFrage === b.id ? (
-                            <span className="admin__loeschfrage">
-                              Endgültig löschen?
-                              <button type="button" className="btn btn--quiet admin__gefahr" onClick={() => handleLoeschen(b.id)}>
-                                Ja, Daten entfernen
-                              </button>
-                              <button type="button" className="btn btn--quiet" onClick={() => setLoeschFrage(null)}>
-                                Abbrechen
-                              </button>
-                            </span>
-                          ) : (
-                            <button type="button" className="btn btn--quiet admin__gefahr" onClick={() => setLoeschFrage(b.id)}>
-                              Daten löschen
-                            </button>
-                          ))}
-                      </div>
-                    </li>
+                    <BestellKarte
+                      key={b.id}
+                      bestellung={b}
+                      montageProNetz={shopConfig.montageChf}
+                      onStatus={handleStatus}
+                      onAendern={handleAendern}
+                      onLoeschen={handleLoeschen}
+                    />
                   ))}
                 </ul>
               )}

@@ -167,10 +167,13 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
   gap: var(--space-5);
+  /* Sonst zieht die hoehere Spalte die Zeilen der anderen auseinander. */
+  align-items: start;
 }
 
 .admin__kunde {
   display: grid;
+  align-content: start;
   gap: 0.15rem;
   font-size: var(--step--1);
   color: var(--text-muted);
@@ -262,4 +265,261 @@
   border-left: 2px solid var(--danger);
   color: var(--danger-ink);
   font-size: var(--step--2);
+}
+
+/* --- Offert-Abschnitt ------------------------------------------------------ */
+
+.admin__karte--offerte {
+  border-left-color: var(--highlight);
+}
+
+.admin__marke--warnung {
+  color: var(--highlight-ink);
+  font-weight: 600;
+}
+
+/* --- Die Zeile, die eingeklappt sichtbar bleibt ----------------------------- */
+
+/*
+ * Was man zum Sortieren braucht und sonst nichts: wer, wie viele Netze,
+ * wie viel. Alles Weitere steht hinter dem Aufklappen.
+ */
+.admin__zeile {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.admin__zeile .admin__preis {
+  margin-left: auto;
+}
+
+.admin__aufklappen {
+  margin-top: var(--space-3);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-ink);
+  font: inherit;
+  font-size: var(--step--2);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.admin__aufklappen:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* --- Haken ----------------------------------------------------------------- */
+
+.admin__haken-reihe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+}
+
+.admin__haken {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--step--1);
+  cursor: pointer;
+}
+
+.admin__haken input {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--accent);
+}
+
+/* --- Abweichung zwischen bezahlt und Summe --------------------------------- */
+
+.admin__abweichung {
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--danger);
+  border-radius: var(--radius-sm);
+  background: var(--danger-soft);
+  color: var(--danger-ink);
+  font-size: var(--step--2);
+}
+
+.admin__notiz {
+  margin-top: var(--space-4);
+}
+
+.admin__notiz .btn {
+  margin-top: var(--space-2);
+}
+
+.admin__bemerkung--notiz {
+  border-left: 3px solid var(--border-strong);
+}
+
+/* --- Bestellung von Hand erfassen ------------------------------------------ */
+
+.admin__erfassen {
+  margin-top: var(--space-5);
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+}
+
+.admin__erfassen h2 {
+  font-size: var(--step-1);
+}
+
+.admin__erfassen-satz {
+  margin-top: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--step--1);
+}
+
+.admin__erfassen-reihe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.admin__erfassen-reihe .field {
+  flex: 1 1 12rem;
+}
+
+.admin__erfassen-reihe .field--eng {
+  flex: 0 1 7rem;
+}
+
+.admin__erfassen .field {
+  margin-top: var(--space-4);
+}
+
+.admin__erfassen-reihe .field {
+  margin-top: 0;
+}
+
+.admin__erfassen-hinweis {
+  margin-top: var(--space-4);
+  color: var(--highlight-ink);
+  font-size: var(--step--2);
+}
+
+/* --- Netze bearbeiten ------------------------------------------------------ */
+
+.netze {
+  margin-top: var(--space-3);
+}
+
+.netze__tabelle {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--step--2);
+}
+
+.netze__tabelle th {
+  padding-bottom: var(--space-2);
+  color: var(--text-subtle);
+  font-weight: 600;
+  text-align: left;
+}
+
+.netze__tabelle td {
+  padding: 0.15rem 0.3rem 0.15rem 0;
+  vertical-align: middle;
+}
+
+.netze__eng {
+  width: 5.5rem;
+}
+
+.netze__feld {
+  padding: 0.35rem 0.5rem;
+  font-size: var(--step--1);
+}
+
+/*
+ * Das Kreuz zum Entfernen ist bewusst klein und unauffaellig, aber mit
+ * genug Flaeche zum Treffen: Es steht in jeder Zeile, und ein Fehlklick
+ * loescht ein Netz.
+ */
+.netze__weg {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-subtle);
+  font-size: var(--step-0);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.netze__weg:hover {
+  border-color: var(--danger);
+  color: var(--danger-ink);
+}
+
+.netze__montage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.netze__montage .netze__feld {
+  width: 7rem;
+}
+
+.netze__hinweis {
+  color: var(--text-subtle);
+  font-size: var(--step--2);
+}
+
+.netze__summe {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+  font-size: var(--step--2);
+  color: var(--text-muted);
+}
+
+.netze__summe strong {
+  color: var(--text);
+  font-size: var(--step-0);
+  font-variant-numeric: tabular-nums;
+}
+
+.netze__schritte {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+/* Auf dem Telefon wird die Netztabelle sonst zusammengequetscht. */
+@media (max-width: 44rem) {
+  .netze {
+    overflow-x: auto;
+  }
+
+  .netze__tabelle {
+    min-width: 32rem;
+  }
 }
