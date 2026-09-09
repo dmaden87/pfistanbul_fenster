@@ -27,6 +27,7 @@ interface LieferungSeiteProps {
   /** Alle Bestellungen; die der Runde werden hier herausgesucht. */
   bestellungen: Bestellung[]
   onAendern: (id: string, aenderung: Partial<Lieferung>) => Promise<void>
+  onVerwerfen: (id: string) => Promise<void>
   onZurueck: () => void
 }
 
@@ -53,8 +54,11 @@ function zahl(wert: string): number | undefined {
   return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : undefined
 }
 
-export function LieferungSeite({ lieferung, bestellungen, onAendern, onZurueck }: LieferungSeiteProps) {
+export function LieferungSeite({ lieferung, bestellungen, onAendern, onVerwerfen, onZurueck }: LieferungSeiteProps) {
   const [zeigeDokument, setZeigeDokument] = useState(false)
+  // Verwerfen fragt nach. Ab "angefragt" haengen eingefrorene Zeilen und
+  // moeglicherweise Boras Preise daran – das soll kein Fehlklick treffen.
+  const [verwerfenFrage, setVerwerfenFrage] = useState(false)
   const [fehler, setFehler] = useState<string | null>(null)
   const [sendet, setSendet] = useState(false)
 
@@ -205,6 +209,51 @@ export function LieferungSeite({ lieferung, bestellungen, onAendern, onZurueck }
             disabled={sendet}
           >
             Zurück zu „Anfrage versendet"
+          </button>
+        )}
+
+        {/*
+          Verwerfen. Es gibt es in jedem Zustand: Der haeufigste Fall ist ein
+          Entwurf, dem Angaben fehlen, aber auch spaeter kann eine Runde
+          hinfaellig werden. Die Rueckfrage sagt jeweils, was dabei verloren
+          geht – bei einem Entwurf nichts, spaeter die eingefrorenen Zeilen
+          und die Preise.
+        */}
+        {verwerfenFrage ? (
+          <span className="lieferung__verwerfen">
+            {lieferung.status === 'entwurf'
+              ? 'Verwerfen? Die Bestellungen bleiben, nur die Runde verschwindet.'
+              : `Verwerfen? Die ${lieferung.zeilen.length} eingefrorenen Zeilen und die eingetragenen Preise sind dann weg. Die Bestellungen behalten den Status, den sie jetzt haben.`}
+            <button
+              type="button"
+              className="btn btn--quiet admin__gefahr"
+              disabled={sendet}
+              onClick={async () => {
+                setSendet(true)
+                setFehler(null)
+                try {
+                  await onVerwerfen(lieferung.id)
+                } catch (f) {
+                  setFehler(f instanceof Error ? f.message : 'Die Runde konnte nicht verworfen werden.')
+                  setSendet(false)
+                  setVerwerfenFrage(false)
+                }
+              }}
+            >
+              Ja, verwerfen
+            </button>
+            <button type="button" className="btn btn--quiet" onClick={() => setVerwerfenFrage(false)}>
+              Abbrechen
+            </button>
+          </span>
+        ) : (
+          <button
+            type="button"
+            className="btn btn--quiet admin__gefahr"
+            onClick={() => setVerwerfenFrage(true)}
+            disabled={sendet}
+          >
+            Lieferrunde verwerfen
           </button>
         )}
       </div>

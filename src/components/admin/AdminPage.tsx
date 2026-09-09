@@ -4,7 +4,7 @@ import { abmelden, adminStatus, aendereBestellung, anmelden, entferneBestellung,
 import { shopConfig } from '../../data/shopConfig'
 import { BestellKarte } from './BestellKarte'
 import { LieferungSeite } from './LieferungSeite'
-import { ladeLieferungen, lieferungAendern, lieferungAnlegen } from '../../lib/lieferungApi'
+import { ladeLieferungen, lieferungAendern, lieferungAnlegen, lieferungEntfernen } from '../../lib/lieferungApi'
 import { NeueBestellung } from './NeueBestellung'
 import './AdminPage.css'
 
@@ -230,6 +230,17 @@ export function AdminPage({ onBack }: AdminPageProps) {
     if (aenderung.status === 'bestellt') setBestellungen(await ladeBestellungen())
   }
 
+  /**
+   * Verwirft eine Runde. Die Bestellungen bleiben, wo sie sind – auch ihr
+   * Status. Eine Ruecknahme koennte einen Stand ueberschreiben, den jemand
+   * inzwischen von Hand gesetzt hat.
+   */
+  const handleVerwerfen = async (id: string) => {
+    await lieferungEntfernen(id)
+    setLieferungen((liste) => liste.filter((l) => l.id !== id))
+    setOffeneRunde(null)
+  }
+
   const offeneLieferung = offeneRunde ? lieferungen.find((l) => l.id === offeneRunde) : undefined
   if (offeneLieferung) {
     // Bewusst ohne die Klasse "admin": Deren Ueberschriftenregel ist genauso
@@ -243,6 +254,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
             lieferung={offeneLieferung}
             bestellungen={bestellungen}
             onAendern={handleLieferung}
+            onVerwerfen={handleVerwerfen}
             onZurueck={() => setOffeneRunde(null)}
           />
         </div>
