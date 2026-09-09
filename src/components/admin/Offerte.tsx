@@ -5,7 +5,7 @@ import { operator } from '../../data/operator'
 import { shopConfig } from '../../data/shopConfig'
 import { formatChf } from '../../lib/format'
 import { netzeAusBestellung } from '../../lib/bestellauftrag'
-import { useSeitenformat } from './seitenformat'
+import { useDokumentName, useSeitenformat } from './seitenformat'
 import './Offerte.css'
 
 /**
@@ -52,6 +52,7 @@ function datum(d: Date): string {
 
 export function Offerte({ bestellung: b, onZurueck }: OfferteProps) {
   useSeitenformat('hoch', 14)
+  useDokumentName(`pfistanbul_offerte_${(b.referenz || b.id).replace(/[^A-Za-z0-9-]/g, '') || 'entwurf'}`)
 
   /*
    * Von Hand gewaehlt und nicht aus der Postleitzahl geraten: Die Zuercher

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { Bestellung, Lieferung } from '../../types'
 import { auftragAufbauen, pakete, type AuftragsNetz, type AuftragsZeile, type Luecke } from '../../lib/bestellauftrag'
 import {
@@ -17,7 +17,7 @@ import {
   type Beschriftung,
 } from '../../data/produktion'
 import { useSprache } from './sprache'
-import { useSeitenformat } from './seitenformat'
+import { useDokumentName, useSeitenformat } from './seitenformat'
 import './Bestellauftrag.css'
 
 /**
@@ -122,14 +122,7 @@ export function Bestellauftrag({ lieferung, bestellungen, onZurueck }: Bestellau
    * den alten zurueckgestellt – sonst steht er noch im Reiter, wenn laengst
    * wieder die Bestellliste zu sehen ist.
    */
-  useEffect(() => {
-    const vorher = document.title
-    const kennung = nummer.trim().replace(/[^A-Za-z0-9-]/g, '') || 'entwurf'
-    document.title = `pfistanbul_talep_siparis_${kennung}`
-    return () => {
-      document.title = vorher
-    }
-  }, [nummer])
+  useDokumentName(`pfistanbul_talep_siparis_${nummer.trim().replace(/[^A-Za-z0-9-]/g, '') || 'entwurf'}`)
 
   const auftrag = zeilenFuer(lieferung, bestellungen)
   const paketliste = pakete(auftrag.zeilen)

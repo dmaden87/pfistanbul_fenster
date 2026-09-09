@@ -29,3 +29,22 @@ export function useSeitenformat(ausrichtung: 'quer' | 'hoch', randMm = 12) {
     }
   }, [ausrichtung, randMm])
 }
+
+/**
+ * Schlaegt den Dateinamen des PDF vor.
+ *
+ * Beim Drucken aus dem Browser gibt es dafuer genau einen Hebel: den Titel
+ * des Dokuments. Chrome und Safari uebernehmen ihn als Vorschlag. Er gilt,
+ * solange das Blatt offen ist, und wird danach zurueckgestellt – sonst
+ * steht er noch im Reiter, wenn laengst wieder die Bestellliste zu sehen
+ * ist.
+ */
+export function useDokumentName(name: string) {
+  useEffect(() => {
+    const vorher = document.title
+    document.title = name
+    return () => {
+      document.title = vorher
+    }
+  }, [name])
+}
