@@ -74,6 +74,15 @@ export const shopConfig = {
   montageChf: 15,
 
   /**
+   * Lieferpauschale ausserhalb des Liefergebiets, in CHF. Im Kanton Zürich
+   * liefern wir kostenlos; wer weiter weg wohnt, bekommt eine Offerte mit
+   * dieser Pauschale. Bewusst nur in der Offerte und nicht im Warenkorb: Der
+   * Warenkorb ist auf die ausgemessene Überbauung beschränkt, dort ist die
+   * Lieferung immer inbegriffen.
+   */
+  lieferpauschaleChf: 80,
+
+  /**
    * INTERN, bewusst nicht auf der Seite: Erst ab dieser Anzahl Netze trägt
    * eine Runde ihre Frachtkosten. Für Einzelanfragen wird im Offertprozess
    * entschieden, ob sie in eine laufende Runde passen oder einen höheren

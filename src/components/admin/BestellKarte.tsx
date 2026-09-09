@@ -35,6 +35,8 @@ interface BestellKarteProps {
   onStatus: (id: string, status: BestellStatus) => void
   onAendern: (id: string, aenderung: BestellAenderung) => Promise<void>
   onLoeschen: (id: string) => void
+  /** Oeffnet die Offerte an die Kundschaft. */
+  onOfferte: (id: string) => void
   /** Fuer die Lieferrunde gewaehlt. Fehlt bei abgeschlossenen Eintraegen. */
   gewaehlt?: boolean
   onWahl?: (id: string, gewaehlt: boolean) => void
@@ -87,6 +89,7 @@ export function BestellKarte({
   onStatus,
   onAendern,
   onLoeschen,
+  onOfferte,
   gewaehlt,
   onWahl,
 }: BestellKarteProps) {
@@ -247,9 +250,14 @@ export function BestellKarte({
                   </p>
                 )}
 
-                <button type="button" className="btn btn--quiet" onClick={() => setBearbeitet(true)}>
-                  {t.netzeBearbeiten}
-                </button>
+                <div className="admin__karte-knoepfe">
+                  <button type="button" className="btn btn--quiet" onClick={() => setBearbeitet(true)}>
+                    {t.netzeBearbeiten}
+                  </button>
+                  <button type="button" className="btn btn--quiet" onClick={() => onOfferte(b.id)}>
+                    {t.offerteAnzeigen}
+                  </button>
+                </div>
               </>
             )}
           </div>

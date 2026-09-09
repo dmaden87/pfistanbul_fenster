@@ -301,31 +301,7 @@
 /* --- Druck ------------------------------------------------------------------ */
 
 @media print {
-  /*
-   * Nur das Blatt darf aufs Papier. Der Weg ueber `visibility` statt
-   * `display` ist Absicht: Er laesst die Seitenstruktur stehen, sodass das
-   * Blatt seine Breite behaelt, statt in einer ausgeblendeten Spalte zu
-   * kollabieren.
-   */
-  body * {
-    visibility: hidden;
-  }
-
-  .blatt,
-  .blatt * {
-    visibility: visible;
-  }
-
-  .blatt {
-    position: absolute;
-    inset: 0 auto auto 0;
-    width: 100%;
-    max-width: none;
-    margin: 0;
-    padding: 0;
-    border: 0;
-  }
-
+  /* Was nicht aufs Papier gehoert, blendet `useDruckblatt` aus. */
   .blatt__tabelle tr {
     break-inside: avoid;
   }
@@ -334,12 +310,6 @@
     break-after: avoid;
   }
 }
-
-@page {
-  size: A4 landscape;
-  margin: 12mm;
-}
-
 /* Trennt die Auftragsart von der Sprachwahl in der Steuerleiste. */
 .auftrag__trenner {
   width: 1px;

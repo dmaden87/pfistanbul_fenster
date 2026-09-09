@@ -1,0 +1,52 @@
+/*
+ * Nur das Blatt kommt aufs Papier.
+ *
+ * Frueher stand hier der uebliche Trick, im Druck alles auf
+ * `visibility: hidden` zu setzen und nur das Blatt wieder sichtbar zu
+ * machen. Der hat einen Fehler, den man erst auf dem Papier sieht: Was
+ * unsichtbar ist, belegt trotzdem Platz. Die Adminliste hinter der Offerte
+ * war 423 mm hoch, und der Drucker warf gehorsam eine zweite, leere Seite
+ * aus – obwohl das Blatt selbst mit 240 mm bequem auf eine passte.
+ *
+ * `display: none` ist richtig, braucht aber `:has()`: Das Blatt steckt tief
+ * in der Adminmaske, und wer seine Vorfahren ausblendet, blendet es mit aus.
+ * Also bleibt genau der Pfad stehen – jedes Element, das das Blatt enthaelt –
+ * und alles daneben faellt weg.
+ *
+ * Warum das nicht per JavaScript Klassen setzt: React schreibt `className`
+ * bei jedem Re-Render neu und wischt dabei fremde Klassen weg. Die Kopfzeile
+ * der Seite bekommt beim Scrollen eine Zustandsklasse – und stand damit
+ * wieder auf dem Papier. Ein Merkmal im JSX haelt, eine nachtraeglich
+ * gesetzte Klasse nicht.
+ */
+
+@media print {
+  /* Alles, was das Blatt weder enthaelt noch selbst ist noch darin steckt. */
+  body *:not(:has([data-druckblatt])):not([data-druckblatt]):not([data-druckblatt] *) {
+    display: none !important;
+  }
+
+  /*
+   * Die Vorfahren bleiben stehen, damit das Blatt seine Breite behaelt,
+   * geben aber ihr Bildschirmkleid ab: Ein Blatt Papier hat keinen Innenrand
+   * einer Maske und keinen Seitenhintergrund.
+   */
+  body :has([data-druckblatt]) {
+    display: block !important;
+    max-width: none !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+  }
+
+  [data-druckblatt] {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+  }
+}

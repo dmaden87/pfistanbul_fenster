@@ -5,6 +5,7 @@ import { abmelden, adminStatus, aendereBestellung, anmelden, entferneBestellung,
 import { shopConfig } from '../../data/shopConfig'
 import { BestellKarte } from './BestellKarte'
 import { LieferungSeite } from './LieferungSeite'
+import { Offerte } from './Offerte'
 import { ladeLieferungen, lieferungAendern, lieferungAnlegen, lieferungEntfernen } from '../../lib/lieferungApi'
 import { NeueBestellung } from './NeueBestellung'
 import { SprachRahmen } from './SprachRahmen'
@@ -62,6 +63,8 @@ function AdminMaske({ onBack }: AdminPageProps) {
   const [lieferungen, setLieferungen] = useState<Lieferung[]>([])
   /** Welche Lieferrunde gerade offen ist. */
   const [offeneRunde, setOffeneRunde] = useState<string | null>(null)
+  /** Welche Bestellung gerade als Offerte angezeigt wird. */
+  const [offeneOfferte, setOffeneOfferte] = useState<string | null>(null)
   const { sprache, setzeSprache, t } = useSprache()
 
   const laden = useCallback(async () => {
@@ -248,6 +251,17 @@ function AdminMaske({ onBack }: AdminPageProps) {
     setBestellungen((liste) => liste.map((b) => (b.id === bestellungId ? neuerStand : b)))
   }
 
+  const offerte = offeneOfferte ? bestellungen.find((b) => b.id === offeneOfferte) : undefined
+  if (offerte) {
+    return (
+      <section className="section">
+        <div className="shell">
+          <Offerte bestellung={offerte} onZurueck={() => setOffeneOfferte(null)} />
+        </div>
+      </section>
+    )
+  }
+
   const offeneLieferung = offeneRunde ? lieferungen.find((l) => l.id === offeneRunde) : undefined
   if (offeneLieferung) {
     // Bewusst ohne die Klasse "admin": Deren Ueberschriftenregel ist genauso
@@ -421,6 +435,7 @@ function AdminMaske({ onBack }: AdminPageProps) {
                       onStatus={handleStatus}
                       onAendern={handleAendern}
                       onLoeschen={handleLoeschen}
+                      onOfferte={setOffeneOfferte}
                       gewaehlt={runde.includes(b.id)}
                       // Abgeschlossenes gehoert in keine Runde mehr.
                       onWahl={b.status === 'erledigt' || b.status === 'geloescht' ? undefined : waehle}

@@ -1,0 +1,245 @@
+/*
+ * Die Offerte an die Kundschaft.
+ *
+ * Ein Brief, kein Arbeitspapier: Hochformat, ruhiger Satz, viel Weissraum.
+ * Anders als beim Blatt an den Produzenten darf hier die Anzeigeschrift der
+ * Marke auftreten – die Offerte ist ein Auftritt, keine Fertigungsliste.
+ */
+
+.offerte {
+  max-width: 210mm;
+  margin: 0 auto;
+  padding: 14mm 16mm;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  color: #111111;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 10pt;
+  line-height: 1.45;
+}
+
+.offerte__kopf {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12mm;
+}
+
+.offerte__absender {
+  font-size: 8.5pt;
+  line-height: 1.35;
+  color: #444444;
+}
+
+.offerte__firma {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 12pt;
+  font-weight: 700;
+  color: #111111;
+}
+
+/* Die Anschrift sitzt rechts, wie im Schweizer Geschaeftsbrief. */
+.offerte__empfaenger {
+  font-style: normal;
+  font-size: 10pt;
+  line-height: 1.45;
+}
+
+.offerte__titelzeile {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10mm;
+  margin-top: 7mm;
+  padding-bottom: 3mm;
+  border-bottom: 1.5px solid #111111;
+}
+
+.offerte h1 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 22pt;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+.offerte__eckdaten {
+  display: flex;
+  gap: 8mm;
+  font-size: 9pt;
+}
+
+.offerte__eckdaten dt {
+  color: #666666;
+}
+
+.offerte__eckdaten dd {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.offerte__anrede {
+  margin-top: 4mm;
+  max-width: 58ch;
+}
+
+/* --- Positionen ------------------------------------------------------------ */
+
+.offerte__tabelle {
+  width: 100%;
+  margin-top: 3mm;
+  border-collapse: collapse;
+  font-size: 9pt;
+}
+
+.offerte__tabelle th {
+  padding: 0 2mm 1.5mm 0;
+  border-bottom: 1px solid #111111;
+  color: #444444;
+  font-weight: 600;
+  text-align: left;
+}
+
+.offerte__tabelle td {
+  padding: 1.4mm 2mm 1.4mm 0;
+  border-bottom: 0.5px solid #dddddd;
+  vertical-align: top;
+}
+
+.offerte__pos {
+  width: 10mm;
+  color: #666666;
+}
+
+.offerte__zahl {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.offerte__mass-spalte {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.offerte__ausfuehrung {
+  color: #444444;
+  font-size: 8.5pt;
+}
+
+/* --- Die zwei Totale ------------------------------------------------------- */
+
+/*
+ * Nebeneinander, damit die Kundschaft vergleicht statt rechnet. Beide sind
+ * vollwertige Angebote, deshalb bekommt keines das schwächere Gewicht.
+ */
+.offerte__totale {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6mm;
+  margin-top: 6mm;
+}
+
+/*
+ * Beide Kaesten fuehren dieselben Posten auf, aber "Montage durch Sie selbst"
+ * kann umbrechen und der rechte Kasten nicht. Deshalb sitzt die Totalzeile
+ * unten am Kasten statt direkt unter dem letzten Posten – so stehen die
+ * beiden Totale auf gleicher Hoehe und lassen sich vergleichen.
+ */
+.offerte__total {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8mm;
+  padding: 3mm 4mm;
+  border: 1px solid #111111;
+}
+
+.offerte__total--montage {
+  background: #f4f4f2;
+}
+
+.offerte__total-zeile {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4mm;
+  font-size: 9pt;
+  color: #444444;
+}
+
+.offerte__total-zeile--stark {
+  margin-top: auto;
+  padding-top: 1.5mm;
+  border-top: 1px solid #111111;
+  font-size: 11pt;
+  font-weight: 700;
+  color: #111111;
+}
+
+.offerte__total-zeile span:last-child {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.offerte__steuer {
+  margin-top: 3mm;
+  font-size: 8.5pt;
+  color: #444444;
+}
+
+/* --- Bedingungen ----------------------------------------------------------- */
+
+.offerte__bedingungen {
+  margin-top: 5mm;
+  padding-top: 3mm;
+  border-top: 0.5px solid #cccccc;
+}
+
+.offerte__bedingungen h2 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 11pt;
+  font-weight: 700;
+}
+
+.offerte__bedingungen dl {
+  margin-top: 1.5mm;
+  display: grid;
+  gap: 1.2mm;
+  font-size: 8.5pt;
+}
+
+.offerte__bedingungen div {
+  display: grid;
+  grid-template-columns: 28mm 1fr;
+  gap: 3mm;
+}
+
+.offerte__bedingungen dt {
+  font-weight: 700;
+}
+
+.offerte__bedingungen dd {
+  color: #333333;
+}
+
+.offerte__schluss {
+  margin-top: 3mm;
+  max-width: 58ch;
+  font-size: 9.5pt;
+}
+
+.offerte__gruss {
+  margin-top: 4mm;
+  font-size: 9.5pt;
+}
+
+/* --- Druck ----------------------------------------------------------------- */
+
+@media print {
+  /* Was nicht aufs Papier gehoert, blendet `useDruckblatt` aus. */
+  .offerte__tabelle tr,
+  .offerte__totale,
+  .offerte__bedingungen {
+    break-inside: avoid;
+  }
+}

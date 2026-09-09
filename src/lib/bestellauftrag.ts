@@ -281,6 +281,27 @@ export function auftragAufbauen(
   return { zeilen, luecken }
 }
 
+/**
+ * Die Netze einer Bestellung mit ihren Preisen – fuer die Offerte an die
+ * Kundschaft. Anders als beim Auftrag an den Produzenten bleiben Mengen
+ * zusammen ("3 ×"), und Sets werden NICHT aufgeloest: Die Kundschaft hat ein
+ * Set zu einem Setpreis bestellt, nicht sechs Einzelnetze.
+ */
+export function netzeAusBestellung(bestellung: Bestellung): (AuftragsNetz & { preisChf: number })[] {
+  return bestellung.positionen.map((p) => ({
+    menge: p.menge,
+    bezeichnung: p.bezeichnung,
+    breiteCm: p.breiteCm,
+    hoeheCm: p.hoeheCm,
+    rahmendicke: p.rahmendicke,
+    rahmenfarbe: p.rahmenfarbe,
+    netzfarbe: p.netzfarbe,
+    mechanismus: p.mechanismus,
+    oeffnung: p.oeffnung,
+    preisChf: p.preisChf,
+  }))
+}
+
 /** Die Pakete einer Zeilenliste, in der Reihenfolge des ersten Auftretens. */
 export function pakete(zeilen: AuftragsZeile[]): AuftragsPaket[] {
   const nachKennung = new Map<string, AuftragsZeile[]>()

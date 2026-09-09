@@ -115,6 +115,7 @@ const PAARE = {
   ohneAntwortSeit: ['seit {n} Tagen ohne Antwort', '{n} gündür cevap yok'],
   keineNetzeErfasst: ['Noch keine Netze erfasst.', 'Henüz sineklik girilmedi.'],
   netzeBearbeiten: ['Netze bearbeiten', 'Sineklikleri düzenle'],
+  offerteAnzeigen: ['Offerte anzeigen', 'Teklifi göster'],
   interneNotiz: ['Interne Notiz', 'İç not'],
   notizSpeichern: ['Notiz speichern', 'Notu kaydet'],
   datenLoeschen: ['Daten löschen', 'Verileri sil'],

@@ -17,6 +17,7 @@ import {
   type Beschriftung,
 } from '../../data/produktion'
 import { useSprache } from './sprache'
+import { useSeitenformat } from './seitenformat'
 import './Bestellauftrag.css'
 
 /**
@@ -103,6 +104,7 @@ export function Bestellauftrag({ lieferung, bestellungen, onZurueck }: Bestellau
   // Das Blatt geht in die Tuerkei, die Maske bedient, wer hier sitzt.
   const [sprache, setSprache] = useState<Sprache>('tuerkisch')
   const { t: m } = useSprache()
+  useSeitenformat('quer')
 
   // Alles Uebrige kommt aus der Runde. Was auf dem Blatt steht, ist damit
   // dasselbe, was gespeichert ist – nicht etwas, das nur im Browser existiert.
@@ -183,7 +185,7 @@ export function Bestellauftrag({ lieferung, bestellungen, onZurueck }: Bestellau
       </div>
 
       {/* Ab hier das Dokument, das gedruckt wird. Querformat. */}
-      <article className="blatt">
+      <article className="blatt" data-druckblatt>
         <header className="blatt__kopf">
           {/*
             Keine Anschrift: Das Blatt ist ein Arbeitspapier zwischen drei
