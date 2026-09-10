@@ -136,13 +136,21 @@
   font-size: var(--step--2);
 }
 
-.admin__block--beiDir .admin__block-kopf {
-  border-top-color: var(--accent);
-}
-
-.admin__block--beiDir .admin__zahl {
+/*
+ * Die Nummer der Phase. Sie steht vor dem Titel, weil der Betreiber in
+ * "Phase 3" denkt und nicht in "Kosten klaeren" – die Zahl ist der Anker.
+ */
+.admin__phase-nummer {
+  display: grid;
+  place-items: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: var(--radius-full);
   background: var(--accent);
   color: var(--accent-contrast, #ffffff);
+  font-family: var(--font-sans);
+  font-size: var(--step--1);
+  font-weight: 700;
 }
 
 .admin__block--archiv .admin__block-kopf h2 {
@@ -208,11 +216,14 @@
   background: var(--surface-raised);
 }
 
-/* Warten: kein Knopf, also auch kein Akzent, der zum Handeln auffordert. */
-.admin__karte--anfrageLaeuft,
-.admin__karte--beimLieferanten,
-.admin__karte--offerteDraussen {
+/* Die Phasen, in denen vor allem gewartet wird: kein Akzent, der drängt. */
+.admin__karte--kosten,
+.admin__karte--bestellen {
   border-left-color: var(--border-strong);
+}
+
+.admin__karte--offerte {
+  border-left-color: var(--highlight);
 }
 
 .admin__karte-kopf {
@@ -358,10 +369,6 @@
 }
 
 /* --- Offert-Abschnitt ------------------------------------------------------ */
-
-.admin__karte--offerteRechnen {
-  border-left-color: var(--highlight);
-}
 
 .admin__marke--warnung {
   color: var(--highlight-ink);
@@ -856,4 +863,44 @@
   padding-top: var(--space-2);
   border-top: 1px solid var(--border);
   font-weight: 700;
+}
+
+/* --- Felder und Fragen auf der Karte ---------------------------------------- */
+
+/* Ein Termin auf der Karte: Beschriftung und Feld in einer Zeile. */
+.admin__termin {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--step--2);
+}
+
+.admin__termin .input {
+  width: auto;
+  padding-block: 0.3rem;
+}
+
+.admin__termin--breit .input {
+  min-width: 14rem;
+}
+
+/* Ein Knopf mit dem Grund daneben, warum er gerade gesperrt ist. */
+.admin__schritt {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Die Absage-Frage: die Gruende in einer Reihe, der erste Text fett. */
+.admin__absage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--step--2);
+}
+
+.admin__absage strong {
+  margin-right: var(--space-2);
 }

@@ -366,11 +366,27 @@ async function bestellungAendern(
   }
 }
 
-/** Setzt die Phase einer Bestellung – nur, wenn sie sich aendert. */
-async function phaseSetzen(id: string, phase: Phase, dazu?: (b: Record<string, unknown>) => void): Promise<boolean> {
+/** Die Reihenfolge der Phasen, damit der Rundenklick weiss, was "vorwaerts" heisst. */
+const PHASENFOLGE = ['neu', 'klaerung', 'kosten', 'offerte', 'bestellen', 'ausliefern']
+
+/**
+ * Setzt die Phase einer Bestellung – nur VORWAERTS, und nur, wenn sie sich
+ * aendert. Der Rundenklick bewegt nie zurueck: Eine Bestellrunde aus
+ * Bestellungen, die laengst zugesagt haben, darf sie beim Einfrieren nicht
+ * auf "Offerte rechnen" zuruecksetzen. Rueckwaerts geht nur mit Grund –
+ * der Austritt "Aenderung" ist so einer und sagt es mit `auchZurueck`.
+ */
+async function phaseSetzen(
+  id: string,
+  phase: Phase,
+  dazu?: (b: Record<string, unknown>) => void,
+  auchZurueck = false,
+): Promise<boolean> {
   return bestellungAendern(id, (b) => {
     let etwas = false
-    if (b.status !== phase) {
+    const vonIndex = PHASENFOLGE.indexOf(String(b.status))
+    const nachIndex = PHASENFOLGE.indexOf(phase)
+    if (b.status !== phase && (auchZurueck || vonIndex < 0 || nachIndex > vonIndex)) {
       b.status = phase
       b.phaseSeit = new Date().toISOString()
       etwas = true
@@ -399,7 +415,7 @@ async function phaseSetzen(id: string, phase: Phase, dazu?: (b: Record<string, u
  * pauschal alle – auch die vier Netze, an denen sich nichts aenderte.
  */
 async function bestellungZurueck(id: string, grund: 'keineZusage' | 'aenderung'): Promise<void> {
-  if (grund === 'aenderung') await phaseSetzen(id, 'klaerung')
+  if (grund === 'aenderung') await phaseSetzen(id, 'klaerung', undefined, true)
 }
 
 /**

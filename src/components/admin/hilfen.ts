@@ -1,4 +1,4 @@
-import type { Bestellung, BestellPosition, BestellQuelle } from '../../types'
+import type { AbsageGrund, Bestellung, BestellPosition, BestellQuelle } from '../../types'
 import type { AdminTexte } from './sprache'
 
 /**
@@ -21,6 +21,26 @@ export function quelleText(quelle: BestellQuelle, t: AdminTexte): string {
     persoenlich: t.quellePersoenlich,
   }
   return nach[quelle]
+}
+
+/** Warum eine Bestellung abgesagt wurde, als Text. Ohne Grund nur "abgesagt". */
+export function grundText(grund: AbsageGrund | undefined, t: AdminTexte): string {
+  switch (grund) {
+    case 'spam':
+      return t.grundSpam
+    case 'doppelt':
+      return t.grundDoppelt
+    case 'keineAntwort':
+      return t.grundKeineAntwort
+    case 'kunde':
+      return t.grundKunde
+    case 'zuTeuer':
+      return t.grundZuTeuer
+    case 'storno':
+      return t.grundStorno
+    default:
+      return t.abgesagtWeil
+  }
 }
 
 /** Die Quellen zur Auswahl, in der Reihenfolge der Haeufigkeit. */

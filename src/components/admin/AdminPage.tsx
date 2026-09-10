@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { AdminStatus, Bestellung, BestellAenderung, BestellPosition, Lieferung } from '../../types'
-import { BLOCK_VON, SCHRITTE, nachSchritt, rundeFuer, type Arbeitsschritt, type Block } from '../../lib/arbeitsschritt'
+import { ABSCHNITTE, nachAbschnitt, rundeFuer, type Abschnitt } from '../../lib/phasen'
 import type { AdminTexte } from './sprache'
 import { abmelden, adminStatus, aendereBestellung, anmelden, entferneBestellung, ladeBestellungen } from '../../lib/adminApi'
 import { shopConfig } from '../../data/shopConfig'
@@ -34,45 +34,35 @@ function standTexte(t: AdminTexte): Record<Lieferung['status'], string> {
 }
 
 /**
- * Die Arbeitsliste, gegliedert nach WESSEN PROBLEM etwas gerade ist.
+ * Die Uebersicht folgt dem Workflow des Betreibers: sechs Phasen in seiner
+ * Reihenfolge, dazu das Archiv. Jede Bestellung steht in genau einem
+ * Abschnitt, und zwar in dem, den ihr `status` nennt. Nichts wird mehr
+ * abgeleitet – jede Bewegung ist ein Klick, auf der Karte oder auf der
+ * Runde.
  *
- * Frueher standen hier vier Abschnitte nach Status – "neu", "Offerte",
- * "beim Lieferanten bestellt", "abgeschlossen". Das Problem war nicht die
- * Zahl, sondern dass sie zwei verschiedene Fragen vermischten: Wo steht der
- * Kunde, und wo steht die Ware? Eine Bestellung, fuer die gerade eine
- * Preisanfrage bei Bora lief, stand unverdrossen unter "neu eingegangen".
- *
- * Jetzt entscheidet `arbeitsschritt()`, und die Bloecke sagen, wer am Zug
- * ist. Der erste ist die Arbeitsliste; die beiden mittleren sind Wartezimmer
- * und deshalb zugeklappt. Wer nichts tun kann, soll auch nichts sehen
- * muessen – aber wissen, dass es laeuft.
+ * Der vorige Aufbau gruppierte nach "wer ist dran" (bei dir, bei Bora, beim
+ * Kunden). Das war fuer den einen Menschen, der hier arbeitet,
+ * unuebersichtlich: Er denkt in seinem Ablauf je Bestellung.
  */
-const BLOCK_FOLGE: Block[] = ['beiDir', 'beimLieferanten', 'beimKunden', 'archiv']
-
-function blockTexte(t: AdminTexte): Record<Block, { titel: string; satz: string }> {
+function abschnittTexte(t: AdminTexte): Record<Abschnitt, { titel: string; satz: string }> {
   return {
-    beiDir: { titel: t.blockBeiDir, satz: t.blockBeiDirSatz },
-    beimLieferanten: { titel: t.blockBeimLieferanten, satz: t.blockBeimLieferantenSatz },
-    beimKunden: { titel: t.blockBeimKunden, satz: t.blockBeimKundenSatz },
-    archiv: { titel: t.blockArchiv, satz: t.blockArchivSatz },
+    neu: { titel: t.phaseNeu, satz: t.phaseNeuSatz },
+    klaerung: { titel: t.phaseKlaerung, satz: t.phaseKlaerungSatz },
+    kosten: { titel: t.phaseKosten, satz: t.phaseKostenSatz },
+    offerte: { titel: t.phaseOfferte, satz: t.phaseOfferteSatz },
+    bestellen: { titel: t.phaseBestellen, satz: t.phaseBestellenSatz },
+    ausliefern: { titel: t.phaseAusliefern, satz: t.phaseAusliefernSatz },
+    archiv: { titel: t.phaseArchiv, satz: t.phaseArchivSatz },
   }
 }
 
-/** Titel und erklaerender Satz je Abschnitt. Ohne Satz bleibt er weg. */
-function schrittTexte(t: AdminTexte): Record<Arbeitsschritt, { titel: string; satz?: string }> {
-  return {
-    neu: { titel: t.schrittNeuTitel, satz: t.schrittNeuSatz },
-    offerteRechnen: { titel: t.schrittOfferteRechnenTitel, satz: t.schrittOfferteRechnenSatz },
-    bereitZuBestellen: { titel: t.schrittBereitTitel, satz: t.schrittBereitSatz },
-    ausliefern: { titel: t.schrittAusliefernTitel, satz: t.schrittAusliefernSatz },
-    zahlungOffen: { titel: t.schrittZahlungOffenTitel, satz: t.schrittZahlungOffenSatz },
-    anfrageLaeuft: { titel: t.schrittAnfrageLaeuftTitel },
-    beimLieferanten: { titel: t.schrittBeimLieferantenTitel },
-    offerteDraussen: { titel: t.schrittOfferteDraussenTitel },
-    abgeschlossen: { titel: t.schrittAbgeschlossenTitel },
-    abgesagt: { titel: t.schrittAbgesagtTitel },
-  }
-}
+/**
+ * In welchen Abschnitten eine Runde zusammengestellt wird: In "Kosten
+ * klaeren" entsteht die Preisanfrage, in "Bestellen" die Bestellrunde.
+ * Ueberall sonst gibt es kein Kaestchen – eine Bestellung ohne geklaerte
+ * Angaben gehoert in keine Anfrage, eine ohne Zusage in keine Bestellung.
+ */
+const MIT_KAESTCHEN: readonly Abschnitt[] = ['kosten', 'bestellen']
 
 /**
  * Der Adminbereich. Die aeussere Huelle setzt nur den Sprachrahmen; die
@@ -103,20 +93,15 @@ function AdminMaske({ onBack }: AdminPageProps) {
   const [offeneRunde, setOffeneRunde] = useState<string | null>(null)
   /** Welche Bestellung gerade als Offerte angezeigt wird. */
   const [offeneOfferte, setOffeneOfferte] = useState<string | null>(null)
-  /*
-   * Die Wartezimmer starten zugeklappt: Dort ist nichts zu tun, und der Platz
-   * gehoert der Arbeitsliste. Das Archiv ebenso.
-   */
-  const [zugeklappt, setZugeklappt] = useState<Block[]>(['beimLieferanten', 'beimKunden', 'archiv'])
+  /* Nur das Archiv startet zugeklappt: Die sechs Phasen sind die Arbeit. */
+  const [zugeklappt, setZugeklappt] = useState<Abschnitt[]>(['archiv'])
   const { sprache, setzeSprache, t } = useSprache()
 
   const laden = useCallback(async () => {
     setFehler(null)
     try {
-      // Beides zusammen, und nicht nacheinander: Ohne die Runden weiss die
-      // Uebersicht nicht, wo die Ware steht – `arbeitsschritt()` braucht
-      // beide Seiten, sonst stuenden alle Bestellungen kurz an der falschen
-      // Stelle.
+      // Beides zusammen: Die Karte zeigt, in welcher Runde eine Bestellung
+      // steckt, und die Auswahlleiste weiss so, welche Art Runde entsteht.
       const [b, l] = await Promise.all([ladeBestellungen(), ladeLieferungen()])
       setBestellungen(b)
       setLieferungen(l)
@@ -252,32 +237,36 @@ function AdminMaske({ onBack }: AdminPageProps) {
     )
   }
 
-  /*
-   * Einmal gruppieren, nicht einmal je Abschnitt. Die Zuordnung liest die
-   * Runden mit, und das je Karte zu wiederholen waere bei zehn Runden zehnmal
-   * dieselbe Suche.
-   */
-  const gruppen = nachSchritt(bestellungen, lieferungen)
-  const zuTun = (['neu', 'offerteRechnen', 'bereitZuBestellen', 'ausliefern', 'zahlungOffen'] as const).reduce(
-    (n, sch) => n + gruppen.get(sch)!.length,
-    0,
-  )
+  const gruppen = nachAbschnitt(bestellungen)
+  const zuTun = bestellungen.length - gruppen.get('archiv')!.length
   const gewaehlte = bestellungen.filter((b) => runde.includes(b.id))
+  /*
+   * Welche Art Runde aus der Auswahl wuerde. Aus "Kosten klaeren" wird eine
+   * Preisanfrage, aus "Bestellen" eine Bestellrunde. Beides gemischt ergibt
+   * kein sinnvolles Dokument – dann sagt die Leiste das, statt es anzulegen.
+   */
+  const ausKosten = gewaehlte.filter((b) => b.status === 'kosten').length
+  const ausBestellen = gewaehlte.filter((b) => b.status === 'bestellen').length
+  const gemischt = ausKosten > 0 && ausBestellen > 0
 
   const waehle = (id: string, an: boolean) =>
     setRunde((liste) => (an ? [...liste, id] : liste.filter((x) => x !== id)))
 
   const handleLieferung = async (id: string, aenderung: LieferungAenderung) => {
-    const { lieferung, einkauf, ohneZusage } = await lieferungAendern(id, aenderung)
+    const { lieferung, einkauf, zurueckgeblieben } = await lieferungAendern(id, aenderung)
     setLieferungen((liste) => liste.map((l) => (l.id === id ? lieferung : l)))
     /*
-     * Nachgeladen wird nur, wenn der Server wirklich Bestellungen angefasst
-     * hat: beim Herausnehmen, beim Aussortieren ohne Zusage und wenn Boras
-     * Preise zurueckgeschrieben wurden. Ein blosser Statuswechsel der Runde
-     * aendert keine Bestellung mehr – die Uebersicht liest den Stand der
-     * Ware direkt aus der Runde, die hier gerade neu gesetzt wurde.
+     * Nachgeladen wird, wenn der Server Bestellungen angefasst haben kann:
+     * beim Rundenklick (der setzt Phasen), beim Herausnehmen und wenn Boras
+     * Preise oder der Zoll zurueckgeschrieben wurden. Blosse Felder der
+     * Runde – Termin, Bemerkung, unterwegs – aendern keine Bestellung.
      */
-    if (aenderung.entfernen || (einkauf ?? 0) > 0 || (ohneZusage?.length ?? 0) > 0) {
+    if (
+      aenderung.status !== undefined ||
+      aenderung.entfernen ||
+      (einkauf ?? 0) > 0 ||
+      (zurueckgeblieben?.length ?? 0) > 0
+    ) {
       setBestellungen(await ladeBestellungen())
     }
   }
@@ -400,11 +389,13 @@ function AdminMaske({ onBack }: AdminPageProps) {
           <div className="admin__runde">
             <span>
               <strong>{gewaehlte.length}</strong> {gewaehlte.length === 1 ? t.bestellung : t.bestellungen}{' '}
-              {t.fuerLieferrundeGewaehlt}
+              {gemischt ? t.fuerLieferrundeGewaehlt : ausBestellen > 0 ? t.fuerBestellrunde : t.fuerPreisanfrage}
             </span>
+            {gemischt && <span className="lieferung__warnung">{t.gemischteAuswahl}</span>}
             <button
               type="button"
               className="btn"
+              disabled={gemischt}
               onClick={async () => {
                 try {
                   const neue = await lieferungAnlegen(gewaehlte.map((b) => b.id))
@@ -463,65 +454,49 @@ function AdminMaske({ onBack }: AdminPageProps) {
           </section>
         )}
 
-        {BLOCK_FOLGE.map((block) => {
-          const schritte = SCHRITTE.filter((sch) => BLOCK_VON[sch] === block)
-          const anzahl = schritte.reduce((n, sch) => n + gruppen.get(sch)!.length, 0)
-          const texte = blockTexte(t)[block]
-          const zu = zugeklappt.includes(block)
+        {ABSCHNITTE.map((abschnitt) => {
+          const treffer = gruppen.get(abschnitt)!
+          const texte = abschnittTexte(t)[abschnitt]
+          const zu = zugeklappt.includes(abschnitt)
+          const nummer = abschnitt === 'archiv' ? null : ABSCHNITTE.indexOf(abschnitt) + 1
 
           return (
-            <section className={`admin__block admin__block--${block}`} key={block}>
+            <section className={`admin__block admin__block--${abschnitt}`} key={abschnitt}>
               <button
                 type="button"
                 className="admin__block-kopf"
                 aria-expanded={!zu}
                 onClick={() =>
-                  setZugeklappt((liste) => (zu ? liste.filter((x) => x !== block) : [...liste, block]))
+                  setZugeklappt((liste) => (zu ? liste.filter((x) => x !== abschnitt) : [...liste, abschnitt]))
                 }
               >
                 <h2>
-                  {texte.titel} <span className="admin__zahl">{anzahl}</span>
+                  {nummer !== null && <span className="admin__phase-nummer">{nummer}</span>}
+                  {texte.titel} <span className="admin__zahl">{treffer.length}</span>
                 </h2>
                 <p>{texte.satz}</p>
               </button>
 
-              {!zu &&
-                schritte.map((sch) => {
-                  const treffer = gruppen.get(sch)!
-                  // Leere Abschnitte innerhalb eines Blocks bleiben weg. Eine
-                  // Ueberschrift ueber nichts ist nur Weg zum naechsten.
-                  if (treffer.length === 0) return null
-                  const st = schrittTexte(t)[sch]
-                  return (
-                    <div className="admin__sektion" key={sch}>
-                      <div className="admin__sektion-kopf">
-                        <h3>
-                          {st.titel} <span className="admin__zahl">{treffer.length}</span>
-                        </h3>
-                        {st.satz && <p>{st.satz}</p>}
-                      </div>
-                      <ul className="admin__karten">
-                        {treffer.map((b) => (
-                          <BestellKarte
-                            key={b.id}
-                            bestellung={b}
-                            schritt={sch}
-                            runde={rundeFuer(b, lieferungen)}
-                            montageProNetz={shopConfig.montageChf}
-                            onAendern={handleAendern}
-                            onLoeschen={handleLoeschen}
-                            onOfferte={setOffeneOfferte}
-                            gewaehlt={runde.includes(b.id)}
-                            // Abgeschlossenes gehoert in keine Runde mehr.
-                            onWahl={block === 'archiv' ? undefined : waehle}
-                          />
-                        ))}
-                      </ul>
-                    </div>
-                  )
-                })}
+              {!zu && treffer.length > 0 && (
+                <ul className="admin__karten">
+                  {treffer.map((b) => (
+                    <BestellKarte
+                      key={b.id}
+                      bestellung={b}
+                      abschnitt={abschnitt}
+                      runde={rundeFuer(b, lieferungen)}
+                      montageProNetz={shopConfig.montageChf}
+                      onAendern={handleAendern}
+                      onLoeschen={handleLoeschen}
+                      onOfferte={setOffeneOfferte}
+                      gewaehlt={runde.includes(b.id)}
+                      onWahl={MIT_KAESTCHEN.includes(abschnitt) ? waehle : undefined}
+                    />
+                  ))}
+                </ul>
+              )}
 
-              {!zu && anzahl === 0 && <p className="admin__leer">{t.nichtsHier}</p>}
+              {!zu && treffer.length === 0 && <p className="admin__leer">{t.nichtsHier}</p>}
             </section>
           )
         })}

@@ -39,7 +39,7 @@ interface RundenTabelleProps {
   lieferung: Lieferung
   bestellungen: Bestellung[]
   onBestellungAendern: (id: string, positionen: BestellPosition[]) => Promise<void>
-  onLieferungAendern: (aenderung: Partial<Lieferung>) => Promise<void>
+  onLieferungAendern: (aenderung: Pick<Partial<Lieferung>, 'zusatz' | 'ausgeschlossen'>) => Promise<void>
 }
 
 const LEERE_ZUSATZZEILE = (): LieferungZeile => ({

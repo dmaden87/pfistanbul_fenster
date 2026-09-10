@@ -188,15 +188,21 @@ function datum(wert: unknown): string | undefined {
 }
 
 /**
- * Eine abgesagte Bestellung darf nicht in einer Runde weiterlaufen.
+ * Eine Bestellung, die ihre Runde verlaesst – weil sie abgesagt wurde
+ * ("storno") oder zurueck in die Auftragsklaerung geht ("aenderung": neue
+ * Masse heissen neue Preise).
  *
  * Im Entwurf fliegt sie einfach raus – dort ist noch nichts verbindlich.
  * In einer eingefrorenen Runde (angefragt, Preise da) bleibt ihre Zeile mit
- * Nummer stehen und wird durchgestrichen, Grund "storno". Ab "bestellt"
+ * Nummer stehen und wird durchgestrichen, mit dem Grund. Ab "bestellt"
  * bleibt sie drin: Bora fertigt bereits, die Ware kommt ohnehin, und die
  * Rechnung der Runde muss das als Kosten zeigen, nicht verschweigen.
  */
-async function ausRundenNehmenBeiAbsage(bestellungId: string, runden: RundenBlick[]): Promise<void> {
+async function ausRundenNehmen(
+  bestellungId: string,
+  runden: RundenBlick[],
+  grund: 'storno' | 'aenderung',
+): Promise<void> {
   const alle = await hGetAll(TABELLE_LIEFERUNGEN)
   for (const [id, wert] of Object.entries(alle)) {
     let runde: Record<string, unknown>
@@ -214,7 +220,7 @@ async function ausRundenNehmenBeiAbsage(bestellungId: string, runden: RundenBlic
       const entfernt = Array.isArray(runde.entfernt) ? (runde.entfernt as Record<string, unknown>[]) : []
       runde.entfernt = [
         ...entfernt.filter((a) => a.bestellungId !== bestellungId),
-        { bestellungId, grund: 'storno', zeitpunkt: new Date().toISOString() },
+        { bestellungId, grund, zeitpunkt: new Date().toISOString() },
       ]
     }
     runde.geaendert = new Date().toISOString()
@@ -569,13 +575,18 @@ async function aendern(req: VercelRequest, res: VercelResponse) {
     if (!STATUS.includes(koerper.status as Status)) return res.status(400).json({ error: 'Unbekannter Status.' })
     const neu = koerper.status as Status
     if (neu !== bestellung.status) {
+      const vorher = bestellung.status
       bestellung.status = neu
       // Seit wann sie in dieser Phase steht – fuer "seit n Tagen" auf der Karte.
       bestellung.phaseSeit = jetzt
       if (neu === 'abgesagt') {
         bestellung.absageAm = jetzt
         bestellung.absageGrund = absageGrund(koerper.absageGrund) ?? bestellung.absageGrund
-        await ausRundenNehmenBeiAbsage(bestellung.id, runden)
+        await ausRundenNehmen(bestellung.id, runden, 'storno')
+      } else if (neu === 'klaerung' && (vorher === 'kosten' || vorher === 'offerte' || vorher === 'bestellen')) {
+        // Aenderungswunsch: zurueck zur Klaerung heisst raus aus der
+        // Anfrage – Bora bekaeme sonst Preise fuer Masse, die nicht mehr gelten.
+        await ausRundenNehmen(bestellung.id, runden, 'aenderung')
       } else {
         // Wiederoeffnen: Die Absage ist Geschichte, nicht Zustand.
         delete bestellung.absageAm

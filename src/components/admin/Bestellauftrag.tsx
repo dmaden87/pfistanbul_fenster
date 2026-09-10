@@ -191,6 +191,13 @@ export function Bestellauftrag({ lieferung, bestellungen, onZurueck }: Bestellau
 
       {/* Ab hier das Dokument, das gedruckt wird. Querformat. */}
       <article className="blatt" data-druckblatt>
+        {/*
+          Der Entwurf traegt seinen Namen quer ueber dem Kopf – auch im
+          Druck. Ein Blatt ohne diesen Balken ist verschickt oder
+          verschickbar; eines mit Balken darf Bora nie erreichen. Die
+          Nummerierung eines Entwurfs ist noch nicht verbindlich.
+        */}
+        {lieferung.status === 'entwurf' && <p className="blatt__entwurf">{m.entwurfBalken}</p>}
         <header className="blatt__kopf">
           {/*
             Keine Anschrift: Das Blatt ist ein Arbeitspapier zwischen drei

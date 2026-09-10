@@ -8,9 +8,11 @@ import { rechne } from '../../lib/lieferung'
 import { formatChf } from '../../lib/format'
 import { shopConfig } from '../../data/shopConfig'
 import { Bestellauftrag } from './Bestellauftrag'
-import { datum } from './hilfen'
+import { datum, tag } from './hilfen'
 import { fuelle, useSprache } from './sprache'
 import type { LieferungAenderung } from '../../lib/lieferungApi'
+import { kennungFuer } from '../../lib/bestellauftrag'
+import { ohneEinkauf } from '../../lib/phasen'
 import './LieferungSeite.css'
 
 /**
@@ -25,6 +27,12 @@ import './LieferungSeite.css'
  * Nummer ein, und wuerde jemand danach ein Netz aendern oder ergaenzen,
  * landeten seine Preise am falschen Netz. Bis dahin laesst sich alles noch
  * korrigieren, danach nichts mehr.
+ *
+ * JEDER STANDWECHSEL IST EIN RUNDENKLICK MIT KAESTCHEN. Ein Klick listet
+ * alle Bestellungen der Runde auf, alle angekreuzt; wer nicht mitgehen soll,
+ * wird abgewaehlt. Die Gewaehlten ruecken in ihre naechste Phase, die
+ * anderen bleiben – wo genau, sagt der Satz ueber der Liste. So entscheidet
+ * der Betreiber je Bestellung, ohne je Bestellung klicken zu muessen.
  */
 
 interface LieferungSeiteProps {
@@ -86,6 +94,13 @@ export function LieferungSeite({
     lieferung.lieferkostenChf === undefined ? '' : String(lieferung.lieferkostenChf),
   )
   const [termin, setTermin] = useState(lieferung.termin ?? '')
+  const [zoll, setZoll] = useState<Record<string, string>>(() => {
+    const roh = lieferung.zollJePaket ?? {}
+    return Object.fromEntries(Object.entries(roh).map(([k, v]) => [k, String(v)]))
+  })
+  /** Der offene Rundenklick: welcher Stand, und wer geht mit. */
+  const [klick, setKlick] = useState<{ stand: LieferungStatus; mit: string[] } | null>(null)
+  const [zurueckgeblieben, setZurueckgeblieben] = useState<number | null>(null)
 
   const rechnung = rechne(lieferung, bestellungen)
   const paketliste = pakete(
@@ -108,11 +123,11 @@ export function LieferungSeite({
   }
 
   /**
-   * Friert die Zeilen ein. Ab hier ist die Nummerierung verbindlich, denn
-   * Bora bezieht seine Preise darauf.
+   * Die Zeilen zum Einfrieren. Ab hier ist die Nummerierung verbindlich,
+   * denn Bora bezieht seine Preise darauf.
    */
-  const anfrageVersendet = async () => {
-    const zeilen: LieferungZeile[] = auftrag.zeilen.map((z) => ({
+  const eingefroreneZeilen = (): LieferungZeile[] =>
+    auftrag.zeilen.map((z) => ({
       nummer: z.nummer,
       kennung: z.kennung,
       /*
@@ -131,7 +146,58 @@ export function LieferungSeite({
       mechanismus: z.mechanismus,
       oeffnung: z.oeffnung,
     }))
-    await schritt({ status: 'angefragt', zeilen })
+
+  /**
+   * Alle Netze aller Bestellungen tragen schon Einkaufspreise – aus einer
+   * frueheren Runde. Dann ist die Anfrage an Bora ueberfluessig: Die Runde
+   * wird direkt zur Bestellrunde und steht auf "Preise erhalten".
+   */
+  const preiseSchonDa = dabei.length > 0 && dabei.every((b) => b.positionen.length > 0 && ohneEinkauf(b) === 0)
+
+  /** Oeffnet den Rundenklick: alle Bestellungen der Runde, alle angekreuzt. */
+  const klickOeffnen = (stand: LieferungStatus) => {
+    setZurueckgeblieben(null)
+    // Beim verbindlichen Bestellen sind die ohne Zusage von vornherein
+    // abgewaehlt – der Vorschlag, nicht die Entscheidung.
+    const mit = stand === 'bestellt' ? dabei.filter((b) => b.zusageAm).map((b) => b.id) : dabei.map((b) => b.id)
+    setKlick({ stand, mit })
+  }
+
+  /** Fuehrt den offenen Rundenklick aus. */
+  const klickAusfuehren = async () => {
+    if (!klick) return
+    const aenderung: LieferungAenderung = { status: klick.stand, mitnehmen: klick.mit }
+    // Der erste Klick friert die Zeilen ein – nur die der Mitgehenden.
+    if (lieferung.status === 'entwurf') {
+      const geht = new Set(klick.mit)
+      aenderung.zeilen = eingefroreneZeilen().filter((z) => !z.herkunft || geht.has(z.herkunft.bestellungId))
+    }
+    setSendet(true)
+    setFehler(null)
+    try {
+      await onAendern(lieferung.id, aenderung)
+      setZurueckgeblieben(dabei.length - klick.mit.length)
+      setKlick(null)
+    } catch (f) {
+      setFehler(f instanceof Error ? f.message : 'Fehler')
+    } finally {
+      setSendet(false)
+    }
+  }
+
+  const klickSatz = (stand: LieferungStatus): string => {
+    switch (stand) {
+      case 'angefragt':
+        return t.klickAngefragtSatz
+      case 'preise':
+        return t.klickPreiseSatz
+      case 'bestellt':
+        return t.klickBestelltSatz
+      case 'geliefert':
+        return t.klickGeliefertSatz
+      default:
+        return ''
+    }
   }
 
   /*
@@ -153,10 +219,16 @@ export function LieferungSeite({
       const betrag = zahl(wert)
       if (betrag !== undefined) jePaket[kennung] = betrag
     }
+    const zollJePaket: Record<string, number> = {}
+    for (const [kennung, wert] of Object.entries(zoll)) {
+      const betrag = zahl(wert)
+      if (betrag !== undefined) zollJePaket[kennung] = betrag
+    }
     await schritt({
       zeilen,
       lieferkostenJePaket: jePaket,
       lieferkostenChf: zahl(frachtGesamt),
+      zollJePaket,
       termin: termin || undefined,
     })
   }
@@ -197,13 +269,21 @@ export function LieferungSeite({
       <div className="lieferung__schritte">
         {lieferung.status === 'entwurf' && (
           <>
-            <button type="button" className="btn" onClick={anfrageVersendet} disabled={sendet || auftrag.luecken.length > 0}>
-              {t.dokumentErzeugen}
+            <button
+              type="button"
+              className="btn"
+              onClick={() => klickOeffnen(preiseSchonDa ? 'preise' : 'angefragt')}
+              disabled={sendet || auftrag.luecken.length > 0 || dabei.length === 0}
+            >
+              {preiseSchonDa ? t.bestellrundeEinfrieren : t.dokumentErzeugen}
             </button>
             {auftrag.luecken.length > 0 && (
               <span className="lieferung__warnung">
                 {fuelle(t.erstFehlenAngaben, { n: auftrag.luecken.length })}
               </span>
+            )}
+            {preiseSchonDa && auftrag.luecken.length === 0 && (
+              <span className="admin__zusammenfassung">{t.bestellrundeEinfrierenSatz}</span>
             )}
           </>
         )}
@@ -214,7 +294,7 @@ export function LieferungSeite({
         */}
         {lieferung.status === 'angefragt' &&
           (rechnung.zeilenOhnePreis === 0 && lieferung.zeilen.length > 0 ? (
-            <button type="button" className="btn" onClick={() => schritt({ status: 'preise' })} disabled={sendet}>
+            <button type="button" className="btn" onClick={() => klickOeffnen('preise')} disabled={sendet}>
               {t.allePreiseDa}
             </button>
           ) : (
@@ -229,16 +309,49 @@ export function LieferungSeite({
           <button
             type="button"
             className="btn"
-            onClick={() => schritt({ status: 'bestellt' })}
+            onClick={() => klickOeffnen('bestellt')}
             disabled={sendet || rechnung.zeilenOhnePreis > 0}
           >
             {t.bestellungErteilen}
           </button>
         )}
         {lieferung.status === 'bestellt' && (
-          <button type="button" className="btn" onClick={() => schritt({ status: 'geliefert' })} disabled={sendet}>
-            {t.istAngekommen}
-          </button>
+          <>
+            <button type="button" className="btn" onClick={() => klickOeffnen('geliefert')} disabled={sendet}>
+              {t.istAngekommen}
+            </button>
+            {/*
+              "Unterwegs" ist kein Stand der Runde, sondern ein Stempel:
+              Bora hat verschickt. Die Bestellungen bleiben in "Bestellen",
+              aber der Betreiber weiss, dass er bald Ware auspackt.
+            */}
+            {lieferung.versandAm ? (
+              <>
+                <span className="admin__marke admin__marke--gut">
+                  {t.unterwegs} {tag(lieferung.versandAm, ort)}
+                </span>
+                <button type="button" className="btn btn--quiet" onClick={() => schritt({ versandAm: false })} disabled={sendet}>
+                  {t.knopfUnterwegsZurueck}
+                </button>
+              </>
+            ) : (
+              <button type="button" className="btn btn--ghost" onClick={() => schritt({ versandAm: true })} disabled={sendet}>
+                {t.knopfUnterwegs}
+              </button>
+            )}
+          </>
+        )}
+        {lieferung.status === 'geliefert' && (
+          /*
+           * Nachlieferung: Wer beim "Ist angekommen" abgewaehlt wurde, steht
+           * noch in der Runde und wartet. Derselbe Klick nochmals holt sie
+           * nach, sobald die Ware da ist.
+           */
+          dabei.some((b) => b.wareFehltSeit) && (
+            <button type="button" className="btn" onClick={() => klickOeffnen('geliefert')} disabled={sendet}>
+              {t.knopfNachlieferungDa}
+            </button>
+          )
         )}
         {lieferung.status !== 'entwurf' && lieferung.status !== 'geliefert' && (
           <button
@@ -296,6 +409,52 @@ export function LieferungSeite({
           </button>
         )}
       </div>
+
+      {zurueckgeblieben !== null && zurueckgeblieben > 0 && (
+        <p className="lieferung__warnung">{fuelle(t.zurueckgebliebenSatz, { n: zurueckgeblieben })}</p>
+      )}
+
+      {/* --- Der Rundenklick: wer geht mit? ------------------------------- */}
+      {klick && (
+        <section className="lieferung__block lieferung__klick">
+          <h2>{t.klickWerGehtMit}</h2>
+          <p className="admin__zusammenfassung">{klickSatz(klick.stand)}</p>
+          <ul className="runden-best">
+            {dabei.map((b) => (
+              <li key={b.id} className="runden-best__zeile">
+                <label className="admin__haken">
+                  <input
+                    type="checkbox"
+                    checked={klick.mit.includes(b.id)}
+                    onChange={(e) =>
+                      setKlick((k) =>
+                        k && { ...k, mit: e.target.checked ? [...k.mit, b.id] : k.mit.filter((x) => x !== b.id) },
+                      )
+                    }
+                  />
+                  <span className="runden-best__kennung">{kennungFuer(b)}</span>
+                </label>
+                <span className="runden-best__name">{b.kunde.name}</span>
+                {klick.stand === 'bestellt' && !b.zusageAm && (
+                  <span className="admin__marke admin__marke--warnung">{t.ohneZusageMarke}</span>
+                )}
+                {klick.stand === 'geliefert' && b.wareFehltSeit && (
+                  <span className="admin__marke admin__marke--warnung">{t.wareFehltMarke}</span>
+                )}
+                <span className="runden-best__preis">{formatChf(b.summeChf)}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="lieferung__schritte">
+            <button type="button" className="btn" onClick={klickAusfuehren} disabled={sendet || klick.mit.length === 0}>
+              {klick.mit.length === 0 ? t.klickKeine : fuelle(t.klickBestaetigen, { n: klick.mit.length })}
+            </button>
+            <button type="button" className="btn btn--quiet" onClick={() => setKlick(null)} disabled={sendet}>
+              {t.abbrechen}
+            </button>
+          </div>
+        </section>
+      )}
 
       {/*
         Wer ist ueberhaupt dabei? Die Frage steht vor den Netzzeilen, denn
@@ -388,6 +547,31 @@ export function LieferungSeite({
             </label>
           </div>
           <p className="admin__zusammenfassung">{t.ganzeLieferungGilt}</p>
+
+          {/*
+            Zoll, Einfuhrsteuer, Gebuehren: erst ab "bestellt", denn vorher
+            gibt es keinen Bescheid. Ein Feld je Paket, alles zusammengerechnet.
+          */}
+          {(lieferung.status === 'bestellt' || lieferung.status === 'geliefert') && (
+            <>
+              <h3 className="lieferung__untertitel">{t.zollJePaket}</h3>
+              <p className="admin__zusammenfassung">{t.zollJePaketSatz}</p>
+              <div className="lieferung__fracht">
+                {paketliste.map((p) => (
+                  <label className="lieferung__frachtfeld" key={`zoll-${p.kennung}`}>
+                    <span>{p.kennung}</span>
+                    <input
+                      className="input lieferung__feld"
+                      inputMode="decimal"
+                      aria-label={`${t.zoll} ${p.kennung}`}
+                      value={zoll[p.kennung] ?? ''}
+                      onChange={(e) => setZoll((z) => ({ ...z, [p.kennung]: e.target.value }))}
+                    />
+                  </label>
+                ))}
+              </div>
+            </>
+          )}
 
           {/*
             Eigener Abschnitt und nicht in der Reihe der Kostenfelder: Ein

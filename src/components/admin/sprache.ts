@@ -67,61 +67,60 @@ const PAARE = {
   neuKlein: ['neu', 'yeni'],
   inOfferte: ['in Offerte', 'teklifte'],
 
-  /* --- Bloecke und Abschnitte der Arbeitsliste ---------------------------- */
-  blockBeiDir: ['Bei dir', 'Sende'],
-  blockBeiDirSatz: [
-    'Hier ist etwas zu tun.',
-    'Burada yapılacak bir şey var.',
+  /* --- Die sechs Phasen und das Archiv ------------------------------------ */
+  phaseNeu: ['Neu', 'Yeni'],
+  phaseNeuSatz: [
+    'Eingegangen. Annehmen – oder absagen, wenn es Spam oder ein Doppel ist.',
+    'Geldi. Kabul edin – ya da spam veya kopya ise iptal edin.',
   ],
-  blockBeimLieferanten: ['Bei Bora', 'Bora’da'],
-  blockBeimLieferantenSatz: [
-    'Läuft. Wir warten auf den Lieferanten.',
-    'Devam ediyor. Tedarikçiyi bekliyoruz.',
+  phaseKlaerung: ['Auftragsklärung', 'Sipariş netleştirme'],
+  phaseKlaerungSatz: [
+    'Termin beim Kunden, ausmessen, Netze erfassen. Weiter, sobald alle Angaben da sind.',
+    'Müşteride randevu, ölçüm, sineklikleri girin. Tüm bilgiler tamam olunca devam.',
   ],
-  blockBeimKunden: ['Beim Kunden', 'Müşteride'],
-  blockBeimKundenSatz: [
-    'Die Offerte ist draussen. Wir warten auf die Zusage.',
-    'Teklif gönderildi. Onayı bekliyoruz.',
+  phaseKosten: ['Kosten klären', 'Maliyet netleştirme'],
+  phaseKostenSatz: [
+    'Für die Preisanfrage an Bora ankreuzen. Zurück kommen die Einkaufspreise.',
+    'Bora’ya fiyat talebi için işaretleyin. Alış fiyatları geri gelir.',
   ],
-  blockArchiv: ['Archiv', 'Arşiv'],
-  blockArchivSatz: [
+  phaseOfferte: ['Angebot erstellen', 'Teklif hazırlama'],
+  phaseOfferteSatz: [
+    'Offerte rechnen, verschicken, auf die Zusage warten.',
+    'Teklifi hesaplayın, gönderin, onayı bekleyin.',
+  ],
+  phaseBestellen: ['Bestellen', 'Sipariş verme'],
+  phaseBestellenSatz: [
+    'Zugesagt. Für die Bestellrunde bei Bora ankreuzen; die Ware kommt mit der Runde.',
+    'Onaylandı. Bora’daki sipariş turu için işaretleyin; mal turla gelir.',
+  ],
+  phaseAusliefern: ['Ausliefern', 'Teslim etme'],
+  phaseAusliefernSatz: [
+    'Die Ware ist da. Termin machen, übergeben, kassieren.',
+    'Mal geldi. Randevu alın, teslim edin, tahsil edin.',
+  ],
+  phaseArchiv: ['Archiv', 'Arşiv'],
+  phaseArchivSatz: [
     'Abgeschlossen oder abgesagt. Bleibt zum Nachschlagen stehen.',
     'Tamamlandı veya iptal edildi. Bakmak için burada kalır.',
   ],
 
-  schrittNeuTitel: ['Neu – Preis anfragen', 'Yeni – fiyat sor'],
-  schrittNeuSatz: [
-    'Für die Lieferrunde ankreuzen und eine Preisanfrage an Bora auslösen.',
-    'Sevkiyat turu için işaretleyin ve Bora’dan fiyat isteyin.',
-  ],
-  schrittOfferteRechnenTitel: ['Kosten da – Offerte rechnen', 'Maliyet geldi – teklifi hesapla'],
-  schrittOfferteRechnenSatz: [
-    'Boras Preise liegen vor. Offerte erstellen, verschicken und hier abhaken.',
-    'Bora’nın fiyatları geldi. Teklifi hazırlayın, gönderin ve burada işaretleyin.',
-  ],
-  schrittBereitTitel: ['Bereit zum Bestellen', 'Sipariş için hazır'],
-  schrittBereitSatz: [
-    'Zugesagt. Für die nächste Bestellrunde ankreuzen.',
-    'Onaylandı. Bir sonraki sipariş turu için işaretleyin.',
-  ],
-  schrittAusliefernTitel: ['Ware da – ausliefern', 'Mal geldi – teslim et'],
-  schrittAusliefernSatz: [
-    'Die Lieferung ist eingetroffen. Termin machen, übergeben, kassieren.',
-    'Sevkiyat geldi. Randevu alın, teslim edin, tahsil edin.',
-  ],
-  schrittZahlungOffenTitel: ['Ausgeliefert – Zahlung offen', 'Teslim edildi – ödeme bekliyor'],
-  schrittZahlungOffenSatz: [
-    'Übergeben, aber noch nicht bezahlt.',
-    'Teslim edildi ama henüz ödenmedi.',
-  ],
-  schrittAnfrageLaeuftTitel: ['Preisanfrage läuft', 'Fiyat talebi gönderildi'],
-  schrittBeimLieferantenTitel: ['Bestellt, unterwegs', 'Sipariş verildi, yolda'],
-  schrittOfferteDraussenTitel: ['Offerte draussen', 'Teklif dışarıda'],
-  schrittAbgeschlossenTitel: ['Abgeschlossen', 'Tamamlandı'],
-  schrittAbgesagtTitel: ['Abgesagt', 'İptal edildi'],
-
   inRunde: ['in Runde', 'turda'],
-  zuTun: ['zu tun', 'yapılacak'],
+  zuTun: ['in Arbeit', 'devam eden'],
+  seitTagen: ['seit {n} Tagen hier', '{n} gündür burada'],
+  entfaelltMarke: ['Katalogware – Phasen 1–4 entfallen', 'Katalog ürünü – 1–4. aşamalar yok'],
+  zugesagtMarke: ['zugesagt am', 'onaylandı'],
+  zahlungAusstehendMarke: ['Onlinezahlung nicht eingegangen', 'Online ödeme gelmedi'],
+  wareFehltMarke: ['Ware fehlt – wartet auf Nachlieferung', 'Mal eksik – ek sevkiyat bekliyor'],
+  angabenFehlenMarke: ['{n} Angabe(n) fehlen', '{n} bilgi eksik'],
+  einkaufspreiseStand: ['{da} von {alle} Einkaufspreisen da', '{alle} alış fiyatından {da} tanesi var'],
+  nochNichtInRunde: ['noch in keiner Runde', 'henüz hiçbir turda değil'],
+  restbetrag: ['Rest offen', 'Kalan'],
+
+  /* --- Felder je Phase --------------------------------------------------- */
+  klaerungTermin: ['Termin Auftragsklärung', 'Netleştirme randevusu'],
+  montageTermin: ['Liefer-/Montagetermin', 'Teslim/montaj tarihi'],
+  zahlungKommentar: ['Zur Zahlung (bar, TWINT, Rate …)', 'Ödeme notu (nakit, TWINT, taksit …)'],
+  speichern: ['Speichern', 'Kaydet'],
 
   /* --- Art und Quelle ---------------------------------------------------- */
   artBestellung: ['Bestellung', 'Sipariş'],
@@ -173,22 +172,38 @@ const PAARE = {
   offenRichtung: ['offen', 'eksik'],
   zuVielRichtung: ['zu viel bezahlt', 'fazla ödendi'],
 
-  /* --- Schritte ---------------------------------------------------------- */
+  /* --- Knoepfe je Phase -------------------------------------------------- */
+  knopfAngenommen: ['Angenommen – Auftragsklärung', 'Kabul edildi – netleştirme'],
+  knopfKlaerungFertig: ['Auftragsdetails vollständig – Kosten klären', 'Sipariş bilgileri tamam – maliyet'],
+  knopfKostenDa: ['Kosten da – Offerte rechnen', 'Maliyet geldi – teklifi hesapla'],
   knopfOfferteAnzeigen: ['Offerte anzeigen', 'Teklifi göster'],
   knopfOfferteRaus: ['Offerte ist raus', 'Teklif gönderildi'],
   knopfKundeZugesagt: ['Kunde hat zugesagt', 'Müşteri onayladı'],
+  knopfAenderungswunsch: ['Änderungswunsch – zurück zur Klärung', 'Değişiklik isteği – netleştirmeye dön'],
+  knopfZusageZurueck: ['Zusage zurücknehmen', 'Onayı geri al'],
+  knopfNachlieferungDa: ['Nachlieferung da – ausliefern', 'Ek sevkiyat geldi – teslim et'],
   knopfAbsagen: ['Absagen', 'İptal et'],
   knopfUebergeben: ['Übergeben & bezahlt', 'Teslim edildi & ödendi'],
-  knopfNurAusgeliefert: ['nur ausgeliefert', 'sadece teslim edildi'],
+  knopfNurAusgeliefert: ['nur übergeben', 'sadece teslim edildi'],
   knopfBezahlt: ['Bezahlt', 'Ödendi'],
   knopfWiederOeffnen: ['Wieder öffnen', 'Yeniden aç'],
-  knopfZurueckNeu: ['Zurück zu neu', 'Yeniye geri'],
+  knopfZurueck: ['Zurück zu «{phase}»', '«{phase}» aşamasına dön'],
+
+  /* --- Absage: warum ------------------------------------------------------ */
+  absageWarum: ['Absagen – warum?', 'İptal – neden?'],
+  grundSpam: ['Spam / Test', 'Spam / deneme'],
+  grundDoppelt: ['Doppelt erfasst', 'Çift kayıt'],
+  grundKeineAntwort: ['Keine Antwort vom Kunden', 'Müşteriden cevap yok'],
+  grundKunde: ['Kunde will nicht mehr', 'Müşteri vazgeçti'],
+  grundZuTeuer: ['Zu teuer', 'Çok pahalı'],
+  grundStorno: ['Storno nach Zusage', 'Onaydan sonra iptal'],
+  abgesagtWeil: ['abgesagt', 'iptal'],
 
   /* --- Bestellungen einer Runde ------------------------------------------- */
   bestellungenDerRunde: ['Bestellungen in dieser Runde', 'Bu turdaki siparişler'],
   bestellungenDerRundeSatz: [
-    'Beim verbindlichen Bestellen gehen nur die zugesagten mit. Wer hier ohne Zusage steht, fällt automatisch heraus und wartet auf die nächste Runde.',
-    'Kesin siparişte yalnızca onaylananlar gider. Burada onaysız duran otomatik olarak çıkar ve bir sonraki turu bekler.',
+    'Bei jedem Schritt der Runde entscheidest du mit Kästchen, wer mitgeht. Wer ohne Zusage in einer Bestellrunde steht, wird beim Bestellen vorgeschlagen, sie zurückzulassen.',
+    'Turun her adımında kim gidecek kutucuklarla siz karar verirsiniz. Onaysız duran, siparişte geride bırakılmak üzere önerilir.',
   ],
   ohneZusageMarke: ['ohne Zusage', 'onay yok'],
   ausDerRunde: ['Aus der Runde nehmen', 'Turdan çıkar'],
@@ -209,7 +224,7 @@ const PAARE = {
     'Satırlar belgede kalır ve üstü çizilir – böylece Bora fiyatlarını alışık olduğu numaralarda bulur.',
   ],
   gestrichen: ['gestrichen', 'iptal'],
-  bestellenNurZugesagte: ['Nur die zugesagten werden bestellt:', 'Yalnızca onaylananlar sipariş edilir:'],
+  bestellenNurZugesagte: ['Zugesagt haben bisher:', 'Şimdiye kadar onaylayanlar:'],
   vonInsgesamt: ['von', '/'],
 
   /* --- Einkauf und Marge --------------------------------------------------- */
@@ -282,8 +297,14 @@ const PAARE = {
     'Anfrage, Preise, Bestellung. Ein Dokument, das seinen Zustand mit sich führt.',
     'Talep, fiyatlar, sipariş. Durumunu kendisi taşıyan tek bir belge.',
   ],
-  fuerLieferrundeGewaehlt: ['für die Lieferrunde gewählt', 'sevkiyat turu için seçildi'],
-  lieferrundeAnlegen: ['Lieferrunde anlegen', 'Sevkiyat turu oluştur'],
+  fuerLieferrundeGewaehlt: ['für die Runde gewählt', 'tur için seçildi'],
+  lieferrundeAnlegen: ['Runde anlegen', 'Tur oluştur'],
+  fuerPreisanfrage: ['für die Preisanfrage', 'fiyat talebi için'],
+  fuerBestellrunde: ['für die Bestellrunde', 'sipariş turu için'],
+  gemischteAuswahl: [
+    'Gewählt sind Bestellungen aus «Kosten klären» und aus «Bestellen». Eine Runde ist entweder Preisanfrage oder Bestellrunde – bitte nur aus einem Abschnitt wählen.',
+    '«Maliyet» ve «Sipariş» bölümlerinden karışık seçim var. Bir tur ya fiyat talebi ya sipariş turudur – lütfen tek bölümden seçin.',
+  ],
   auswahlAufheben: ['Auswahl aufheben', 'Seçimi kaldır'],
 
   standEntwurf: ['Entwurf', 'Taslak'],
@@ -309,7 +330,44 @@ const PAARE = {
   angelegt: ['angelegt', 'oluşturuldu'],
   plissees: ['Plissees', 'plise'],
   dokumentAnzeigen: ['Dokument anzeigen', 'Belgeyi göster'],
-  dokumentErzeugen: ['Dokument erzeugen und Zeilen einfrieren', 'Belgeyi oluştur ve satırları dondur'],
+  dokumentErzeugen: ['Anfrage an Bora – Zeilen einfrieren', 'Bora’ya talep – satırları dondur'],
+  bestellrundeEinfrieren: ['Als Bestellrunde einfrieren – Preise sind da', 'Sipariş turu olarak dondur – fiyatlar var'],
+  bestellrundeEinfrierenSatz: [
+    'Alle Netze haben schon Einkaufspreise aus einer früheren Runde. Diese Runde überspringt die Anfrage und steht gleich auf «Preise erhalten».',
+    'Tüm sinekliklerin önceki turdan alış fiyatı var. Bu tur talebi atlar ve doğrudan «Fiyatlar geldi» olur.',
+  ],
+  entwurfBalken: ['ENTWURF – noch nicht verschickt', 'TASLAK – henüz gönderilmedi'],
+  unterwegs: ['Unterwegs seit', 'Yolda, tarih'],
+  knopfUnterwegs: ['Ist unterwegs', 'Yola çıktı'],
+  knopfUnterwegsZurueck: ['doch nicht unterwegs', 'yola çıkmadı'],
+  zollJePaket: ['Zoll, Einfuhrsteuer und Gebühren je Paket', 'Paket başına gümrük, ithalat vergisi ve ücretler'],
+  zollJePaketSatz: [
+    'Ein Betrag je Paket, alles zusammengerechnet. Kommt Wochen nach der Ware und landet als Anteil auf der Bestellung.',
+    'Paket başına tek tutar, hepsi toplanmış. Maldan haftalar sonra gelir ve pay olarak siparişe yazılır.',
+  ],
+  zoll: ['Zoll', 'Gümrük'],
+
+  /* --- Rundenklick mit Kaestchen ---------------------------------------- */
+  klickWerGehtMit: ['Wer geht mit?', 'Kim gidiyor?'],
+  klickAngefragtSatz: [
+    'Abgewählte fallen aus dem Entwurf und bleiben in «Kosten klären».',
+    'Seçilmeyenler taslaktan çıkar ve «Maliyet» bölümünde kalır.',
+  ],
+  klickPreiseSatz: [
+    'Die Gewählten gehen nach «Angebot erstellen». Abgewählte bleiben in «Kosten klären», mit ihren Preisen.',
+    'Seçilenler «Teklif» aşamasına geçer. Seçilmeyenler fiyatlarıyla «Maliyet» bölümünde kalır.',
+  ],
+  klickBestelltSatz: [
+    'Die Gewählten werden verbindlich bestellt und gelten als zugesagt. Abgewählte verlassen die Runde («keine Zusage») und behalten ihre Preise.',
+    'Seçilenler kesin sipariş edilir ve onaylanmış sayılır. Seçilmeyenler turdan çıkar («onay yok») ve fiyatlarını korur.',
+  ],
+  klickGeliefertSatz: [
+    'Die Gewählten gehen nach «Ausliefern». Abgewählte warten in «Bestellen» auf die Nachlieferung und bleiben in der Runde.',
+    'Seçilenler «Teslim» aşamasına geçer. Seçilmeyenler «Sipariş» bölümünde ek sevkiyatı bekler ve turda kalır.',
+  ],
+  klickBestaetigen: ['Weiter mit {n}', '{n} ile devam'],
+  klickKeine: ['Niemand gewählt', 'Kimse seçilmedi'],
+  zurueckgebliebenSatz: ['{n} zurückgeblieben.', '{n} geride kaldı.'],
   erstFehlenAngaben: [
     'Erst fehlen noch Angaben ({n}). Im Dokument steht, welche.',
     'Önce eksik bilgiler var ({n}). Hangileri olduğu belgede yazıyor.',

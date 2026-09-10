@@ -360,8 +360,11 @@ await pruefe('Bestellen mit Kaestchen: wer nicht gewaehlt ist, bleibt mit Preise
 })
 
 await pruefe('Anfrage raus mit Kaestchen: Abgewaehlte fliegen ohne Spur aus dem Entwurf', async () => {
+  // Eine Preisanfrage entsteht aus "Kosten klaeren" – Katalogware stuende
+  // dort nie. Die Fixtures sind Katalogware, also erst dorthin setzen.
   const d1 = await bestellungAnlegen('PF-D1', 200, 0)
   const d2 = await bestellungAnlegen('PF-D2', 200, 0)
+  for (const d of [d1, d2]) await ruf(bestellHandler, { method: 'PATCH', cookie, body: { id: d.id, status: 'kosten' } })
   const neu = (await ruf(handler, { method: 'POST', cookie, body: { bestellungIds: [d1.id, d2.id] } })).daten.lieferung
   const zeilen = [{ nummer: 1, kennung: 'PF-D1', bezeichnung: 'Zimmer', herkunft: { bestellungId: d1.id, positionId: d1.positionen[0].id, stueck: 1 } }]
   const antwort = await ruf(handler, { method: 'PATCH', cookie, body: { id: neu.id, status: 'angefragt', zeilen, mitnehmen: [d1.id] } })
@@ -369,7 +372,20 @@ await pruefe('Anfrage raus mit Kaestchen: Abgewaehlte fliegen ohne Spur aus dem 
   assert.equal(antwort.daten.lieferung.entfernt, undefined, 'im Entwurf gibt es keinen Austritt')
   const liste = (await ruf(bestellHandler, { method: 'GET', cookie })).daten.bestellungen
   assert.equal(liste.find((b) => b.id === d1.id).status, 'kosten')
-  assert.equal(liste.find((b) => b.id === d2.id).status, 'bestellen', 'die Abgewaehlte wurde bewegt')
+  assert.equal(liste.find((b) => b.id === d2.id).status, 'kosten', 'die Abgewaehlte wurde bewegt')
+  await ruf(handler, { method: 'DELETE', cookie, body: { id: neu.id } })
+})
+
+await pruefe('Der Rundenklick bewegt nie rueckwaerts: Zugesagte bleiben beim Einfrieren zugesagt', async () => {
+  // Eine Bestellrunde aus Katalogware (Phase "bestellen"): Das Einfrieren
+  // als Preisanfrage darf sie nicht auf "kosten" zuruecksetzen.
+  const h1 = await bestellungAnlegen('PF-H1', 200, 0)
+  const neu = (await ruf(handler, { method: 'POST', cookie, body: { bestellungIds: [h1.id] } })).daten.lieferung
+  const zeilen = [{ nummer: 1, kennung: 'PF-H1', bezeichnung: 'Zimmer', herkunft: { bestellungId: h1.id, positionId: h1.positionen[0].id, stueck: 1 } }]
+  await ruf(handler, { method: 'PATCH', cookie, body: { id: neu.id, status: 'angefragt', zeilen } })
+  await ruf(handler, { method: 'PATCH', cookie, body: { id: neu.id, status: 'preise' } })
+  const liste = (await ruf(bestellHandler, { method: 'GET', cookie })).daten.bestellungen
+  assert.equal(liste.find((b) => b.id === h1.id).status, 'bestellen')
   await ruf(handler, { method: 'DELETE', cookie, body: { id: neu.id } })
 })
 
@@ -434,6 +450,25 @@ await pruefe('Absagen nimmt aus dem Entwurf und streicht in der eingefrorenen Ru
   assert.equal(r.entfernt[0].grund, 'storno')
   assert.equal(r.zeilen.length, 1, 'die Zeile wurde geloescht statt durchgestrichen')
   for (const l of [entwurf, fest]) await ruf(handler, { method: 'DELETE', cookie, body: { id: l.id } })
+})
+
+await pruefe('Aenderungswunsch auf der Karte nimmt aus der eingefrorenen Runde, Grund "aenderung"', async () => {
+  // Zurueck zur Klaerung heisst neue Masse – Bora bekaeme sonst Preise fuer
+  // Masse, die nicht mehr gelten. Die Preise auf den Positionen bleiben.
+  const k1 = await bestellungAnlegen('PF-K1', 200, 0)
+  await ruf(bestellHandler, { method: 'PATCH', cookie, body: { id: k1.id, status: 'offerte' } })
+  const fest = (await ruf(handler, { method: 'POST', cookie, body: { bestellungIds: [k1.id] } })).daten.lieferung
+  const zeilen = [{ nummer: 1, kennung: 'PF-K1', bezeichnung: 'Zimmer', herkunft: { bestellungId: k1.id, positionId: k1.positionen[0].id, stueck: 1 } }]
+  await ruf(handler, { method: 'PATCH', cookie, body: { id: fest.id, status: 'angefragt', zeilen } })
+  const antwort = await ruf(bestellHandler, { method: 'PATCH', cookie, body: { id: k1.id, status: 'klaerung' } })
+  assert.equal(antwort.daten.bestellung.status, 'klaerung')
+  const r = (await ruf(handler, { method: 'GET', cookie })).daten.lieferungen.find((l) => l.id === fest.id)
+  assert.deepEqual(r.bestellungIds, [])
+  assert.equal(r.entfernt[0].grund, 'aenderung')
+  assert.equal(r.zeilen.length, 1, 'die Zeile wurde geloescht statt durchgestrichen')
+  // Ein Rueckschritt innerhalb der ersten Phasen ohne Runde ist folgenlos.
+  await ruf(bestellHandler, { method: 'PATCH', cookie, body: { id: k1.id, status: 'neu' } })
+  await ruf(handler, { method: 'DELETE', cookie, body: { id: fest.id } })
 })
 
 /* --- Loeschen -------------------------------------------------------------- */

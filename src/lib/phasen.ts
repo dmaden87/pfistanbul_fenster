@@ -16,11 +16,14 @@ import type { Bestellung, BestellStatus, Lieferung } from '../types'
  * bau/phasen-test.mjs haelt beide gleich.)
  */
 
+/** Eine der sechs Phasen des Ablaufs – ohne das Ende "abgesagt". */
+export type Phase = Exclude<BestellStatus, 'abgesagt'>
+
 /** Die sechs Phasen in der Reihenfolge des Ablaufs. "abgesagt" steht daneben. */
-export const PHASEN: readonly BestellStatus[] = ['neu', 'klaerung', 'kosten', 'offerte', 'bestellen', 'ausliefern']
+export const PHASEN: readonly Phase[] = ['neu', 'klaerung', 'kosten', 'offerte', 'bestellen', 'ausliefern']
 
 /** Die Abschnitte der Uebersicht: die sechs Phasen und das Archiv. */
-export type Abschnitt = (typeof PHASEN)[number] | 'archiv'
+export type Abschnitt = Phase | 'archiv'
 export const ABSCHNITTE: readonly Abschnitt[] = [...PHASEN, 'archiv']
 
 /**
@@ -105,7 +108,7 @@ export function nachAbschnitt(bestellungen: Bestellung[]): Map<Abschnitt, Bestel
 
 /** Die naechste Phase im Ablauf, oder undefined am Ende. */
 export function naechstePhase(status: BestellStatus): BestellStatus | undefined {
-  const i = PHASEN.indexOf(status)
+  const i = PHASEN.indexOf(status as Phase)
   return i >= 0 ? PHASEN[i + 1] : undefined
 }
 

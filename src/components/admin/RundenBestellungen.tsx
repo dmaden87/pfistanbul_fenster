@@ -41,7 +41,7 @@ export function RundenBestellungen({
     .map((a) => ({ austritt: a, bestellung: bestellungen.find((b) => b.id === a.bestellungId) }))
     .filter((x) => x.bestellung)
 
-  const ohneZusage = dabei.filter((b) => b.status !== 'zugesagt')
+  const ohneZusage = dabei.filter((b) => !b.zusageAm)
 
   const nehmen = async (bestellungId: string, grund: AustrittsGrund) => {
     setSendet(true)
@@ -63,7 +63,8 @@ export function RundenBestellungen({
           <li key={b.id} className="runden-best__zeile">
             <span className="runden-best__kennung">{kennungFuer(b)}</span>
             <span className="runden-best__name">{b.kunde.name}</span>
-            {b.status !== 'zugesagt' && (
+            {/* Die Zusage zaehlt erst, wenn bestellt werden koennte. */}
+            {!b.zusageAm && lieferung.status === 'preise' && (
               <span className="admin__marke admin__marke--warnung">{t.ohneZusageMarke}</span>
             )}
             <span className="runden-best__preis">{formatChf(b.summeChf)}</span>
