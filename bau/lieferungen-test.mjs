@@ -184,26 +184,46 @@ await pruefe('Preise landen an der Zeile', async () => {
 
 /* --- Der Uebergang nach "bestellt" ----------------------------------------- */
 
-await pruefe('"Bestellt" laesst die Bestellungen in Ruhe', async () => {
+await pruefe('"Bestellt" ohne Auswahl nimmt alle mit – und stempelt ihre Zusage', async () => {
   /*
-   * Frueher zog die Runde ihre Bestellungen auf denselben Status. Das ist
-   * weg, und zwar mit Absicht: Wo die Ware steht, steht in der Runde. Zwei
-   * Schreibwege auf dieselbe Aussage waren die Quelle der widerspruechlichen
-   * Staende – die Runde stand auf "angefragt", die Bestellung auf "bestellt",
-   * und niemand wusste, welche stimmt.
+   * Der Rundenklick ist der eine Weg, auf dem die Runde Phasen setzt – und
+   * er ist ausdruecklich der Klick des Betreibers. Ohne Kaestchen-Auswahl
+   * gehen alle mit; wer mitgeht, hat damit zugesagt.
    */
-  const vorher = (await ruf(bestellHandler, { method: 'GET', cookie })).daten.bestellungen
   const antwort = await ruf(handler, { method: 'PATCH', cookie, body: { id: runde.id, status: 'bestellt' } })
   assert.equal(antwort.code, 200)
-  assert.equal(antwort.daten.mitgezogen, undefined, 'die Runde zieht noch mit')
+  assert.deepEqual(antwort.daten.zurueckgeblieben, [])
 
   const nachher = (await ruf(bestellHandler, { method: 'GET', cookie })).daten.bestellungen
   for (const id of [b1.id, b2.id]) {
-    const a = vorher.find((b) => b.id === id)
     const z = nachher.find((b) => b.id === id)
-    assert.equal(z.status, a.status, `Status von ${id} wurde angefasst`)
-    assert.equal(z.geaendert, a.geaendert, `${id} wurde ueberhaupt angefasst`)
+    assert.equal(z.status, 'bestellen', `${id} steht nicht in "bestellen"`)
+    assert.ok(z.zusageAm, `${id} ohne Zusage bestellt`)
   }
+})
+
+/* --- Einkaufspreise landen auf der Bestellung ------------------------------ */
+
+await pruefe('Boras Preise werden auf die Bestellung zurueckgeschrieben', async () => {
+  // Die Runde ist ein Arbeitspapier, die Bestellung der Datensatz. Ohne das
+  // hier waere jede spaetere Rentabilitaetsrechnung auf die Runde angewiesen –
+  // und die kann verworfen werden.
+  const liste = (await ruf(bestellHandler, { method: 'GET', cookie })).daten.bestellungen
+  const eins = liste.find((b) => b.id === b1.id)
+  assert.equal(eins.positionen[0].einkaufChf, 42.5)
+  assert.equal(eins.einkaufAusRunde, runde.nummer)
+  assert.ok(eins.einkaufAm)
+})
+
+await pruefe('Der Frachtanteil landet mit', async () => {
+  await ruf(handler, {
+    method: 'PATCH', cookie,
+    body: { id: runde.id, lieferkostenJePaket: { 'PF-1': 30, 'PF-2': 20 } },
+  })
+  const liste = (await ruf(bestellHandler, { method: 'GET', cookie })).daten.bestellungen
+  assert.equal(liste.find((b) => b.id === b1.id).lieferkostenChf, 30)
+  assert.equal(liste.find((b) => b.id === b1.id).lieferkostenGeschaetzt, undefined)
+  assert.equal(liste.find((b) => b.id === b2.id).lieferkostenChf, 20)
 })
 
 /* --- Die Rechnung ---------------------------------------------------------- */
@@ -285,13 +305,17 @@ await pruefe('"Keine Zusage" stellt zurueck zum Kunden UND behaelt die Preise', 
   assert.equal(runde.zeilen.length, 2, 'die Zeile wurde geloescht statt durchgestrichen')
 
   const zwei = (await ruf(bestellHandler, { method: 'GET', cookie })).daten.bestellungen.find((b) => b.id === b2.id)
-  assert.equal(zwei.status, 'offeriert', 'sie wartet auf die Zusage, nicht auf einen Preis')
+  assert.equal(zwei.status, 'bestellen', 'die Phase wurde angefasst – sie wartet nur auf ein Ja')
   assert.equal(zwei.positionen[0].einkaufChf, 40, 'der Einkaufspreis wurde grundlos verworfen')
 })
 
-await pruefe('"Aenderung" stellt auf neu UND loescht die Einkaufszahlen', async () => {
-  // Neue Masse heissen neuer Einkaufspreis. Bliebe der alte stehen, rechnete
-  // eine spaetere Auswertung mit Zahlen zu Massen, die es nicht mehr gibt.
+await pruefe('"Aenderung" fuehrt zur Auftragsklaerung und laesst die Preise stehen', async () => {
+  /*
+   * Was sich aendert, entscheidet der Betreiber erst danach im NetzEditor;
+   * der Server loescht dann den Preis genau der geaenderten Netze. Der
+   * Austritt selbst darf nichts wegwerfen – frueher verlor eine Bestellung
+   * mit fuenf Netzen alle fuenf Preise, weil eines nachgemessen wurde.
+   */
   const antwort = await ruf(handler, {
     method: 'PATCH', cookie,
     body: { id: runde.id, entfernen: { bestellungId: b1.id, grund: 'aenderung', notiz: 'nochmal messen' } },
@@ -301,10 +325,10 @@ await pruefe('"Aenderung" stellt auf neu UND loescht die Einkaufszahlen', async 
   assert.equal(runde.entfernt[1].notiz, 'nochmal messen')
 
   const eins = (await ruf(bestellHandler, { method: 'GET', cookie })).daten.bestellungen.find((b) => b.id === b1.id)
-  assert.equal(eins.status, 'neu')
-  assert.equal(eins.positionen[0].einkaufChf, undefined)
-  assert.equal(eins.lieferkostenChf, undefined)
-  assert.equal(eins.einkaufAusRunde, undefined)
+  assert.equal(eins.status, 'klaerung')
+  assert.ok(eins.phaseSeit, 'der Phasenwechsel wurde nicht gestempelt')
+  assert.equal(eins.positionen[0].einkaufChf, 42.5, 'der Preis des unveraenderten Netzes wurde geloescht')
+  assert.equal(eins.lieferkostenChf, 30)
 })
 
 await pruefe('Eine Bestellung, die nicht drin ist, laesst sich nicht entfernen', async () => {
@@ -315,25 +339,101 @@ await pruefe('Eine Bestellung, die nicht drin ist, laesst sich nicht entfernen',
   assert.equal(antwort.code, 400)
 })
 
-/* --- Verbindlich bestellen nimmt nur die Zugesagten mit -------------------- */
+/* --- Der Rundenklick mit Kaestchen ---------------------------------------- */
 
-await pruefe('Ohne Zusage fliegt eine Bestellung beim Bestellen heraus', async () => {
+await pruefe('Bestellen mit Kaestchen: wer nicht gewaehlt ist, bleibt mit Preisen zurueck', async () => {
   const c1 = await bestellungAnlegen('PF-C1', 200, 0)
   const c2 = await bestellungAnlegen('PF-C2', 200, 0)
-  // c2 hat keine Zusage: zurueck auf "offeriert".
-  await ruf(bestellHandler, { method: 'PATCH', cookie, body: { id: c2.id, status: 'offeriert' } })
-
   const neu = (await ruf(handler, { method: 'POST', cookie, body: { bestellungIds: [c1.id, c2.id] } })).daten.lieferung
-  const antwort = await ruf(handler, { method: 'PATCH', cookie, body: { id: neu.id, status: 'bestellt' } })
+  const antwort = await ruf(handler, { method: 'PATCH', cookie, body: { id: neu.id, status: 'bestellt', mitnehmen: [c1.id] } })
 
-  assert.deepEqual(antwort.daten.ohneZusage, [c2.id])
+  assert.deepEqual(antwort.daten.zurueckgeblieben, [c2.id])
   assert.deepEqual(antwort.daten.lieferung.bestellungIds, [c1.id])
   assert.equal(antwort.daten.lieferung.entfernt[0].grund, 'keineZusage')
 
   const liste = (await ruf(bestellHandler, { method: 'GET', cookie })).daten.bestellungen
-  assert.equal(liste.find((b) => b.id === c1.id).status, 'zugesagt', 'die Zugesagte wurde angefasst')
-  assert.equal(liste.find((b) => b.id === c2.id).status, 'offeriert')
+  const eins = liste.find((b) => b.id === c1.id)
+  assert.equal(eins.status, 'bestellen')
+  assert.ok(eins.zusageAm, 'wer mitgeht, hat zugesagt – das gehoert gestempelt')
+  assert.equal(liste.find((b) => b.id === c2.id).status, 'bestellen', 'die Phase der Zurueckgebliebenen wurde angefasst')
   await ruf(handler, { method: 'DELETE', cookie, body: { id: neu.id } })
+})
+
+await pruefe('Anfrage raus mit Kaestchen: Abgewaehlte fliegen ohne Spur aus dem Entwurf', async () => {
+  const d1 = await bestellungAnlegen('PF-D1', 200, 0)
+  const d2 = await bestellungAnlegen('PF-D2', 200, 0)
+  const neu = (await ruf(handler, { method: 'POST', cookie, body: { bestellungIds: [d1.id, d2.id] } })).daten.lieferung
+  const zeilen = [{ nummer: 1, kennung: 'PF-D1', bezeichnung: 'Zimmer', herkunft: { bestellungId: d1.id, positionId: d1.positionen[0].id, stueck: 1 } }]
+  const antwort = await ruf(handler, { method: 'PATCH', cookie, body: { id: neu.id, status: 'angefragt', zeilen, mitnehmen: [d1.id] } })
+  assert.deepEqual(antwort.daten.lieferung.bestellungIds, [d1.id])
+  assert.equal(antwort.daten.lieferung.entfernt, undefined, 'im Entwurf gibt es keinen Austritt')
+  const liste = (await ruf(bestellHandler, { method: 'GET', cookie })).daten.bestellungen
+  assert.equal(liste.find((b) => b.id === d1.id).status, 'kosten')
+  assert.equal(liste.find((b) => b.id === d2.id).status, 'bestellen', 'die Abgewaehlte wurde bewegt')
+  await ruf(handler, { method: 'DELETE', cookie, body: { id: neu.id } })
+})
+
+await pruefe('Einfrieren nimmt bekannte Einkaufspreise von den Positionen mit', async () => {
+  // b2 fiel oben mit "keine Zusage" heraus und traegt Boras Preis (40).
+  const neu = (await ruf(handler, { method: 'POST', cookie, body: { bestellungIds: [b2.id] } })).daten.lieferung
+  const zeilen = [{ nummer: 1, kennung: 'PF-2', bezeichnung: 'Zimmer', herkunft: { bestellungId: b2.id, positionId: b2.positionen[0].id, stueck: 1 } }]
+  const antwort = await ruf(handler, { method: 'PATCH', cookie, body: { id: neu.id, status: 'preise', zeilen } })
+  assert.equal(antwort.daten.lieferung.zeilen[0].einkaufChf, 40, 'die Bestellrunde startet ohne Boras Preis')
+  await ruf(handler, { method: 'DELETE', cookie, body: { id: neu.id } })
+})
+
+await pruefe('Ware da mit Kaestchen: wer fehlt, wartet auf die Nachlieferung', async () => {
+  const e1 = await bestellungAnlegen('PF-E1', 200, 0)
+  const e2 = await bestellungAnlegen('PF-E2', 200, 0)
+  const neu = (await ruf(handler, { method: 'POST', cookie, body: { bestellungIds: [e1.id, e2.id] } })).daten.lieferung
+  await ruf(handler, { method: 'PATCH', cookie, body: { id: neu.id, status: 'bestellt' } })
+  const antwort = await ruf(handler, { method: 'PATCH', cookie, body: { id: neu.id, status: 'geliefert', mitnehmen: [e1.id] } })
+  assert.deepEqual(antwort.daten.zurueckgeblieben, [e2.id])
+  assert.deepEqual(antwort.daten.lieferung.bestellungIds, [e1.id, e2.id], 'die Nachlieferung gehoert noch zur Runde')
+  const liste = (await ruf(bestellHandler, { method: 'GET', cookie })).daten.bestellungen
+  assert.equal(liste.find((b) => b.id === e1.id).status, 'ausliefern')
+  const zwei = liste.find((b) => b.id === e2.id)
+  assert.equal(zwei.status, 'bestellen')
+  assert.ok(zwei.wareFehltSeit, 'fehlende Ware nicht vermerkt')
+  // Nachlieferung da: der Haken auf der Karte.
+  const a = await ruf(bestellHandler, { method: 'PATCH', cookie, body: { id: e2.id, wareDa: true, status: 'ausliefern' } })
+  assert.equal(a.daten.bestellung.wareFehltSeit, undefined)
+  assert.equal(a.daten.bestellung.status, 'ausliefern')
+  await ruf(handler, { method: 'DELETE', cookie, body: { id: neu.id } })
+})
+
+await pruefe('Unterwegs und Zoll: Zeitstempel auf der Runde, Zoll je Paket auf der Bestellung', async () => {
+  const f1 = await bestellungAnlegen('PF-F1', 200, 0)
+  const neu = (await ruf(handler, { method: 'POST', cookie, body: { bestellungIds: [f1.id] } })).daten.lieferung
+  let a = await ruf(handler, { method: 'PATCH', cookie, body: { id: neu.id, status: 'bestellt', versandAm: true } })
+  assert.ok(a.daten.lieferung.versandAm)
+  a = await ruf(handler, { method: 'PATCH', cookie, body: { id: neu.id, zollJePaket: { 'PF-F1': 37.5 } } })
+  assert.equal(a.daten.lieferung.zollJePaket['PF-F1'], 37.5)
+  const liste = (await ruf(bestellHandler, { method: 'GET', cookie })).daten.bestellungen
+  assert.equal(liste.find((b) => b.id === f1.id).zollChf, 37.5, 'der Zoll kam nicht auf der Bestellung an')
+  a = await ruf(handler, { method: 'PATCH', cookie, body: { id: neu.id, versandAm: false } })
+  assert.equal(a.daten.lieferung.versandAm, undefined)
+  await ruf(handler, { method: 'DELETE', cookie, body: { id: neu.id } })
+})
+
+await pruefe('Absagen nimmt aus dem Entwurf und streicht in der eingefrorenen Runde', async () => {
+  const g1 = await bestellungAnlegen('PF-G1', 200, 0)
+  const g2 = await bestellungAnlegen('PF-G2', 200, 0)
+  const entwurf = (await ruf(handler, { method: 'POST', cookie, body: { bestellungIds: [g1.id] } })).daten.lieferung
+  await ruf(bestellHandler, { method: 'PATCH', cookie, body: { id: g1.id, status: 'abgesagt', absageGrund: 'kunde' } })
+  let runden = (await ruf(handler, { method: 'GET', cookie })).daten.lieferungen
+  assert.deepEqual(runden.find((l) => l.id === entwurf.id).bestellungIds, [], 'im Entwurf blieb die Abgesagte drin')
+
+  const fest = (await ruf(handler, { method: 'POST', cookie, body: { bestellungIds: [g2.id] } })).daten.lieferung
+  const zeilen = [{ nummer: 1, kennung: 'PF-G2', bezeichnung: 'Zimmer', herkunft: { bestellungId: g2.id, positionId: g2.positionen[0].id, stueck: 1 } }]
+  await ruf(handler, { method: 'PATCH', cookie, body: { id: fest.id, status: 'angefragt', zeilen } })
+  await ruf(bestellHandler, { method: 'PATCH', cookie, body: { id: g2.id, status: 'abgesagt', absageGrund: 'storno' } })
+  runden = (await ruf(handler, { method: 'GET', cookie })).daten.lieferungen
+  const r = runden.find((l) => l.id === fest.id)
+  assert.deepEqual(r.bestellungIds, [])
+  assert.equal(r.entfernt[0].grund, 'storno')
+  assert.equal(r.zeilen.length, 1, 'die Zeile wurde geloescht statt durchgestrichen')
+  for (const l of [entwurf, fest]) await ruf(handler, { method: 'DELETE', cookie, body: { id: l.id } })
 })
 
 /* --- Loeschen -------------------------------------------------------------- */

@@ -6,7 +6,19 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
  * .ts-Datei um. Ohne die Endung startet die Funktion auf Vercel gar nicht
  * erst - mit ERR_MODULE_NOT_FOUND, sichtbar nur als 500.
  */
-import { hDel, hGet, hGetAll, hSet, inkrement, speicherBereit, SpeicherFehlt, TABELLE_BESTELLUNGEN, verfaellt } from './_speicher.js'
+import {
+  hDel,
+  hGet,
+  hGetAll,
+  hSet,
+  inkrement,
+  speicherBereit,
+  SpeicherFehlt,
+  TABELLE_BESTELLUNGEN,
+  TABELLE_LIEFERUNGEN,
+  verfaellt,
+} from './_speicher.js'
+import { PHASEN, startPhase, vereinheitlichen as phaseVereinheitlichen, type Phase, type RundenBlick } from './_phasen.js'
 import { abmeldeCookie, angemeldet, anmeldeCookie, passwortGesetzt, passwortStimmt } from './_sitzung.js'
 
 /**
@@ -28,49 +40,30 @@ const MAX_VERSUCHE = 8
 const SPERRE_SEKUNDEN = 900
 
 /**
- * Wo die KUNDSCHAFT steht. Wo die Ware steht, sagt die Lieferrunde – das
- * wird nie hier gespeichert, sondern aus ihr abgeleitet.
+ * Der Status IST die Phase des Betreibers – siehe api/_phasen.ts. Die
+ * Abbildung alter Werte geschieht dort, beim Lesen, mit Blick auf die
+ * Runden: Eine gestern "neue" Bestellung konnte laengst bei Bora stecken.
  */
-export type Status = 'neu' | 'offeriert' | 'zugesagt' | 'abgesagt'
-const STATUS: Status[] = ['neu', 'offeriert', 'zugesagt', 'abgesagt']
+export type Status = Phase
+const STATUS: Status[] = PHASEN
 
-/**
- * Alte Statuswerte auf die neuen abbilden – beim LESEN, nicht in einer
- * Wanderung.
- *
- * Gespeicherte Bestellungen tragen noch "offerte", "bestellt", "erledigt"
- * oder "geloescht". Eine Datenwanderung waere ein einmaliges Skript, das
- * genau dann laeuft, wenn niemand hinschaut, und bei einem Fehler die
- * einzige Kopie der Bestellungen kaputt macht. Diese Abbildung dagegen ist
- * jederzeit wiederholbar und kostet nichts.
- *
- * "bestellt" wird zu "zugesagt": Dass beim Lieferanten bestellt ist, steht
- * ohnehin in der Runde, und die zieht die Bestellung von dort an die
- * richtige Stelle. "erledigt" hiess ausgeliefert UND bezahlt – also beide
- * Haken, mit dem letzten Aenderungszeitpunkt als bestem verfuegbarem Datum.
- */
-export function vereinheitlichen(b: Bestellung): Bestellung {
-  const alt = b.status as string
-  if (STATUS.includes(alt as Status)) return b
-  /*
-   * "offerte" hiess nur "im Offert-Abschnitt" und deckte BEIDES ab: die
-   * Offerte war noch zu rechnen, oder sie war schon draussen. Welches von
-   * beidem, stand im Haken `offerteAm`. Wer das ignoriert, schiebt jede
-   * Altbestellung zum Kunden, obwohl sie noch bei uns liegt – und dort
-   * gibt es dann keinen Knopf mehr, der sie zurueckholt.
-   */
-  if (alt === 'offerte') return { ...b, status: b.offerteAm ? 'offeriert' : 'neu' }
-  if (alt === 'bestellt') return { ...b, status: 'zugesagt' }
-  if (alt === 'geloescht') return { ...b, status: 'abgesagt' }
-  if (alt === 'erledigt') {
-    return {
-      ...b,
-      status: 'zugesagt',
-      ausgeliefertAm: b.ausgeliefertAm ?? b.geaendert,
-      bezahltAm: b.bezahltAm ?? b.geaendert,
+/** Die Runden, soweit die Abbildung sie braucht. Eine kaputte Zeile zaehlt nicht. */
+async function rundenBlick(): Promise<RundenBlick[]> {
+  const alle = await hGetAll(TABELLE_LIEFERUNGEN)
+  const raus: RundenBlick[] = []
+  for (const wert of Object.values(alle)) {
+    try {
+      const l = JSON.parse(wert) as RundenBlick
+      if (Array.isArray(l.bestellungIds)) raus.push(l)
+    } catch {
+      continue
     }
   }
-  return { ...b, status: 'neu' }
+  return raus
+}
+
+export function vereinheitlichen(b: Bestellung, runden: RundenBlick[]): Bestellung {
+  return phaseVereinheitlichen(b, runden)
 }
 
 /**
@@ -153,6 +146,20 @@ interface Bestellung {
   /** Uebergabe und Zahlung. Beide gesetzt heisst abgeschlossen. */
   ausgeliefertAm?: string
   bezahltAm?: string
+  zahlungKommentar?: string
+  /** Die Felder der Phasen – siehe src/types/index.ts. */
+  phaseSeit?: string
+  klaerungTermin?: string
+  zusageAm?: string
+  montageTermin?: string
+  wareFehltSeit?: string
+  absageGrund?: AbsageGrund
+  absageAm?: string
+  zollChf?: number
+  lieferkostenChf?: number
+  lieferkostenGeschaetzt?: boolean
+  einkaufAusRunde?: string
+  einkaufAm?: string
   /** Interne Notiz. Sieht die Kundschaft nie. */
   notiz?: string
   /**
@@ -164,6 +171,59 @@ interface Bestellung {
 }
 
 /* --- Eingaben zurechtstutzen ------------------------------------------------ */
+
+const ABSAGE_GRUENDE = ['spam', 'doppelt', 'keineAntwort', 'kunde', 'zuTeuer', 'storno'] as const
+type AbsageGrund = (typeof ABSAGE_GRUENDE)[number]
+
+function absageGrund(wert: unknown): AbsageGrund | undefined {
+  return ABSAGE_GRUENDE.includes(wert as AbsageGrund) ? (wert as AbsageGrund) : undefined
+}
+
+/** Ein ISO-Datum (JJJJ-MM-TT, mit oder ohne Zeit) oder nichts. Leer loescht. */
+function datum(wert: unknown): string | undefined {
+  if (typeof wert !== 'string') return undefined
+  const t = wert.trim()
+  if (!t) return undefined
+  return /^\d{4}-\d{2}-\d{2}(T[0-9:.]+Z?)?$/.test(t) && !Number.isNaN(Date.parse(t)) ? t : undefined
+}
+
+/**
+ * Eine abgesagte Bestellung darf nicht in einer Runde weiterlaufen.
+ *
+ * Im Entwurf fliegt sie einfach raus – dort ist noch nichts verbindlich.
+ * In einer eingefrorenen Runde (angefragt, Preise da) bleibt ihre Zeile mit
+ * Nummer stehen und wird durchgestrichen, Grund "storno". Ab "bestellt"
+ * bleibt sie drin: Bora fertigt bereits, die Ware kommt ohnehin, und die
+ * Rechnung der Runde muss das als Kosten zeigen, nicht verschweigen.
+ */
+async function ausRundenNehmenBeiAbsage(bestellungId: string, runden: RundenBlick[]): Promise<void> {
+  const alle = await hGetAll(TABELLE_LIEFERUNGEN)
+  for (const [id, wert] of Object.entries(alle)) {
+    let runde: Record<string, unknown>
+    try {
+      runde = JSON.parse(wert) as Record<string, unknown>
+    } catch {
+      continue
+    }
+    const ids = Array.isArray(runde.bestellungIds) ? (runde.bestellungIds as string[]) : []
+    if (!ids.includes(bestellungId)) continue
+    const stand = runde.status as string
+    if (stand !== 'entwurf' && stand !== 'angefragt' && stand !== 'preise') continue
+    runde.bestellungIds = ids.filter((x) => x !== bestellungId)
+    if (stand !== 'entwurf') {
+      const entfernt = Array.isArray(runde.entfernt) ? (runde.entfernt as Record<string, unknown>[]) : []
+      runde.entfernt = [
+        ...entfernt.filter((a) => a.bestellungId !== bestellungId),
+        { bestellungId, grund: 'storno', zeitpunkt: new Date().toISOString() },
+      ]
+    }
+    runde.geaendert = new Date().toISOString()
+    await hSet(TABELLE_LIEFERUNGEN, id, JSON.stringify(runde))
+    // Der Blick fuer die Abbildung soll das gleich wissen.
+    const blick = runden.find((r) => r.bestellungIds.includes(bestellungId))
+    if (blick) blick.bestellungIds = blick.bestellungIds.filter((x) => x !== bestellungId)
+  }
+}
 
 function text(wert: unknown, max: number): string {
   return typeof wert === 'string' ? wert.trim().slice(0, max) : ''
@@ -302,8 +362,7 @@ function ausRohdaten(roh: Record<string, unknown>, vonHand = false): Bestellung 
    * Eine Sondermass-Anfrage dagegen ist "neu": Da ist noch nichts zugesagt,
    * nicht einmal ein Preis.
    */
-  const startStatus: Status = art === 'bestellung' ? 'zugesagt' : 'neu'
-  const status = vonHand && STATUS.includes(roh.status as Status) ? (roh.status as Status) : startStatus
+  const status = vonHand && STATUS.includes(roh.status as Status) ? (roh.status as Status) : startPhase(art)
   const quelle = vonHand && QUELLEN.includes(roh.quelle as Quelle) ? (roh.quelle as Quelle) : 'web'
   const netze = positionen(roh.positionen)
   const montageChf = zahl(roh.montageChf)
@@ -444,11 +503,11 @@ async function erfassen(req: VercelRequest, res: VercelResponse) {
 async function auflisten(req: VercelRequest, res: VercelResponse) {
   if (!angemeldet(req.headers.cookie)) return nichtAngemeldet(res)
 
-  const alle = await hGetAll(TABELLE)
+  const [alle, runden] = await Promise.all([hGetAll(TABELLE), rundenBlick()])
   const liste: Bestellung[] = []
   for (const wert of Object.values(alle)) {
     try {
-      liste.push(vereinheitlichen(JSON.parse(wert) as Bestellung))
+      liste.push(vereinheitlichen(JSON.parse(wert) as Bestellung, runden))
     } catch {
       // Eine kaputte Zeile darf nicht die ganze Tabelle unbrauchbar machen.
     }
@@ -501,12 +560,57 @@ async function aendern(req: VercelRequest, res: VercelResponse) {
   const vorhanden = await hGet(TABELLE, id)
   if (!vorhanden) return res.status(404).json({ error: 'Bestellung nicht gefunden.' })
 
-  const bestellung = vereinheitlichen(JSON.parse(vorhanden) as Bestellung)
+  const runden = await rundenBlick()
+  const bestellung = vereinheitlichen(JSON.parse(vorhanden) as Bestellung, runden)
   let geaendert = false
+  const jetzt = new Date().toISOString()
 
   if (koerper.status !== undefined) {
     if (!STATUS.includes(koerper.status as Status)) return res.status(400).json({ error: 'Unbekannter Status.' })
-    bestellung.status = koerper.status as Status
+    const neu = koerper.status as Status
+    if (neu !== bestellung.status) {
+      bestellung.status = neu
+      // Seit wann sie in dieser Phase steht – fuer "seit n Tagen" auf der Karte.
+      bestellung.phaseSeit = jetzt
+      if (neu === 'abgesagt') {
+        bestellung.absageAm = jetzt
+        bestellung.absageGrund = absageGrund(koerper.absageGrund) ?? bestellung.absageGrund
+        await ausRundenNehmenBeiAbsage(bestellung.id, runden)
+      } else {
+        // Wiederoeffnen: Die Absage ist Geschichte, nicht Zustand.
+        delete bestellung.absageAm
+        delete bestellung.absageGrund
+      }
+    }
+    geaendert = true
+  } else if (koerper.absageGrund !== undefined && bestellung.status === 'abgesagt') {
+    bestellung.absageGrund = absageGrund(koerper.absageGrund)
+    geaendert = true
+  }
+
+  /*
+   * Die Felder der Phasen. Datumsfelder setzt ein ISO-Datum, ein leerer
+   * String loescht; die Haken folgen dem Muster true → jetzt, false → weg.
+   */
+  if (koerper.klaerungTermin !== undefined) {
+    bestellung.klaerungTermin = datum(koerper.klaerungTermin)
+    geaendert = true
+  }
+  if (koerper.montageTermin !== undefined) {
+    bestellung.montageTermin = datum(koerper.montageTermin)
+    geaendert = true
+  }
+  if (koerper.zusage !== undefined) {
+    bestellung.zusageAm = koerper.zusage === true ? jetzt : undefined
+    geaendert = true
+  }
+  if (koerper.wareDa !== undefined) {
+    // true: die Nachlieferung ist da. false: die Ware fehlt (seit jetzt).
+    bestellung.wareFehltSeit = koerper.wareDa === true ? undefined : jetzt
+    geaendert = true
+  }
+  if (koerper.zahlungKommentar !== undefined) {
+    bestellung.zahlungKommentar = text(koerper.zahlungKommentar, 400) || undefined
     geaendert = true
   }
 

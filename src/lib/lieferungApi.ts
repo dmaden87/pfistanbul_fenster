@@ -47,9 +47,18 @@ export async function lieferungAnlegen(bestellungIds: string[]): Promise<Lieferu
  * zuruecklaesst, die in keiner Runde steckt und trotzdem auf sie wartet.
  */
 export type LieferungAenderung = Partial<
-  Omit<Lieferung, 'id' | 'nummer' | 'erstellt' | 'geaendert' | 'entfernt'>
+  Omit<Lieferung, 'id' | 'nummer' | 'erstellt' | 'geaendert' | 'entfernt' | 'versandAm'>
 > & {
   entfernen?: { bestellungId: string; grund: AustrittsGrund; notiz?: string }
+  /**
+   * Der Rundenklick mit Kaestchen: Welche Bestellungen bei diesem
+   * Standwechsel mitgehen. Wer fehlt, bleibt zurueck – im Entwurf ohne
+   * Spur, ab "bestellt" als Austritt "keine Zusage", bei "geliefert" als
+   * fehlende Ware. Ohne das Feld gehen alle mit.
+   */
+  mitnehmen?: string[]
+  /** true stempelt "unterwegs seit jetzt", false loescht. */
+  versandAm?: boolean
 }
 
 /** Was der Server zurueckmeldet, wenn er von sich aus etwas getan hat. */
@@ -57,8 +66,8 @@ export interface LieferungAntwort {
   lieferung: Lieferung
   /** Wie viele Bestellungen Einkaufszahlen bekommen haben. */
   einkauf?: number
-  /** Wer beim verbindlichen Bestellen mangels Zusage herausfiel. */
-  ohneZusage?: string[]
+  /** Wer beim Rundenklick zurueckblieb. */
+  zurueckgeblieben?: string[]
 }
 
 export async function lieferungAendern(id: string, aenderung: LieferungAenderung): Promise<LieferungAntwort> {

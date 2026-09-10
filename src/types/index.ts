@@ -127,28 +127,37 @@ export type SubmissionState =
 /* --- Adminbereich ----------------------------------------------------------- */
 
 /**
- * Wo die KUNDSCHAFT steht – nicht, wo die Ware steht.
+ * Die PHASE einer Bestellung – der Workflow des Betreibers, in seiner
+ * Reihenfolge:
  *
- * Das ist die eine Haelfte der Wahrheit. Die andere steckt in der
- * Lieferrunde: ob angefragt, bestellt oder eingetroffen. Frueher sollte ein
- * einziger Status beides sagen, und genau daran ist die Uebersicht
- * gescheitert – "beim Lieferanten bestellt" war eine Aussage ueber die Ware,
- * "Offerte" eine ueber den Kunden, und beide standen in derselben Spalte.
+ *   neu → klaerung → kosten → offerte → bestellen → ausliefern
  *
- * Deshalb hier nur noch vier Werte, und keiner davon erwaehnt den
- * Lieferanten. Was mit der Ware ist, leitet `arbeitsschritt()` aus der Runde
- * ab; von Hand gesetzt wird es nie. Zwei Wahrheiten ueber dieselbe Sache
- * gehen irgendwann auseinander.
+ * Dazu "abgesagt" als Ende ohne Auftrag. "Abgeschlossen" ist keine Phase,
+ * sondern die Aussage, dass in "ausliefern" beide Haken gesetzt sind
+ * (uebergeben und bezahlt) – siehe `abgeschlossen()` in src/lib/phasen.ts.
  *
- * Eine Bestellung aus dem Warenkorb startet bei "zugesagt": Der Kunde hat an
- * der Kasse zugesagt, der Preis stand im Katalog, eine Offerte gibt es nicht.
- * Nur das Sondermass laeuft die ganze Leiter.
+ * WARUM VON HAND UND NICHT ABGELEITET. Der vorige Ansatz leitete den Stand
+ * der Ware aus der Lieferrunde ab und gruppierte nach "wer ist dran". Das
+ * war fuer den einen Menschen, der im Tool arbeitet, unuebersichtlich: Er
+ * denkt in seinem Ablauf je Bestellung, nicht in Zustaendigkeiten. Jetzt
+ * ist die Phase ein gespeicherter Wert, und jede Bewegung ist sein Klick –
+ * entweder auf der Karte oder, fuer viele Bestellungen auf einmal, auf der
+ * Runde (mit Kaestchen, wer mitgeht).
  *
- * "abgesagt" hiess frueher "geloescht" und war damit missverstaendlich: Es
- * loescht nichts, es haelt fest, dass daraus nichts wurde. Endgueltig
- * entfernt wird ueber DELETE, und das ist etwas anderes.
+ * Eine Bestellung aus dem Warenkorb entsteht direkt in "bestellen": Der
+ * Kunde hat an der Kasse zugesagt, der Preis stand im Katalog. Die Phasen
+ * 1–4 gibt es fuer sie nicht; die Karte zeigt sie als "entfaellt".
+ *
+ * ALTE WERTE. Gespeicherte Bestellungen tragen "neu | offeriert | zugesagt |
+ * abgesagt" (Fassung von gestern) oder noch aelter "offerte | bestellt |
+ * erledigt | geloescht". Beides wird beim LESEN abgebildet, nie durch ein
+ * Skript – siehe `vereinheitlichen` in api/bestellungen.ts. Kein bestehendes
+ * Feld wird dabei geloescht.
  */
-export type BestellStatus = 'neu' | 'offeriert' | 'zugesagt' | 'abgesagt'
+export type BestellStatus = 'neu' | 'klaerung' | 'kosten' | 'offerte' | 'bestellen' | 'ausliefern' | 'abgesagt'
+
+/** Warum aus einer Bestellung nichts wurde. Erscheint im Archiv. */
+export type AbsageGrund = 'spam' | 'doppelt' | 'keineAntwort' | 'kunde' | 'zuTeuer' | 'storno'
 
 /**
  * Woher der Eintrag kam. Die Seite legt immer "web" an; alles andere traegt
@@ -286,6 +295,35 @@ export interface Bestellung {
   ausgeliefertAm?: string
   bezahltAm?: string
   /**
+   * Zur Zahlung: bar, TWINT, Rate vereinbart, "zahlt naechste Woche". Ein
+   * Freitext, kein Zahlungsjournal – der Betrieb wollte den einen Haken
+   * behalten und dazu eine Notiz.
+   */
+  zahlungKommentar?: string
+  /** Seit wann die Bestellung in ihrer Phase steht. Fuer "seit n Tagen". */
+  phaseSeit?: string
+  /** Phase 2: der Termin fuer die Auftragsklaerung beim Kunden. ISO-Datum. */
+  klaerungTermin?: string
+  /** Phase 4→5: wann der Kunde zugesagt hat. Rechtlich der Vertragsschluss. */
+  zusageAm?: string
+  /** Phase 6: der vereinbarte Liefer-/Montagetermin. ISO-Datum. */
+  montageTermin?: string
+  /**
+   * Die Ware ist mit der Runde NICHT angekommen (fehlt, beschaedigt, falsch).
+   * Die Bestellung bleibt in "bestellen" und wartet auf die Nachlieferung.
+   */
+  wareFehltSeit?: string
+  /** Bei "abgesagt": warum, und seit wann. */
+  absageGrund?: AbsageGrund
+  absageAm?: string
+  /**
+   * Der Anteil dieser Bestellung an Zoll, Einfuhrsteuer und Gebuehren, aus
+   * der Runde je Paket verteilt wie die Fracht. Ein Betrag – der Betrieb
+   * rechnet die Posten zusammen, der Bescheid kommt ohnehin Wochen nach
+   * der Ware.
+   */
+  zollChf?: number
+  /**
    * Der Frachtanteil dieser Bestellung, ebenfalls aus der Runde. Gibt Bora
    * die Kosten je Paket an, ist das Paket genau diese Bestellung und der
    * Anteil exakt. Nennt er nur ein Total, wird nach Netzanzahl geteilt –
@@ -328,6 +366,14 @@ export interface BestellAenderung {
    * ist Stripes Meldung und bleibt von hier aus unantastbar.
    */
   bezahlt?: boolean
+  zahlungKommentar?: string
+  /** Datumsfelder: ein ISO-Datum setzt, ein leerer String loescht. */
+  klaerungTermin?: string
+  montageTermin?: string
+  /** true stempelt jetzt, false loescht. */
+  zusage?: boolean
+  wareDa?: boolean
+  absageGrund?: AbsageGrund
   positionen?: BestellPosition[]
   montage?: boolean
   montageChf?: number
@@ -372,8 +418,12 @@ export type LieferungStatus = 'entwurf' | 'angefragt' | 'preise' | 'bestellt' | 
  *   machbar. Dann stimmen die Masse nicht mehr, also stimmt auch der Preis
  *   nicht mehr: Die Einkaufszahlen werden geloescht, und die Bestellung
  *   faengt bei "Preis anfragen" wieder an.
+ *
+ * - "storno": Der Kunde hat abgesagt, waehrend die Bestellung in einer
+ *   eingefrorenen Runde stand. Die Zeile bleibt durchgestrichen stehen,
+ *   die Bestellung geht ins Archiv.
  */
-export type AustrittsGrund = 'keineZusage' | 'aenderung'
+export type AustrittsGrund = 'keineZusage' | 'aenderung' | 'storno'
 
 export interface Austritt {
   bestellungId: string
@@ -444,6 +494,14 @@ export interface Lieferung {
   lieferkostenJePaket?: Record<string, number>
   /** Lieferkosten für die ganze Runde, falls er nicht je Paket rechnet. */
   lieferkostenChf?: number
+  /**
+   * Zoll, Einfuhrsteuer und Gebuehren je Paketkennung, ein Betrag je Paket.
+   * Kommt Wochen nach der Ware und wird wie die Fracht auf die Bestellungen
+   * verteilt – sonst ist jede Marge um diesen Posten zu gut.
+   */
+  zollJePaket?: Record<string, number>
+  /** Wann Bora gemeldet hat, dass die Sendung unterwegs ist (Phase 6.1). */
+  versandAm?: string
   /** Liefertermin: erst seine Schätzung, später unser erwarteter Termin. */
   termin?: string
   bemerkung?: string

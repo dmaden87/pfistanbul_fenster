@@ -13,7 +13,8 @@ import {
   TABELLE_LIEFERUNGEN,
 } from './_speicher.js'
 import { angemeldet } from './_sitzung.js'
-import { einkaufAusRunde } from './_einkauf.js'
+import { einkaufAusRunde, kennungFuer } from './_einkauf.js'
+import type { Phase } from './_phasen.js'
 
 /**
  * Lieferrunden: anlegen, auflisten, aendern, loeschen.
@@ -58,9 +59,13 @@ interface Lieferung {
   ausgeschlossen?: string[]
   zusatz?: Zeile[]
   /** Bestellungen, die die Runde verlassen haben. Ihre Zeilen bleiben stehen. */
-  entfernt?: { bestellungId: string; grund: 'keineZusage' | 'aenderung'; zeitpunkt: string; notiz?: string }[]
+  entfernt?: { bestellungId: string; grund: 'keineZusage' | 'aenderung' | 'storno'; zeitpunkt: string; notiz?: string }[]
   lieferkostenJePaket?: Record<string, number>
   lieferkostenChf?: number
+  /** Zoll, Einfuhrsteuer, Gebuehren je Paket. */
+  zollJePaket?: Record<string, number>
+  /** Wann Bora die Sendung gemeldet hat. */
+  versandAm?: string
   termin?: string
   bemerkung?: string
 }
@@ -241,6 +246,15 @@ async function aendern(req: VercelRequest, res: VercelResponse) {
   }
   if (koerper.zeilen !== undefined) {
     lieferung.zeilen = zeilen(koerper.zeilen)
+    /*
+     * Beim Einfrieren die Preise mitnehmen, die die Bestellungen schon
+     * tragen. Eine Bestellung, die mangels Zusage aus einer frueheren Runde
+     * fiel, hat Boras Preise auf ihren Positionen – die neue Runde darf ihn
+     * nicht nochmals fragen. Ohne das hier starteten solche Runden mit
+     * leeren Preisfeldern, und das Versprechen "naechste Bestellrunde ohne
+     * neue Anfrage" war gelogen.
+     */
+    await preiseAusPositionen(lieferung)
     geaendert = true
   }
   if (koerper.bestellungIds !== undefined) {
@@ -261,6 +275,15 @@ async function aendern(req: VercelRequest, res: VercelResponse) {
   }
   if (koerper.lieferkostenChf !== undefined) {
     lieferung.lieferkostenChf = betrag(koerper.lieferkostenChf)
+    geaendert = true
+  }
+  // Zoll, Einfuhrsteuer, Gebuehren: ein Betrag je Paket, Wochen nach der Ware.
+  if (koerper.zollJePaket !== undefined) {
+    lieferung.zollJePaket = lieferkosten(koerper.zollJePaket)
+    geaendert = true
+  }
+  if (koerper.versandAm !== undefined) {
+    lieferung.versandAm = koerper.versandAm === true ? new Date().toISOString() : undefined
     geaendert = true
   }
   if (koerper.termin !== undefined) {
@@ -303,34 +326,25 @@ async function aendern(req: VercelRequest, res: VercelResponse) {
   if (!geaendert) return res.status(400).json({ error: 'Es war nichts zu ändern.' })
 
   /*
-   * Verbindlich bestellen nimmt NUR die zugesagten mit.
+   * DER RUNDENKLICK MIT KAESTCHEN.
    *
-   * Zwischen "Preise da" und "bestellt" sitzt die Entscheidung der
-   * Kundschaft. Wer ohne Zusage mitbestellt, hat Ware, die niemand bestellt
-   * hat. Die anderen fliegen deshalb hier heraus – mit Grund "keineZusage",
-   * also unter Beibehaltung ihrer Einkaufspreise: Sachlich hat sich nichts
-   * geaendert, sie warten nur auf ein Ja.
+   * Ein Standwechsel der Runde ist ein Klick fuer viele Bestellungen – der
+   * Betreiber sieht die Liste, waehlt ab, wer nicht mitgeht, und bestaetigt.
+   * Das ist der eine Weg, auf dem die Runde Phasen setzt, und er ist
+   * ausdruecklich sein Klick: Nichts springt von selbst.
    */
-  let ohneZusage: string[] = []
-  if (koerper.status === 'bestellt') {
-    ohneZusage = await ohneZusageAussortieren(lieferung)
+  let zurueckgeblieben: string[] = []
+  if (koerper.status !== undefined) {
+    const mitnehmen = koerper.mitnehmen !== undefined ? kennungen(koerper.mitnehmen) : undefined
+    zurueckgeblieben = await rundenklick(lieferung, koerper.status as Status, mitnehmen)
   }
 
   lieferung.geaendert = new Date().toISOString()
   await hSet(TABELLE, id, JSON.stringify(lieferung))
 
-  /*
-   * Frueher zog der Uebergang nach "bestellt" die Bestellungen auf denselben
-   * Status. Das ist weg: Wo die Ware steht, steht in der Runde, und die
-   * Uebersicht liest es dort. Ein zweiter Schreibweg auf denselben Sachverhalt
-   * war genau die Quelle, aus der die widerspruechlichen Staende kamen.
-   *
-   * Was jetzt zurueckgeschrieben wird, ist etwas anderes: Boras Preise. Die
-   * sind kein Status, sondern Daten, die nur hier hereinkommen und auf der
-   * Bestellung gebraucht werden – siehe `einkaufZurueckschreiben`.
-   */
+  // Boras Preise, Fracht und Zoll auf die Bestellungen – siehe einkaufZurueckschreiben.
   const einkauf = await einkaufZurueckschreiben(lieferung)
-  return res.status(200).json({ ok: true, lieferung, einkauf, ohneZusage })
+  return res.status(200).json({ ok: true, lieferung, einkauf, zurueckgeblieben })
 }
 
 /** Liest eine Bestellung, veraendert sie und speichert sie zurueck. */
@@ -352,57 +366,86 @@ async function bestellungAendern(
   }
 }
 
-/**
- * Stellt eine Bestellung zurueck, die die Runde verlassen hat.
- *
- * Die beiden Gruende fuehren an verschiedene Orte, und das ist der Kern:
- * Wer nur auf die Zusage wartet, braucht keine neue Preisanfrage – seine
- * Einkaufspreise gelten weiter, und er geht in die naechste Bestellrunde.
- * Wer nachgemessen werden muss, hat neue Masse, also einen neuen Preis: Da
- * werden die Einkaufszahlen geloescht, sonst rechnet eine spaetere
- * Auswertung mit Zahlen zu Massen, die es nicht mehr gibt.
- */
-async function bestellungZurueck(id: string, grund: 'keineZusage' | 'aenderung'): Promise<void> {
-  await bestellungAendern(id, (b) => {
-    b.status = grund === 'keineZusage' ? 'offeriert' : 'neu'
-    if (grund === 'aenderung') {
-      const positionen = Array.isArray(b.positionen) ? (b.positionen as Record<string, unknown>[]) : []
-      for (const p of positionen) delete p.einkaufChf
-      delete b.lieferkostenChf
-      delete b.lieferkostenGeschaetzt
-      delete b.einkaufAusRunde
-      delete b.einkaufAm
+/** Setzt die Phase einer Bestellung – nur, wenn sie sich aendert. */
+async function phaseSetzen(id: string, phase: Phase, dazu?: (b: Record<string, unknown>) => void): Promise<boolean> {
+  return bestellungAendern(id, (b) => {
+    let etwas = false
+    if (b.status !== phase) {
+      b.status = phase
+      b.phaseSeit = new Date().toISOString()
+      etwas = true
     }
-    return true
+    if (dazu) {
+      const vorher = JSON.stringify(b)
+      dazu(b)
+      if (JSON.stringify(b) !== vorher) etwas = true
+    }
+    return etwas
   })
 }
 
-/** Nimmt alle Bestellungen ohne Zusage aus der Runde. Gibt ihre Ids zurueck. */
-async function ohneZusageAussortieren(lieferung: Lieferung): Promise<string[]> {
-  const raus: string[] = []
-  for (const bestellungId of [...lieferung.bestellungIds]) {
-    const roh = await hGet(TABELLE_BESTELLUNGEN, bestellungId)
-    if (!roh) continue
-    try {
-      const status = (JSON.parse(roh) as { status?: string }).status
-      // "bestellt" ist der alte Wert fuer "zugesagt" – siehe die Abbildung in
-      // bestellungen.ts. Hier zaehlt er mit, sonst faellt eine Altbestellung
-      // beim Bestellen grundlos heraus.
-      if (status === 'zugesagt' || status === 'bestellt') continue
-      raus.push(bestellungId)
-    } catch {
-      continue
+/**
+ * Stellt eine Bestellung zurueck, die die Runde verlassen hat.
+ *
+ * "keineZusage" laesst die Phase, wo sie ist: Die Bestellung wartet auf ein
+ * Ja, sonst hat sich nichts geaendert – ihre Einkaufspreise gelten weiter,
+ * und die naechste Bestellrunde nimmt sie ohne neue Anfrage mit.
+ *
+ * "aenderung" fuehrt zurueck zur Auftragsklaerung. Die Einkaufspreise
+ * bleiben AUCH hier stehen: Was sich aendert, entscheidet der Betreiber
+ * erst danach im NetzEditor, und der Server loescht dann den Preis genau
+ * der Netze, deren Masse oder Ausfuehrung anders sind (siehe
+ * `einkaufBewahren` in bestellungen.ts). Frueher loeschte der Austritt
+ * pauschal alle – auch die vier Netze, an denen sich nichts aenderte.
+ */
+async function bestellungZurueck(id: string, grund: 'keineZusage' | 'aenderung'): Promise<void> {
+  if (grund === 'aenderung') await phaseSetzen(id, 'klaerung')
+}
+
+/**
+ * Der Rundenklick: wer mitgeht, bekommt die Phase des neuen Stands; wer
+ * zurueckbleibt, wird je nach Stand behandelt. Gibt die Zurueckgebliebenen
+ * zurueck. Ohne Auswahl gehen alle mit.
+ */
+async function rundenklick(lieferung: Lieferung, stand: Status, mitnehmen?: string[]): Promise<string[]> {
+  const dabei = [...lieferung.bestellungIds]
+  const geht = mitnehmen ? dabei.filter((id) => mitnehmen.includes(id)) : dabei
+  const bleibt = dabei.filter((id) => !geht.includes(id))
+  const jetzt = new Date().toISOString()
+
+  if (stand === 'angefragt') {
+    // Im Entwurf abgewaehlt: einfach raus, ohne Spur – nichts war verbindlich.
+    lieferung.bestellungIds = geht
+    for (const id of geht) await phaseSetzen(id, 'kosten')
+  } else if (stand === 'preise') {
+    // Preise da, weiter: die Gewaehlten rechnen jetzt ihre Offerte.
+    for (const id of geht) await phaseSetzen(id, 'offerte')
+  } else if (stand === 'bestellt') {
+    // Verbindlich bestellen: wer nicht mitgeht, faellt mit "keine Zusage"
+    // heraus und behaelt seine Preise. Wer mitgeht, ist damit zugesagt.
+    for (const id of bleibt) {
+      lieferung.bestellungIds = lieferung.bestellungIds.filter((x) => x !== id)
+      lieferung.entfernt = [
+        ...(lieferung.entfernt ?? []).filter((a) => a.bestellungId !== id),
+        { bestellungId: id, grund: 'keineZusage', zeitpunkt: jetzt },
+      ]
     }
+    for (const id of geht) {
+      await phaseSetzen(id, 'bestellen', (b) => {
+        if (!b.zusageAm) b.zusageAm = jetzt
+      })
+    }
+  } else if (stand === 'geliefert') {
+    // Ware da: wer fehlt, wartet auf die Nachlieferung und bleibt in "bestellen".
+    for (const id of geht) await phaseSetzen(id, 'ausliefern', (b) => delete b.wareFehltSeit)
+    for (const id of bleibt) await bestellungAendern(id, (b) => {
+      b.wareFehltSeit = jetzt
+      return true
+    })
+    // Zurueckgebliebene bleiben in der Runde – die Nachlieferung gehoert dazu.
+    return bleibt
   }
-  for (const bestellungId of raus) {
-    lieferung.bestellungIds = lieferung.bestellungIds.filter((x) => x !== bestellungId)
-    lieferung.entfernt = [
-      ...(lieferung.entfernt ?? []).filter((a) => a.bestellungId !== bestellungId),
-      { bestellungId, grund: 'keineZusage', zeitpunkt: new Date().toISOString() },
-    ]
-    await bestellungZurueck(bestellungId, 'keineZusage')
-  }
-  return raus
+  return bleibt
 }
 
 /**
@@ -435,6 +478,7 @@ async function einkaufZurueckschreiben(lieferung: Lieferung): Promise<number> {
         b.lieferkostenGeschaetzt = anteil.lieferkostenGeschaetzt || undefined
         etwas = true
       }
+
       if (etwas) {
         b.einkaufAusRunde = lieferung.nummer
         b.einkaufAm = new Date().toISOString()
@@ -443,16 +487,41 @@ async function einkaufZurueckschreiben(lieferung: Lieferung): Promise<number> {
     })
     if (geschrieben) gezaehlt++
   }
+
+  /*
+   * Zoll je Paket, unabhaengig von den Zeilen: Das Paket ist die Bestellung,
+   * also ist der Betrag ihr Anteil. Der Bescheid kommt Wochen nach der Ware –
+   * die Runde ist dann laengst geliefert, und die Zeilen spielen keine
+   * Rolle mehr.
+   */
+  if (lieferung.zollJePaket) {
+    for (const b of await bestellungenDerRunde(lieferung)) {
+      if (!lieferung.bestellungIds.includes(b.id)) continue
+      const zoll = lieferung.zollJePaket[kennungFuer(b)]
+      if (typeof zoll !== 'number') continue
+      const geschrieben = await bestellungAendern(b.id, (roh) => {
+        if (roh.zollChf === zoll) return false
+        roh.zollChf = zoll
+        return true
+      })
+      if (geschrieben) gezaehlt++
+    }
+  }
   return gezaehlt
 }
 
 /**
- * Die Bestellungen einer Runde, fuer die Zuordnung der Frachtkosten. Nur
- * Referenz und Id werden gebraucht – daraus bildet `kennungFuer` die
- * Paketkennung, unter der Bora seine Frachtkosten eintraegt.
+ * Die Bestellungen einer Runde: Referenz und Id fuer die Paketkennung,
+ * Positionen fuer die Preise beim Einfrieren.
  */
-async function bestellungenDerRunde(lieferung: Lieferung): Promise<{ id: string; referenz: string }[]> {
-  const raus: { id: string; referenz: string }[] = []
+interface BestellBlick {
+  id: string
+  referenz: string
+  positionen?: { id?: string; einkaufChf?: number }[]
+}
+
+async function bestellungenDerRunde(lieferung: Lieferung): Promise<BestellBlick[]> {
+  const raus: BestellBlick[] = []
   for (const id of new Set([
     ...lieferung.bestellungIds,
     ...(lieferung.entfernt ?? []).map((a) => a.bestellungId),
@@ -460,12 +529,24 @@ async function bestellungenDerRunde(lieferung: Lieferung): Promise<{ id: string;
     const roh = await hGet(TABELLE_BESTELLUNGEN, id)
     if (!roh) continue
     try {
-      raus.push(JSON.parse(roh) as { id: string; referenz: string })
+      raus.push(JSON.parse(roh) as BestellBlick)
     } catch {
       continue
     }
   }
   return raus
+}
+
+/** Traegt bekannte Einkaufspreise von den Positionen in Zeilen ohne Preis. */
+async function preiseAusPositionen(lieferung: Lieferung): Promise<void> {
+  if (!lieferung.zeilen.some((z) => z.herkunft && typeof z.einkaufChf !== 'number')) return
+  const bestellungen = await bestellungenDerRunde(lieferung)
+  for (const zeile of lieferung.zeilen) {
+    if (!zeile.herkunft || typeof zeile.einkaufChf === 'number') continue
+    const b = bestellungen.find((x) => x.id === zeile.herkunft!.bestellungId)
+    const p = b?.positionen?.find((x) => x.id === zeile.herkunft!.positionId)
+    if (typeof p?.einkaufChf === 'number') zeile.einkaufChf = p.einkaufChf
+  }
 }
 
 async function entfernen(req: VercelRequest, res: VercelResponse) {
