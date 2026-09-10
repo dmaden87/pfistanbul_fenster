@@ -13,7 +13,7 @@ import {
   TABELLE_LIEFERUNGEN,
 } from './_speicher.js'
 import { angemeldet } from './_sitzung.js'
-import { einkaufAusRunde } from '../src/lib/einkauf.js'
+import { einkaufAusRunde } from './_einkauf.js'
 
 /**
  * Lieferrunden: anlegen, auflisten, aendern, loeschen.
