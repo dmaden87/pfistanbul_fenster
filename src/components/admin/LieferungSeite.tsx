@@ -154,6 +154,15 @@ export function LieferungSeite({
    */
   const preiseSchonDa = dabei.length > 0 && dabei.every((b) => b.positionen.length > 0 && ohneEinkauf(b) === 0)
 
+  /**
+   * Alle zugesagt: eine Bestellrunde. Dann gibt es nichts mehr anzufragen –
+   * der erste Klick friert ein UND bestellt, das Blatt ist von Anfang an
+   * die verbindliche Bestellung. Boras Einkaufspreise koennen fehlen (der
+   * Kunde hat auf die Offerte hin zugesagt, nicht auf Boras Antwort); sie
+   * werden nachgetragen, sobald sie da sind.
+   */
+  const alleZugesagt = dabei.length > 0 && dabei.every((b) => b.zusageAm)
+
   /** Oeffnet den Rundenklick: alle Bestellungen der Runde, alle angekreuzt. */
   const klickOeffnen = (stand: LieferungStatus) => {
     setZurueckgeblieben(null)
@@ -272,17 +281,30 @@ export function LieferungSeite({
             <button
               type="button"
               className="btn"
-              onClick={() => klickOeffnen(preiseSchonDa ? 'preise' : 'angefragt')}
+              onClick={() => klickOeffnen(alleZugesagt ? 'bestellt' : preiseSchonDa ? 'preise' : 'angefragt')}
               disabled={sendet || auftrag.luecken.length > 0 || dabei.length === 0}
             >
-              {preiseSchonDa ? t.bestellrundeEinfrieren : t.dokumentErzeugen}
+              {alleZugesagt ? t.bestellungAnBora : preiseSchonDa ? t.bestellrundeEinfrieren : t.dokumentErzeugen}
             </button>
+            {alleZugesagt && !preiseSchonDa && (
+              <button
+                type="button"
+                className="btn btn--quiet"
+                onClick={() => klickOeffnen('angefragt')}
+                disabled={sendet || auftrag.luecken.length > 0}
+              >
+                {t.nurPreiseAnfragen}
+              </button>
+            )}
             {auftrag.luecken.length > 0 && (
               <span className="lieferung__warnung">
                 {fuelle(t.erstFehlenAngaben, { n: auftrag.luecken.length })}
               </span>
             )}
-            {preiseSchonDa && auftrag.luecken.length === 0 && (
+            {auftrag.luecken.length === 0 && alleZugesagt && (
+              <span className="admin__zusammenfassung">{t.bestellungAnBoraSatz}</span>
+            )}
+            {auftrag.luecken.length === 0 && !alleZugesagt && preiseSchonDa && (
               <span className="admin__zusammenfassung">{t.bestellrundeEinfrierenSatz}</span>
             )}
           </>
@@ -310,7 +332,7 @@ export function LieferungSeite({
             type="button"
             className="btn"
             onClick={() => klickOeffnen('bestellt')}
-            disabled={sendet || rechnung.zeilenOhnePreis > 0}
+            disabled={sendet || (rechnung.zeilenOhnePreis > 0 && !alleZugesagt)}
           >
             {t.bestellungErteilen}
           </button>

@@ -641,11 +641,20 @@
 }
 
 .admin__runde {
+  /*
+   * Klebt oben, sobald etwas gewaehlt ist. Die Kaestchen stehen in Phase 3
+   * und 5, also weit unten – wer dort ankreuzt, soll den Knopf sehen, ohne
+   * zurueckzuscrollen.
+   */
+  position: sticky;
+  top: var(--space-3);
+  z-index: 5;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-4);
   margin-top: var(--space-5);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
   padding: var(--space-4) var(--space-5);
   border-radius: var(--radius-md);
   background: var(--accent-soft);

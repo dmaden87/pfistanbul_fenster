@@ -352,6 +352,12 @@ const PAARE = {
   dokumentAnzeigen: ['Dokument anzeigen', 'Belgeyi göster'],
   dokumentErzeugen: ['Anfrage an Bora – Zeilen einfrieren', 'Bora’ya talep – satırları dondur'],
   bestellrundeEinfrieren: ['Als Bestellrunde einfrieren – Preise sind da', 'Sipariş turu olarak dondur – fiyatlar var'],
+  bestellungAnBora: ['Bestellung an Bora – Zeilen einfrieren und bestellen', 'Bora’ya sipariş – satırları dondur ve sipariş ver'],
+  bestellungAnBoraSatz: [
+    'Alle Bestellungen dieser Runde sind zugesagt. Das Blatt geht als verbindliche Bestellung raus; fehlende Einkaufspreise trägst du nach, wenn Bora sie nennt.',
+    'Bu turdaki tüm siparişler onaylı. Belge kesin sipariş olarak gider; eksik alış fiyatlarını Bora bildirince girersiniz.',
+  ],
+  nurPreiseAnfragen: ['Nur Preise anfragen', 'Sadece fiyat sor'],
   bestellrundeEinfrierenSatz: [
     'Alle Netze haben schon Einkaufspreise aus einer früheren Runde. Diese Runde überspringt die Anfrage und steht gleich auf «Preise erhalten».',
     'Tüm sinekliklerin önceki turdan alış fiyatı var. Bu tur talebi atlar ve doğrudan «Fiyatlar geldi» olur.',

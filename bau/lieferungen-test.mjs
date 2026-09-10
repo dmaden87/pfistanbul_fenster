@@ -389,6 +389,28 @@ await pruefe('Der Rundenklick bewegt nie rueckwaerts: Zugesagte bleiben beim Ein
   await ruf(handler, { method: 'DELETE', cookie, body: { id: neu.id } })
 })
 
+await pruefe('Bestellrunde aus dem Entwurf: einfrieren und bestellen in einem Klick, Abgewaehlte ohne Zusage', async () => {
+  const j1 = await bestellungAnlegen('PF-J1', 200, 0)
+  const j2 = await bestellungAnlegen('PF-J2', 200, 0)
+  await ruf(bestellHandler, { method: 'PATCH', cookie, body: { id: j1.id, zusage: true } })
+  const neu = (await ruf(handler, { method: 'POST', cookie, body: { bestellungIds: [j1.id, j2.id] } })).daten.lieferung
+  const zeilen = [
+    { nummer: 1, kennung: 'PF-J1', bezeichnung: 'Zimmer', herkunft: { bestellungId: j1.id, positionId: j1.positionen[0].id, stueck: 1 } },
+    { nummer: 2, kennung: 'PF-J2', bezeichnung: 'Zimmer', herkunft: { bestellungId: j2.id, positionId: j2.positionen[0].id, stueck: 1 } },
+  ]
+  const antwort = await ruf(handler, { method: 'PATCH', cookie, body: { id: neu.id, status: 'bestellt', zeilen, mitnehmen: [j1.id] } })
+  const l = antwort.daten.lieferung
+  assert.equal(l.status, 'bestellt')
+  assert.deepEqual(l.bestellungIds, [j1.id])
+  assert.equal(l.zeilen.length, 2, 'die Zeile der Abgewaehlten muss stehen bleiben – durchgestrichen')
+  assert.equal(l.entfernt[0].bestellungId, j2.id)
+  assert.equal(l.entfernt[0].grund, 'keineZusage')
+  const liste = (await ruf(bestellHandler, { method: 'GET', cookie })).daten.bestellungen
+  assert.equal(liste.find((b) => b.id === j1.id).status, 'bestellen')
+  assert.ok(liste.find((b) => b.id === j1.id).zusageAm)
+  await ruf(handler, { method: 'DELETE', cookie, body: { id: neu.id } })
+})
+
 await pruefe('Einfrieren nimmt bekannte Einkaufspreise von den Positionen mit', async () => {
   // b2 fiel oben mit "keine Zusage" heraus und traegt Boras Preis (40).
   const neu = (await ruf(handler, { method: 'POST', cookie, body: { bestellungIds: [b2.id] } })).daten.lieferung
