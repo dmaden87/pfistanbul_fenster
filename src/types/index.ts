@@ -279,6 +279,13 @@ export interface Bestellung {
   quelle?: BestellQuelle
   /** Gesetzt, sobald vor Ort ausgemessen wurde. ISO-Zeitpunkt. */
   ausgemessenAm?: string
+  /**
+   * Phase 4: die Verkaufspreise wurden mit Blick auf Boras Kosten
+   * festgelegt. Bis dahin tragen die Positionen den Richtpreis aus der
+   * Anfrage – und eine Offerte mit Richtpreisen waere eine Offerte ohne
+   * Kalkulation.
+   */
+  preiseFestgelegtAm?: string
   /** Gesetzt, sobald die Offerte raus ist. ISO-Zeitpunkt. */
   offerteAm?: string
   /**
@@ -360,6 +367,8 @@ export interface BestellAenderung {
   /** true setzt den Zeitpunkt auf jetzt, false loescht ihn. */
   ausgemessen?: boolean
   offerteVersendet?: boolean
+  /** true stempelt "Verkaufspreise festgelegt" auf jetzt, false loescht. */
+  preiseFestgelegt?: boolean
   ausgeliefert?: boolean
   /**
    * Die Zahlung bei der Uebergabe. Nicht zu verwechseln mit `bezahlung`: Das

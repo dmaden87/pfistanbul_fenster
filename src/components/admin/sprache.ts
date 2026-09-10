@@ -116,6 +116,26 @@ const PAARE = {
   nochNichtInRunde: ['noch in keiner Runde', 'henüz hiçbir turda değil'],
   restbetrag: ['Rest offen', 'Kalan'],
 
+  /* --- Phase 4: Verkaufspreise festlegen ---------------------------------- */
+  verkaufspreiseTitel: ['Verkaufspreise festlegen', 'Satış fiyatlarını belirle'],
+  verkaufspreiseSatz: [
+    'Boras Kosten sind da. Lege je Netz den Verkaufspreis fest – bis dahin steht der Richtpreis aus der Anfrage drin.',
+    'Bora’nın maliyetleri geldi. Her sineklik için satış fiyatını belirleyin – o zamana kadar talepteki tahmini fiyat durur.',
+  ],
+  richtpreisMarke: ['Richtpreise – Verkaufspreise noch nicht festgelegt', 'Tahmini fiyatlar – satış fiyatı henüz belirlenmedi'],
+  preiseFestgelegtAm: ['Verkaufspreise festgelegt am', 'Satış fiyatları belirlendi'],
+  verkaufJeStueck: ['Verkauf / Stück', 'Satış / adet'],
+  einkaufJeStueck: ['Einkauf / Stück', 'Alış / adet'],
+  margeZeile: ['Marge', 'Kâr'],
+  knopfPreiseFestlegen: ['Verkaufspreise festlegen', 'Satış fiyatlarını belirle'],
+  knopfPreiseAendern: ['Verkaufspreise ändern', 'Satış fiyatlarını değiştir'],
+  aufschlagSatz: ['Alle: Aufschlag auf den Einkauf in %', 'Tümü: alışa yüzde ekle'],
+  aufschlagAnwenden: ['Anwenden', 'Uygula'],
+  preisFehltSatz: [
+    'Jedes Netz braucht einen Verkaufspreis über 0.',
+    'Her sinekliğin 0’dan büyük bir satış fiyatı olmalı.',
+  ],
+
   /* --- Felder je Phase --------------------------------------------------- */
   klaerungTermin: ['Termin Auftragsklärung', 'Netleştirme randevusu'],
   montageTermin: ['Liefer-/Montagetermin', 'Teslim/montaj tarihi'],

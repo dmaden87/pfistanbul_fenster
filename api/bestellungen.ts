@@ -143,6 +143,7 @@ interface Bestellung {
   ausgemessenAm?: string
   /** Gesetzt, sobald die Offerte raus ist. */
   offerteAm?: string
+  preiseFestgelegtAm?: string
   /** Uebergabe und Zahlung. Beide gesetzt heisst abgeschlossen. */
   ausgeliefertAm?: string
   bezahltAm?: string
@@ -640,6 +641,10 @@ async function aendern(req: VercelRequest, res: VercelResponse) {
   }
   if (koerper.offerteVersendet !== undefined) {
     bestellung.offerteAm = koerper.offerteVersendet === true ? new Date().toISOString() : undefined
+    geaendert = true
+  }
+  if (koerper.preiseFestgelegt !== undefined) {
+    bestellung.preiseFestgelegtAm = koerper.preiseFestgelegt === true ? jetzt : undefined
     geaendert = true
   }
 

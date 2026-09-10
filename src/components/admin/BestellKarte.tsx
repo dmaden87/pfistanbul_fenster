@@ -28,6 +28,7 @@ import {
   type Abschnitt,
 } from '../../lib/phasen'
 import { NetzEditor } from './NetzEditor'
+import { PreisFestlegen } from './PreisFestlegen'
 import { fuelle, useSprache } from './sprache'
 
 /**
@@ -129,8 +130,10 @@ function knoepfe(b: Bestellung, abschnitt: Abschnitt, t: AdminTexte): KartenKnop
       ]
     }
     case 'offerte':
+      // Erst die Verkaufspreise, dann die Offerte: Solange die Richtpreise
+      // drinstehen, ist der Hauptknopf der Block "Verkaufspreise festlegen".
       return [
-        { tat: 'offerte', text: t.knopfOfferteAnzeigen, art: b.offerteAm ? 'still' : 'haupt' },
+        { tat: 'offerte', text: t.knopfOfferteAnzeigen, art: b.offerteAm || !b.preiseFestgelegtAm ? 'still' : 'haupt' },
         b.offerteAm
           ? { tat: { status: 'bestellen', zusage: true }, text: t.knopfKundeZugesagt, art: 'haupt' }
           : { tat: { offerteVersendet: true }, text: t.knopfOfferteRaus, art: 'still' },
@@ -229,6 +232,7 @@ export function BestellKarte({
   const [bearbeitet, setBearbeitet] = useState(false)
   const [loeschFrage, setLoeschFrage] = useState(false)
   const [absageFrage, setAbsageFrage] = useState(false)
+  const [preiseBearbeiten, setPreiseBearbeiten] = useState(false)
   const [notiz, setNotiz] = useState(b.notiz ?? '')
   const [zahlungNotiz, setZahlungNotiz] = useState(b.zahlungKommentar ?? '')
   const { t, ort } = useSprache()
@@ -245,6 +249,11 @@ export function BestellKarte({
   const speichereNetze = async (positionen: BestellPosition[], montageChf: number) => {
     await onAendern(b.id, { positionen, montageChf })
     setBearbeitet(false)
+  }
+
+  const speicherePreise = async (positionen: BestellPosition[], montageChf: number) => {
+    await onAendern(b.id, { positionen, montageChf, preiseFestgelegt: true })
+    setPreiseBearbeiten(false)
   }
 
   const klick = async (k: KartenKnopf) => {
@@ -307,6 +316,9 @@ export function BestellKarte({
         {phaseTage !== null && phaseTage >= 7 && abschnitt !== 'archiv' && (
           <span className="admin__marke">{fuelle(t.seitTagen, { n: phaseTage })}</span>
         )}
+        {abschnitt === 'offerte' && !b.preiseFestgelegtAm && (
+          <span className="admin__marke admin__marke--warnung">{t.richtpreisMarke}</span>
+        )}
         {abschnitt === 'archiv' && b.status === 'abgesagt' && (
           <span className="admin__marke">
             {t.abgesagtMarke} · {grundText(b.absageGrund, t)}
@@ -353,9 +365,29 @@ export function BestellKarte({
         </div>
       )}
 
-      {/* Phase 4: ist die Offerte raus, und seit wann ohne Antwort? */}
+      {/* Phase 4, erster Teil: aus Boras Kosten den Verkaufspreis machen. */}
+      {abschnitt === 'offerte' && (!b.preiseFestgelegtAm || preiseBearbeiten) && (
+        <PreisFestlegen
+          bestellung={b}
+          montageProNetz={montageProNetz}
+          onSpeichern={speicherePreise}
+          onAbbrechen={preiseBearbeiten ? () => setPreiseBearbeiten(false) : undefined}
+        />
+      )}
+
+      {/* Phase 4, zweiter Teil: ist die Offerte raus, und seit wann ohne Antwort? */}
       {abschnitt === 'offerte' && (
         <div className="admin__haken-reihe">
+          {b.preiseFestgelegtAm && !preiseBearbeiten && (
+            <>
+              <span className="admin__marke admin__marke--gut">
+                {t.preiseFestgelegtAm} {tag(b.preiseFestgelegtAm, ort)}
+              </span>
+              <button type="button" className="btn btn--quiet" onClick={() => setPreiseBearbeiten(true)}>
+                {t.knopfPreiseAendern}
+              </button>
+            </>
+          )}
           <label className="admin__haken">
             <input
               type="checkbox"

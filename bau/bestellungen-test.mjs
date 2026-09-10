@@ -556,6 +556,31 @@ await pruefe('Alteintrag: die Montage wird aus der Differenz hergeleitet', async
 
 /* --- Loeschen ---------------------------------------------------------------- */
 
+await pruefe('Verkaufspreise festlegen: neuer Preis, Boras Einkauf bleibt, Stempel gesetzt', async () => {
+  const a = await ruf({ method: 'POST', aktion: 'erfassen', cookie, body: {
+    art: 'anfrage', referenz: 'PF-VK', kunde: { name: 'Verkauf', telefon: '079' },
+    positionen: [{ menge: 2, bezeichnung: 'Bad', breiteCm: 80, hoeheCm: 100, preisChf: 120 }], montage: false, montageChf: 0,
+  } })
+  const b = a.daten.bestellung
+  // Bora hat geantwortet (wie es die Runde zurueckschreibt).
+  await ruf({ method: 'PATCH', cookie, body: { id: b.id, status: 'kosten' } })
+  const roh = gespeichert.lies(b.id)
+  roh.positionen[0].einkaufChf = 45
+  gespeichert.schreib(b.id, roh)
+
+  const neu = await ruf({ method: 'PATCH', cookie, body: {
+    id: b.id, status: 'offerte', preiseFestgelegt: true, montageChf: 40,
+    positionen: [{ ...b.positionen[0], preisChf: 180 }],
+  } })
+  assert.equal(neu.code, 200)
+  assert.equal(neu.daten.bestellung.positionen[0].preisChf, 180)
+  assert.equal(neu.daten.bestellung.positionen[0].einkaufChf, 45, 'der Einkaufspreis ging beim Verkaufspreis verloren')
+  assert.equal(neu.daten.bestellung.summeChf, 400)
+  assert.ok(neu.daten.bestellung.preiseFestgelegtAm)
+  const weg = await ruf({ method: 'PATCH', cookie, body: { id: b.id, preiseFestgelegt: false } })
+  assert.equal(weg.daten.bestellung.preiseFestgelegtAm, undefined)
+})
+
 await pruefe('Endgueltiges Loeschen entfernt den Eintrag', async () => {
   assert.equal((await ruf({ method: 'DELETE', cookie, body: { id: 'alt-1' } })).code, 200)
   const liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
