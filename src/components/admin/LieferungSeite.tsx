@@ -134,6 +134,18 @@ export function LieferungSeite({
     await schritt({ status: 'angefragt', zeilen })
   }
 
+  /*
+   * Speichern ist NUR speichern.
+   *
+   * Frueher setzte dieser Knopf die Runde auf "Preise erhalten" – auch wenn
+   * erst einer von sechs Preisen dastand. Der Stand log dann, und die
+   * Bestellung sprang in den naechsten Abschnitt, obwohl fuenf Kosten
+   * fehlten. Boras Antworten kommen aber nach und nach, und ein
+   * Zwischenstand zu speichern muss folgenlos sein.
+   *
+   * Weitergesetzt wird ausdruecklich, mit einem eigenen Knopf, und der gibt
+   * es erst, wenn wirklich jede Zeile einen Preis hat.
+   */
   const preiseSpeichern = async () => {
     const zeilen = lieferung.zeilen.map((z) => ({ ...z, einkaufChf: zahl(preise[z.nummer] ?? '') }))
     const jePaket: Record<string, number> = {}
@@ -142,7 +154,6 @@ export function LieferungSeite({
       if (betrag !== undefined) jePaket[kennung] = betrag
     }
     await schritt({
-      status: 'preise',
       zeilen,
       lieferkostenJePaket: jePaket,
       lieferkostenChf: zahl(frachtGesamt),
@@ -196,11 +207,24 @@ export function LieferungSeite({
             )}
           </>
         )}
-        {lieferung.status === 'angefragt' && (
-          <button type="button" className="btn" onClick={() => schritt({ status: 'preise' })} disabled={sendet}>
-            {t.antwortDaPreise}
-          </button>
-        )}
+        {/*
+          Der Uebergang nach "Preise erhalten" ist eine Aussage ueber die
+          Vollstaendigkeit, deshalb gibt es ihn erst, wenn sie stimmt. Fehlt
+          noch etwas, steht statt des Knopfes, wie viel.
+        */}
+        {lieferung.status === 'angefragt' &&
+          (rechnung.zeilenOhnePreis === 0 && lieferung.zeilen.length > 0 ? (
+            <button type="button" className="btn" onClick={() => schritt({ status: 'preise' })} disabled={sendet}>
+              {t.allePreiseDa}
+            </button>
+          ) : (
+            <span className="lieferung__warnung">
+              {fuelle(t.nochOhnePreis, {
+                offen: rechnung.zeilenOhnePreis,
+                alle: lieferung.zeilen.length,
+              })}
+            </span>
+          ))}
         {lieferung.status === 'preise' && (
           <button
             type="button"
@@ -381,6 +405,7 @@ export function LieferungSeite({
             />
           </label>
 
+          <p className="admin__zusammenfassung">{t.preiseSpeichernSatz}</p>
           <button type="button" className="btn" onClick={preiseSpeichern} disabled={sendet}>
             {sendet ? t.wirdGespeichert : t.preiseSpeichern}
           </button>

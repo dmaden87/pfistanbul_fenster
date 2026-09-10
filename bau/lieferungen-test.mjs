@@ -156,6 +156,25 @@ await pruefe('Nummer, Anlagezeitpunkt und Id bleiben unveraenderbar', async () =
   assert.equal(antwort.daten.lieferung.termin, 'Ende Oktober')
 })
 
+await pruefe('Ein Zwischenstand aendert den Stand der Runde NICHT', async () => {
+  /*
+   * Boras Antworten kommen nach und nach. Wer einen von sechs Preisen
+   * eintraegt, hat nicht "die Preise erhalten" – und die Bestellung darf
+   * deshalb auch nicht in den naechsten Abschnitt springen.
+   */
+  const halb = runde.zeilen.map((z, i) => ({ ...z, einkaufChf: i === 0 ? 42.5 : undefined }))
+  const antwort = await ruf(handler, { method: 'PATCH', cookie, body: { id: runde.id, zeilen: halb } })
+  assert.equal(antwort.code, 200)
+  assert.equal(antwort.daten.lieferung.status, 'angefragt', 'der Stand wurde mitgesetzt')
+  assert.equal(antwort.daten.lieferung.zeilen[0].einkaufChf, 42.5)
+  assert.equal(antwort.daten.lieferung.zeilen[1].einkaufChf, undefined)
+
+  // Der halbe Preis ist trotzdem schon auf der Bestellung – er geht nicht
+  // verloren, wenn sie spaeter die Runde verlaesst.
+  const liste = (await ruf(bestellHandler, { method: 'GET', cookie })).daten.bestellungen
+  assert.equal(liste.find((b) => b.id === b1.id).positionen[0].einkaufChf, 42.5)
+})
+
 await pruefe('Preise landen an der Zeile', async () => {
   const zeilen = runde.zeilen.map((z, i) => ({ ...z, einkaufChf: i === 0 ? 42.5 : 40 }))
   const antwort = await ruf(handler, { method: 'PATCH', cookie, body: { id: runde.id, status: 'preise', zeilen } })

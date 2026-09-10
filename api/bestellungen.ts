@@ -52,7 +52,14 @@ const STATUS: Status[] = ['neu', 'offeriert', 'zugesagt', 'abgesagt']
 export function vereinheitlichen(b: Bestellung): Bestellung {
   const alt = b.status as string
   if (STATUS.includes(alt as Status)) return b
-  if (alt === 'offerte') return { ...b, status: 'offeriert' }
+  /*
+   * "offerte" hiess nur "im Offert-Abschnitt" und deckte BEIDES ab: die
+   * Offerte war noch zu rechnen, oder sie war schon draussen. Welches von
+   * beidem, stand im Haken `offerteAm`. Wer das ignoriert, schiebt jede
+   * Altbestellung zum Kunden, obwohl sie noch bei uns liegt – und dort
+   * gibt es dann keinen Knopf mehr, der sie zurueckholt.
+   */
+  if (alt === 'offerte') return { ...b, status: b.offerteAm ? 'offeriert' : 'neu' }
   if (alt === 'bestellt') return { ...b, status: 'zugesagt' }
   if (alt === 'geloescht') return { ...b, status: 'abgesagt' }
   if (alt === 'erledigt') {

@@ -243,11 +243,30 @@ await pruefe('Die alten Statuswerte werden beim Lesen abgebildet', async () => {
   // Gespeicherte Bestellungen tragen noch das alte Vokabular. Sie duerfen
   // nicht als "unbekannt" durchfallen, sonst verschwinden sie aus der Liste.
   const roh = gespeichert.lies(vonHand.id)
-  for (const [alt, neu] of [['offerte', 'offeriert'], ['bestellt', 'zugesagt'], ['geloescht', 'abgesagt']]) {
+  for (const [alt, neu] of [['bestellt', 'zugesagt'], ['geloescht', 'abgesagt']]) {
     gespeichert.schreib(vonHand.id, { ...roh, status: alt })
     const liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
     assert.equal(liste.find((b) => b.id === vonHand.id).status, neu, alt)
   }
+  gespeichert.schreib(vonHand.id, roh)
+})
+
+await pruefe('Altes "offerte" entscheidet sich am Haken "Offerte versendet"', async () => {
+  /*
+   * "offerte" hiess nur "im Offert-Abschnitt". Ob die Offerte wirklich
+   * draussen war, stand im Haken. Wer das ignoriert, schiebt jede
+   * Altbestellung zum Kunden, obwohl sie noch bei uns liegt.
+   */
+  const roh = gespeichert.lies(vonHand.id)
+
+  gespeichert.schreib(vonHand.id, { ...roh, status: 'offerte', offerteAm: undefined })
+  let liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
+  assert.equal(liste.find((b) => b.id === vonHand.id).status, 'neu', 'ohne Haken zum Kunden geschoben')
+
+  gespeichert.schreib(vonHand.id, { ...roh, status: 'offerte', offerteAm: '2026-05-01T10:00:00.000Z' })
+  liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
+  assert.equal(liste.find((b) => b.id === vonHand.id).status, 'offeriert')
+
   gespeichert.schreib(vonHand.id, roh)
 })
 

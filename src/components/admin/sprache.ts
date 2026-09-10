@@ -314,7 +314,11 @@ const PAARE = {
     'Erst fehlen noch Angaben ({n}). Im Dokument steht, welche.',
     'Önce eksik bilgiler var ({n}). Hangileri olduğu belgede yazıyor.',
   ],
-  antwortDaPreise: ['Antwort da – Preise eintragen', 'Cevap geldi – fiyatları gir'],
+  allePreiseDa: ['Alle Preise da – weiter', 'Tüm fiyatlar geldi – devam'],
+  nochOhnePreis: [
+    'Noch {offen} von {alle} Zeilen ohne Einkaufspreis. Zwischenstände lassen sich speichern; weiter geht es, wenn alle da sind.',
+    '{alle} satırdan {offen} tanesinde alış fiyatı yok. Ara durumu kaydedebilirsiniz; hepsi geldiğinde devam edilir.',
+  ],
   bestellungErteilen: ['Bestellung erteilen', 'Siparişi ver'],
   istAngekommen: ['Ist angekommen', 'Geldi'],
   zurueckZuAnfrage: ['Zurück zu „Anfrage versendet"', '„Talep gönderildi" durumuna dön'],
@@ -352,6 +356,10 @@ const PAARE = {
     'Üreticinin verdiği tarih – sonra bizim beklediğimiz tarih',
   ],
   preiseSpeichern: ['Preise speichern', 'Fiyatları kaydet'],
+  preiseSpeichernSatz: [
+    'Speichern ist nur speichern: Zwischenstände sind erlaubt, und der Stand der Runde ändert sich dabei nicht.',
+    'Kaydetmek yalnızca kaydetmektir: Ara durumlar serbesttir ve turun durumu değişmez.',
+  ],
 
   rechnungDerRunde: ['Rechnung der Runde', 'Turun hesabı'],
   zeilenOhnePreis: [

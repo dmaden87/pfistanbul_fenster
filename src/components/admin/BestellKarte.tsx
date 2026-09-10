@@ -87,6 +87,12 @@ function knoepfe(schritt: Arbeitsschritt, t: AdminTexte): KartenKnopf[] {
     case 'offerteDraussen':
       return [
         { tat: { status: 'zugesagt' }, text: t.knopfKundeZugesagt, art: 'haupt' },
+        /*
+         * Der Weg zurueck. Er fehlte, und eine Bestellung, die
+         * faelschlicherweise als offeriert galt, sass fest: Von hier fuehrte
+         * nur noch die Zusage oder die Absage weg – beides gelogen.
+         */
+        { tat: { status: 'neu', offerteVersendet: false }, text: t.knopfZurueckNeu, art: 'still' },
         { tat: { status: 'abgesagt' }, text: t.knopfAbsagen, art: 'still' },
       ]
     case 'bereitZuBestellen':
