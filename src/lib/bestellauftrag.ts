@@ -1,4 +1,4 @@
-import type { Bestellung, BestellPosition, Lieferung, LieferungZeile, OpeningDirection, ZeilenHerkunft } from '../types'
+import type { Bestellung, BestellPosition, OpeningDirection, ZeilenHerkunft } from '../types'
 import type { Mechanismus, Netzfarbe, Rahmenfarbe } from '../data/produktion'
 import { setById, typeById } from '../data/catalog'
 import { PACKMASS } from '../data/produktion'
@@ -66,13 +66,8 @@ export interface AuftragsPaket {
 export interface AuftragsZeile extends AuftragsNetz {
   nummer: number
   kennung: string
-  /** Woher die Zeile stammt. Fehlt bei Zusatzzeilen der Runde. */
+  /** Woher die Zeile stammt: welche Bestellung, welche Position, welches Stueck. */
   herkunft?: ZeilenHerkunft
-}
-
-/** Der Schluessel, unter dem eine Runde eine Zeile ausschliessen kann. */
-export function zeilenSchluessel(h: ZeilenHerkunft): string {
-  return `${h.bestellungId}#${h.positionId}#${h.stueck}`
 }
 
 export interface Luecke {
@@ -207,21 +202,12 @@ export function packmass(netze: AuftragsNetz[]): AuftragsPaket['packmass'] {
 }
 
 /**
- * Alle Zeilen einer Runde, in stabiler Reihenfolge: Bestellung fuer
- * Bestellung, Position fuer Position, Stueck fuer Stueck.
- *
- * Bewusst NICHT nach Bauart gruppiert. Diese Liste ist die zum Bearbeiten;
- * wuerde sie sich beim Tippen umsortieren, spraenge einem die Zeile unter dem
- * Finger weg. Nach Bauart sortiert erst `auftragAufbauen` fuer das Dokument.
- *
- * Ausgeschlossene Zeilen fehlen, Zusatzzeilen der Runde haengen hinten an.
+ * Alle Zeilen der Auftraege, in stabiler Reihenfolge: Bestellung fuer
+ * Bestellung, Position fuer Position, Stueck fuer Stueck. Nach Bauart
+ * sortiert erst `auftragAufbauen` fuer das Dokument.
  */
-export function zeilenDerRunde(
-  bestellungen: Bestellung[],
-  runde?: Pick<Lieferung, 'ausgeschlossen' | 'zusatz'>,
-): AuftragsZeile[] {
+export function zeilenDerAuftraege(bestellungen: Bestellung[]): AuftragsZeile[] {
   const raus: AuftragsZeile[] = []
-  const ausgeschlossen = new Set(runde?.ausgeschlossen ?? [])
 
   for (const bestellung of bestellungen) {
     const kennung = kennungFuer(bestellung)
@@ -231,19 +217,9 @@ export function zeilenDerRunde(
       for (const netz of netzeAusPosition(position)) {
         for (let stueck = 0; stueck < netz.menge; stueck++) {
           const herkunft: ZeilenHerkunft = { bestellungId: bestellung.id, positionId, stueck }
-          if (ausgeschlossen.has(zeilenSchluessel(herkunft))) continue
           raus.push({ ...netz, menge: 1, nummer: 0, kennung, herkunft })
         }
       }
-    })
-  }
-
-  for (const zusatz of runde?.zusatz ?? []) {
-    raus.push({
-      ...(zusatz as LieferungZeile & AuftragsNetz),
-      menge: 1,
-      nummer: 0,
-      herkunft: undefined,
     })
   }
 
@@ -259,14 +235,11 @@ export function fehlendeAngaben(netz: AuftragsNetz): string[] {
  * Der Auftrag fuers Dokument: gleiche Bauarten hintereinander, damit der
  * Produzent sie in einem Zug fertigen kann.
  */
-export function auftragAufbauen(
-  bestellungen: Bestellung[],
-  runde?: Pick<Lieferung, 'ausgeschlossen' | 'zusatz'>,
-): Auftrag {
+export function auftragAufbauen(bestellungen: Bestellung[]): Auftrag {
   const luecken: Luecke[] = []
   const nachBauart = new Map<string, AuftragsZeile[]>()
 
-  for (const zeile of zeilenDerRunde(bestellungen, runde)) {
+  for (const zeile of zeilenDerAuftraege(bestellungen)) {
     const fehlt = fehlendeAngaben(zeile)
     if (fehlt.length > 0) {
       luecken.push({ kennung: zeile.kennung, netz: zeile.bezeichnung || 'ohne Bezeichnung', fehlt })

@@ -45,6 +45,13 @@
   width: 9rem;
 }
 
+.auftrag__felder {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-5);
+  margin-top: var(--space-3);
+}
+
 .auftrag__schritte {
   display: flex;
   flex-wrap: wrap;
@@ -82,25 +89,6 @@
   font-family: 'Inter', system-ui, sans-serif;
   font-size: 10pt;
   line-height: 1.4;
-}
-
-/*
- * Der Entwurfsbalken. Schwarz auf Gelb, damit er auch auf einem
- * Schwarzweissdruck als Balken auffaellt – nicht als Schmuck.
- */
-.blatt__entwurf {
-  margin-bottom: 3mm;
-  padding: 1.5mm 3mm;
-  border: 1.5px dashed #111111;
-  background: #fff3b0;
-  color: #111111;
-  font-size: 11pt;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-align: center;
-  text-transform: uppercase;
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
 }
 
 .blatt__kopf {

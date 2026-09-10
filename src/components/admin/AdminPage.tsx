@@ -1,19 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { AdminStatus, Bestellung, BestellAenderung, BestellPosition, Lieferung } from '../../types'
-import { ABSCHNITTE, nachAbschnitt, rundeFuer, type Abschnitt } from '../../lib/phasen'
+import type { AdminStatus, Bestellung, BestellAenderung } from '../../types'
+import { ABSCHNITTE, nachAbschnitt, type Abschnitt } from '../../lib/phasen'
 import type { AdminTexte } from './sprache'
 import { abmelden, adminStatus, aendereBestellung, anmelden, entferneBestellung, ladeBestellungen } from '../../lib/adminApi'
 import { shopConfig } from '../../data/shopConfig'
 import { BestellKarte } from './BestellKarte'
-import { LieferungSeite } from './LieferungSeite'
+import { Bestellauftrag } from './Bestellauftrag'
 import { Offerte } from './Offerte'
-import {
-  ladeLieferungen,
-  lieferungAendern,
-  lieferungAnlegen,
-  lieferungEntfernen,
-  type LieferungAenderung,
-} from '../../lib/lieferungApi'
 import { NeueBestellung } from './NeueBestellung'
 import { SprachRahmen } from './SprachRahmen'
 import { useSprache } from './sprache'
@@ -21,16 +14,6 @@ import './AdminPage.css'
 
 interface AdminPageProps {
   onBack: () => void
-}
-
-function standTexte(t: AdminTexte): Record<Lieferung['status'], string> {
-  return {
-    entwurf: t.standEntwurf,
-    angefragt: t.standAngefragt,
-    preise: t.standPreise,
-    bestellt: t.standBestellt,
-    geliefert: t.standGeliefert,
-  }
 }
 
 /**
@@ -57,12 +40,31 @@ function abschnittTexte(t: AdminTexte): Record<Abschnitt, { titel: string; satz:
 }
 
 /**
- * In welchen Abschnitten eine Runde zusammengestellt wird: In "Kosten
- * klaeren" entsteht die Preisanfrage, in "Bestellen" die Bestellrunde.
- * Ueberall sonst gibt es kein Kaestchen – eine Bestellung ohne geklaerte
- * Angaben gehoert in keine Anfrage, eine ohne Zusage in keine Bestellung.
+ * Nur in "Bestellen" gibt es ein Kaestchen: Dort lassen sich mehrere
+ * zugesagte Auftraege zu einem Paket zusammenfuehren – ein Etikett, ein
+ * gemeinsamer Bestelltalon. Sonst wird jeder Auftrag fuer sich gefuehrt.
  */
-const MIT_KAESTCHEN: readonly Abschnitt[] = ['kosten', 'bestellen']
+const MIT_KAESTCHEN: readonly Abschnitt[] = ['bestellen']
+
+/** Das naechste freie Paket-Etikett: P-<Jahr>-<laufende Nummer>. */
+function naechstesPaket(bestellungen: Bestellung[]): string {
+  const jahr = new Date().getFullYear()
+  const praefix = `P-${jahr}-`
+  const hoechste = bestellungen
+    .map((b) => b.paket ?? '')
+    .filter((p) => p.startsWith(praefix))
+    .map((p) => Number(p.slice(praefix.length)))
+    .filter((n) => Number.isFinite(n))
+    .reduce((a, b) => Math.max(a, b), 0)
+  return `${praefix}${String(hoechste + 1).padStart(2, '0')}`
+}
+
+/** Was gerade als Talon offen ist: welche Auftraege, als Anfrage oder Bestellung. */
+interface OffenesBlatt {
+  ids: string[]
+  art: 'anfrage' | 'bestellung'
+  nummer: string
+}
 
 /**
  * Der Adminbereich. Die aeussere Huelle setzt nur den Sprachrahmen; die
@@ -84,13 +86,10 @@ function AdminMaske({ onBack }: AdminPageProps) {
   const [laedt, setLaedt] = useState(true)
   const [sendet, setSendet] = useState(false)
   const [erfassen, setErfassen] = useState(false)
-  // Welche Bestellungen in die naechste Lieferrunde gehen. Die Runde wird von
-  // Hand zusammengestellt und nicht aus dem Status abgeleitet: Der Auftrag
-  // entsteht, BEVOR etwas als "beim Lieferanten bestellt" gilt.
-  const [runde, setRunde] = useState<string[]>([])
-  const [lieferungen, setLieferungen] = useState<Lieferung[]>([])
-  /** Welche Lieferrunde gerade offen ist. */
-  const [offeneRunde, setOffeneRunde] = useState<string | null>(null)
+  /** Welche Auftraege fuers naechste Paket angekreuzt sind. */
+  const [auswahl, setAuswahl] = useState<string[]>([])
+  /** Welcher Talon gerade offen ist. */
+  const [blatt, setBlatt] = useState<OffenesBlatt | null>(null)
   /** Welche Bestellung gerade als Offerte angezeigt wird. */
   const [offeneOfferte, setOffeneOfferte] = useState<string | null>(null)
   /* Nur das Archiv startet zugeklappt: Die sechs Phasen sind die Arbeit. */
@@ -100,11 +99,7 @@ function AdminMaske({ onBack }: AdminPageProps) {
   const laden = useCallback(async () => {
     setFehler(null)
     try {
-      // Beides zusammen: Die Karte zeigt, in welcher Runde eine Bestellung
-      // steckt, und die Auswahlleiste weiss so, welche Art Runde entsteht.
-      const [b, l] = await Promise.all([ladeBestellungen(), ladeLieferungen()])
-      setBestellungen(b)
-      setLieferungen(l)
+      setBestellungen(await ladeBestellungen())
     } catch (f) {
       setFehler(f instanceof Error ? f.message : 'Die Liste konnte nicht geladen werden.')
     }
@@ -239,53 +234,29 @@ function AdminMaske({ onBack }: AdminPageProps) {
 
   const gruppen = nachAbschnitt(bestellungen)
   const zuTun = bestellungen.length - gruppen.get('archiv')!.length
-  const gewaehlte = bestellungen.filter((b) => runde.includes(b.id))
-  /*
-   * Welche Art Runde aus der Auswahl wuerde. Aus "Kosten klaeren" wird eine
-   * Preisanfrage, aus "Bestellen" eine Bestellrunde. Beides gemischt ergibt
-   * kein sinnvolles Dokument – dann sagt die Leiste das, statt es anzulegen.
-   */
-  const ausKosten = gewaehlte.filter((b) => b.status === 'kosten').length
-  const ausBestellen = gewaehlte.filter((b) => b.status === 'bestellen').length
-  const gemischt = ausKosten > 0 && ausBestellen > 0
+  const gewaehlte = bestellungen.filter((b) => auswahl.includes(b.id))
 
   const waehle = (id: string, an: boolean) =>
-    setRunde((liste) => (an ? [...liste, id] : liste.filter((x) => x !== id)))
+    setAuswahl((liste) => (an ? [...liste, id] : liste.filter((x) => x !== id)))
 
-  const handleLieferung = async (id: string, aenderung: LieferungAenderung) => {
-    const { lieferung, einkauf, zurueckgeblieben } = await lieferungAendern(id, aenderung)
-    setLieferungen((liste) => liste.map((l) => (l.id === id ? lieferung : l)))
-    /*
-     * Nachgeladen wird, wenn der Server Bestellungen angefasst haben kann:
-     * beim Rundenklick (der setzt Phasen), beim Herausnehmen und wenn Boras
-     * Preise oder der Zoll zurueckgeschrieben wurden. Blosse Felder der
-     * Runde – Termin, Bemerkung, unterwegs – aendern keine Bestellung.
-     */
-    if (
-      aenderung.status !== undefined ||
-      aenderung.entfernen ||
-      (einkauf ?? 0) > 0 ||
-      (zurueckgeblieben?.length ?? 0) > 0
-    ) {
-      setBestellungen(await ladeBestellungen())
-    }
-  }
+  /** Die Auftraege, die mit diesem dasselbe Paket-Etikett tragen (ihn selbst eingeschlossen). */
+  const paketVon = (b: Bestellung): Bestellung[] =>
+    b.paket ? bestellungen.filter((x) => x.paket === b.paket) : [b]
 
   /**
-   * Verwirft eine Runde. Die Bestellungen bleiben, wo sie sind – auch ihr
-   * Status. Eine Ruecknahme koennte einen Stand ueberschreiben, den jemand
-   * inzwischen von Hand gesetzt hat.
+   * Zusammenfuehren: Alle Gewaehlten bekommen dasselbe Etikett, dann geht
+   * der gemeinsame Bestelltalon auf. Das Etikett ist der ganze Zustand –
+   * es gibt kein Paket ausser den Auftraegen, die es tragen.
    */
-  const handleVerwerfen = async (id: string) => {
-    await lieferungEntfernen(id)
-    setLieferungen((liste) => liste.filter((l) => l.id !== id))
-    setOffeneRunde(null)
-  }
-
-  /** Schreibt geaenderte Netze aus der Rundentabelle in die Bestellung. */
-  const handlePositionen = async (bestellungId: string, positionen: BestellPosition[]) => {
-    const neuerStand = await aendereBestellung(bestellungId, { positionen })
-    setBestellungen((liste) => liste.map((b) => (b.id === bestellungId ? neuerStand : b)))
+  const zusammenfuehren = async () => {
+    const etikett = naechstesPaket(bestellungen)
+    try {
+      for (const b of gewaehlte) await handleAendern(b.id, { paket: etikett })
+      setAuswahl([])
+      setBlatt({ ids: gewaehlte.map((b) => b.id), art: 'bestellung', nummer: etikett })
+    } catch {
+      // handleAendern hat den Fehler schon angezeigt und neu geladen.
+    }
   }
 
   const offerte = offeneOfferte ? bestellungen.find((b) => b.id === offeneOfferte) : undefined
@@ -299,23 +270,15 @@ function AdminMaske({ onBack }: AdminPageProps) {
     )
   }
 
-  const offeneLieferung = offeneRunde ? lieferungen.find((l) => l.id === offeneRunde) : undefined
-  if (offeneLieferung) {
+  if (blatt) {
     // Bewusst ohne die Klasse "admin": Deren Ueberschriftenregel ist genauso
-    // spezifisch wie die des Blatts und wird spaeter geladen – der Auftrag
-    // bekaeme die Anzeigeschrift der Webseite. Der Produzent liest Zahlen,
-    // dafuer ist eine Serifenschrift die falsche Wahl.
+    // spezifisch wie die des Blatts und wird spaeter geladen – der Talon
+    // bekaeme die Anzeigeschrift der Webseite.
+    const drauf = bestellungen.filter((b) => blatt.ids.includes(b.id))
     return (
       <section className="section">
         <div className="shell">
-          <LieferungSeite
-            lieferung={offeneLieferung}
-            bestellungen={bestellungen}
-            onAendern={handleLieferung}
-            onVerwerfen={handleVerwerfen}
-            onPositionen={handlePositionen}
-            onZurueck={() => setOffeneRunde(null)}
-          />
+          <Bestellauftrag bestellungen={drauf} art={blatt.art} nummer={blatt.nummer} onZurueck={() => setBlatt(null)} />
         </div>
       </section>
     )
@@ -388,30 +351,15 @@ function AdminMaske({ onBack }: AdminPageProps) {
         {gewaehlte.length > 0 && (
           <div className="admin__runde">
             <span>
-              <strong>{gewaehlte.length}</strong> {gewaehlte.length === 1 ? t.bestellung : t.bestellungen}{' '}
-              {gemischt ? t.fuerLieferrundeGewaehlt : ausBestellen > 0 ? t.fuerBestellrunde : t.fuerPreisanfrage}
+              <strong>{gewaehlte.length}</strong> {gewaehlte.length === 1 ? t.bestellung : t.bestellungen} {t.fuerPaketGewaehlt}
             </span>
-            {gemischt && <span className="lieferung__warnung">{t.gemischteAuswahl}</span>}
-            <button
-              type="button"
-              className="btn"
-              disabled={gemischt}
-              onClick={async () => {
-                try {
-                  const neue = await lieferungAnlegen(gewaehlte.map((b) => b.id))
-                  setLieferungen((liste) => [neue, ...liste])
-                  setRunde([])
-                  setOffeneRunde(neue.id)
-                } catch (f) {
-                  setFehler(f instanceof Error ? f.message : 'Die Lieferrunde konnte nicht angelegt werden.')
-                }
-              }}
-            >
-              {t.lieferrundeAnlegen}
+            <button type="button" className="btn" onClick={zusammenfuehren}>
+              {t.zumPaketZusammenfuehren}
             </button>
-            <button type="button" className="btn btn--quiet" onClick={() => setRunde([])}>
+            <button type="button" className="btn btn--quiet" onClick={() => setAuswahl([])}>
               {t.auswahlAufheben}
             </button>
+            <span className="admin__detail">{t.paketSatz}</span>
           </div>
         )}
 
@@ -424,34 +372,6 @@ function AdminMaske({ onBack }: AdminPageProps) {
               await laden()
             }}
           />
-        )}
-
-        {/*
-          Die Runden stehen oben, aber klein. Sie sind Werkzeug und nicht
-          Tagesgeschaeft: Der erste Bildschirm gehoert der Arbeitsliste. Der
-          erklaerende Satz faellt weg, sobald Runden da sind – dann erklaeren
-          sich die Zeilen selbst.
-        */}
-        {lieferungen.length > 0 && (
-          <section className="admin__runden-block">
-            <h2>
-              {t.lieferrunden} <span className="admin__zahl">{lieferungen.length}</span>
-            </h2>
-            <ul className="admin__runden">
-              {lieferungen.map((l) => (
-                <li key={l.id}>
-                  <button type="button" className="admin__runde-knopf" onClick={() => setOffeneRunde(l.id)}>
-                    <span className="admin__runde-nummer">{l.nummer}</span>
-                    <span className={`admin__runde-stand admin__runde-stand--${l.status}`}>{standTexte(t)[l.status]}</span>
-                    <span className="admin__detail">
-                      {l.bestellungIds.length} {l.bestellungIds.length === 1 ? t.bestellung : t.bestellungen}
-                      {l.zeilen.length > 0 && ` · ${l.zeilen.length} ${t.plissees}`}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
         )}
 
         {ABSCHNITTE.map((abschnitt) => {
@@ -484,12 +404,13 @@ function AdminMaske({ onBack }: AdminPageProps) {
                       key={b.id}
                       bestellung={b}
                       abschnitt={abschnitt}
-                      runde={rundeFuer(b, lieferungen)}
+                      paket={paketVon(b)}
                       montageProNetz={shopConfig.montageChf}
                       onAendern={handleAendern}
                       onLoeschen={handleLoeschen}
                       onOfferte={setOffeneOfferte}
-                      gewaehlt={runde.includes(b.id)}
+                      onBlatt={(ids, art, nummer) => setBlatt({ ids, art, nummer })}
+                      gewaehlt={auswahl.includes(b.id)}
                       onWahl={MIT_KAESTCHEN.includes(abschnitt) ? waehle : undefined}
                     />
                   ))}

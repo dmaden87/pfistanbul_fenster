@@ -68,29 +68,6 @@
 
 /* --- Lieferrunden: Werkzeugleiste, kein Tagesgeschaeft --------------------- */
 
-.admin__runden-block {
-  margin-top: var(--space-6);
-}
-
-.admin__runden-block h2 {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  color: var(--text-muted);
-  font-family: var(--font-sans);
-  font-size: var(--step--1);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-/* --- Bloecke: bei dir, bei Bora, beim Kunden, Archiv ----------------------- */
-
-/*
- * Der erste Block ist die Arbeitsliste und traegt deshalb Gewicht. Die
- * beiden Wartezimmer und das Archiv treten zurueck – sie sollen sagen, dass
- * etwas laeuft, und sonst nichts vom Blick wegnehmen.
- */
 .admin__block {
   margin-top: var(--space-8);
 }
@@ -741,69 +718,6 @@
 
 /* --- Liste der Lieferrunden ------------------------------------------------- */
 
-.admin__runden {
-  list-style: none;
-  margin-top: var(--space-4);
-  display: grid;
-  gap: var(--space-2);
-}
-
-.admin__runde-knopf {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-4);
-  width: 100%;
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  font: inherit;
-  font-size: var(--step--1);
-  text-align: left;
-  cursor: pointer;
-}
-
-.admin__runde-knopf:hover {
-  border-color: var(--accent);
-}
-
-.admin__runde-nummer {
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.admin__runde-stand {
-  padding: 0.15em 0.6em;
-  border-radius: var(--radius-full);
-  background: var(--surface-raised);
-  color: var(--text-muted);
-  font-size: var(--step--2);
-  font-weight: 600;
-}
-
-.admin__runde-stand--entwurf {
-  background: var(--highlight-soft);
-  color: var(--highlight-ink);
-}
-
-.admin__runde-stand--preise,
-.admin__runde-stand--bestellt {
-  background: var(--accent-soft);
-  color: var(--accent-ink);
-}
-
-.admin__runde-stand--geliefert {
-  color: var(--success);
-}
-
-/* --- Sprachschalter --------------------------------------------------------- */
-
-/*
- * Ganz vorn in der Werkzeugleiste. Ufuk arbeitet mit derselben Liste, und
- * seine Sprache ist Türkisch – eine Maske, die man nur halb versteht, führt
- * zu Fehlern, die niemand bemerkt.
- */
 .admin__sprache {
   display: inline-flex;
   border: 1px solid var(--border-strong);

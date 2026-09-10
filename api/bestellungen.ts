@@ -153,7 +153,9 @@ interface Bestellung {
   klaerungTermin?: string
   zusageAm?: string
   montageTermin?: string
-  wareFehltSeit?: string
+  bestelltAm?: string
+  versandAm?: string
+  paket?: string
   absageGrund?: AbsageGrund
   absageAm?: string
   zollChf?: number
@@ -186,50 +188,6 @@ function datum(wert: unknown): string | undefined {
   const t = wert.trim()
   if (!t) return undefined
   return /^\d{4}-\d{2}-\d{2}(T[0-9:.]+Z?)?$/.test(t) && !Number.isNaN(Date.parse(t)) ? t : undefined
-}
-
-/**
- * Eine Bestellung, die ihre Runde verlaesst – weil sie abgesagt wurde
- * ("storno") oder zurueck in die Auftragsklaerung geht ("aenderung": neue
- * Masse heissen neue Preise).
- *
- * Im Entwurf fliegt sie einfach raus – dort ist noch nichts verbindlich.
- * In einer eingefrorenen Runde (angefragt, Preise da) bleibt ihre Zeile mit
- * Nummer stehen und wird durchgestrichen, mit dem Grund. Ab "bestellt"
- * bleibt sie drin: Bora fertigt bereits, die Ware kommt ohnehin, und die
- * Rechnung der Runde muss das als Kosten zeigen, nicht verschweigen.
- */
-async function ausRundenNehmen(
-  bestellungId: string,
-  runden: RundenBlick[],
-  grund: 'storno' | 'aenderung',
-): Promise<void> {
-  const alle = await hGetAll(TABELLE_LIEFERUNGEN)
-  for (const [id, wert] of Object.entries(alle)) {
-    let runde: Record<string, unknown>
-    try {
-      runde = JSON.parse(wert) as Record<string, unknown>
-    } catch {
-      continue
-    }
-    const ids = Array.isArray(runde.bestellungIds) ? (runde.bestellungIds as string[]) : []
-    if (!ids.includes(bestellungId)) continue
-    const stand = runde.status as string
-    if (stand !== 'entwurf' && stand !== 'angefragt' && stand !== 'preise') continue
-    runde.bestellungIds = ids.filter((x) => x !== bestellungId)
-    if (stand !== 'entwurf') {
-      const entfernt = Array.isArray(runde.entfernt) ? (runde.entfernt as Record<string, unknown>[]) : []
-      runde.entfernt = [
-        ...entfernt.filter((a) => a.bestellungId !== bestellungId),
-        { bestellungId, grund, zeitpunkt: new Date().toISOString() },
-      ]
-    }
-    runde.geaendert = new Date().toISOString()
-    await hSet(TABELLE_LIEFERUNGEN, id, JSON.stringify(runde))
-    // Der Blick fuer die Abbildung soll das gleich wissen.
-    const blick = runden.find((r) => r.bestellungIds.includes(bestellungId))
-    if (blick) blick.bestellungIds = blick.bestellungIds.filter((x) => x !== bestellungId)
-  }
 }
 
 function text(wert: unknown, max: number): string {
@@ -576,18 +534,12 @@ async function aendern(req: VercelRequest, res: VercelResponse) {
     if (!STATUS.includes(koerper.status as Status)) return res.status(400).json({ error: 'Unbekannter Status.' })
     const neu = koerper.status as Status
     if (neu !== bestellung.status) {
-      const vorher = bestellung.status
       bestellung.status = neu
       // Seit wann sie in dieser Phase steht – fuer "seit n Tagen" auf der Karte.
       bestellung.phaseSeit = jetzt
       if (neu === 'abgesagt') {
         bestellung.absageAm = jetzt
         bestellung.absageGrund = absageGrund(koerper.absageGrund) ?? bestellung.absageGrund
-        await ausRundenNehmen(bestellung.id, runden, 'storno')
-      } else if (neu === 'klaerung' && (vorher === 'kosten' || vorher === 'offerte' || vorher === 'bestellen')) {
-        // Aenderungswunsch: zurueck zur Klaerung heisst raus aus der
-        // Anfrage – Bora bekaeme sonst Preise fuer Masse, die nicht mehr gelten.
-        await ausRundenNehmen(bestellung.id, runden, 'aenderung')
       } else {
         // Wiederoeffnen: Die Absage ist Geschichte, nicht Zustand.
         delete bestellung.absageAm
@@ -616,9 +568,40 @@ async function aendern(req: VercelRequest, res: VercelResponse) {
     bestellung.zusageAm = koerper.zusage === true ? jetzt : undefined
     geaendert = true
   }
-  if (koerper.wareDa !== undefined) {
-    // true: die Nachlieferung ist da. false: die Ware fehlt (seit jetzt).
-    bestellung.wareFehltSeit = koerper.wareDa === true ? undefined : jetzt
+  if (koerper.bestellt !== undefined) {
+    bestellung.bestelltAm = koerper.bestellt === true ? jetzt : undefined
+    geaendert = true
+  }
+  if (koerper.versand !== undefined) {
+    bestellung.versandAm = koerper.versand === true ? jetzt : undefined
+    geaendert = true
+  }
+  if (koerper.paket !== undefined) {
+    bestellung.paket = text(koerper.paket, 40) || undefined
+    geaendert = true
+  }
+  /*
+   * Boras Kosten, von Hand vom Talon abgetippt: je Position der Stueckpreis,
+   * dazu Fracht und Zoll fuer den ganzen Auftrag. Was nicht mitkommt,
+   * bleibt; null loescht. Der Stueckpreis haengt an der Positionskennung,
+   * nicht am Listenplatz – ein spaeter geloeschtes Netz verschiebt nichts.
+   */
+  if (koerper.einkauf !== undefined && typeof koerper.einkauf === 'object' && koerper.einkauf !== null) {
+    const e = koerper.einkauf as Record<string, unknown>
+    const jePosition = (e.jePosition ?? {}) as Record<string, unknown>
+    for (const [positionId, wert] of Object.entries(jePosition)) {
+      const position = bestellung.positionen.find((p) => p.id === positionId)
+      if (!position) continue
+      if (wert === null) delete position.einkaufChf
+      else position.einkaufChf = zahl(wert)
+    }
+    if (e.lieferkostenChf !== undefined) {
+      bestellung.lieferkostenChf = e.lieferkostenChf === null ? undefined : zahl(e.lieferkostenChf)
+      // Von Hand eingetragen ist exakt, nicht geschaetzt.
+      delete bestellung.lieferkostenGeschaetzt
+    }
+    if (e.zollChf !== undefined) bestellung.zollChf = e.zollChf === null ? undefined : zahl(e.zollChf)
+    bestellung.einkaufAm = jetzt
     geaendert = true
   }
   if (koerper.zahlungKommentar !== undefined) {

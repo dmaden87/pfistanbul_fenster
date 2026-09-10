@@ -32,6 +32,9 @@ interface BestellBlick {
   status?: string
   geaendert?: string
   eingang?: string
+  /** Stempelt die heutige Fassung bei jedem Phasenwechsel – alte Datensaetze haben es nie. */
+  phaseSeit?: string
+  einkaufAm?: string
   ausgemessenAm?: string
   offerteAm?: string
   zusageAm?: string
@@ -84,12 +87,15 @@ export function phaseVon<B extends BestellBlick>(b: B, runden: RundenBlick[]): P
   if (alt === 'ausliefern' || alt === 'bestellen' || alt === 'kosten' || alt === 'klaerung' || alt === 'offerte') {
     // Heutige Werte – bis auf "offerte", das es ganz alt auch gab. Dort
     // hiess es nur "im Offert-Abschnitt": Ob die Offerte raus war, stand
-    // im Haken.
-    if (alt === 'offerte' && !b.offerteAm && !b.zusageAm) {
+    // im Haken. Die heutige Fassung erkennt man an ihren Stempeln: Jeder
+    // Phasenwechsel setzt phaseSeit, jede Kostenerfassung einkaufAm. Ein
+    // "offerte" ohne jeden Stempel ist das alte.
+    const heutig = Boolean(b.phaseSeit || b.einkaufAm || b.offerteAm || b.zusageAm)
+    if (alt === 'offerte' && !heutig) {
       if (katalog) return abBestellen()
       if (rundenStand === 'angefragt' || rundenStand === 'entwurf') return 'kosten'
       if (rundenStand === 'preise' || rundenStand === 'bestellt' || rundenStand === 'geliefert') return 'offerte'
-      if (b.einkaufAusRunde) return 'offerte'
+      if (b.einkaufAusRunde || b.positionen?.some((p) => typeof p.einkaufChf === 'number')) return 'offerte'
       return b.ausgemessenAm ? 'klaerung' : 'neu'
     }
     return alt

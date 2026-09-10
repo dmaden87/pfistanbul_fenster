@@ -100,6 +100,15 @@ pruefe('Ganz alt: offerte entscheidet sich am Haken und an der Runde', () => {
   assert.equal(phaseVon(best({ status: 'offerte' }), [runde('preise')]), 'offerte')
 })
 
+pruefe('Heutiges "offerte" bleibt offerte – erkennbar am Stempel, nicht an der Runde', () => {
+  // Die Kosten kamen von Hand (einkaufAm), nicht aus einer Runde: kein
+  // Grund, die Bestellung fuer eine uralte zu halten und nach "neu" zu schieben.
+  assert.equal(phaseVon(best({ status: 'offerte', phaseSeit: '2026-09-01T00:00:00.000Z' }), []), 'offerte')
+  assert.equal(phaseVon(best({ status: 'offerte', einkaufAm: '2026-09-01T00:00:00.000Z' }), []), 'offerte')
+  const bepreist = best({ status: 'offerte', positionen: [{ id: 'p1', menge: 1, bezeichnung: 'A', detail: '', preisChf: 150, einkaufChf: 40 }] })
+  assert.equal(phaseVon(bepreist, []), 'offerte')
+})
+
 pruefe('Ganz alt: bestellt, erledigt, geloescht', () => {
   assert.equal(phaseVon(best({ status: 'bestellt' }), []), 'bestellen')
   assert.equal(phaseVon(best({ status: 'erledigt' }), []), 'ausliefern')

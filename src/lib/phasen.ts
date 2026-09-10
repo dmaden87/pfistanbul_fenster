@@ -1,4 +1,4 @@
-import type { Bestellung, BestellStatus, Lieferung } from '../types'
+import type { Bestellung, BestellStatus } from '../types'
 
 /**
  * Die Phasen des Betreibers – Lesehilfen fuer die Oberflaeche.
@@ -75,20 +75,6 @@ export function ohneEinkauf(b: Bestellung): number {
 /** Wie viele Positionen noch keinen Verkaufspreis haben – die Offerte druckte 0.00. */
 export function ohneVerkauf(b: Bestellung): number {
   return b.positionen.filter((p) => !(p.preisChf > 0)).length
-}
-
-/**
- * Die Runde, in der eine Bestellung gerade steckt: die neueste, die sie
- * fuehrt. Bewusst abgeleitet und nicht als Feld – die Runde fuehrt ihre
- * `bestellungIds` ohnehin, ein zweites Feld waere eine zweite Wahrheit.
- */
-export function rundeFuer(b: Bestellung, lieferungen: Lieferung[]): Lieferung | undefined {
-  let neueste: Lieferung | undefined
-  for (const l of lieferungen) {
-    if (!l.bestellungIds.includes(b.id)) continue
-    if (!neueste || l.erstellt > neueste.erstellt) neueste = l
-  }
-  return neueste
 }
 
 /** In welchen Abschnitt der Uebersicht eine Bestellung gehoert. */

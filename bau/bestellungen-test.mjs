@@ -253,17 +253,52 @@ await pruefe('Datumsfelder: ISO-Datum setzt, leer loescht, Unsinn wird nicht ges
   assert.equal(a.daten.bestellung.montageTermin, undefined)
 })
 
-await pruefe('Zusage, Ware da und Zahlungskommentar', async () => {
+await pruefe('Zusage, bestellt, unterwegs, Paket und Zahlungskommentar', async () => {
   let a = await ruf({ method: 'PATCH', cookie, body: { id: vonHand.id, zusage: true } })
   assert.ok(a.daten.bestellung.zusageAm)
   a = await ruf({ method: 'PATCH', cookie, body: { id: vonHand.id, zusage: false } })
   assert.equal(a.daten.bestellung.zusageAm, undefined)
-  a = await ruf({ method: 'PATCH', cookie, body: { id: vonHand.id, wareDa: false } })
-  assert.ok(a.daten.bestellung.wareFehltSeit, 'fehlende Ware nicht vermerkt')
-  a = await ruf({ method: 'PATCH', cookie, body: { id: vonHand.id, wareDa: true } })
-  assert.equal(a.daten.bestellung.wareFehltSeit, undefined)
+  a = await ruf({ method: 'PATCH', cookie, body: { id: vonHand.id, bestellt: true, versand: true } })
+  assert.ok(a.daten.bestellung.bestelltAm)
+  assert.ok(a.daten.bestellung.versandAm)
+  a = await ruf({ method: 'PATCH', cookie, body: { id: vonHand.id, bestellt: false, versand: false } })
+  assert.equal(a.daten.bestellung.bestelltAm, undefined)
+  assert.equal(a.daten.bestellung.versandAm, undefined)
+  a = await ruf({ method: 'PATCH', cookie, body: { id: vonHand.id, paket: 'P-2026-01' } })
+  assert.equal(a.daten.bestellung.paket, 'P-2026-01')
+  a = await ruf({ method: 'PATCH', cookie, body: { id: vonHand.id, paket: '' } })
+  assert.equal(a.daten.bestellung.paket, undefined)
   a = await ruf({ method: 'PATCH', cookie, body: { id: vonHand.id, zahlungKommentar: 'Rate 1 bar, Rest TWINT' } })
   assert.equal(a.daten.bestellung.zahlungKommentar, 'Rate 1 bar, Rest TWINT')
+})
+
+await pruefe('Boras Kosten von Hand: je Position, Fracht, Zoll; null loescht; fremde Kennung zaehlt nicht', async () => {
+  const a = await ruf({ method: 'POST', aktion: 'erfassen', cookie, body: {
+    art: 'anfrage', referenz: 'PF-EK', kunde: { name: 'Einkauf', telefon: '079' },
+    positionen: [
+      { menge: 2, bezeichnung: 'Bad', breiteCm: 80, hoeheCm: 100, preisChf: 120 },
+      { menge: 1, bezeichnung: 'Küche', breiteCm: 90, hoeheCm: 110, preisChf: 130 },
+    ], montage: false, montageChf: 0,
+  } })
+  const b = a.daten.bestellung
+  const [p1, p2] = b.positionen
+  let n = await ruf({ method: 'PATCH', cookie, body: {
+    id: b.id, einkauf: { jePosition: { [p1.id]: 45, [p2.id]: 50, fremd: 99 }, lieferkostenChf: 30, zollChf: 12.5 },
+  } })
+  assert.equal(n.code, 200)
+  assert.deepEqual(n.daten.bestellung.positionen.map((p) => p.einkaufChf), [45, 50])
+  assert.equal(n.daten.bestellung.lieferkostenChf, 30)
+  assert.equal(n.daten.bestellung.zollChf, 12.5)
+  assert.ok(n.daten.bestellung.einkaufAm)
+  // Der Verkaufspreis und die Summe bleiben unberuehrt.
+  assert.equal(n.daten.bestellung.summeChf, 370)
+  n = await ruf({ method: 'PATCH', cookie, body: { id: b.id, einkauf: { jePosition: { [p2.id]: null }, zollChf: null } } })
+  assert.deepEqual(n.daten.bestellung.positionen.map((p) => p.einkaufChf), [45, undefined])
+  assert.equal(n.daten.bestellung.zollChf, undefined)
+  assert.equal(n.daten.bestellung.lieferkostenChf, 30, 'Fracht ohne Angabe wurde angefasst')
+  // Ein leeres Kosten-Objekt ist keine Aenderung.
+  n = await ruf({ method: 'PATCH', cookie, body: { id: b.id, einkauf: {} } })
+  assert.equal(n.code, 200)
 })
 
 await pruefe('Absagen traegt Grund und Zeitpunkt, Wiederoeffnen loescht beides', async () => {
@@ -297,12 +332,19 @@ await pruefe('Altes "offerte" entscheidet sich am Haken "Offerte versendet"', as
    * Altbestellung zum Kunden, obwohl sie noch bei uns liegt.
    */
   const roh = gespeichert.lies(vonHand.id)
+  // Ein ECHT alter Datensatz traegt keinen Stempel der heutigen Fassung.
+  const alt = { ...roh, status: 'offerte', offerteAm: undefined, phaseSeit: undefined, einkaufAm: undefined }
 
-  gespeichert.schreib(vonHand.id, { ...roh, status: 'offerte', offerteAm: undefined })
+  gespeichert.schreib(vonHand.id, alt)
   let liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
   assert.equal(liste.find((b) => b.id === vonHand.id).status, 'neu', 'ohne Haken zum Kunden geschoben')
 
-  gespeichert.schreib(vonHand.id, { ...roh, status: 'offerte', offerteAm: '2026-05-01T10:00:00.000Z' })
+  // Derselbe Wert mit Stempel ist die heutige Phase 4 – egal, ob ein Haken da ist.
+  gespeichert.schreib(vonHand.id, { ...alt, phaseSeit: '2026-09-01T10:00:00.000Z' })
+  liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
+  assert.equal(liste.find((b) => b.id === vonHand.id).status, 'offerte', 'die heutige Phase 4 wurde fuer alt gehalten')
+
+  gespeichert.schreib(vonHand.id, { ...alt, offerteAm: '2026-05-01T10:00:00.000Z' })
   liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
   assert.equal(liste.find((b) => b.id === vonHand.id).status, 'offerte')
 

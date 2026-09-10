@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import type { Bestellung, Lieferung } from '../../types'
-import { auftragAufbauen, pakete, type AuftragsNetz, type AuftragsZeile, type Luecke } from '../../lib/bestellauftrag'
+import type { Bestellung } from '../../types'
+import { auftragAufbauen, pakete, type AuftragsNetz } from '../../lib/bestellauftrag'
 import {
   ABSENDER,
   GANZE_LIEFERUNG,
@@ -47,40 +47,13 @@ type Art = 'anfrage' | 'bestellung'
 type Sprache = 'deutsch' | 'tuerkisch'
 
 interface BestellauftragProps {
-  /**
-   * Die Runde, zu der das Blatt gehoert. Aus ihrem Zustand ergibt sich, ob
-   * es eine Anfrage oder eine Bestellung ist – der Titel wird nicht mehr von
-   * Hand gewaehlt, er folgt dem Lebenslauf.
-   */
-  lieferung: Lieferung
-  /** Die Bestellungen der Runde. Nur noetig, solange die Zeilen nicht stehen. */
+  /** Die Auftraege auf dem Blatt – einer, oder die eines Pakets. */
   bestellungen: Bestellung[]
+  /** Preisanfrage (Phase 3) oder verbindliche Bestellung (Phase 5). */
+  art: Art
+  /** Was oben rechts steht: die Referenz des Auftrags oder das Paket-Etikett. */
+  nummer: string
   onZurueck: () => void
-}
-
-/**
- * Die Zeilen des Blatts.
- *
- * Stehen sie in der Runde, gelten sie – auch wenn inzwischen jemand ein Netz
- * geaendert hat. Bora bezieht seine Preise auf die laufende Nummer, und die
- * darf sich nach dem Versand nicht mehr verschieben. Erst im Entwurf werden
- * sie aus den Bestellungen gerechnet.
- */
-function zeilenFuer(lieferung: Lieferung, bestellungen: Bestellung[]): { zeilen: AuftragsZeile[]; luecken: Luecke[] } {
-  if (lieferung.zeilen.length > 0) {
-    return {
-      zeilen: lieferung.zeilen.map((z) => ({
-        ...z,
-        menge: 1,
-        rahmenfarbe: z.rahmenfarbe as AuftragsZeile['rahmenfarbe'],
-        netzfarbe: z.netzfarbe as AuftragsZeile['netzfarbe'],
-        mechanismus: z.mechanismus as AuftragsZeile['mechanismus'],
-        oeffnung: z.oeffnung as AuftragsZeile['oeffnung'],
-      })),
-      luecken: [],
-    }
-  }
-  return auftragAufbauen(bestellungen)
 }
 
 function mass(wert: number | undefined): string {
@@ -99,19 +72,20 @@ function netzZeile(n: AuftragsNetz, s: Sprache) {
   }
 }
 
-export function Bestellauftrag({ lieferung, bestellungen, onZurueck }: BestellauftragProps) {
+export function Bestellauftrag({ bestellungen, art, nummer, onZurueck }: BestellauftragProps) {
   // Die Sprache des BLATTS. Sie hat mit der Sprache der Maske nichts zu tun:
   // Das Blatt geht in die Tuerkei, die Maske bedient, wer hier sitzt.
   const [sprache, setSprache] = useState<Sprache>('tuerkisch')
   const { t: m } = useSprache()
   useSeitenformat('quer')
 
-  // Alles Uebrige kommt aus der Runde. Was auf dem Blatt steht, ist damit
-  // dasselbe, was gespeichert ist – nicht etwas, das nur im Browser existiert.
-  const art: Art = lieferung.status === 'bestellt' || lieferung.status === 'geliefert' ? 'bestellung' : 'anfrage'
-  const nummer = lieferung.nummer
-  const termin = lieferung.termin ?? ''
-  const bemerkung = lieferung.bemerkung ?? ''
+  /*
+   * Termin und Bemerkung gehoeren zum Blatt, nicht zum Auftrag: Sie werden
+   * fuer diesen Ausdruck getippt und nicht gespeichert. Ein Blatt ist ein
+   * Ausdruck; was Bora zurueckmeldet, landet auf der Karte des Auftrags.
+   */
+  const [termin, setTermin] = useState('')
+  const [bemerkung, setBemerkung] = useState('')
 
   /*
    * Der Dateiname beim Sichern als PDF.
@@ -122,23 +96,13 @@ export function Bestellauftrag({ lieferung, bestellungen, onZurueck }: Bestellau
    * den alten zurueckgestellt – sonst steht er noch im Reiter, wenn laengst
    * wieder die Bestellliste zu sehen ist.
    */
-  useDokumentName(`pfistanbul_talep_siparis_${nummer.trim().replace(/[^A-Za-z0-9-]/g, '') || 'entwurf'}`)
+  useDokumentName(
+    `pfistanbul_${art === 'anfrage' ? 'talep' : 'siparis'}_${nummer.trim().replace(/[^A-Za-z0-9-]/g, '') || 'x'}`,
+  )
 
-  const auftrag = zeilenFuer(lieferung, bestellungen)
-  /*
-   * Bestellungen, die die Runde verlassen haben. Ihre Zeilen bleiben mit
-   * ihrer Nummer stehen und werden durchgestrichen – siehe TEXTE.gestrichen.
-   */
-  const gestrichen = new Set((lieferung.entfernt ?? []).map((a) => a.bestellungId))
-  const istGestrichen = (z: AuftragsZeile) => Boolean(z.herkunft && gestrichen.has(z.herkunft.bestellungId))
-  /*
-   * Pakete und Stueckzahl zaehlen nur, was wirklich gefertigt wird. Eine
-   * gestrichene Zeile steht auf dem Blatt, damit Bora seine Nummern
-   * wiederfindet – sie wandert aber in kein Paket.
-   */
-  const laufende = auftrag.zeilen.filter((z) => !istGestrichen(z))
-  const paketliste = pakete(laufende)
-  const anzahl = laufende.length
+  const auftrag = auftragAufbauen(bestellungen)
+  const paketliste = pakete(auftrag.zeilen)
+  const anzahl = auftrag.zeilen.length
   /** Kuerzel fuer "nimm die Fassung in der gewaehlten Sprache". */
   const w = (b: Beschriftung) => b[sprache]
   const heute = new Date().toLocaleDateString(sprache === 'tuerkisch' ? 'tr-TR' : 'de-CH', {
@@ -159,6 +123,16 @@ export function Bestellauftrag({ lieferung, bestellungen, onZurueck }: Bestellau
           <label className="admin__haken">
             <input type="radio" name="sprache" checked={sprache === 'deutsch'} onChange={() => setSprache('deutsch')} />
             <span>{m.deutschNurPruefen}</span>
+          </label>
+        </div>
+        <div className="auftrag__felder">
+          <label className="admin__termin">
+            <span>{m.terminFuersBlatt}</span>
+            <input className="input" value={termin} onChange={(e) => setTermin(e.target.value)} placeholder="z. B. Ende Oktober 2026" />
+          </label>
+          <label className="admin__termin admin__termin--breit">
+            <span>{m.bemerkungFuersBlatt}</span>
+            <input className="input" value={bemerkung} onChange={(e) => setBemerkung(e.target.value)} />
           </label>
         </div>
         <div className="auftrag__schritte">
@@ -191,13 +165,6 @@ export function Bestellauftrag({ lieferung, bestellungen, onZurueck }: Bestellau
 
       {/* Ab hier das Dokument, das gedruckt wird. Querformat. */}
       <article className="blatt" data-druckblatt>
-        {/*
-          Der Entwurf traegt seinen Namen quer ueber dem Kopf – auch im
-          Druck. Ein Blatt ohne diesen Balken ist verschickt oder
-          verschickbar; eines mit Balken darf Bora nie erreichen. Die
-          Nummerierung eines Entwurfs ist noch nicht verbindlich.
-        */}
-        {lieferung.status === 'entwurf' && <p className="blatt__entwurf">{m.entwurfBalken}</p>}
         <header className="blatt__kopf">
           {/*
             Keine Anschrift: Das Blatt ist ein Arbeitspapier zwischen drei
@@ -280,9 +247,8 @@ export function Bestellauftrag({ lieferung, bestellungen, onZurueck }: Bestellau
             <tbody>
               {auftrag.zeilen.map((z) => {
                 const z2 = netzZeile(z, sprache)
-                const weg = istGestrichen(z)
                 return (
-                  <tr key={z.nummer} className={weg ? 'blatt__zeile--gestrichen' : undefined}>
+                  <tr key={z.nummer}>
                     <td className="blatt__zahl">{z.nummer}</td>
                     <td className="blatt__paketzelle">{z.kennung}</td>
                     <td className="blatt__raum">{z.bezeichnung}</td>
@@ -293,11 +259,7 @@ export function Bestellauftrag({ lieferung, bestellungen, onZurueck }: Bestellau
                     <td>{z2.netz}</td>
                     <td>{z2.mechanismus}</td>
                     <td>{z2.oeffnung}</td>
-                    {weg ? (
-                      <td className="blatt__preis blatt__gestrichen-feld">{w(TEXTE.gestrichen)}</td>
-                    ) : (
-                      <td className="blatt__preis blatt__leer-feld" />
-                    )}
+                    <td className="blatt__preis blatt__leer-feld" />
                   </tr>
                 )
               })}
@@ -305,7 +267,6 @@ export function Bestellauftrag({ lieferung, bestellungen, onZurueck }: Bestellau
           </table>
           <p className="blatt__hinweis">
             {w(TEXTE.masseinheit)} {w(PREISHINWEIS)}
-            {gestrichen.size > 0 && ` ${w(TEXTE.gestrichenHinweis)}`}
           </p>
         </section>
 

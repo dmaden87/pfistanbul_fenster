@@ -121,11 +121,10 @@ tragen:
   Annahme darin. Eine Lieferung aus der Türkei, die nicht passt, kostet
   Wochen; die Meldung kostet fünf Minuten.
 
-Der dritte prüft die Lieferrunden (`api/lieferungen.ts`) und die
-Margenrechnung. Auch hier die drei Punkte, die still gefährlich sind: dass
-die Zeilen ab dem Versand stehen bleiben, dass der Übergang nach „Bestellt"
-keinen weiter fortgeschrittenen Status überschreibt, und dass die Montage
-nicht in den Warenerlös rutscht.
+Der dritte prüft die Margenrechnung (`bau/einkauf-test.mjs`): dass die
+Montage nicht in den Warenerlös rutscht, und dass fehlende Einkaufspreise
+gezählt und nicht hochgerechnet werden – eine Marge ohne Kosten sieht besser
+aus als die Wirklichkeit, und das darf nie unbemerkt bleiben.
 
 Die Testläufe brauchen keine Übersetzung: Node liest die `.ts`-Dateien mit
 `--experimental-strip-types` direkt. Nur die Auflösung der Importe muss
@@ -159,59 +158,39 @@ das ist die Seite für die Kundschaft, nicht die Maske.
 Die Sprache des **Dokuments** an den Produzenten ist davon unabhängig: Es
 geht immer auf Türkisch raus, egal in welcher Sprache die Maske steht.
 
-## Die Lieferrunde
+## Jeder Auftrag für sich
 
-Bestellungen ankreuzen, „Lieferrunde anlegen" — daraus entsteht `L-2026-01`,
-und die Runde führt von da an ihren eigenen Lebenslauf:
+Es gibt keine Lieferrunde als eigene Sache mehr. Jeder Auftrag trägt seinen
+Weg zu Bora selbst, auf seiner Karte:
 
-```
-Entwurf → Anfrage versendet → Preise erhalten → Bestellt → Geliefert
-```
+- **Phase 3, Kosten klären:** „Preisanfrage an Bora anzeigen" druckt den Talon
+  für genau diesen Auftrag. Boras Antwort wird unter „Kosten eintragen"
+  abgetippt – je Netz der Stückpreis, dazu die Fracht. Die Zeilennummern
+  sind dieselben wie auf dem Talon. Weiter geht es, sobald jedes Netz einen
+  Einkaufspreis hat.
+- **Phase 5, Bestellen:** „Bestelltalon anzeigen", dann die zwei Stempel „bei
+  Bora bestellt" und „unterwegs", zuletzt „angekommen" – das ist der Schritt
+  nach Phase 6. Der Zoll kommt Wochen nach der Ware und wird unter „Kosten
+  ändern" nachgetragen, auch noch in Phase 6.
 
-Im **Entwurf** steht die Tabelle aller Zeilen — genau das, was aufs Dokument
-kommt, ein Plissee je Zeile. Drei Eingriffe gibt es, und sie bedeuten
-Verschiedenes:
+Die Bündelung zu einer Sendung ist Organisation, kein Zustand. Was es dafür
+gibt, ist das **Paket**: In Phase 5 mehrere Aufträge ankreuzen und „zu einem
+Paket zusammenführen" – sie bekommen dasselbe Etikett (`P-2026-01`) und
+einen gemeinsamen Bestelltalon, auf dem jeder Auftrag sein eigenes Paket mit
+eigener Kennung bleibt. Das Etikett ist der ganze Zustand; „aus dem Paket
+nehmen" löscht es wieder.
 
-- **Ändern** schreibt in die Bestellung. Eine falsche Breite ist überall
-  falsch; stünde die Korrektur nur in der Runde, ginge die richtige Zahl an
-  den Produzenten und bei der Montage läge die alte vor.
-- **Aus der Lieferung nehmen** betrifft nur diese Runde. Das Netz bleibt in
-  der Bestellung und kommt in die nächste.
-- **Löschen** entfernt das Netz aus der Bestellung.
-
-Dabei steckt eine Falle: In der Bestellung steht „3 × Zimmer" als eine
-Position, in der Runde sind es drei Zeilen. Wird eines der drei geändert,
-zerfällt die Position in drei einzelne — sonst zeigten die Merkstellen der
-Runde für ausgeschlossene Netze auf Stücke, die es nicht mehr gibt, und ein
-ausgeschlossenes Netz wäre stillschweigend wieder dabei. Deshalb liefert jede
-Änderung eine Umbenennung mit; `bau/zeilen-test.mjs` prüft genau das.
-
-Der wichtige Übergang bleibt der erste. **Beim Erzeugen des Dokuments werden
-die Zeilen eingefroren.** Bora trägt die Preise mit Bezug auf die laufende Nummer
-ein („Zeile 7"); würde danach jemand ein Netz ändern oder ergänzen,
-verschöbe sich die Nummerierung und seine Preise landeten am falschen Netz.
-Bis dahin lässt sich alles korrigieren, danach nichts mehr.
-
-Der Übergang nach „Bestellt" zieht die enthaltenen Bestellungen auf „beim
-Lieferanten bestellt" mit — aber er überschreibt nichts, was schon weiter
-ist. Eine längst ausgelieferte Bestellung bliebe sonst wieder offen.
-
-Die **Rechnung der Runde** setzt Einkauf und Fracht gegen das, was die
-Kundschaft für die Ware zahlt. Die Montage zählt dabei nicht zum Erlös: Sie
-ist unsere Arbeit, nicht Ware, und wer sie mitrechnet, sieht eine Marge, die
-es auf der Ware nicht gibt. Fehlende Einkaufspreise werden gezählt und nicht
-hochgerechnet — solange welche fehlen, sagt die Rechnung das.
-
-Das ist auch die Zahl, für die in `shopConfig` seit Anfang
-`minimumBatchNets: 25` steht: ab wann eine Runde ihre Fracht trägt. Bisher
-eine Schätzung, jetzt eine Rechnung.
+Die alten Runden liegen unangetastet im Speicher (`pf:lieferungen`). Gelesen
+werden sie nur noch von der Abbildung alter Statuswerte in `api/_phasen.ts`:
+Eine Bestellung, die gestern „neu" hiess und in einer eingefrorenen Runde
+steckte, gehört nach „Kosten klären", nicht nach „Neu".
 
 ## Der Auftrag an den Produzenten
 
-Das Dokument der Runde. Ob es eine Anfrage oder eine Bestellung ist, wählt
-niemand — es folgt dem Zustand der Runde. Gesichert wird es über die
-Druckfunktion des Browsers als PDF; der Dateiname kommt aus dem
-Dokumenttitel (`pfistanbul_talep_siparis_L-2026-01`), denn beim Drucken aus
+Der Talon eines Auftrags oder eines Pakets. Ob er eine Anfrage oder eine
+Bestellung ist, folgt der Phase, aus der er geöffnet wurde. Gesichert wird er
+über die Druckfunktion des Browsers als PDF; der Dateiname kommt aus dem
+Dokumenttitel (`pfistanbul_siparis_P-2026-01`), denn beim Drucken aus
 dem Browser gibt es dafür genau einen Hebel. Bewusst ohne PDF-Bibliothek – das
 funktioniert auf dem Telefon genauso und kann nicht veralten.
 

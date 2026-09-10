@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { AbsageGrund, Bestellung, BestellAenderung, BestellPosition, Lieferung } from '../../types'
+import type { AbsageGrund, Bestellung, BestellAenderung, BestellPosition } from '../../types'
 import type { AdminTexte } from './sprache'
 import { formatChf } from '../../lib/format'
 import {
@@ -29,6 +29,7 @@ import {
 } from '../../lib/phasen'
 import { NetzEditor } from './NetzEditor'
 import { PreisFestlegen } from './PreisFestlegen'
+import { KostenEditor } from './KostenEditor'
 import { fuelle, useSprache } from './sprache'
 
 /**
@@ -50,7 +51,7 @@ import { fuelle, useSprache } from './sprache'
  * Rueckruf, damit die Liste je Phase eine reine Tabelle bleibt.
  */
 type KartenKnopf = {
-  tat: 'offerte' | 'absagen' | BestellAenderung
+  tat: 'offerte' | 'absagen' | 'anfrageBlatt' | 'bestellBlatt' | 'kosten' | BestellAenderung
   text: string
   art: 'haupt' | 'still'
   /** Warum der Knopf gerade nicht geht – steht daneben, statt dass er fehlt. */
@@ -61,14 +62,16 @@ interface BestellKarteProps {
   bestellung: Bestellung
   /** Der Abschnitt, in dem die Karte steht. Bestimmt die Uebersicht, nicht die Karte. */
   abschnitt: Abschnitt
-  /** Die Runde, in der die Bestellung steckt – nur zur Anzeige. */
-  runde?: Lieferung
+  /** Die Auftraege im selben Paket, diesen eingeschlossen. Ohne Paket: nur er. */
+  paket: Bestellung[]
   montageProNetz: number
   onAendern: (id: string, aenderung: BestellAenderung) => Promise<void>
   onLoeschen: (id: string) => void
   /** Oeffnet die Offerte an die Kundschaft. */
   onOfferte: (id: string) => void
-  /** Fuer die Runde gewaehlt. Nur in den Abschnitten, aus denen Runden entstehen. */
+  /** Oeffnet den Talon an Bora: Preisanfrage oder Bestellung, fuer diese Auftraege. */
+  onBlatt: (ids: string[], art: 'anfrage' | 'bestellung', nummer: string) => void
+  /** Fuers Paket gewaehlt. Nur in "Bestellen". */
   gewaehlt?: boolean
   onWahl?: (id: string, gewaehlt: boolean) => void
 }
@@ -112,6 +115,8 @@ function knoepfe(b: Bestellung, abschnitt: Abschnitt, t: AdminTexte): KartenKnop
       ]
     }
     case 'kosten': {
+      // Preisanfrage raus, Boras Antwort abtippen, dann weiter. Solange
+      // Preise fehlen, ist "Kosten eintragen" die Arbeit dieser Phase.
       const offen = ohneEinkauf(b)
       return [
         {
@@ -125,6 +130,8 @@ function knoepfe(b: Bestellung, abschnitt: Abschnitt, t: AdminTexte): KartenKnop
                 ? fuelle(t.einkaufspreiseStand, { da: b.positionen.length - offen, alle: b.positionen.length })
                 : undefined,
         },
+        { tat: 'kosten', text: offen > 0 ? t.kostenEintragen : t.kostenAendern, art: offen > 0 ? 'haupt' : 'still' },
+        { tat: 'anfrageBlatt', text: t.preisanfrageAnzeigen, art: 'still' },
         zurueck('klaerung', t.phaseKlaerung),
         absagen,
       ]
@@ -141,13 +148,14 @@ function knoepfe(b: Bestellung, abschnitt: Abschnitt, t: AdminTexte): KartenKnop
         absagen,
       ]
     case 'bestellen': {
-      const liste: KartenKnopf[] = []
-      if (b.wareFehltSeit) {
-        liste.push({ tat: { wareDa: true, status: 'ausliefern' }, text: t.knopfNachlieferungDa, art: 'haupt' })
-      }
-      // Der Weg nach "Ausliefern" ist der Rundenklick. Der Knopf hier bleibt
-      // fuer alles, was nicht ueber eine Runde kam – leise.
-      liste.push({ tat: { status: 'ausliefern' }, text: t.phaseAusliefern, art: 'still' })
+      // Erst der Talon an Bora, dann die Stempel (bestellt, unterwegs) in
+      // der Reihe darueber, zuletzt "angekommen" – der Schritt nach Phase 6.
+      const liste: KartenKnopf[] = [
+        { tat: 'bestellBlatt', text: b.paket ? t.bestelltalonPaket : t.bestelltalonAnzeigen, art: b.bestelltAm ? 'still' : 'haupt' },
+      ]
+      if (b.bestelltAm) liste.push({ tat: { status: 'ausliefern' }, text: t.knopfAngekommen, art: 'haupt' })
+      liste.push({ tat: 'kosten', text: ohneEinkauf(b) > 0 ? t.kostenEintragen : t.kostenAendern, art: 'still' })
+      if (b.paket) liste.push({ tat: { paket: '' }, text: t.paketAufloesen, art: 'still' })
       if (!phasenEntfallen(b)) liste.push({ tat: { status: 'offerte', zusage: false }, text: t.knopfZusageZurueck, art: 'still' })
       liste.push(absagen)
       return liste
@@ -164,6 +172,8 @@ function knoepfe(b: Bestellung, abschnitt: Abschnitt, t: AdminTexte): KartenKnop
       } else if (!bezahlt) {
         liste.push({ tat: { bezahlt: true }, text: t.knopfBezahlt, art: 'haupt' })
       }
+      // Der Zoll kommt Wochen nach der Ware – deshalb auch hier noch.
+      liste.push({ tat: 'kosten', text: t.kostenAendern, art: 'still' })
       liste.push(zurueck('bestellen', t.phaseBestellen))
       liste.push(absagen)
       return liste
@@ -220,11 +230,12 @@ function Datumsfeld({
 export function BestellKarte({
   bestellung: b,
   abschnitt,
-  runde,
+  paket,
   montageProNetz,
   onAendern,
   onLoeschen,
   onOfferte,
+  onBlatt,
   gewaehlt,
   onWahl,
 }: BestellKarteProps) {
@@ -233,6 +244,7 @@ export function BestellKarte({
   const [loeschFrage, setLoeschFrage] = useState(false)
   const [absageFrage, setAbsageFrage] = useState(false)
   const [preiseBearbeiten, setPreiseBearbeiten] = useState(false)
+  const [kostenOffen, setKostenOffen] = useState(false)
   const [notiz, setNotiz] = useState(b.notiz ?? '')
   const [zahlungNotiz, setZahlungNotiz] = useState(b.zahlungKommentar ?? '')
   const { t, ort } = useSprache()
@@ -259,8 +271,13 @@ export function BestellKarte({
   const klick = async (k: KartenKnopf) => {
     if (k.tat === 'offerte') onOfferte(b.id)
     else if (k.tat === 'absagen') setAbsageFrage(true)
+    else if (k.tat === 'kosten') setKostenOffen(true)
+    else if (k.tat === 'anfrageBlatt') onBlatt([b.id], 'anfrage', b.referenz || b.id)
+    else if (k.tat === 'bestellBlatt') onBlatt(paket.map((x) => x.id), 'bestellung', b.paket ?? (b.referenz || b.id))
     else await onAendern(b.id, k.tat)
   }
+
+  const mitgenossen = paket.filter((x) => x.id !== b.id)
 
   const klasse =
     abschnitt === 'archiv' ? (fertig ? 'admin__karte--abgeschlossen' : 'admin__karte--abgesagt') : `admin__karte--${abschnitt}`
@@ -271,7 +288,7 @@ export function BestellKarte({
         {onWahl && (
           <label className="admin__wahl">
             <input type="checkbox" checked={Boolean(gewaehlt)} onChange={(e) => onWahl(b.id, e.target.checked)} />
-            <span className="admin__wahl-text">{abschnitt === 'bestellen' ? t.fuerBestellrunde : t.fuerPreisanfrage}</span>
+            <span className="admin__wahl-text">{t.fuerPaket}</span>
           </label>
         )}
         <span className={`admin__art admin__art--${b.art}`}>{artText(b.art, t)}</span>
@@ -281,13 +298,11 @@ export function BestellKarte({
         {b.bezahlung?.status === 'bezahlt' && (
           <span className="admin__marke admin__marke--gut">{t.bezahltMarke} · {formatChf(b.bezahlung.betragChf)}</span>
         )}
-        {/*
-          Die Runde steht im Kopf: Die Karte muss wissen, in welcher sie
-          steckt, sonst springt man dafuer in die andere Ansicht.
-        */}
-        {runde && <span className="admin__marke">{t.inRunde} {runde.nummer}</span>}
-        {!runde && (abschnitt === 'kosten' || abschnitt === 'bestellen') && (
-          <span className="admin__marke">{t.nochNichtInRunde}</span>
+        {b.paket && (abschnitt === 'bestellen' || abschnitt === 'ausliefern') && (
+          <span className="admin__marke">
+            {t.paketMarke} {b.paket}
+            {mitgenossen.length > 0 && ` · ${t.imPaketMit} ${mitgenossen.map((x) => x.referenz || x.id).join(', ')}`}
+          </span>
         )}
         {phasenEntfallen(b) && (abschnitt === 'bestellen' || abschnitt === 'ausliefern') && (
           <span className="admin__marke">{t.entfaelltMarke}</span>
@@ -297,9 +312,6 @@ export function BestellKarte({
         )}
         {zahlungAusstehend(b) && abschnitt !== 'archiv' && (
           <span className="admin__marke admin__marke--warnung">{t.zahlungAusstehendMarke}</span>
-        )}
-        {b.wareFehltSeit && abschnitt === 'bestellen' && (
-          <span className="admin__marke admin__marke--warnung">{t.wareFehltMarke}</span>
         )}
         {rest > 0 && b.bezahlung?.status === 'bezahlt' && !fertig && (
           <span className="admin__marke admin__marke--warnung">{t.restbetrag} {formatChf(rest)}</span>
@@ -336,6 +348,38 @@ export function BestellKarte({
         </span>
         <strong className="admin__preis">{formatChf(b.summeChf)}</strong>
       </div>
+
+      {kostenOffen && (
+        <KostenEditor
+          bestellung={b}
+          mitZoll={abschnitt === 'bestellen' || abschnitt === 'ausliefern'}
+          onSpeichern={async (einkauf) => {
+            await onAendern(b.id, { einkauf })
+            setKostenOffen(false)
+          }}
+          onSchliessen={() => setKostenOffen(false)}
+        />
+      )}
+
+      {/* Phase 5: zwei Stempel, von Hand. Angekommen ist der Knopf unten. */}
+      {abschnitt === 'bestellen' && (
+        <div className="admin__haken-reihe">
+          <label className="admin__haken">
+            <input type="checkbox" checked={Boolean(b.bestelltAm)} onChange={(e) => onAendern(b.id, { bestellt: e.target.checked })} />
+            <span>
+              {t.bestelltBeiBora}
+              {b.bestelltAm && <span className="admin__detail"> {t.am} {tag(b.bestelltAm, ort)}</span>}
+            </span>
+          </label>
+          <label className="admin__haken">
+            <input type="checkbox" checked={Boolean(b.versandAm)} onChange={(e) => onAendern(b.id, { versand: e.target.checked })} />
+            <span>
+              {t.unterwegs}
+              {b.versandAm && <span className="admin__detail"> {t.am} {tag(b.versandAm, ort)}</span>}
+            </span>
+          </label>
+        </div>
+      )}
 
       {/*
         Phase 2: der Termin beim Kunden und der Haken "ausgemessen". Der

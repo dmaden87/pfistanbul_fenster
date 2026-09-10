@@ -316,10 +316,18 @@ export interface Bestellung {
   /** Phase 6: der vereinbarte Liefer-/Montagetermin. ISO-Datum. */
   montageTermin?: string
   /**
-   * Die Ware ist mit der Runde NICHT angekommen (fehlt, beschaedigt, falsch).
-   * Die Bestellung bleibt in "bestellen" und wartet auf die Nachlieferung.
+   * Phase 5, drei Stempel je Auftrag: bei Bora bestellt, von Bora
+   * verschickt. Angekommen ist der Wechsel nach "ausliefern".
    */
-  wareFehltSeit?: string
+  bestelltAm?: string
+  versandAm?: string
+  /**
+   * Mehrere Auftraege gehen als EIN Paket an Bora – ein gemeinsamer
+   * Bestelltalon, eine Sendung. Das Paket ist nur ein Etikett auf den
+   * Auftraegen, keine eigene Sache: Wer dasselbe Etikett traegt, steht auf
+   * demselben Talon. Die Buendelung selbst ist Organisation, kein Zustand.
+   */
+  paket?: string
   /** Bei "abgesagt": warum, und seit wann. */
   absageGrund?: AbsageGrund
   absageAm?: string
@@ -381,7 +389,19 @@ export interface BestellAenderung {
   montageTermin?: string
   /** true stempelt jetzt, false loescht. */
   zusage?: boolean
-  wareDa?: boolean
+  bestellt?: boolean
+  versand?: boolean
+  /** Das Paket-Etikett; ein leerer String nimmt es weg. */
+  paket?: string
+  /**
+   * Boras Kosten, von Hand eingetragen: je Position der Stueckpreis (null
+   * loescht), dazu Fracht und Zoll fuer den ganzen Auftrag.
+   */
+  einkauf?: {
+    jePosition?: Record<string, number | null>
+    lieferkostenChf?: number | null
+    zollChf?: number | null
+  }
   absageGrund?: AbsageGrund
   positionen?: BestellPosition[]
   montage?: boolean
@@ -396,122 +416,4 @@ export interface AdminStatus {
   speicher: boolean
   passwort: boolean
   angemeldet: boolean
-}
-
-/* --- Lieferrunde ------------------------------------------------------------ */
-
-/**
- * Wo eine Lieferrunde steht.
- *
- * Der Lebenslauf eines einzigen Dokuments: Es geht als Anfrage raus, kommt
- * mit Preisen zurueck und wird zur Bestellung.
- *
- *   entwurf → angefragt → preise → bestellt → geliefert
- *
- * "entwurf" ist der einzige Zustand, in dem sich die Zusammenstellung noch
- * aendern laesst. Ab "angefragt" sind die Zeilen eingefroren – siehe
- * `zeilen`.
- */
-export type LieferungStatus = 'entwurf' | 'angefragt' | 'preise' | 'bestellt' | 'geliefert'
-
-/**
- * Warum eine Bestellung aus einer Runde geflogen ist. Die beiden Gruende
- * fuehren an verschiedene Orte zurueck, und das ist der ganze Punkt:
- *
- * - "keineZusage": Der Kunde hat noch nicht Ja gesagt, als bestellt wurde.
- *   Sachlich hat sich nichts geaendert, die Einkaufspreise gelten weiter,
- *   und sobald die Zusage kommt, geht sie in die naechste Bestellrunde –
- *   ohne Bora nochmals zu fragen.
- *
- * - "aenderung": Es muss nachgemessen werden, oder der Wunsch ist so nicht
- *   machbar. Dann stimmen die Masse nicht mehr, also stimmt auch der Preis
- *   nicht mehr: Die Einkaufszahlen werden geloescht, und die Bestellung
- *   faengt bei "Preis anfragen" wieder an.
- *
- * - "storno": Der Kunde hat abgesagt, waehrend die Bestellung in einer
- *   eingefrorenen Runde stand. Die Zeile bleibt durchgestrichen stehen,
- *   die Bestellung geht ins Archiv.
- */
-export type AustrittsGrund = 'keineZusage' | 'aenderung' | 'storno'
-
-export interface Austritt {
-  bestellungId: string
-  grund: AustrittsGrund
-  zeitpunkt: string
-  notiz?: string
-}
-
-/**
- * Eine eingefrorene Zeile des Auftrags.
- *
- * Warum eingefroren: Bora traegt die Preise mit Bezug auf die laufende
- * Nummer ein ("Zeile 7"). Wuerde jemand danach ein Netz aendern oder
- * ergaenzen, verschoebe sich die Nummerierung und seine Preise landeten am
- * falschen Netz. Deshalb haelt die Lieferrunde ab dem Versand ihre eigene
- * Kopie, statt die Bestellungen erneut auszuwerten.
- */
-export interface LieferungZeile {
-  nummer: number
-  /** Paketkennung, entspricht der Referenz der Bestellung. */
-  kennung: string
-  /** Fehlt bei Zusatzzeilen, die zu keiner Bestellung gehoeren. */
-  herkunft?: ZeilenHerkunft
-  bezeichnung: string
-  breiteCm?: number
-  hoeheCm?: number
-  rahmendicke?: string
-  rahmenfarbe?: string
-  netzfarbe?: string
-  mechanismus?: string
-  oeffnung?: string
-  /** Was der Produzent verlangt. Wird nach Boras Rueckmeldung eingetragen. */
-  einkaufChf?: number
-}
-
-export interface Lieferung {
-  id: string
-  /** Menschenlesbare Nummer, z. B. "L-2026-01". Steht auf dem Dokument. */
-  nummer: string
-  status: LieferungStatus
-  erstellt: string
-  geaendert: string
-  /** Welche Bestellungen in dieser Runde stecken. */
-  bestellungIds: string[]
-  zeilen: LieferungZeile[]
-  /**
-   * Zeilen, die aus dieser Runde genommen wurden. Die Netze bleiben in der
-   * Bestellung und kommen in die naechste Runde – "aus der Lieferung
-   * entfernen" ist etwas anderes als "dem Kunden das Netz streichen".
-   *
-   * Schluessel: `bestellungId#positionId#stueck`.
-   */
-  ausgeschlossen?: string[]
-  /**
-   * Zeilen, die nur zur Runde gehoeren und zu keiner Bestellung: ein
-   * Reservenetz, ein Muster, ein Ersatz fuer ein beschaedigtes Stueck. Sie
-   * erscheinen auf dem Auftrag, aber auf keiner Rechnung.
-   */
-  zusatz?: LieferungZeile[]
-  /**
-   * Bestellungen, die diese Runde verlassen haben. Ihre Zeilen bleiben im
-   * Dokument stehen und werden durchgestrichen: Bora hat seine Preise auf
-   * die Zeilennummern der Anfrage geschrieben, und wer neu durchnummeriert,
-   * zwingt ihn zum Suchen.
-   */
-  entfernt?: Austritt[]
-  /** Lieferkosten je Paketkennung, wie Bora sie einträgt. */
-  lieferkostenJePaket?: Record<string, number>
-  /** Lieferkosten für die ganze Runde, falls er nicht je Paket rechnet. */
-  lieferkostenChf?: number
-  /**
-   * Zoll, Einfuhrsteuer und Gebuehren je Paketkennung, ein Betrag je Paket.
-   * Kommt Wochen nach der Ware und wird wie die Fracht auf die Bestellungen
-   * verteilt – sonst ist jede Marge um diesen Posten zu gut.
-   */
-  zollJePaket?: Record<string, number>
-  /** Wann Bora gemeldet hat, dass die Sendung unterwegs ist (Phase 6.1). */
-  versandAm?: string
-  /** Liefertermin: erst seine Schätzung, später unser erwarteter Termin. */
-  termin?: string
-  bemerkung?: string
 }
