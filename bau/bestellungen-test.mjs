@@ -280,6 +280,68 @@ await pruefe('"erledigt" wird zu beiden Haken', async () => {
   gespeichert.schreib(vonHand.id, roh)
 })
 
+/* --- Netze speichern darf Boras Preise nicht verwerfen ---------------------- */
+
+await pruefe('Netze speichern bewahrt den Einkaufspreis je Position', async () => {
+  /*
+   * Der Fehler, den das hier abfaengt: Der Browser schickt die Positionen
+   * ohne einkaufChf, und der Server uebernahm sie so. Jeder korrigierte
+   * Verkaufspreis war das Ende der Marge – alle Einkaufspreise weg, ohne
+   * dass jemand etwas geloescht haette.
+   */
+  const roh = gespeichert.lies(vonHand.id)
+  const mitEinkauf = {
+    ...roh,
+    positionen: roh.positionen.map((p, i) => ({ ...p, einkaufChf: 40 + i })),
+    einkaufAusRunde: 'L-2026-01',
+  }
+  gespeichert.schreib(vonHand.id, mitEinkauf)
+
+  // Nur der Verkaufspreis aendert sich – wie beim Rechnen der Offerte.
+  const geschickt = mitEinkauf.positionen.map((p) => {
+    const { einkaufChf: _weg, ...ohne } = p
+    return { ...ohne, preisChf: p.preisChf + 10 }
+  })
+  const a = await ruf({ method: 'PATCH', cookie, body: { id: vonHand.id, positionen: geschickt } })
+  assert.equal(a.code, 200)
+  const b = a.daten.bestellung
+  assert.equal(b.positionen[0].einkaufChf, 40, 'Einkaufspreis der ersten Position verworfen')
+  assert.equal(b.positionen[1].einkaufChf, 41, 'Einkaufspreis der zweiten Position verworfen')
+  assert.equal(b.positionen[0].preisChf, mitEinkauf.positionen[0].preisChf + 10)
+  assert.equal(b.positionen[0].id, mitEinkauf.positionen[0].id, 'die Kennung wurde neu vergeben')
+})
+
+await pruefe('Neue Masse heissen: dieser Preis gilt nicht mehr – nur fuer dieses Netz', async () => {
+  const roh = gespeichert.lies(vonHand.id)
+  const geschickt = roh.positionen.map((p, i) => {
+    const { einkaufChf: _weg, ...ohne } = p
+    return i === 0 ? { ...ohne, breiteCm: (p.breiteCm ?? 100) + 5 } : ohne
+  })
+  const a = await ruf({ method: 'PATCH', cookie, body: { id: vonHand.id, positionen: geschickt } })
+  const b = a.daten.bestellung
+  assert.equal(b.positionen[0].einkaufChf, undefined, 'Preis zu Massen, die es nicht mehr gibt')
+  assert.equal(b.positionen[1].einkaufChf, 41, 'das unveraenderte Netz hat seinen Preis verloren')
+})
+
+await pruefe('Ein neues Netz hat keinen Einkaufspreis, und der Browser kann keinen setzen', async () => {
+  const roh = gespeichert.lies(vonHand.id)
+  const geschickt = [
+    ...roh.positionen.map((p) => {
+      const { einkaufChf: _weg, ...ohne } = p
+      return ohne
+    }),
+    // Ohne Kennung, dafuer mit einem frech mitgeschickten Einkaufspreis.
+    { menge: 1, bezeichnung: 'Dazu', breiteCm: 90, hoeheCm: 120, preisChf: 140, einkaufChf: 1 },
+  ]
+  const a = await ruf({ method: 'PATCH', cookie, body: { id: vonHand.id, positionen: geschickt } })
+  const b = a.daten.bestellung
+  assert.equal(b.positionen.length, 3)
+  assert.equal(b.positionen[2].einkaufChf, undefined, 'der Browser durfte einen Einkaufspreis setzen')
+  assert.equal(b.positionen[1].einkaufChf, 41)
+  // Zurueck auf den Stand davor, damit die folgenden Pruefungen unberuehrt sind.
+  gespeichert.schreib(vonHand.id, roh)
+})
+
 await pruefe('Uebergabe und Zahlung lassen sich getrennt haken', async () => {
   let a = await ruf({ method: 'PATCH', cookie, body: { id: vonHand.id, ausgeliefert: true } })
   assert.equal(a.code, 200)

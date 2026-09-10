@@ -45,6 +45,14 @@ interface Entwurf {
   oeffnung: OpeningDirection | ''
   typId?: string
   setId?: string
+  /**
+   * Die Kennung MUSS mit. Ohne sie vergibt der Server beim Speichern neue
+   * Kennungen, und damit reisst alles ab, was an der alten haengt: die
+   * eingefrorenen Zeilen der Lieferrunde (herkunft.positionId) und Boras
+   * Einkaufspreis, den der Server nur je Kennung wiederfindet. Ein
+   * korrigierter Verkaufspreis loeschte so die ganze Marge – still.
+   */
+  id?: string
 }
 
 interface NetzEditorProps {
@@ -62,6 +70,7 @@ interface NetzEditorProps {
 
 function zuEntwurf(p: BestellPosition): Entwurf {
   return {
+    id: p.id,
     menge: String(p.menge),
     bezeichnung: p.bezeichnung,
     breiteCm: p.breiteCm ? String(p.breiteCm) : '',
@@ -124,6 +133,7 @@ function ausEntwurf(e: Entwurf): BestellPosition {
   if (e.oeffnung) position.oeffnung = e.oeffnung
   if (e.typId) position.typId = e.typId
   if (e.setId) position.setId = e.setId
+  if (e.id) position.id = e.id
   return position
 }
 

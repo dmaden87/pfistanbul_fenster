@@ -100,6 +100,12 @@ interface Position {
   /** Verweis in den Katalog, damit der Auftrag ein Set in Netze aufloesen kann. */
   typId?: string
   setId?: string
+  /**
+   * Boras Preis je Stueck. Kommt NIE vom Browser: Er wird von der
+   * Lieferrunde zurueckgeschrieben (api/lieferungen.ts) und beim Aendern der
+   * Netze vom Server je Kennung bewahrt – siehe `einkaufBewahren`.
+   */
+  einkaufChf?: number
 }
 
 /**
@@ -209,6 +215,35 @@ function positionen(wert: unknown): Position[] {
       if (wert) position[feld] = wert
     }
     return position
+  })
+}
+
+/** Die Felder, an denen Boras Preis haengt. Aendert sich eines, gilt er nicht mehr. */
+const PREISRELEVANT = ['breiteCm', 'hoeheCm', 'rahmendicke', 'rahmenfarbe', 'netzfarbe', 'mechanismus', 'typId', 'setId'] as const
+
+/**
+ * Traegt Boras Einkaufspreise von den alten auf die neuen Positionen.
+ *
+ * Der Browser schickt beim "Netze speichern" die Positionen ohne
+ * Einkaufspreis – er kennt sie zwar, darf sie aber nicht setzen, denn die
+ * einzige Quelle dafuer ist die Lieferrunde. Wuerde der Server die neuen
+ * Positionen einfach uebernehmen, waere jeder korrigierte Verkaufspreis das
+ * Ende der Marge: alle einkaufChf weg, "Datensatz unvollstaendig", und die
+ * naechste Runde muesste Bora dieselbe Frage nochmals stellen.
+ *
+ * Bewahrt wird JE POSITION, nicht je Bestellung: Wer ein fuenftes Netz
+ * dazunimmt, aendert die vier bepreisten nicht. Und bewahrt wird nur, wenn
+ * die preisrelevanten Angaben gleich geblieben sind – ein Netz mit neuen
+ * Massen ist fuer Bora ein anderes Netz, und sein alter Preis waere eine
+ * Zahl zu Massen, die es nicht mehr gibt.
+ */
+function einkaufBewahren(alt: Position[], neu: Position[]): Position[] {
+  const vorher = new Map(alt.filter((p) => p.id).map((p) => [p.id as string, p]))
+  return neu.map((p) => {
+    const alte = p.id ? vorher.get(p.id) : undefined
+    if (!alte || typeof alte.einkaufChf !== 'number') return p
+    const gleich = PREISRELEVANT.every((feld) => alte[feld] === p[feld])
+    return gleich ? { ...p, einkaufChf: alte.einkaufChf } : p
   })
 }
 
@@ -535,7 +570,7 @@ async function aendern(req: VercelRequest, res: VercelResponse) {
     // vorher wird sie sogar negativ und faellt auf 0: Die Montagepauschale
     // waere spurlos aus der Bestellung verschwunden.
     const montage = montageNeu ? zahl(koerper.montageChf) : montageBetrag(bestellung)
-    if (netzeNeu) bestellung.positionen = positionen(koerper.positionen)
+    if (netzeNeu) bestellung.positionen = einkaufBewahren(bestellung.positionen, positionen(koerper.positionen))
     bestellung.montageChf = montage
     bestellung.summeChf = Math.round((positionenSumme(bestellung.positionen) + montage) * 100) / 100
     geaendert = true
