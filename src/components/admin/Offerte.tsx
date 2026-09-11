@@ -141,10 +141,14 @@ export function Offerte({ bestellung: b, onZurueck }: OfferteProps) {
 
       <article className="offerte" data-druckblatt>
         <header className="offerte__kopf">
+          {/*
+            Der Absender ist der Betrieb, nicht eine Person: die Siedlung als
+            Strasse (ohne Hausnummer – das Geschaeft ist die Ueberbauung),
+            der Ort, die Adresse fuer die Zusage.
+          */}
           <div className="offerte__absender">
             <p className="offerte__firma">{operator.businessName}</p>
-            <p>{operator.people[0].name}</p>
-            <p>{operator.people[0].street}</p>
+            <p>{operator.people[0].street.replace(/ \d+$/, '')}</p>
             <p>
               {operator.people[0].zip} {operator.people[0].city}
             </p>
@@ -308,7 +312,7 @@ export function Offerte({ bestellung: b, onZurueck }: OfferteProps) {
         <p className="offerte__gruss">
           Freundliche Grüsse
           <br />
-          {operator.people[0].name} · {operator.businessName}
+          Deniz, Ufuk & Bora – {operator.businessName}
         </p>
       </article>
     </>
