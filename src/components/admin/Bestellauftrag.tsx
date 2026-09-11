@@ -306,7 +306,9 @@ export function Bestellauftrag({ bestellungen, art, nummer, onZurueck }: Bestell
             </tbody>
           </table>
           <p className="blatt__hinweis">
-            {w(TEXTE.masseinheit)} {w(PREISHINWEIS)}
+            {w(TEXTE.masseinheit)}
+            {/* Die Bitte, Preise einzutragen, gehoert nur auf die Anfrage. */}
+            {art === 'anfrage' && ` ${w(PREISHINWEIS)}`}
           </p>
         </section>
 
