@@ -55,11 +55,20 @@ pruefe('PHASEN sind auf beiden Seiten dieselben', () => {
   assert.deepEqual([...PHASEN, 'abgesagt'], PHASEN_API)
 })
 
-pruefe('Katalogware startet bei "bestellen", alles andere bei "neu"', () => {
-  assert.equal(startPhase('bestellung'), 'bestellen')
-  assert.equal(startPhase('anfrage'), 'neu')
-  assert.equal(startPhase('zahlung'), 'neu')
-  assert.equal(startPhase(undefined), 'neu')
+pruefe('Jede neue Bestellung startet bei "neu", auch Katalogware', () => {
+  // Katalogware koennte fachlich sofort bestellt werden. Sie startet
+  // trotzdem bei "neu": Der Betrieb will jede Bestellung einmal sehen.
+  assert.equal(startPhase(), 'neu')
+})
+
+pruefe('Heutige Katalogware bleibt in "neu" stehen', () => {
+  // Ohne den Riegel schoebe die Abbildung alter Werte sie sofort wieder
+  // nach "bestellen" – die Kontrolle waere nicht zu halten.
+  const heute = best({ status: 'neu', art: 'bestellung', phaseSeit: '2026-09-11T08:00:00.000Z' })
+  assert.equal(phaseVon(heute, []), 'neu')
+  assert.equal(phaseVon(heute, [runde('geliefert')]), 'neu', 'eine alte Runde zieht sie wieder weg')
+  // Ein Sondermass ebenso.
+  assert.equal(phaseVon(best({ status: 'neu', phaseSeit: 'x', ausgemessenAm: 'y' }), []), 'neu')
 })
 
 /* --- Abbildung alter Werte: die Generation von gestern --------------------- */

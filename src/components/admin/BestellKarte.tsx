@@ -101,6 +101,19 @@ function knoepfe(b: Bestellung, abschnitt: Abschnitt, t: AdminTexte): KartenKnop
 
   switch (abschnitt) {
     case 'neu':
+      /*
+       * Katalogware ist im Webshop bestellt: Masse, Bauart und Preis stehen
+       * fest, der Kunde hat an der Kasse zugesagt. Nach der Kontrolle geht
+       * sie deshalb direkt ans Bestellen. Der Weg ueber die Klaerung bleibt
+       * leise daneben – manchmal steht in der Bemerkung doch eine Frage.
+       */
+      if (phasenEntfallen(b)) {
+        return [
+          { tat: { status: 'bestellen', zusage: true }, text: t.knopfGeprueftBestellen, art: 'haupt' },
+          { tat: { status: 'klaerung' }, text: t.knopfAngenommen, art: 'still' },
+          absagen,
+        ]
+      }
       return [{ tat: { status: 'klaerung' }, text: t.knopfAngenommen, art: 'haupt' }, absagen]
     case 'klaerung': {
       const fehlt = b.positionen.length === 0 ? 1 : fehlendeAngaben(b)
@@ -313,7 +326,7 @@ export function BestellKarte({
             {mitgenossen.length > 0 && ` · ${t.imPaketMit} ${mitgenossen.map((x) => x.referenz || x.id).join(', ')}`}
           </span>
         )}
-        {phasenEntfallen(b) && (abschnitt === 'bestellen' || abschnitt === 'ausliefern') && (
+        {phasenEntfallen(b) && (abschnitt === 'neu' || abschnitt === 'bestellen' || abschnitt === 'ausliefern') && (
           <span className="admin__marke">{t.entfaelltMarke}</span>
         )}
         {b.zusageAm && (abschnitt === 'bestellen' || abschnitt === 'ausliefern') && (

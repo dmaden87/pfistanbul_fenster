@@ -168,6 +168,18 @@ Weg zu Bora selbst, auf seiner Karte:
   abgetippt – je Netz der Stückpreis, dazu die Fracht. Die Zeilennummern
   sind dieselben wie auf dem Talon. Weiter geht es, sobald jedes Netz einen
   Einkaufspreis hat.
+- **Phase 1, Neu:** Hier landet **jede** Bestellung, auch die aus dem
+  Webshop. Fachlich müsste sie das nicht – an der Kasse ist zugesagt, Masse
+  und Preis stehen im Katalog – aber der Betrieb will jede Bestellung einmal
+  gesehen haben, bevor sie zu Bora geht. Katalogware trägt darum in „neu"
+  einen eigenen Hauptknopf: „Geprüft – bestellen" führt direkt nach Phase 6
+  und stempelt die Zusage. Der Weg über die Klärung bleibt leise daneben,
+  falls in der Bemerkung doch eine Frage steht.
+
+  Damit das hält, muss die Abbildung alter Werte wissen, wann sie sich
+  heraushalten soll: Ein Datensatz mit `phaseSeit` ist von heute, sein
+  Status gilt. Ohne diesen Riegel schöbe sie eine neue Katalogbestellung
+  sofort wieder nach „bestellen".
 - **Phase 4 und 5, Angebot und Zusage:** Verkaufspreise mit Boras Kosten
   daneben festlegen, Offerte drucken, „Offerte ist raus" – ab da wartet der
   Auftrag in „Warten auf Zusage": Zusage nach „Bestellen", Nachbessern

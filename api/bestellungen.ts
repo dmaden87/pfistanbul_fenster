@@ -329,7 +329,7 @@ function ausRohdaten(roh: Record<string, unknown>, vonHand = false): Bestellung 
    * Eine Sondermass-Anfrage dagegen ist "neu": Da ist noch nichts zugesagt,
    * nicht einmal ein Preis.
    */
-  const status = vonHand && STATUS.includes(roh.status as Status) ? (roh.status as Status) : startPhase(art)
+  const status = vonHand && STATUS.includes(roh.status as Status) ? (roh.status as Status) : startPhase()
   const quelle = vonHand && QUELLEN.includes(roh.quelle as Quelle) ? (roh.quelle as Quelle) : 'web'
   const netze = positionen(roh.positionen)
   const montageChf = zahl(roh.montageChf)

@@ -46,9 +46,18 @@ interface BestellBlick {
   positionen?: { einkaufChf?: number }[]
 }
 
-/** Wo eine neue Bestellung beginnt: Katalogware hat an der Kasse zugesagt. */
-export function startPhase(art: string | undefined): Phase {
-  return art === 'bestellung' ? 'bestellen' : 'neu'
+/**
+ * Wo eine neue Bestellung beginnt: immer bei "neu".
+ *
+ * Auch Katalogware aus dem Webshop, obwohl an der Kasse laengst zugesagt
+ * und alles festgelegt ist. Der Grund ist kein fachlicher, sondern ein
+ * betrieblicher: Jede Bestellung soll einmal durch die Kontrolle des
+ * Betreibers, bevor sie bei Bora landet. Von "neu" aus geht Katalogware
+ * mit einem Klick direkt nach "bestellen" – Klaerung und Offerte haetten
+ * ihr nichts zu sagen.
+ */
+export function startPhase(): Phase {
+  return 'neu'
 }
 
 /** Die neueste Runde, die eine Bestellung fuehrt. */
@@ -118,6 +127,12 @@ export function phaseVon<B extends BestellBlick>(b: B, runden: RundenBlick[]): P
   if (alt === 'zugesagt' || alt === 'bestellt') return abBestellen()
 
   // "neu" – in jeder Generation moeglich.
+  //
+  // Heutige Datensaetze tragen phaseSeit. Bei ihnen heisst "neu" auch "neu",
+  // Katalogware eingeschlossen: Sie startet dort und wartet auf die
+  // Kontrolle. Ohne diesen Riegel schoebe die Abbildung sie sofort wieder
+  // nach "bestellen" – die Bestellung waere nicht zu halten.
+  if (b.phaseSeit) return 'neu'
   if (katalog) return abBestellen()
   if (rundenStand === 'bestellt') return 'bestellen'
   if (rundenStand === 'geliefert') return 'ausliefern'

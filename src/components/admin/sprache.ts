@@ -111,7 +111,7 @@ const PAARE = {
 
   zuTun: ['in Arbeit', 'devam eden'],
   seitTagen: ['seit {n} Tagen hier', '{n} gündür burada'],
-  entfaelltMarke: ['Katalogware – Phasen 1–5 entfallen', 'Katalog ürünü – 1–5. aşamalar yok'],
+  entfaelltMarke: ['Katalogware – Klärung und Offerte entfallen', 'Katalog ürünü – netleştirme ve teklif yok'],
   zugesagtMarke: ['zugesagt am', 'onaylandı'],
   zahlungAusstehendMarke: ['Onlinezahlung nicht eingegangen', 'Online ödeme gelmedi'],
   angabenFehlenMarke: ['{n} Angabe(n) fehlen', '{n} bilgi eksik'],
@@ -200,6 +200,7 @@ const PAARE = {
 
   /* --- Knoepfe je Phase -------------------------------------------------- */
   knopfAngenommen: ['Angenommen – Auftragsklärung', 'Kabul edildi – netleştirme'],
+  knopfGeprueftBestellen: ['Geprüft – bestellen', 'Kontrol edildi – sipariş'],
   knopfKlaerungFertig: ['Auftragsdetails vollständig – Kosten klären', 'Sipariş bilgileri tamam – maliyet'],
   knopfKostenDa: ['Kosten da – Offerte rechnen', 'Maliyet geldi – teklifi hesapla'],
   knopfOfferteAnzeigen: ['Offerte anzeigen', 'Teklifi göster'],

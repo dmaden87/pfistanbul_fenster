@@ -132,7 +132,7 @@ await pruefe('Anmeldung mit falschem Passwort scheitert', async () => {
 
 /* --- Der offene Weg: das Bestellformular ------------------------------------ */
 
-await pruefe('Bestellung von der Seite landet als "bestellen" und Quelle "web"', async () => {
+await pruefe('Bestellung von der Seite landet als "neu" und Quelle "web"', async () => {
   const a = await ruf({
     method: 'POST',
     body: { art: 'bestellung', referenz: 'PF-1', kunde, positionen: [], summeChf: 130 },
@@ -140,8 +140,9 @@ await pruefe('Bestellung von der Seite landet als "bestellen" und Quelle "web"',
   assert.equal(a.code, 201)
   const liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
   const b = liste.find((x) => x.referenz === 'PF-1')
-  // An der Kasse ist zugesagt worden – sie wartet nur noch auf die Bestellrunde.
-  assert.equal(b.status, 'bestellen')
+  // An der Kasse ist zugesagt worden, trotzdem startet sie bei "neu": Der
+  // Betrieb will jede Bestellung einmal gesehen haben, bevor sie zu Bora geht.
+  assert.equal(b.status, 'neu')
   assert.equal(b.quelle, 'web')
 })
 
@@ -152,9 +153,9 @@ await pruefe('Der offene Weg darf Status und Quelle NICHT setzen', async () => {
   })
   const liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
   const b = liste.find((x) => x.referenz === 'PF-2')
-  // "bestellen" ist der Startpunkt einer Warenkorbbestellung, nicht der Wert
-  // aus dem Koerper – der haette "ausliefern" gesagt.
-  assert.equal(b.status, 'bestellen', 'Status aus dem Koerper wurde uebernommen')
+  // "neu" ist der Startpunkt jeder Bestellung, nicht der Wert aus dem
+  // Koerper – der haette "ausliefern" gesagt.
+  assert.equal(b.status, 'neu', 'Status aus dem Koerper wurde uebernommen')
   assert.equal(b.quelle, 'web', 'Quelle aus dem Koerper wurde uebernommen')
 })
 
@@ -635,6 +636,29 @@ await pruefe('Verkaufspreise festlegen: neuer Preis, Boras Einkauf bleibt, Stemp
   assert.ok(neu.daten.bestellung.preiseFestgelegtAm)
   const weg = await ruf({ method: 'PATCH', cookie, body: { id: b.id, preiseFestgelegt: false } })
   assert.equal(weg.daten.bestellung.preiseFestgelegtAm, undefined)
+})
+
+await pruefe('Eine Webshop-Bestellung landet in "neu" und bleibt dort', async () => {
+  /*
+   * Fachlich koennte sie sofort zu Bora: An der Kasse ist zugesagt, Masse
+   * und Preis stehen im Katalog. Der Betrieb will sie aber zuerst sehen –
+   * und beim naechsten Lesen darf sie nicht von selbst weiterspringen.
+   */
+  const a = await ruf({ method: 'POST', body: {
+    art: 'bestellung', referenz: 'PF-WEB',
+    kunde: { name: 'Webshop', email: 'w@example.ch' },
+    positionen: [{ menge: 1, bezeichnung: 'Zimmer', typId: 'zimmer', preisChf: 150 }],
+    montage: false, summeChf: 150,
+  } })
+  assert.equal(a.code, 201)
+  // Der offene Weg gibt nur die Kennung zurueck, nicht den Datensatz.
+  const id = a.daten.id
+  const liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
+  assert.equal(liste.find((b) => b.id === id).status, 'neu', 'beim Lesen wieder weggesprungen')
+  // Nach der Kontrolle geht sie direkt ans Bestellen, mit Zusage.
+  const n = await ruf({ method: 'PATCH', cookie, body: { id, status: 'bestellen', zusage: true } })
+  assert.equal(n.daten.bestellung.status, 'bestellen')
+  assert.ok(n.daten.bestellung.zusageAm)
 })
 
 await pruefe('Katalogware von Hand startet im Angebot mit festgelegten Preisen', async () => {
