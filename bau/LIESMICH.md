@@ -168,13 +168,17 @@ Weg zu Bora selbst, auf seiner Karte:
   abgetippt – je Netz der Stückpreis, dazu die Fracht. Die Zeilennummern
   sind dieselben wie auf dem Talon. Weiter geht es, sobald jedes Netz einen
   Einkaufspreis hat.
-- **Phase 5, Bestellen:** „Bestelltalon anzeigen", dann die zwei Stempel „bei
+- **Phase 4 und 5, Angebot und Zusage:** Verkaufspreise mit Boras Kosten
+  daneben festlegen, Offerte drucken, „Offerte ist raus" – ab da wartet der
+  Auftrag in „Warten auf Zusage": Zusage nach „Bestellen", Nachbessern
+  zurück zum Angebot (der Haken „versendet" fällt), Absage ins Archiv.
+- **Phase 6, Bestellen:** „Bestelltalon anzeigen", dann die zwei Stempel „bei
   Bora bestellt" und „unterwegs", zuletzt „angekommen" – das ist der Schritt
-  nach Phase 6. Der Zoll kommt Wochen nach der Ware und wird unter „Kosten
-  ändern" nachgetragen, auch noch in Phase 6.
+  nach Phase 7. Der Zoll kommt Wochen nach der Ware und wird unter „Kosten
+  ändern" nachgetragen, auch noch in Phase 7.
 
 Die Bündelung zu einer Sendung ist Organisation, kein Zustand. Was es dafür
-gibt, ist das **Paket**: In Phase 5 mehrere Aufträge ankreuzen und „zu einem
+gibt, ist das **Paket**: In Phase 6 mehrere Aufträge ankreuzen und „zu einem
 Paket zusammenführen" – sie bekommen dasselbe Etikett (`P-2026-01`) und
 einen gemeinsamen Bestelltalon, auf dem jeder Auftrag sein eigenes Paket mit
 eigener Kennung bleibt. Das Etikett ist der ganze Zustand; „aus dem Paket

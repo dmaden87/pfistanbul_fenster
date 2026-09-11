@@ -139,11 +139,20 @@ function knoepfe(b: Bestellung, abschnitt: Abschnitt, t: AdminTexte): KartenKnop
     case 'offerte':
       // Erst die Verkaufspreise, dann die Offerte: Solange die Richtpreise
       // drinstehen, ist der Hauptknopf der Block "Verkaufspreise festlegen".
+      // "Offerte ist raus" ist der Schritt vorwaerts – ins Warten.
       return [
-        { tat: 'offerte', text: t.knopfOfferteAnzeigen, art: b.offerteAm || !b.preiseFestgelegtAm ? 'still' : 'haupt' },
-        b.offerteAm
-          ? { tat: { status: 'bestellen', zusage: true }, text: t.knopfKundeZugesagt, art: 'haupt' }
-          : { tat: { offerteVersendet: true }, text: t.knopfOfferteRaus, art: 'still' },
+        { tat: 'offerte', text: t.knopfOfferteAnzeigen, art: b.preiseFestgelegtAm ? 'haupt' : 'still' },
+        { tat: { status: 'zusage', offerteVersendet: true }, text: t.knopfOfferteRaus, art: b.preiseFestgelegtAm ? 'haupt' : 'still' },
+        { tat: { status: 'klaerung' }, text: t.knopfAenderungswunsch, art: 'still' },
+        absagen,
+      ]
+    case 'zusage':
+      // Beim Kunden. Drei Ausgaenge: Zusage nach vorn, Nachbessern zurueck
+      // zum Angebot, Absage ins Archiv – und der Aenderungswunsch zur Klaerung.
+      return [
+        { tat: { status: 'bestellen', zusage: true }, text: t.knopfKundeZugesagt, art: 'haupt' },
+        { tat: 'offerte', text: t.knopfOfferteAnzeigen, art: 'still' },
+        { tat: { status: 'offerte' }, text: t.knopfNachbessern, art: 'still' },
         { tat: { status: 'klaerung' }, text: t.knopfAenderungswunsch, art: 'still' },
         absagen,
       ]
@@ -156,7 +165,7 @@ function knoepfe(b: Bestellung, abschnitt: Abschnitt, t: AdminTexte): KartenKnop
       if (b.bestelltAm) liste.push({ tat: { status: 'ausliefern' }, text: t.knopfAngekommen, art: 'haupt' })
       liste.push({ tat: 'kosten', text: ohneEinkauf(b) > 0 ? t.kostenEintragen : t.kostenAendern, art: 'still' })
       if (b.paket) liste.push({ tat: { paket: '' }, text: t.paketAufloesen, art: 'still' })
-      if (!phasenEntfallen(b)) liste.push({ tat: { status: 'offerte', zusage: false }, text: t.knopfZusageZurueck, art: 'still' })
+      if (!phasenEntfallen(b)) liste.push({ tat: { status: 'zusage', zusage: false }, text: t.knopfZusageZurueck, art: 'still' })
       liste.push(absagen)
       return liste
     }
@@ -419,30 +428,25 @@ export function BestellKarte({
         />
       )}
 
-      {/* Phase 4, zweiter Teil: ist die Offerte raus, und seit wann ohne Antwort? */}
-      {abschnitt === 'offerte' && (
+      {/* Phase 4, zweiter Teil: die festgelegten Preise, aenderbar. */}
+      {abschnitt === 'offerte' && b.preiseFestgelegtAm && !preiseBearbeiten && (
         <div className="admin__haken-reihe">
-          {b.preiseFestgelegtAm && !preiseBearbeiten && (
-            <>
-              <span className="admin__marke admin__marke--gut">
-                {t.preiseFestgelegtAm} {tag(b.preiseFestgelegtAm, ort)}
-              </span>
-              <button type="button" className="btn btn--quiet" onClick={() => setPreiseBearbeiten(true)}>
-                {t.knopfPreiseAendern}
-              </button>
-            </>
-          )}
-          <label className="admin__haken">
-            <input
-              type="checkbox"
-              checked={Boolean(b.offerteAm)}
-              onChange={(e) => onAendern(b.id, { offerteVersendet: e.target.checked })}
-            />
-            <span>
-              {t.offerteVersendet}
-              {b.offerteAm && <span className="admin__detail"> {t.am} {tag(b.offerteAm, ort)}</span>}
-            </span>
-          </label>
+          <span className="admin__marke admin__marke--gut">
+            {t.preiseFestgelegtAm} {tag(b.preiseFestgelegtAm, ort)}
+          </span>
+          <button type="button" className="btn btn--quiet" onClick={() => setPreiseBearbeiten(true)}>
+            {t.knopfPreiseAendern}
+          </button>
+        </div>
+      )}
+
+      {/* Phase 5: seit wann die Offerte beim Kunden liegt. */}
+      {abschnitt === 'zusage' && (
+        <div className="admin__haken-reihe">
+          <span className="admin__marke admin__marke--gut">
+            {t.offerteVersendet}
+            {b.offerteAm && <span className="admin__detail"> {t.am} {tag(b.offerteAm, ort)}</span>}
+          </span>
           {offerteTage !== null && offerteTage >= 7 && (
             <span className="admin__marke admin__marke--warnung">{fuelle(t.ohneAntwortSeit, { n: offerteTage })}</span>
           )}

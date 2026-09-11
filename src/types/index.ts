@@ -130,7 +130,11 @@ export type SubmissionState =
  * Die PHASE einer Bestellung – der Workflow des Betreibers, in seiner
  * Reihenfolge:
  *
- *   neu → klaerung → kosten → offerte → bestellen → ausliefern
+ *   neu → klaerung → kosten → offerte → zusage → bestellen → ausliefern
+ *
+ * "offerte" ist die Arbeit am Angebot, "zusage" das Warten auf den Kunden,
+ * nachdem es raus ist – zwei Phasen, weil das eine bei uns liegt und das
+ * andere nicht.
  *
  * Dazu "abgesagt" als Ende ohne Auftrag. "Abgeschlossen" ist keine Phase,
  * sondern die Aussage, dass in "ausliefern" beide Haken gesetzt sind
@@ -146,7 +150,7 @@ export type SubmissionState =
  *
  * Eine Bestellung aus dem Warenkorb entsteht direkt in "bestellen": Der
  * Kunde hat an der Kasse zugesagt, der Preis stand im Katalog. Die Phasen
- * 1–4 gibt es fuer sie nicht; die Karte zeigt sie als "entfaellt".
+ * 1–5 gibt es fuer sie nicht; die Karte zeigt sie als "entfaellt".
  *
  * ALTE WERTE. Gespeicherte Bestellungen tragen "neu | offeriert | zugesagt |
  * abgesagt" (Fassung von gestern) oder noch aelter "offerte | bestellt |
@@ -154,7 +158,7 @@ export type SubmissionState =
  * Skript – siehe `vereinheitlichen` in api/bestellungen.ts. Kein bestehendes
  * Feld wird dabei geloescht.
  */
-export type BestellStatus = 'neu' | 'klaerung' | 'kosten' | 'offerte' | 'bestellen' | 'ausliefern' | 'abgesagt'
+export type BestellStatus = 'neu' | 'klaerung' | 'kosten' | 'offerte' | 'zusage' | 'bestellen' | 'ausliefern' | 'abgesagt'
 
 /** Warum aus einer Bestellung nichts wurde. Erscheint im Archiv. */
 export type AbsageGrund = 'spam' | 'doppelt' | 'keineAntwort' | 'kunde' | 'zuTeuer' | 'storno'

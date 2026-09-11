@@ -534,12 +534,17 @@ async function aendern(req: VercelRequest, res: VercelResponse) {
     if (!STATUS.includes(koerper.status as Status)) return res.status(400).json({ error: 'Unbekannter Status.' })
     const neu = koerper.status as Status
     if (neu !== bestellung.status) {
+      const vorher = bestellung.status
       bestellung.status = neu
       // Seit wann sie in dieser Phase steht – fuer "seit n Tagen" auf der Karte.
       bestellung.phaseSeit = jetzt
       if (neu === 'abgesagt') {
         bestellung.absageAm = jetzt
         bestellung.absageGrund = absageGrund(koerper.absageGrund) ?? bestellung.absageGrund
+      } else if (neu === 'offerte' && vorher === 'zusage') {
+        // Nachbessern: Die Offerte geht nochmals raus, der alte Haken waere
+        // gelogen – und mit ihm stuende sie beim Lesen wieder in "zusage".
+        delete bestellung.offerteAm
       } else {
         // Wiederoeffnen: Die Absage ist Geschichte, nicht Zustand.
         delete bestellung.absageAm

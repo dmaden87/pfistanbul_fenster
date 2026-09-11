@@ -317,7 +317,7 @@ await pruefe('Die alten Statuswerte werden beim Lesen abgebildet', async () => {
   // Gespeicherte Bestellungen tragen noch das alte Vokabular. Sie duerfen
   // nicht als "unbekannt" durchfallen, sonst verschwinden sie aus der Liste.
   const roh = gespeichert.lies(vonHand.id)
-  for (const [alt, neu] of [['bestellt', 'bestellen'], ['geloescht', 'abgesagt'], ['zugesagt', 'bestellen'], ['offeriert', 'offerte']]) {
+  for (const [alt, neu] of [['bestellt', 'bestellen'], ['geloescht', 'abgesagt'], ['zugesagt', 'bestellen'], ['offeriert', 'zusage']]) {
     gespeichert.schreib(vonHand.id, { ...roh, status: alt })
     const liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
     assert.equal(liste.find((b) => b.id === vonHand.id).status, neu, alt)
@@ -344,9 +344,10 @@ await pruefe('Altes "offerte" entscheidet sich am Haken "Offerte versendet"', as
   liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
   assert.equal(liste.find((b) => b.id === vonHand.id).status, 'offerte', 'die heutige Phase 4 wurde fuer alt gehalten')
 
+  // Mit Haken "Offerte versendet" wartet sie auf den Kunden – eigene Phase.
   gespeichert.schreib(vonHand.id, { ...alt, offerteAm: '2026-05-01T10:00:00.000Z' })
   liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
-  assert.equal(liste.find((b) => b.id === vonHand.id).status, 'offerte')
+  assert.equal(liste.find((b) => b.id === vonHand.id).status, 'zusage')
 
   gespeichert.schreib(vonHand.id, roh)
 })
@@ -458,6 +459,19 @@ await pruefe('Offerte versendet wird getrennt gefuehrt', async () => {
   const a = await ruf({ method: 'PATCH', cookie, body: { id: vonHand.id, ausgemessen: true, offerteVersendet: true } })
   assert.ok(a.daten.bestellung.ausgemessenAm)
   assert.ok(a.daten.bestellung.offerteAm)
+})
+
+await pruefe('Offerte raus → zusage; nachbessern → offerte und der Haken faellt', async () => {
+  let a = await ruf({ method: 'PATCH', cookie, body: { id: vonHand.id, status: 'offerte' } })
+  a = await ruf({ method: 'PATCH', cookie, body: { id: vonHand.id, status: 'zusage', offerteVersendet: true } })
+  assert.equal(a.daten.bestellung.status, 'zusage')
+  assert.ok(a.daten.bestellung.offerteAm)
+  a = await ruf({ method: 'PATCH', cookie, body: { id: vonHand.id, status: 'offerte' } })
+  assert.equal(a.daten.bestellung.status, 'offerte')
+  assert.equal(a.daten.bestellung.offerteAm, undefined, 'die alte Offerte gilt beim Nachbessern noch')
+  // Beim naechsten Lesen bleibt sie in "offerte" – ohne Haken kein Warten.
+  const liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
+  assert.equal(liste.find((b) => b.id === vonHand.id).status, 'offerte')
 })
 
 await pruefe('Netze aendern rechnet die Summe neu und behaelt die Montage', async () => {

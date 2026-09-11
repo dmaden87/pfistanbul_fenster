@@ -78,7 +78,7 @@ pruefe('Gestern: neu in einer Runde folgt der Runde', () => {
 })
 
 pruefe('Gestern: offeriert wird offerte, zugesagt wird bestellen', () => {
-  assert.equal(phaseVon(best({ status: 'offeriert' }), []), 'offerte')
+  assert.equal(phaseVon(best({ status: 'offeriert' }), []), 'zusage')
   assert.equal(phaseVon(best({ status: 'zugesagt' }), []), 'bestellen')
   assert.equal(phaseVon(best({ status: 'zugesagt' }), [runde('geliefert')]), 'ausliefern')
   assert.equal(phaseVon(best({ status: 'abgesagt' }), []), 'abgesagt')
@@ -93,11 +93,16 @@ pruefe('Gestern: Katalogware unter "neu" war nie in Phase 1', () => {
 /* --- Abbildung alter Werte: die ganz alte Generation ------------------------ */
 
 pruefe('Ganz alt: offerte entscheidet sich am Haken und an der Runde', () => {
-  assert.equal(phaseVon(best({ status: 'offerte', offerteAm: 'x' }), []), 'offerte')
+  assert.equal(phaseVon(best({ status: 'offerte', offerteAm: 'x' }), []), 'zusage')
   assert.equal(phaseVon(best({ status: 'offerte' }), []), 'neu')
   assert.equal(phaseVon(best({ status: 'offerte', ausgemessenAm: 'x' }), []), 'klaerung')
   assert.equal(phaseVon(best({ status: 'offerte' }), [runde('angefragt')]), 'kosten')
   assert.equal(phaseVon(best({ status: 'offerte' }), [runde('preise')]), 'offerte')
+})
+
+pruefe('Heutiges "zusage" und "offerte" bleiben, was sie sind', () => {
+  assert.equal(phaseVon(best({ status: 'zusage', phaseSeit: 'x', offerteAm: 'y' }), []), 'zusage')
+  assert.equal(phaseVon(best({ status: 'offerte', phaseSeit: 'x', offerteAm: 'y' }), []), 'zusage', 'raus ist raus – auch wenn der Status noch offerte sagt')
 })
 
 pruefe('Heutiges "offerte" bleibt offerte – erkennbar am Stempel, nicht an der Runde', () => {
@@ -186,7 +191,8 @@ pruefe('Gruppieren verliert keine Bestellung und kennt jeden Abschnitt', () => {
 
 pruefe('Naechste Phase folgt der Reihenfolge und endet nach ausliefern', () => {
   assert.equal(naechstePhase('neu'), 'klaerung')
-  assert.equal(naechstePhase('offerte'), 'bestellen')
+  assert.equal(naechstePhase('offerte'), 'zusage')
+  assert.equal(naechstePhase('zusage'), 'bestellen')
   assert.equal(naechstePhase('ausliefern'), undefined)
   assert.equal(naechstePhase('abgesagt'), undefined)
 })
@@ -197,7 +203,7 @@ pruefe('Wiederoeffnen fuehrt dorthin, wo die Bestellung war', () => {
   assert.equal(phaseNachWiederoeffnen(best({ status: 'abgesagt', einkaufAusRunde: 'L-1' })), 'kosten')
   const bepreist = best({ status: 'abgesagt', positionen: [{ id: 'p1', menge: 1, bezeichnung: 'A', detail: '', preisChf: 150, einkaufChf: 40 }] })
   assert.equal(phaseNachWiederoeffnen(bepreist), 'offerte')
-  assert.equal(phaseNachWiederoeffnen(best({ status: 'abgesagt', offerteAm: 'x' })), 'offerte')
+  assert.equal(phaseNachWiederoeffnen(best({ status: 'abgesagt', offerteAm: 'x' })), 'zusage')
   assert.equal(phaseNachWiederoeffnen(best({ status: 'abgesagt', zusageAm: 'x' })), 'bestellen')
   assert.equal(phaseNachWiederoeffnen(best({ status: 'abgesagt', art: 'bestellung' })), 'bestellen')
   assert.equal(ohneEinkauf(bepreist), 0)

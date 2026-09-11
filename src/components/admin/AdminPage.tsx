@@ -17,7 +17,7 @@ interface AdminPageProps {
 }
 
 /**
- * Die Uebersicht folgt dem Workflow des Betreibers: sechs Phasen in seiner
+ * Die Uebersicht folgt dem Workflow des Betreibers: sieben Phasen in seiner
  * Reihenfolge, dazu das Archiv. Jede Bestellung steht in genau einem
  * Abschnitt, und zwar in dem, den ihr `status` nennt. Nichts wird mehr
  * abgeleitet – jede Bewegung ist ein Klick, auf der Karte oder auf der
@@ -33,6 +33,7 @@ function abschnittTexte(t: AdminTexte): Record<Abschnitt, { titel: string; satz:
     klaerung: { titel: t.phaseKlaerung, satz: t.phaseKlaerungSatz },
     kosten: { titel: t.phaseKosten, satz: t.phaseKostenSatz },
     offerte: { titel: t.phaseOfferte, satz: t.phaseOfferteSatz },
+    zusage: { titel: t.phaseZusage, satz: t.phaseZusageSatz },
     bestellen: { titel: t.phaseBestellen, satz: t.phaseBestellenSatz },
     ausliefern: { titel: t.phaseAusliefern, satz: t.phaseAusliefernSatz },
     archiv: { titel: t.phaseArchiv, satz: t.phaseArchivSatz },
@@ -92,7 +93,7 @@ function AdminMaske({ onBack }: AdminPageProps) {
   const [blatt, setBlatt] = useState<OffenesBlatt | null>(null)
   /** Welche Bestellung gerade als Offerte angezeigt wird. */
   const [offeneOfferte, setOffeneOfferte] = useState<string | null>(null)
-  /* Nur das Archiv startet zugeklappt: Die sechs Phasen sind die Arbeit. */
+  /* Nur das Archiv startet zugeklappt: Die Phasen sind die Arbeit. */
   const [zugeklappt, setZugeklappt] = useState<Abschnitt[]>(['archiv'])
   const { sprache, setzeSprache, t } = useSprache()
 

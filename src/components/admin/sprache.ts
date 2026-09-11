@@ -67,7 +67,7 @@ const PAARE = {
   neuKlein: ['neu', 'yeni'],
   inOfferte: ['in Offerte', 'teklifte'],
 
-  /* --- Die sechs Phasen und das Archiv ------------------------------------ */
+  /* --- Die sieben Phasen und das Archiv ----------------------------------- */
   phaseNeu: ['Neu', 'Yeni'],
   phaseNeuSatz: [
     'Eingegangen. Annehmen – oder absagen, wenn es Spam oder ein Doppel ist.',
@@ -85,8 +85,13 @@ const PAARE = {
   ],
   phaseOfferte: ['Angebot erstellen', 'Teklif hazırlama'],
   phaseOfferteSatz: [
-    'Offerte rechnen, verschicken, auf die Zusage warten.',
-    'Teklifi hesaplayın, gönderin, onayı bekleyin.',
+    'Verkaufspreise festlegen, Offerte rechnen und verschicken.',
+    'Satış fiyatlarını belirleyin, teklifi hesaplayın ve gönderin.',
+  ],
+  phaseZusage: ['Warten auf Zusage', 'Onay bekleniyor'],
+  phaseZusageSatz: [
+    'Die Offerte ist beim Kunden. Zusage → Bestellen, Nachbessern → zurück zum Angebot, Absage → Archiv.',
+    'Teklif müşteride. Onay → Sipariş, düzeltme → teklife geri, ret → Arşiv.',
   ],
   phaseBestellen: ['Bestellen', 'Sipariş verme'],
   phaseBestellenSatz: [
@@ -106,7 +111,7 @@ const PAARE = {
 
   zuTun: ['in Arbeit', 'devam eden'],
   seitTagen: ['seit {n} Tagen hier', '{n} gündür burada'],
-  entfaelltMarke: ['Katalogware – Phasen 1–4 entfallen', 'Katalog ürünü – 1–4. aşamalar yok'],
+  entfaelltMarke: ['Katalogware – Phasen 1–5 entfallen', 'Katalog ürünü – 1–5. aşamalar yok'],
   zugesagtMarke: ['zugesagt am', 'onaylandı'],
   zahlungAusstehendMarke: ['Onlinezahlung nicht eingegangen', 'Online ödeme gelmedi'],
   angabenFehlenMarke: ['{n} Angabe(n) fehlen', '{n} bilgi eksik'],
@@ -197,6 +202,7 @@ const PAARE = {
   knopfOfferteRaus: ['Offerte ist raus', 'Teklif gönderildi'],
   knopfKundeZugesagt: ['Kunde hat zugesagt', 'Müşteri onayladı'],
   knopfAenderungswunsch: ['Änderungswunsch – zurück zur Klärung', 'Değişiklik isteği – netleştirmeye dön'],
+  knopfNachbessern: ['Offerte nachbessern – zurück zum Angebot', 'Teklifi düzelt – teklife geri'],
   knopfZusageZurueck: ['Zusage zurücknehmen', 'Onayı geri al'],
   knopfAbsagen: ['Absagen', 'İptal et'],
   knopfUebergeben: ['Übergeben & bezahlt', 'Teslim edildi & ödendi'],

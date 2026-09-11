@@ -16,13 +16,13 @@ import type { Bestellung, BestellStatus } from '../types'
  * bau/phasen-test.mjs haelt beide gleich.)
  */
 
-/** Eine der sechs Phasen des Ablaufs – ohne das Ende "abgesagt". */
+/** Eine der sieben Phasen des Ablaufs – ohne das Ende "abgesagt". */
 export type Phase = Exclude<BestellStatus, 'abgesagt'>
 
-/** Die sechs Phasen in der Reihenfolge des Ablaufs. "abgesagt" steht daneben. */
-export const PHASEN: readonly Phase[] = ['neu', 'klaerung', 'kosten', 'offerte', 'bestellen', 'ausliefern']
+/** Die sieben Phasen in der Reihenfolge des Ablaufs. "abgesagt" steht daneben. */
+export const PHASEN: readonly Phase[] = ['neu', 'klaerung', 'kosten', 'offerte', 'zusage', 'bestellen', 'ausliefern']
 
-/** Die Abschnitte der Uebersicht: die sechs Phasen und das Archiv. */
+/** Die Abschnitte der Uebersicht: die sieben Phasen und das Archiv. */
 export type Abschnitt = Phase | 'archiv'
 export const ABSCHNITTE: readonly Abschnitt[] = [...PHASEN, 'archiv']
 
@@ -62,7 +62,7 @@ export function zahlungAusstehend(b: Bestellung): boolean {
   return b.zahlung === 'online' && b.bezahlung?.status !== 'bezahlt' && !b.bezahltAm
 }
 
-/** Katalogware aus dem Warenkorb: die Phasen 1–4 entfallen. */
+/** Katalogware aus dem Warenkorb: die Phasen 1–5 entfallen. */
 export function phasenEntfallen(b: Bestellung): boolean {
   return b.art === 'bestellung'
 }
@@ -108,7 +108,7 @@ export function naechstePhase(status: BestellStatus): BestellStatus | undefined 
 export function phaseNachWiederoeffnen(b: Bestellung): BestellStatus {
   if (phasenEntfallen(b)) return 'bestellen'
   if (b.zusageAm) return 'bestellen'
-  if (b.offerteAm) return 'offerte'
+  if (b.offerteAm) return 'zusage'
   if (b.positionen.length > 0 && ohneEinkauf(b) === 0) return 'offerte'
   if (b.einkaufAusRunde) return 'kosten'
   if (b.ausgemessenAm) return 'klaerung'

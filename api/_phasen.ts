@@ -15,8 +15,8 @@
  * jemand die Bestellung ohnehin aendert.
  */
 
-export type Phase = 'neu' | 'klaerung' | 'kosten' | 'offerte' | 'bestellen' | 'ausliefern' | 'abgesagt'
-export const PHASEN: Phase[] = ['neu', 'klaerung', 'kosten', 'offerte', 'bestellen', 'ausliefern', 'abgesagt']
+export type Phase = 'neu' | 'klaerung' | 'kosten' | 'offerte' | 'zusage' | 'bestellen' | 'ausliefern' | 'abgesagt'
+export const PHASEN: Phase[] = ['neu', 'klaerung', 'kosten', 'offerte', 'zusage', 'bestellen', 'ausliefern', 'abgesagt']
 
 /** Was die Abbildung von einer Runde wissen muss. */
 export interface RundenBlick {
@@ -65,7 +65,7 @@ function rundeFuer(id: string, runden: RundenBlick[]): RundenBlick | undefined {
  * Drei Generationen liegen im Speicher:
  *   - ganz alt:  neu | offerte | bestellt | erledigt | geloescht
  *   - gestern:   neu | offeriert | zugesagt | abgesagt
- *   - heute:     die sieben Phasen
+ *   - heute:     die sieben Phasen und abgesagt
  *
  * "neu" gibt es in allen dreien – aber gestern konnte eine "neue"
  * Bestellung laengst in einer Runde bei Bora stecken (der Stand der Ware
@@ -79,12 +79,19 @@ export function phaseVon<B extends BestellBlick>(b: B, runden: RundenBlick[]): P
   const rundenStand = runde?.status
   const katalog = b.art === 'bestellung'
 
-  // Katalogware war nie in den Phasen 1–4, unter keinem alten Wert.
+  // Katalogware war nie in den Phasen 1–5, unter keinem alten Wert.
   const abBestellen = (): Phase => (rundenStand === 'geliefert' ? 'ausliefern' : 'bestellen')
 
   if (alt === 'abgesagt' || alt === 'geloescht') return 'abgesagt'
   if (alt === 'erledigt') return 'ausliefern'
-  if (alt === 'ausliefern' || alt === 'bestellen' || alt === 'kosten' || alt === 'klaerung' || alt === 'offerte') {
+  if (
+    alt === 'ausliefern' ||
+    alt === 'bestellen' ||
+    alt === 'zusage' ||
+    alt === 'kosten' ||
+    alt === 'klaerung' ||
+    alt === 'offerte'
+  ) {
     // Heutige Werte – bis auf "offerte", das es ganz alt auch gab. Dort
     // hiess es nur "im Offert-Abschnitt": Ob die Offerte raus war, stand
     // im Haken. Die heutige Fassung erkennt man an ihren Stempeln: Jeder
@@ -98,9 +105,12 @@ export function phaseVon<B extends BestellBlick>(b: B, runden: RundenBlick[]): P
       if (b.einkaufAusRunde || b.positionen?.some((p) => typeof p.einkaufChf === 'number')) return 'offerte'
       return b.ausgemessenAm ? 'klaerung' : 'neu'
     }
+    // Ein "offerte" mit Haken "Offerte versendet" wartet auf den Kunden –
+    // das ist seit der Trennung eine eigene Phase. Gilt fuer jede Generation.
+    if (alt === 'offerte' && b.offerteAm && !b.zusageAm) return 'zusage'
     return alt
   }
-  if (alt === 'offeriert') return 'offerte'
+  if (alt === 'offeriert') return 'zusage'
   if (alt === 'zugesagt' || alt === 'bestellt') return abBestellen()
 
   // "neu" – in jeder Generation moeglich.

@@ -195,6 +195,7 @@
 
 /* Die Phasen, in denen vor allem gewartet wird: kein Akzent, der drängt. */
 .admin__karte--kosten,
+.admin__karte--zusage,
 .admin__karte--bestellen {
   border-left-color: var(--border-strong);
 }
