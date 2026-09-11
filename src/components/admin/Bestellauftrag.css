@@ -278,6 +278,17 @@
   border: 1px solid #111111;
   background: #ffffff;
   height: 7mm;
+  /* Steht eine Zahl drin (Bestellung), sitzt sie rechts wie im Formular. */
+  padding-right: 2mm;
+  font-variant-numeric: tabular-nums;
+}
+
+.blatt__notizen {
+  margin-top: 4mm;
+}
+
+.blatt__notizen h2 {
+  font-size: 10pt;
 }
 
 /*

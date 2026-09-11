@@ -204,17 +204,22 @@ export const PACKMASS_TITEL: Beschriftung = {
  */
 export const TEXTE = {
   /*
-   * Ein Titel fuer beide Zustaende: Dasselbe Blatt geht als Anfrage raus und
-   * wird spaeter zur Bestellung.
-   *
-   * Der Zustand steht trotzdem darunter, und zwar deutlich. Ob eine Zahl
-   * erfragt oder ein Auftrag erteilt wird, ist der Unterschied zwischen "was
-   * kostet das" und "bitte anfangen" – das darf nicht am Dateinamen haengen.
+   * Zwei Titel, weil es zwei verschiedene Blaetter sind: Ob eine Zahl erfragt
+   * oder ein Auftrag erteilt wird, ist der Unterschied zwischen "was kostet
+   * das" und "bitte anfangen" – das muss im Titel stehen, nicht daneben.
    */
-  formular: { deutsch: 'Anfrage- und Bestellformular', tuerkisch: 'Talep ve Sipariş Formu' },
-  zustand: { deutsch: 'Stand', tuerkisch: 'Durum' },
-  preisanfrage: { deutsch: 'Preisanfrage', tuerkisch: 'Fiyat teklifi talebi' },
-  bestellung: { deutsch: 'Bestellung', tuerkisch: 'Sipariş' },
+  titelAnfrage: { deutsch: 'Preisanfrage', tuerkisch: 'Fiyat Talebi' },
+  titelBestellung: { deutsch: 'Definitive Bestellung', tuerkisch: 'Kesin Sipariş' },
+  untertitelAnfrage: {
+    deutsch: 'Bitte Stückpreis und Frachtkosten eintragen und zurückschicken.',
+    tuerkisch: 'Lütfen birim fiyatları ve nakliye bedelini yazıp geri gönderin.',
+  },
+  untertitelBestellung: {
+    deutsch: 'Verbindlicher Auftrag zu den eingetragenen Preisen. Bitte fertigen.',
+    tuerkisch: 'Yazılı fiyatlarla kesin sipariştir. Lütfen üretime alın.',
+  },
+  /* Die interne Notiz eines Auftrags – Sonderwuensche, Fragen, Bemerkungen. */
+  notizen: { deutsch: 'Bemerkungen und Sonderwünsche', tuerkisch: 'Notlar ve özel istekler' },
   terminOffen: { deutsch: 'Ungefährer Liefertermin', tuerkisch: 'Yaklaşık teslim tarihi' },
   terminGesetzt: { deutsch: 'Erwarteter Liefertermin', tuerkisch: 'Beklenen teslim tarihi' },
   stueckHinweis: { deutsch: 'jede Zeile ist ein Stück', tuerkisch: 'her satır bir adettir' },
