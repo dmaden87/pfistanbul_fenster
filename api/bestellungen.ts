@@ -135,6 +135,8 @@ interface Bestellung {
    * Montage - die Summe wuerde stillschweigend kleiner.
    */
   montageChf?: number
+  rabattChf?: number
+  rabattText?: string
   zahlung: 'uebergabe' | 'online'
   zahlungswunsch: boolean
   summeChf: number
@@ -285,7 +287,7 @@ function positionenSumme(liste: Position[]): number {
  */
 function montageBetrag(b: Bestellung): number {
   if (typeof b.montageChf === 'number') return b.montageChf
-  const rest = b.summeChf - positionenSumme(b.positionen)
+  const rest = b.summeChf - positionenSumme(b.positionen) + (b.rabattChf ?? 0)
   return rest > 0 ? Math.round(rest * 100) / 100 : 0
 }
 
@@ -675,7 +677,8 @@ async function aendern(req: VercelRequest, res: VercelResponse) {
   // Betrag, der zu den sichtbaren Positionen nicht mehr passt.
   const netzeNeu = koerper.positionen !== undefined
   const montageNeu = koerper.montageChf !== undefined
-  if (netzeNeu || montageNeu) {
+  const rabattNeu = koerper.rabattChf !== undefined || koerper.rabattText !== undefined
+  if (netzeNeu || montageNeu || rabattNeu) {
     // Die Montage MUSS vor dem Austausch der Positionen bestimmt werden. Bei
     // Alteintraegen ohne eigenes Feld ergibt sie sich aus der Differenz
     // zwischen Summe und Positionen – wird danach gerechnet, bezieht sich die
@@ -685,7 +688,17 @@ async function aendern(req: VercelRequest, res: VercelResponse) {
     const montage = montageNeu ? zahl(koerper.montageChf) : montageBetrag(bestellung)
     if (netzeNeu) bestellung.positionen = einkaufBewahren(bestellung.positionen, positionen(koerper.positionen))
     bestellung.montageChf = montage
-    bestellung.summeChf = Math.round((positionenSumme(bestellung.positionen) + montage) * 100) / 100
+    /*
+     * Der Rabatt auf die ganze Bestellung: nie mehr als Netze und Montage
+     * zusammen, ohne Betrag gar nicht da – und dann auch ohne Wort.
+     */
+    if (koerper.rabattChf !== undefined) {
+      const rabatt = Math.min(zahl(koerper.rabattChf), positionenSumme(bestellung.positionen) + montage)
+      bestellung.rabattChf = rabatt > 0 ? rabatt : undefined
+    }
+    if (koerper.rabattText !== undefined) bestellung.rabattText = text(koerper.rabattText, 80) || undefined
+    if (!bestellung.rabattChf) delete bestellung.rabattText
+    bestellung.summeChf = Math.round((positionenSumme(bestellung.positionen) + montage - (bestellung.rabattChf ?? 0)) * 100) / 100
     geaendert = true
   }
 

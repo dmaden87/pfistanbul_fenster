@@ -24,7 +24,7 @@ import { fuelle, useSprache } from './sprache'
 interface PreisFestlegenProps {
   bestellung: Bestellung
   montageProNetz: number
-  onSpeichern: (positionen: BestellPosition[], montageChf: number) => Promise<void>
+  onSpeichern: (positionen: BestellPosition[], montageChf: number, rabattChf: number, rabattText: string) => Promise<void>
   onAbbrechen?: () => void
 }
 
@@ -41,17 +41,20 @@ export function PreisFestlegen({ bestellung: b, montageProNetz, onSpeichern, onA
     Object.fromEntries(b.positionen.map((p, i) => [p.id ?? `#${i}`, p.preisChf > 0 ? String(p.preisChf) : ''])),
   )
   const [montage, setMontage] = useState(String(montageBetrag(b)))
+  const [rabatt, setRabatt] = useState(b.rabattChf ? String(b.rabattChf) : '')
+  const [rabattText, setRabattText] = useState(b.rabattText ?? '')
   const [aufschlag, setAufschlag] = useState('100')
   const [sendet, setSendet] = useState(false)
   const [fehler, setFehler] = useState<string | null>(null)
 
   const schluessel = (p: BestellPosition, i: number) => p.id ?? `#${i}`
   const verkauf = (p: BestellPosition, i: number) => zahl(preise[schluessel(p, i)] ?? '')
-
   const netzeChf = runde2(b.positionen.reduce((s, p, i) => s + verkauf(p, i) * p.menge, 0))
+  // Der Rabatt auf die ganze Bestellung – nie mehr als Netze und Montage zusammen.
+  const rabattChf = Math.min(zahl(rabatt), runde2(netzeChf + zahl(montage)))
   const einkaufChf = runde2(b.positionen.reduce((s, p) => s + (p.einkaufChf ?? 0) * p.menge, 0))
   const frachtChf = b.lieferkostenChf ?? 0
-  const margeChf = runde2(netzeChf - einkaufChf - frachtChf)
+  const margeChf = runde2(netzeChf - rabattChf - einkaufChf - frachtChf)
   const margeProzent = netzeChf > 0 ? Math.round((margeChf / netzeChf) * 1000) / 10 : null
   const unvollstaendig = b.positionen.some((p, i) => verkauf(p, i) <= 0)
 
@@ -85,6 +88,8 @@ export function PreisFestlegen({ bestellung: b, montageProNetz, onSpeichern, onA
       await onSpeichern(
         b.positionen.map((p, i) => ({ ...p, preisChf: verkauf(p, i) })),
         zahl(montage),
+        rabattChf,
+        rabattChf > 0 ? rabattText.trim() : '',
       )
     } catch (f) {
       setFehler(f instanceof Error ? f.message : 'Fehler')
@@ -167,11 +172,46 @@ export function PreisFestlegen({ bestellung: b, montageProNetz, onSpeichern, onA
         <span className="admin__detail">{fuelle(t.montageProFenster, { preis: formatChf(montageProNetz) })}</span>
       </div>
 
+      {/*
+        Der Rabatt gilt fuer die ganze Bestellung und traegt ein Wort: Auf der
+        Offerte steht er als Posten mit genau diesem Wort, damit die Kundschaft
+        weiss, warum sie weniger zahlt.
+      */}
+      <div className="preise__werkzeug">
+        <label className="admin__termin">
+          <span>{t.rabattBetrag}</span>
+          <input
+            className="input netze__feld preise__feld"
+            inputMode="decimal"
+            aria-label={t.rabattBetrag}
+            placeholder="0"
+            value={rabatt}
+            onChange={(e) => setRabatt(e.target.value)}
+          />
+        </label>
+        <label className="admin__termin admin__termin--breit">
+          <span>{t.rabattText}</span>
+          <input
+            className="input"
+            aria-label={t.rabattText}
+            placeholder={t.rabattTextBeispiel}
+            value={rabattText}
+            onChange={(e) => setRabattText(e.target.value)}
+          />
+        </label>
+      </div>
+
       <dl className="preise__summen">
         <div>
           <dt>{t.netzeSumme}</dt>
           <dd>{formatChf(netzeChf)}</dd>
         </div>
+        {rabattChf > 0 && (
+          <div>
+            <dt>{rabattText.trim() || t.rabattSumme}</dt>
+            <dd>−{formatChf(rabattChf)}</dd>
+          </div>
+        )}
         <div>
           <dt>{t.einkaufSumme}</dt>
           <dd>{formatChf(einkaufChf)}</dd>

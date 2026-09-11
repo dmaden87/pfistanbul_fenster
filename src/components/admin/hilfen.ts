@@ -101,7 +101,7 @@ export function positionDetail(p: BestellPosition): string {
   return masse(p) || p.detail
 }
 
-/** Was die Netze zusammen kosten, ohne Montage. */
+/** Was die Netze zusammen kosten, ohne Montage und vor Rabatt. */
 export function positionenSumme(liste: BestellPosition[]): number {
   return Math.round(liste.reduce((summe, p) => summe + p.preisChf * p.menge, 0) * 100) / 100
 }
@@ -114,7 +114,7 @@ export function positionenSumme(liste: BestellPosition[]): number {
  */
 export function montageBetrag(b: Bestellung): number {
   if (typeof b.montageChf === 'number') return b.montageChf
-  const rest = b.summeChf - positionenSumme(b.positionen)
+  const rest = b.summeChf - positionenSumme(b.positionen) + (b.rabattChf ?? 0)
   return rest > 0 ? Math.round(rest * 100) / 100 : 0
 }
 

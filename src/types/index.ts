@@ -274,6 +274,13 @@ export interface Bestellung {
    * Montagepauschale nicht verschluckt.
    */
   montageChf?: number
+  /**
+   * Ein Rabatt auf die ganze Bestellung, in CHF, mit dem Wort dazu
+   * ("Kennenlernrabatt"). Steht auf der Offerte als eigener Posten; die
+   * Netzpreise bleiben, was sie sind. Geht in die Summe ein.
+   */
+  rabattChf?: number
+  rabattText?: string
   zahlung: PaymentMethod
   zahlungswunsch: boolean
   summeChf: number
@@ -410,6 +417,9 @@ export interface BestellAenderung {
   positionen?: BestellPosition[]
   montage?: boolean
   montageChf?: number
+  /** 0 oder leer nimmt den Rabatt weg. */
+  rabattChf?: number
+  rabattText?: string
   notiz?: string
   quelle?: BestellQuelle
 }

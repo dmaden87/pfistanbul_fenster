@@ -5,6 +5,7 @@ import { operator } from '../../data/operator'
 import { shopConfig } from '../../data/shopConfig'
 import { formatChf } from '../../lib/format'
 import { netzeAusBestellung } from '../../lib/bestellauftrag'
+import { montageBetrag } from './hilfen'
 import { useDokumentName, useSeitenformat } from './seitenformat'
 import './Offerte.css'
 
@@ -15,10 +16,13 @@ import './Offerte.css'
  * und im Geschaeftsverkehr, also gesiezt, vollstaendig und formell. Es ist
  * ein Brief, kein Arbeitspapier.
  *
- * ZWEI TOTALE, weil zwei Angebote drinstecken: Selbstmontage und Montage
- * durch uns. Ein einziges Total mit einer Fussnote "Montage optional" laesst
- * die Kundschaft rechnen; zwei Totale lassen sie entscheiden. Beide Kaesten
- * fuehren dieselben Posten auf, damit keiner erklaert werden muss.
+ * EIN TOTAL, so wie die Bestellung steht: Ist "Montage durch uns" gesetzt,
+ * steht die Montage mit dem Betrag aus der Bestellung drin; sonst fehlt sie.
+ * Was die Kundschaft will, wurde beim Klaeren besprochen – die Offerte
+ * stellt keine Alternativen mehr nebeneinander, sie nennt den Preis.
+ *
+ * RABATT als eigener Posten mit seinem Wort ("Kennenlernrabatt"), wenn einer
+ * gegeben wurde: Die Kundschaft soll sehen, was sie spart und warum.
  *
  * KEINE MEHRWERTSTEUER. Wir sind nicht pflichtig, und dann darf "inkl. MwSt."
  * nicht dastehen. Der Satz dazu steht ausdruecklich auf dem Blatt: Sonst
@@ -63,9 +67,18 @@ export function Offerte({ bestellung: b, onZurueck }: OfferteProps) {
 
   const netze = netzeAusBestellung(b)
   const anzahl = netze.reduce((summe, n) => summe + n.menge, 0)
-  const netzeChf = netze.reduce((summe, n) => summe + n.preisChf * n.menge, 0)
+  const runde2 = (x: number) => Math.round(x * 100) / 100
+  const netzeChf = runde2(netze.reduce((summe, n) => summe + n.preisChf * n.menge, 0))
+  const rabattChf = b.rabattChf ?? 0
   const lieferungChf = ziel === 'schweiz' ? shopConfig.lieferpauschaleChf : 0
-  const montageChf = anzahl * shopConfig.montageChf
+  /*
+   * Die Montage kommt aus der Bestellung: der Haken und der Betrag
+   * "Montage insgesamt". Fehlt der Betrag trotz Haken, gilt der Ansatz je
+   * Netz – sonst stuende "Montage durch uns" mit null Franken da.
+   */
+  const mitMontage = b.montage
+  const montageChf = mitMontage ? montageBetrag(b) || anzahl * shopConfig.montageChf : 0
+  const totalChf = runde2(netzeChf - rabattChf + lieferungChf + montageChf)
   const heute = new Date()
   const bis = new Date(heute.getTime() + GUELTIG_TAGE * 86_400_000)
   const ausgemessen = b.ausgemessenAm ? new Date(b.ausgemessenAm) : null
@@ -88,23 +101,21 @@ export function Offerte({ bestellung: b, onZurueck }: OfferteProps) {
       .join(' · ')
   const gemeinsam = netze.length > 0 && netze.every((n) => bauart(n) === bauart(netze[0])) ? bauart(netze[0]) : null
 
-  /** Die Posten eines Totals. Beide Kaesten fuehren dieselben, damit keiner erklaert werden muss. */
-  const posten = (mitMontage: boolean) =>
-    [
-      { text: `${anzahl} Plissees nach Mass`, betrag: formatChf(netzeChf) },
-      {
-        text: ziel === 'schweiz' ? 'Lieferung, Pauschale übrige Schweiz' : `Lieferung im ${shopConfig.serviceArea}`,
-        betrag: ziel === 'schweiz' ? formatChf(lieferungChf) : 'kostenlos',
-      },
-      mitMontage
-        ? { text: `Montage durch uns, ${anzahl} × ${formatChf(shopConfig.montageChf)}`, betrag: formatChf(montageChf) }
-        : { text: 'Montage durch Sie selbst', betrag: '–' },
-    ].map((zeile, i) => (
-      <div className="offerte__total-zeile" key={i}>
-        <span>{zeile.text}</span>
-        <span>{zeile.betrag}</span>
-      </div>
-    ))
+  /** Die Posten des Totals, in der Reihenfolge, in der sie sich zusammenrechnen. */
+  const posten = [
+    { text: `${anzahl} Plissees nach Mass`, betrag: formatChf(netzeChf) },
+    ...(rabattChf > 0 ? [{ text: b.rabattText || 'Rabatt', betrag: `−${formatChf(rabattChf)}` }] : []),
+    {
+      text: ziel === 'schweiz' ? 'Lieferung, Pauschale übrige Schweiz' : `Lieferung im ${shopConfig.serviceArea}`,
+      betrag: ziel === 'schweiz' ? formatChf(lieferungChf) : 'kostenlos',
+    },
+    ...(mitMontage ? [{ text: 'Montage durch uns', betrag: formatChf(montageChf) }] : []),
+  ].map((zeile, i) => (
+    <div className="offerte__total-zeile" key={i}>
+      <span>{zeile.text}</span>
+      <span>{zeile.betrag}</span>
+    </div>
+  ))
 
   return (
     <>
@@ -216,24 +227,13 @@ export function Offerte({ bestellung: b, onZurueck }: OfferteProps) {
           </tbody>
         </table>
 
-        {/*
-          Zwei Totale, nicht ein Total mit Fussnote. Die Kundschaft soll
-          vergleichen koennen, ohne zu rechnen.
-        */}
+        {/* Ein Total, so wie die Bestellung steht – mit oder ohne Montage. */}
         <section className="offerte__totale">
-          <div className="offerte__total">
-            {posten(false)}
-            <div className="offerte__total-zeile offerte__total-zeile--stark">
-              <span>Total bei Selbstmontage</span>
-              <span>{formatChf(netzeChf + lieferungChf)}</span>
-            </div>
-          </div>
-
           <div className="offerte__total offerte__total--montage">
-            {posten(true)}
+            {posten}
             <div className="offerte__total-zeile offerte__total-zeile--stark">
-              <span>Total mit Montage</span>
-              <span>{formatChf(netzeChf + lieferungChf + montageChf)}</span>
+              <span>{mitMontage ? 'Total inklusive Montage' : 'Total'}</span>
+              <span>{formatChf(totalChf)}</span>
             </div>
           </div>
         </section>

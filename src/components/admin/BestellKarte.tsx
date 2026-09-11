@@ -272,8 +272,8 @@ export function BestellKarte({
     setBearbeitet(false)
   }
 
-  const speicherePreise = async (positionen: BestellPosition[], montageChf: number) => {
-    await onAendern(b.id, { positionen, montageChf, preiseFestgelegt: true })
+  const speicherePreise = async (positionen: BestellPosition[], montageChf: number, rabattChf: number, rabattText: string) => {
+    await onAendern(b.id, { positionen, montageChf, rabattChf, rabattText, preiseFestgelegt: true })
     setPreiseBearbeiten(false)
   }
 
@@ -553,7 +553,8 @@ export function BestellKarte({
                 <p className="admin__summe">
                   <span>
                     {t.netzeSumme} {formatChf(positionenSumme(b.positionen))}
-                    {montage > 0 && ` · ${t.montageSumme} ${formatChf(montage)}`} · {zahlungstext(b, t, ort)}
+                    {montage > 0 && ` · ${t.montageSumme} ${formatChf(montage)}`}
+                    {b.rabattChf ? ` · ${b.rabattText || t.rabattSumme} −${formatChf(b.rabattChf)}` : ''} · {zahlungstext(b, t, ort)}
                     {b.zahlungswunsch && ` · ${t.ratenwunsch}`}
                   </span>
                   <strong>{formatChf(b.summeChf)}</strong>

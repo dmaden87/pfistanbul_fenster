@@ -660,6 +660,31 @@ await pruefe('Katalogware von Hand startet im Angebot mit festgelegten Preisen',
   assert.equal(b.daten.bestellung.preiseFestgelegtAm, undefined)
 })
 
+await pruefe('Rabatt auf die Bestellung: mit Wort, in der Summe, gedeckelt, ohne Betrag weg', async () => {
+  const a = await ruf({ method: 'POST', aktion: 'erfassen', cookie, body: {
+    art: 'anfrage', referenz: 'PF-RAB', kunde: { name: 'Rabatt', telefon: '079' },
+    positionen: [{ menge: 2, bezeichnung: 'A', preisChf: 100 }], montage: true, montageChf: 30,
+  } })
+  const id = a.daten.bestellung.id
+  let n = await ruf({ method: 'PATCH', cookie, body: { id, rabattChf: 25, rabattText: 'Kennenlernrabatt' } })
+  assert.equal(n.daten.bestellung.rabattChf, 25)
+  assert.equal(n.daten.bestellung.rabattText, 'Kennenlernrabatt')
+  assert.equal(n.daten.bestellung.summeChf, 205, '200 + 30 − 25')
+  assert.equal(n.daten.bestellung.montageChf, 30, 'die Montage ging beim Rabatt verloren')
+  // Netze aendern rechnet den Rabatt weiter mit.
+  n = await ruf({ method: 'PATCH', cookie, body: { id, positionen: [{ menge: 1, bezeichnung: 'A', preisChf: 100 }] } })
+  assert.equal(n.daten.bestellung.summeChf, 105)
+  // Mehr Rabatt als Bestellung gibt es nicht.
+  n = await ruf({ method: 'PATCH', cookie, body: { id, rabattChf: 999 } })
+  assert.equal(n.daten.bestellung.rabattChf, 130)
+  assert.equal(n.daten.bestellung.summeChf, 0)
+  // Ohne Betrag kein Rabatt – und kein Wort.
+  n = await ruf({ method: 'PATCH', cookie, body: { id, rabattChf: 0 } })
+  assert.equal(n.daten.bestellung.rabattChf, undefined)
+  assert.equal(n.daten.bestellung.rabattText, undefined)
+  assert.equal(n.daten.bestellung.summeChf, 130)
+})
+
 await pruefe('Endgueltiges Loeschen entfernt den Eintrag', async () => {
   assert.equal((await ruf({ method: 'DELETE', cookie, body: { id: 'alt-1' } })).code, 200)
   const liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen

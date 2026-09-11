@@ -135,9 +135,10 @@
  */
 .offerte__totale {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6mm;
+  grid-template-columns: 1fr;
+  max-width: 95mm;
   margin-top: 6mm;
+  margin-left: auto;
 }
 
 /*
