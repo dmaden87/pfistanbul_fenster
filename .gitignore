@@ -31,3 +31,7 @@ dist-ssr
 # gedacht. Nur die daraus erzeugten Fassungen in public/fotos/ liegen im Repo.
 # Zum Neuerzeugen die Originale hier ablegen und `npm run bilder` laufen lassen.
 bilder-original
+
+# Erzeugte Drucksachen (QR-Karte usw.): entstehen aus bau/, gehoeren nicht
+# ins Repository. Neu erzeugen mit `npm run bewertung -- "<Adresse>"`.
+drucksachen

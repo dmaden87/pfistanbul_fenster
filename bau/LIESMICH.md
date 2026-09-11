@@ -76,6 +76,33 @@ fehlschlug.
 npm run vorschau
 ```
 
+## Karte für die Google-Bewertung
+
+`bewertung.mjs` erzeugt die Karte mit dem QR-Code auf unsere Google-Bewertung,
+A6 bei 300 dpi, dazu den nackten Code für Aufkleber oder Rechnung. Beides
+landet in `drucksachen/` und liegt nicht im Repository.
+
+```
+npm run bewertung -- "https://g.page/r/XXXXXXXXXXXX/review"
+```
+
+Die Adresse steht im Google-Unternehmensprofil unter „Rezensionen“ →
+„Mehr Rezensionen erhalten“.
+
+Zwei Dinge sind Absicht:
+
+**Der Code entsteht hier, nicht bei einem Onlinedienst.** Ein Gratis-Generator
+liefert in aller Regel eine Weiterleitung über dessen Server – die kann
+abgeschaltet werden oder später Geld kosten. Gedruckt ist gedruckt; der Code
+muss in fünf Jahren noch dorthin führen, wohin er heute führt. Deshalb steht
+die Google-Adresse unverändert im Code.
+
+**Der fertige Code wird wieder ausgelesen.** Das Signet sitzt mitten auf dem
+Code; die Fehlerkorrektur trägt das, aber „trägt das“ ist eine Annahme. Liest
+sich der gerenderte Code nicht als genau die Adresse, die hineinging, entsteht
+gar keine Datei. Ohne Adresse rendert die Karte mit einem Musterbalken – wie
+der ENTWURF-Balken auf dem Blatt an Bora, und aus demselben Grund.
+
 ## Prüfen
 
 ```

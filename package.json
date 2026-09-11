@@ -13,7 +13,8 @@
     "pruefen": "npm run build && node --import ./bau/ts-aufloeser.mjs bau/pruefung.mjs",
     "test": "node bau/api-test.mjs && KV_REST_API_URL=http://attrappe KV_REST_API_TOKEN=attrappe ADMIN_PASSWORT=testpasswort node --import ./bau/ts-aufloeser.mjs bau/bestellungen-test.mjs && node --import ./bau/ts-aufloeser.mjs bau/phasen-test.mjs && node --import ./bau/ts-aufloeser.mjs bau/einkauf-test.mjs && node --import ./bau/ts-aufloeser.mjs bau/bestellauftrag-test.mjs",
     "vorrendern": "node bau/vorrendern.mjs",
-    "melden": "node bau/indexnow.mjs"
+    "melden": "node bau/indexnow.mjs",
+    "bewertung": "node bau/bewertung.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
@@ -32,6 +33,8 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "jsqr": "^1.4.0",
+    "qrcode": "^1.5.4",
     "sharp": "^0.35.4",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.3",
