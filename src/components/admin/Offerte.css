@@ -134,11 +134,7 @@
  * vollwertige Angebote, deshalb bekommt keines das schwächere Gewicht.
  */
 .offerte__totale {
-  display: grid;
-  grid-template-columns: 1fr;
-  max-width: 95mm;
   margin-top: 6mm;
-  margin-left: auto;
 }
 
 /*

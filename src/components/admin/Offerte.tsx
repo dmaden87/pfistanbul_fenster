@@ -101,15 +101,15 @@ export function Offerte({ bestellung: b, onZurueck }: OfferteProps) {
       .join(' · ')
   const gemeinsam = netze.length > 0 && netze.every((n) => bauart(n) === bauart(netze[0])) ? bauart(netze[0]) : null
 
-  /** Die Posten des Totals, in der Reihenfolge, in der sie sich zusammenrechnen. */
+  /** Die Posten des Totals. Der Rabatt steht zuletzt, direkt ueber dem Total – er zieht von allem ab. */
   const posten = [
     { text: `${anzahl} Plissees nach Mass`, betrag: formatChf(netzeChf) },
-    ...(rabattChf > 0 ? [{ text: b.rabattText || 'Rabatt', betrag: `−${formatChf(rabattChf)}` }] : []),
     {
       text: ziel === 'schweiz' ? 'Lieferung, Pauschale übrige Schweiz' : `Lieferung im ${shopConfig.serviceArea}`,
       betrag: ziel === 'schweiz' ? formatChf(lieferungChf) : 'kostenlos',
     },
     ...(mitMontage ? [{ text: 'Montage durch uns', betrag: formatChf(montageChf) }] : []),
+    ...(rabattChf > 0 ? [{ text: b.rabattText || 'Rabatt', betrag: `−${formatChf(rabattChf)}` }] : []),
   ].map((zeile, i) => (
     <div className="offerte__total-zeile" key={i}>
       <span>{zeile.text}</span>
