@@ -337,6 +337,11 @@ function ausRohdaten(roh: Record<string, unknown>, vonHand = false): Bestellung 
     referenz: text(roh.referenz, 40),
     art,
     status,
+    // Seit wann in dieser Phase – und zugleich das Merkmal, an dem die
+    // Abbildung alter Werte eine heutige Bestellung erkennt.
+    phaseSeit: jetzt,
+    // Katalogware von Hand: Die Preise stehen im Katalog, sie sind festgelegt.
+    ...(vonHand && roh.preiseFestgelegt === true ? { preiseFestgelegtAm: jetzt } : {}),
     eingang: jetzt,
     geaendert: jetzt,
     kunde: {

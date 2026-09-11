@@ -255,6 +255,18 @@ const PAARE = {
   netzNummer: ['Netz', 'Sineklik'],
   setAusKatalog: ['Set aus dem Katalog', 'Katalogdan set'],
   netzHinzufuegen: ['Netz hinzufügen', 'Sineklik ekle'],
+  katalogprodukt: ['Katalogprodukt', 'Katalog ürünü'],
+  bitteWaehlen: ['— wählen —', '— seçin —'],
+  einzelneNetze: ['Einzelne Netze', 'Tek sineklikler'],
+  setsGruppe: ['Sets', 'Setler'],
+  katalogFehlt: [
+    'Jedes Netz braucht ein Katalogprodukt. Masse, Bauart und Preis kommen aus dem Katalog.',
+    'Her sineklik için bir katalog ürünü seçin. Ölçü, yapı ve fiyat katalogdan gelir.',
+  ],
+  katalogSatz: [
+    'Katalogware: Produkt wählen, Anzahl und Raum anpassen. Masse, Bauart und Preis stehen im Katalog und werden hier nicht geändert.',
+    'Katalog ürünü: ürünü seçin, adet ve odayı ayarlayın. Ölçü, yapı ve fiyat katalogdadır, burada değişmez.',
+  ],
   netzeSpeichern: ['Netze speichern', 'Sineklikleri kaydet'],
   netzEntfernen: ['entfernen', 'kaldır'],
   montageInsgesamt: ['Montage insgesamt (CHF)', 'Toplam montaj (CHF)'],

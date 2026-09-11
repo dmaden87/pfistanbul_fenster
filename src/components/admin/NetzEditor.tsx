@@ -10,7 +10,8 @@ import {
   type Netzfarbe,
   type Rahmenfarbe,
 } from '../../data/produktion'
-import { formatChf } from '../../lib/format'
+import { formatChf, formatSize } from '../../lib/format'
+import { netSets, netsInSet, setById, typeById, windowTypes } from '../../data/catalog'
 import { positionenSumme } from './hilfen'
 import { fuelle, useSprache } from './sprache'
 
@@ -66,6 +67,44 @@ interface NetzEditorProps {
   speichernText?: string
   /** Gruende ausserhalb der Netze, die das Speichern noch verhindern. */
   deaktiviert?: boolean
+  /**
+   * Katalogware: Jedes Netz ist ein Katalogprodukt aus dem Dropdown. Masse,
+   * Bauart und Preis kommen aus dem Katalog und sind hier nicht aenderbar –
+   * sonst hiesse "Bestellung" nur noch, dass jemand die Felder anders fuellt.
+   */
+  katalog?: boolean
+}
+
+/** Der Wert des Katalog-Dropdowns: Typ oder Set. */
+function katalogWert(e: Entwurf): string {
+  return e.setId ? `set:${e.setId}` : e.typId ? `typ:${e.typId}` : ''
+}
+
+/** Fuellt einen Entwurf aus dem Katalog. Leer, wenn nichts gewaehlt ist. */
+function ausKatalog(wert: string, vorher: Entwurf): Entwurf {
+  const [art, id] = wert.split(':')
+  if (art === 'typ') {
+    const typ = typeById(id)
+    if (!typ) return { ...leer(), menge: vorher.menge }
+    return {
+      ...leer(),
+      menge: vorher.menge,
+      id: vorher.id,
+      typId: typ.id,
+      bezeichnung: typ.label,
+      breiteCm: String(typ.widthCm),
+      hoeheCm: String(typ.heightCm),
+      preisChf: String(typ.priceChf),
+      rahmendicke: typ.rahmendicke,
+      oeffnung: typ.opening,
+    }
+  }
+  if (art === 'set') {
+    const set = setById(id)
+    if (!set) return { ...leer(), menge: vorher.menge }
+    return { ...leer(), menge: vorher.menge, id: vorher.id, setId: set.id, bezeichnung: set.label, preisChf: String(set.priceChf) }
+  }
+  return { ...leer(), menge: vorher.menge, id: vorher.id }
 }
 
 function zuEntwurf(p: BestellPosition): Entwurf {
@@ -132,7 +171,17 @@ function ausEntwurf(e: Entwurf): BestellPosition {
   if (hoehe !== undefined) position.hoeheCm = hoehe
   if (e.oeffnung) position.oeffnung = e.oeffnung
   if (e.typId) position.typId = e.typId
-  if (e.setId) position.setId = e.setId
+  if (e.setId) {
+    position.setId = e.setId
+    // Wie im Warenkorb: Das Set ist eine Preiszeile, sein Inhalt steht als Text.
+    const set = setById(e.setId)
+    if (set) {
+      const inhalt = set.items.map((i) => `${i.count}× ${typeById(i.typeId)?.label ?? i.typeId}`).join(', ')
+      position.detail = `${netsInSet(set)} Netze: ${inhalt}`
+    }
+  } else if (e.typId && breite && hoehe) {
+    position.detail = formatSize(breite, hoehe)
+  }
   if (e.id) position.id = e.id
   return position
 }
@@ -145,6 +194,7 @@ export function NetzEditor({
   onAbbrechen,
   speichernText,
   deaktiviert = false,
+  katalog = false,
 }: NetzEditorProps) {
   const { t, sprache } = useSprache()
   const [entwuerfe, setEntwuerfe] = useState<Entwurf[]>(() =>
@@ -163,7 +213,15 @@ export function NetzEditor({
   const summe = Math.round((summeNetze + zahl(montage)) * 100) / 100
 
   const speichern = async () => {
-    const gefuellt = netze.filter((p) => p.bezeichnung || p.preisChf > 0 || p.breiteCm || p.hoeheCm)
+    // Katalog: Nur, was aus dem Katalog kommt, zaehlt. Eine leere Zeile mit
+    // "— waehlen —" ist kein Netz, aber auch kein Fehler – sie faellt weg.
+    const gefuellt = katalog
+      ? netze.filter((p) => p.typId || p.setId)
+      : netze.filter((p) => p.bezeichnung || p.preisChf > 0 || p.breiteCm || p.hoeheCm)
+    if (katalog && gefuellt.length === 0 && netze.length > 0) {
+      setFehler(t.katalogFehlt)
+      return
+    }
     if (gefuellt.some((p) => !p.bezeichnung)) {
       setFehler(t.bezeichnungFehlt)
       return
@@ -180,12 +238,43 @@ export function NetzEditor({
 
   return (
     <div className="netze">
+      {katalog && <p className="netze__hinweis">{t.katalogSatz}</p>}
       {entwuerfe.map((e, i) => (
         <fieldset className="netz" key={i}>
           <legend className="netz__nummer">
             {t.netzNummer} {i + 1}
             {e.setId && <span className="netz__quelle">{t.setAusKatalog}</span>}
           </legend>
+
+          {katalog && (
+            <div className="netz__reihe">
+              <label className="netz__feld netz__feld--breit">
+                <span>{t.katalogprodukt}</span>
+                <select
+                  className={katalogWert(e) ? 'input' : 'input netz__fehlt'}
+                  aria-label={`${t.katalogprodukt} ${i + 1}`}
+                  value={katalogWert(e)}
+                  onChange={(ev) => setEntwuerfe((liste) => liste.map((x, j) => (j === i ? ausKatalog(ev.target.value, x) : x)))}
+                >
+                  <option value="">{t.bitteWaehlen}</option>
+                  <optgroup label={t.einzelneNetze}>
+                    {windowTypes.map((typ) => (
+                      <option key={typ.id} value={`typ:${typ.id}`}>
+                        {typ.label} · {formatSize(typ.widthCm, typ.heightCm)} · {formatChf(typ.priceChf)}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label={t.setsGruppe}>
+                    {netSets.map((set) => (
+                      <option key={set.id} value={`set:${set.id}`}>
+                        {set.label} · {netsInSet(set)} {t.netzeMehrzahl} · {formatChf(set.priceChf)}
+                      </option>
+                    ))}
+                  </optgroup>
+                </select>
+              </label>
+            </div>
+          )}
 
           <div className="netz__reihe">
             <label className="netz__feld netz__feld--winzig">
@@ -203,15 +292,15 @@ export function NetzEditor({
             </label>
             <label className="netz__feld netz__feld--klein">
               <span>{t.breiteCm}</span>
-              <input className="input" inputMode="decimal" placeholder="128.6" value={e.breiteCm} onChange={(ev) => aendere(i, { breiteCm: ev.target.value })} />
+              <input className="input" inputMode="decimal" placeholder="128.6" value={e.breiteCm} disabled={katalog} onChange={(ev) => aendere(i, { breiteCm: ev.target.value })} />
             </label>
             <label className="netz__feld netz__feld--klein">
               <span>{t.hoeheCm}</span>
-              <input className="input" inputMode="decimal" placeholder="182.5" value={e.hoeheCm} onChange={(ev) => aendere(i, { hoeheCm: ev.target.value })} />
+              <input className="input" inputMode="decimal" placeholder="182.5" value={e.hoeheCm} disabled={katalog} onChange={(ev) => aendere(i, { hoeheCm: ev.target.value })} />
             </label>
             <label className="netz__feld netz__feld--klein">
               <span>{t.preisChf}</span>
-              <input className="input" inputMode="decimal" value={e.preisChf} onChange={(ev) => aendere(i, { preisChf: ev.target.value })} />
+              <input className="input" inputMode="decimal" value={e.preisChf} disabled={katalog} onChange={(ev) => aendere(i, { preisChf: ev.target.value })} />
             </label>
             <button
               type="button"
@@ -227,11 +316,11 @@ export function NetzEditor({
           <div className="netz__reihe netz__reihe--produktion">
             <label className="netz__feld netz__feld--klein">
               <span>{t.rahmendicke}</span>
-              <input className="input" value={e.rahmendicke} onChange={(ev) => aendere(i, { rahmendicke: ev.target.value })} />
+              <input className="input" value={e.rahmendicke} disabled={katalog} onChange={(ev) => aendere(i, { rahmendicke: ev.target.value })} />
             </label>
             <label className="netz__feld netz__feld--klein">
               <span>{t.rahmen}</span>
-              <select className="input" value={e.rahmenfarbe} onChange={(ev) => aendere(i, { rahmenfarbe: ev.target.value as Rahmenfarbe })}>
+              <select className="input" value={e.rahmenfarbe} disabled={katalog} onChange={(ev) => aendere(i, { rahmenfarbe: ev.target.value as Rahmenfarbe })}>
                 {Object.entries(RAHMENFARBEN).map(([wert, b]) => (
                   <option key={wert} value={wert}>
                     {b[sprache]}
@@ -241,7 +330,7 @@ export function NetzEditor({
             </label>
             <label className="netz__feld netz__feld--klein">
               <span>{t.netzSpalte}</span>
-              <select className="input" value={e.netzfarbe} onChange={(ev) => aendere(i, { netzfarbe: ev.target.value as Netzfarbe })}>
+              <select className="input" value={e.netzfarbe} disabled={katalog} onChange={(ev) => aendere(i, { netzfarbe: ev.target.value as Netzfarbe })}>
                 {Object.entries(NETZFARBEN).map(([wert, b]) => (
                   <option key={wert} value={wert}>
                     {b[sprache]}
@@ -251,7 +340,7 @@ export function NetzEditor({
             </label>
             <label className="netz__feld">
               <span>{t.mechanismus}</span>
-              <select className="input" value={e.mechanismus} onChange={(ev) => aendere(i, { mechanismus: ev.target.value as Mechanismus })}>
+              <select className="input" value={e.mechanismus} disabled={katalog} onChange={(ev) => aendere(i, { mechanismus: ev.target.value as Mechanismus })}>
                 {Object.entries(MECHANISMEN).map(([wert, b]) => (
                   <option key={wert} value={wert}>
                     {b[sprache]}
@@ -262,8 +351,9 @@ export function NetzEditor({
             <label className="netz__feld netz__feld--breit">
               <span>{t.oeffnungVonInnen}</span>
               <select
-                className={e.oeffnung ? 'input' : 'input netz__fehlt'}
+                className={e.oeffnung || katalog ? 'input' : 'input netz__fehlt'}
                 value={e.oeffnung}
+                disabled={katalog}
                 onChange={(ev) => aendere(i, { oeffnung: ev.target.value as OpeningDirection | '' })}
               >
                 <option value="">{t.nochOffen}</option>

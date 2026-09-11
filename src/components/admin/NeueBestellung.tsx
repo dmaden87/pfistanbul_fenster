@@ -24,7 +24,8 @@ interface NeueBestellungProps {
 }
 
 export function NeueBestellung({ montageProNetz, onFertig, onAbbrechen }: NeueBestellungProps) {
-  const [art, setArt] = useState<BestellArt>('bestellung')
+  // Sondermass ist der Regelfall dessen, was von Hand hereinkommt.
+  const [art, setArt] = useState<BestellArt>('anfrage')
   const [quelle, setQuelle] = useState<BestellQuelle>('whatsapp')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -37,9 +38,10 @@ export function NeueBestellung({ montageProNetz, onFertig, onAbbrechen }: NeueBe
   const [montage, setMontage] = useState(false)
   const { t } = useSprache()
   const arten: { wert: BestellArt; text: string }[] = [
-    { wert: 'bestellung', text: t.artBestellung },
     { wert: 'anfrage', text: t.artAnfrage },
+    { wert: 'bestellung', text: t.artBestellung },
   ]
+  const katalog = art === 'bestellung'
 
   // Ein Rueckweg genuegt: Wer ueber WhatsApp bestellt, hat oft keine
   // E-Mail-Adresse hinterlegt, und die Bestellung deswegen nicht aufzunehmen
@@ -54,7 +56,13 @@ export function NeueBestellung({ montageProNetz, onFertig, onAbbrechen }: NeueBe
       // woher der Eintrag kommt, und ist im Gespraech mit der Kundschaft
       // brauchbar: "Ihre Bestellung H-4K2P".
       referenz: `H-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
-      status: 'neu',
+      /*
+       * Katalogware von Hand: Masse, Bauart und Preis stehen im Katalog –
+       * Klaerung und Preisanfrage entfallen, es geht gleich ans Angebot.
+       * Die Preise gelten als festgelegt, damit die Offerte sofort geht.
+       */
+      status: katalog ? 'offerte' : 'neu',
+      preiseFestgelegt: katalog,
       kunde: { name, email, telefon, strasse, plz, ort, bemerkung },
       positionen,
       montage,
@@ -175,6 +183,8 @@ export function NeueBestellung({ montageProNetz, onFertig, onAbbrechen }: NeueBe
       )}
 
       <NetzEditor
+        key={art}
+        katalog={katalog}
         positionen={[]}
         montageChf={0}
         montageProNetz={montageProNetz}

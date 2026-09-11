@@ -520,6 +520,7 @@ export function BestellKarte({
           <div className="admin__positionen">
             {bearbeitet ? (
               <NetzEditor
+                katalog={b.art === 'bestellung'}
                 positionen={b.positionen}
                 montageChf={montage}
                 montageProNetz={montageProNetz}

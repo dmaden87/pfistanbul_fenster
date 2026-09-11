@@ -637,6 +637,29 @@ await pruefe('Verkaufspreise festlegen: neuer Preis, Boras Einkauf bleibt, Stemp
   assert.equal(weg.daten.bestellung.preiseFestgelegtAm, undefined)
 })
 
+await pruefe('Katalogware von Hand startet im Angebot mit festgelegten Preisen', async () => {
+  const a = await ruf({ method: 'POST', aktion: 'erfassen', cookie, body: {
+    art: 'bestellung', quelle: 'whatsapp', referenz: 'PF-KAT', status: 'offerte', preiseFestgelegt: true,
+    kunde: { name: 'Katalog', telefon: '079' },
+    positionen: [{ menge: 2, bezeichnung: 'Zimmer', typId: 'zimmer', breiteCm: 160.5, hoeheCm: 122, preisChf: 150, oeffnung: 'mitte' }],
+    montage: false, montageChf: 0,
+  } })
+  assert.equal(a.code, 201)
+  assert.equal(a.daten.bestellung.status, 'offerte')
+  assert.ok(a.daten.bestellung.preiseFestgelegtAm)
+  assert.equal(a.daten.bestellung.positionen[0].typId, 'zimmer')
+  assert.equal(a.daten.bestellung.summeChf, 300)
+  // Beim Lesen bleibt sie im Angebot: Von Hand erfasste Katalogware ueberspringt nichts.
+  const liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
+  assert.equal(liste.find((b) => b.id === a.daten.bestellung.id).status, 'offerte')
+  // Ohne die Angabe bleibt der Stempel weg – wie bei jeder Anfrage.
+  const b = await ruf({ method: 'POST', aktion: 'erfassen', cookie, body: {
+    art: 'anfrage', referenz: 'PF-ANF', kunde: { name: 'Anfrage', telefon: '079' }, positionen: [], montage: false, montageChf: 0,
+  } })
+  assert.equal(b.daten.bestellung.status, 'neu')
+  assert.equal(b.daten.bestellung.preiseFestgelegtAm, undefined)
+})
+
 await pruefe('Endgueltiges Loeschen entfernt den Eintrag', async () => {
   assert.equal((await ruf({ method: 'DELETE', cookie, body: { id: 'alt-1' } })).code, 200)
   const liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen

@@ -84,6 +84,12 @@ pruefe('Gestern: offeriert wird offerte, zugesagt wird bestellen', () => {
   assert.equal(phaseVon(best({ status: 'abgesagt' }), []), 'abgesagt')
 })
 
+pruefe('Von Hand erfasste Katalogware geht durch die Phasen wie jede andere', () => {
+  assert.equal(phaseVon(best({ status: 'neu', art: 'bestellung', quelle: 'whatsapp' }), []), 'neu')
+  assert.equal(phaseVon(best({ status: 'offerte', art: 'bestellung', quelle: 'telefon', phaseSeit: 'x' }), []), 'offerte')
+  assert.equal(phaseNachWiederoeffnen(best({ status: 'abgesagt', art: 'bestellung', quelle: 'whatsapp' })), 'neu')
+})
+
 pruefe('Gestern: Katalogware unter "neu" war nie in Phase 1', () => {
   // Vor gestern startete auch der Warenkorb bei "neu".
   assert.equal(phaseVon(best({ status: 'neu', art: 'bestellung' }), []), 'bestellen')

@@ -62,9 +62,13 @@ export function zahlungAusstehend(b: Bestellung): boolean {
   return b.zahlung === 'online' && b.bezahlung?.status !== 'bezahlt' && !b.bezahltAm
 }
 
-/** Katalogware aus dem Warenkorb: die Phasen 1–5 entfallen. */
+/**
+ * Katalogware aus dem WARENKORB: Der Kunde hat an der Kasse zugesagt, die
+ * Phasen 1–5 entfallen. Von Hand erfasste Katalogware (WhatsApp, Telefon)
+ * bekommt eine Offerte wie jede andere – nur mit Katalogpreisen.
+ */
 export function phasenEntfallen(b: Bestellung): boolean {
-  return b.art === 'bestellung'
+  return b.art === 'bestellung' && (!b.quelle || b.quelle === 'web')
 }
 
 /** Wie viele Positionen noch keinen Einkaufspreis von Bora haben. */
