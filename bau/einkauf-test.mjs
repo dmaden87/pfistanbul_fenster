@@ -10,6 +10,7 @@
  */
 import assert from 'node:assert/strict'
 import { margeFuer } from '../src/lib/einkauf.ts'
+import { montageFuerOfferte } from '../src/components/admin/hilfen.ts'
 
 let bestanden = 0
 const fehler = []
@@ -98,6 +99,52 @@ pruefe('Ohne Erloes gibt es keinen Prozentsatz statt einer Division durch null',
   const b = best('b1', 'PF-1', [])
   assert.equal(margeFuer(b).margeProzent, null)
   assert.equal(margeFuer(b).vollstaendig, false)
+})
+
+/* --- Die Montage auf der Offerte ------------------------------------------- */
+
+pruefe('Die Offerte nimmt den veranschlagten Betrag, auch ohne Haken', () => {
+  /*
+   * Der Fall aus dem Betrieb: sechs Netze, 50.- Montage im Preisblock
+   * eingetragen. Der Haken blieb dabei ungesetzt – die Karte zeigte die
+   * Montage, die Offerte verschwieg sie.
+   */
+  const b = best('b1', 'H-H7Y1', [{ id: 'p1', menge: 6, bezeichnung: 'A', detail: '', preisChf: 150 }], {
+    montage: false,
+    montageChf: 50,
+    summeChf: 950,
+  })
+  assert.equal(montageFuerOfferte(b, 6, 15), 50)
+})
+
+pruefe('Ohne Betrag, aber mit Haken gilt der Ansatz je Netz', () => {
+  const b = best('b1', 'PF-1', [{ id: 'p1', menge: 6, bezeichnung: 'A', detail: '', preisChf: 150 }], {
+    montage: true,
+    montageChf: 0,
+    summeChf: 900,
+  })
+  assert.equal(montageFuerOfferte(b, 6, 15), 90)
+})
+
+pruefe('Ohne Betrag und ohne Haken gibt es keine Montage', () => {
+  const b = best('b1', 'PF-1', [{ id: 'p1', menge: 6, bezeichnung: 'A', detail: '', preisChf: 150 }], {
+    montage: false,
+    montageChf: 0,
+    summeChf: 900,
+  })
+  assert.equal(montageFuerOfferte(b, 6, 15), 0)
+})
+
+pruefe('Ein Rabatt verschiebt die Montage nicht', () => {
+  // montageBetrag() rechnet bei Alteintraegen aus der Differenz zurueck –
+  // der Rabatt darf dabei nicht als fehlende Montage erscheinen.
+  const b = best('b1', 'PF-1', [{ id: 'p1', menge: 2, bezeichnung: 'A', detail: '', preisChf: 100 }], {
+    montage: true,
+    rabattChf: 25,
+    summeChf: 205,
+  })
+  delete b.montageChf
+  assert.equal(montageFuerOfferte(b, 2, 15), 30)
 })
 
 console.log(`\n${bestanden}/${bestanden + fehler.length} bestanden`)

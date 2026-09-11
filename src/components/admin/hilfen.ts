@@ -119,6 +119,26 @@ export function montageBetrag(b: Bestellung): number {
 }
 
 /**
+ * Was die Offerte fuer die Montage ausweist.
+ *
+ * DER BETRAG ENTSCHEIDET, nicht der Haken. Die Bestellung fuehrt beides –
+ * den Haken "Montage durch uns" aus dem Formular und den Betrag "Montage
+ * insgesamt" – und die beiden koennen auseinanderlaufen: Wer im Preisblock
+ * oder im Netz-Editor einen Betrag eintraegt, setzt damit keinen Haken.
+ * Genau so verschwand eine veranschlagte Montage von der Offerte, waehrend
+ * die Karte sie anzeigte.
+ *
+ * Steht ein Betrag, gilt er. Steht keiner und ist der Haken gesetzt, gilt
+ * der Ansatz je Netz – sonst stuende "Montage durch uns" mit null Franken
+ * auf einem verbindlichen Angebot. Sonst gibt es keine Montage.
+ */
+export function montageFuerOfferte(b: Bestellung, netze: number, proNetzChf: number): number {
+  const betrag = montageBetrag(b)
+  if (betrag > 0) return betrag
+  return b.montage ? Math.round(netze * proNetzChf * 100) / 100 : 0
+}
+
+/**
  * Weicht der bezahlte Betrag von der Summe ab? Passiert, sobald jemand nach
  * einer Onlinezahlung noch Netze aendert. Das ist erlaubt – es muss nur
  * jemandem auffallen, statt still im Datensatz zu stehen.

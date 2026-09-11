@@ -5,7 +5,7 @@ import { operator } from '../../data/operator'
 import { shopConfig } from '../../data/shopConfig'
 import { formatChf } from '../../lib/format'
 import { netzeAusBestellung } from '../../lib/bestellauftrag'
-import { montageBetrag } from './hilfen'
+import { montageFuerOfferte } from './hilfen'
 import { useDokumentName, useSeitenformat } from './seitenformat'
 import './Offerte.css'
 
@@ -71,13 +71,9 @@ export function Offerte({ bestellung: b, onZurueck }: OfferteProps) {
   const netzeChf = runde2(netze.reduce((summe, n) => summe + n.preisChf * n.menge, 0))
   const rabattChf = b.rabattChf ?? 0
   const lieferungChf = ziel === 'schweiz' ? shopConfig.lieferpauschaleChf : 0
-  /*
-   * Die Montage kommt aus der Bestellung: der Haken und der Betrag
-   * "Montage insgesamt". Fehlt der Betrag trotz Haken, gilt der Ansatz je
-   * Netz – sonst stuende "Montage durch uns" mit null Franken da.
-   */
-  const mitMontage = b.montage
-  const montageChf = mitMontage ? montageBetrag(b) || anzahl * shopConfig.montageChf : 0
+  // Die Montage kommt aus der Bestellung – siehe montageFuerOfferte().
+  const montageChf = montageFuerOfferte(b, anzahl, shopConfig.montageChf)
+  const mitMontage = montageChf > 0
   const totalChf = runde2(netzeChf - rabattChf + lieferungChf + montageChf)
   const heute = new Date()
   const bis = new Date(heute.getTime() + GUELTIG_TAGE * 86_400_000)
