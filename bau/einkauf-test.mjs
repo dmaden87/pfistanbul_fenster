@@ -58,10 +58,16 @@ pruefe('Die Marge zieht Einkauf und Fracht vom Warenerloes ab', () => {
   assert.equal(m.margeChf, 180)
   assert.equal(m.margeProzent, 60)
   assert.equal(m.vollstaendig, true)
+  assert.equal(m.montageChf, 0, 'ohne Montage darf keine erscheinen')
 })
 
-pruefe('Die Montage zaehlt NICHT zum Warenerloes', () => {
-  // Sonst zeigt die Marge einen Gewinn auf Ware, den es dort nicht gibt.
+pruefe('Die Montage zaehlt nicht zum Warenerloes, aber voll in die Marge', () => {
+  /*
+   * Zwei Zahlen, zwei Aussagen: Der Warenerloes sagt, was die WARE
+   * einbringt – sonst zeigte er einen Gewinn auf Ware, den es dort nicht
+   * gibt. Die Marge dagegen ist das, was am Ende bleibt, und die Montage
+   * ist unsere eigene Arbeit: Erloes ohne Kosten, also ganz Deckungsbeitrag.
+   */
   const b = best(
     'b1',
     'PF-1',
@@ -70,7 +76,32 @@ pruefe('Die Montage zaehlt NICHT zum Warenerloes', () => {
   )
   const m = margeFuer(b)
   assert.equal(m.warenerloesChf, 300)
-  assert.equal(m.margeChf, 210)
+  assert.equal(m.montageChf, 30)
+  assert.equal(m.erloesChf, 330)
+  assert.equal(m.margeChf, 240, '300 + 30 Montage − 90 Einkauf')
+  assert.equal(m.margeProzent, 72.7, 'der Prozentsatz misst am ganzen Erloes')
+})
+
+pruefe('Der Zoll geht von der Marge ab', () => {
+  // Er kommt Wochen nach der Ware. Wird er nicht abgezogen, sieht jede
+  // Bestellung dauerhaft besser aus, als sie war.
+  const b = best(
+    'b1',
+    'PF-1',
+    [{ id: 'p1', menge: 2, bezeichnung: 'A', detail: '', preisChf: 150, einkaufChf: 45 }],
+    { lieferkostenChf: 30, zollChf: 20 },
+  )
+  const m = margeFuer(b)
+  assert.equal(m.zollChf, 20)
+  assert.equal(m.margeChf, 160, '300 − 90 − 30 Fracht − 20 Zoll')
+})
+
+pruefe('Ohne Zoll und ohne Montage bleiben die Zahlen, wie sie waren', () => {
+  const b = best('b1', 'PF-1', [{ id: 'p1', menge: 2, bezeichnung: 'A', detail: '', preisChf: 150, einkaufChf: 45 }])
+  const m = margeFuer(b)
+  assert.equal(m.zollChf, 0)
+  assert.equal(m.montageChf, 0)
+  assert.equal(m.erloesChf, m.warenerloesChf)
 })
 
 pruefe('Eine Position ohne Einkaufspreis macht den Datensatz unvollstaendig', () => {

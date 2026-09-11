@@ -15,13 +15,27 @@ function runde2(x: number): number {
   return Math.round(x * 100) / 100
 }
 
-/** Was von einer Bestellung uebrig bleibt, wenn Einkauf und Fracht ab sind. */
+/** Was von einer Bestellung uebrig bleibt, wenn alle Kosten ab sind. */
 export interface BestellMarge {
   /** Summe der Einkaufspreise aller Positionen. */
   einkaufChf: number
   lieferkostenChf: number
-  /** Verkauf OHNE Montage – die ist unsere Arbeit, nicht Ware. */
+  /**
+   * Zoll, Einfuhrsteuer und Gebuehren. Kommt Wochen nach der Ware und wird
+   * von Hand nachgetragen – gehoert aber in die Marge, sonst sieht jede
+   * Bestellung besser aus, als sie war.
+   */
+  zollChf: number
+  /** Verkauf der WARE, ohne Montage und nach Rabatt. */
   warenerloesChf: number
+  /**
+   * Was die Montage einbringt. Kosten stehen dem keine gegenueber: Das ist
+   * unsere eigene Arbeit, nicht eingekaufte Ware. Der Erloes ist damit
+   * ganzer Deckungsbeitrag und zaehlt voll in die Marge.
+   */
+  montageChf: number
+  /** Ware und Montage zusammen – das, was die Kundschaft zahlt. */
+  erloesChf: number
   margeChf: number
   margeProzent: number | null
   /**
@@ -42,14 +56,20 @@ export function margeFuer(b: Bestellung): BestellMarge {
   }
   einkaufChf = runde2(einkaufChf)
   const lieferkostenChf = b.lieferkostenChf ?? 0
-  const warenerloesChf = runde2(b.summeChf - montageBetrag(b))
-  const margeChf = runde2(warenerloesChf - einkaufChf - lieferkostenChf)
+  const zollChf = b.zollChf ?? 0
+  const montageChf = montageBetrag(b)
+  const warenerloesChf = runde2(b.summeChf - montageChf)
+  const erloesChf = runde2(warenerloesChf + montageChf)
+  const margeChf = runde2(erloesChf - einkaufChf - lieferkostenChf - zollChf)
   return {
     einkaufChf,
     lieferkostenChf,
+    zollChf,
     warenerloesChf,
+    montageChf,
+    erloesChf,
     margeChf,
-    margeProzent: warenerloesChf > 0 ? Math.round((margeChf / warenerloesChf) * 1000) / 10 : null,
+    margeProzent: erloesChf > 0 ? Math.round((margeChf / erloesChf) * 1000) / 10 : null,
     vollstaendig: ohnePreis === 0 && b.positionen.length > 0,
     ohnePreis,
   }

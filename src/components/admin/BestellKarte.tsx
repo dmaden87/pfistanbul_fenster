@@ -582,7 +582,7 @@ export function BestellKarte({
                   Zahl vorliegt – ein Block aus lauter Nullen sagt nichts und
                   sieht aus wie ein Verlust.
                 */}
-                {(marge.einkaufChf > 0 || marge.lieferkostenChf > 0 || (b.zollChf ?? 0) > 0) && (
+                {(marge.einkaufChf > 0 || marge.lieferkostenChf > 0 || marge.zollChf > 0 || marge.montageChf > 0) && (
                   <div className="admin__einkauf">
                     <h4>
                       {t.einkaufTitel}
@@ -593,10 +593,21 @@ export function BestellKarte({
                         </span>
                       )}
                     </h4>
+                    {/* Erst was hereinkommt, dann was abgeht, dann was bleibt. */}
                     <dl>
                       <div>
+                        <dt>{t.warenerloes}</dt>
+                        <dd>{formatChf(marge.warenerloesChf)}</dd>
+                      </div>
+                      {marge.montageChf > 0 && (
+                        <div>
+                          <dt>{t.montageErloes}</dt>
+                          <dd>{formatChf(marge.montageChf)}</dd>
+                        </div>
+                      )}
+                      <div>
                         <dt>{t.einkaufSumme}</dt>
-                        <dd>{formatChf(marge.einkaufChf)}</dd>
+                        <dd>−{formatChf(marge.einkaufChf)}</dd>
                       </div>
                       <div>
                         <dt>
@@ -605,18 +616,14 @@ export function BestellKarte({
                             <span className="admin__detail"> · {t.frachtGeschaetzt}</span>
                           )}
                         </dt>
-                        <dd>{formatChf(marge.lieferkostenChf)}</dd>
+                        <dd>−{formatChf(marge.lieferkostenChf)}</dd>
                       </div>
-                      {typeof b.zollChf === 'number' && (
+                      {marge.zollChf > 0 && (
                         <div>
                           <dt>{t.zoll}</dt>
-                          <dd>{formatChf(b.zollChf)}</dd>
+                          <dd>−{formatChf(marge.zollChf)}</dd>
                         </div>
                       )}
-                      <div>
-                        <dt>{t.warenerloes}</dt>
-                        <dd>{formatChf(marge.warenerloesChf)}</dd>
-                      </div>
                       <div className="admin__einkauf-marge">
                         <dt>{t.marge}</dt>
                         <dd>

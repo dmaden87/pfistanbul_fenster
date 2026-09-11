@@ -229,6 +229,7 @@ const PAARE = {
   einkauf: ['Einkauf', 'Alış'],
   zoll: ['Zoll', 'Gümrük'],
   warenerloes: ['Warenerlös (ohne Montage)', 'Mal geliri (montaj hariç)'],
+  montageErloes: ['Montage (Erlös, keine Kosten)', 'Montaj (gelir, maliyetsiz)'],
   marge: ['Marge', 'Kâr'],
   fuerPaketGewaehlt: ['fürs Paket gewählt', 'paket için seçildi'],
   auswahlAufheben: ['Auswahl aufheben', 'Seçimi kaldır'],
