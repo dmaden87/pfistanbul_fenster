@@ -1,7 +1,7 @@
 import type { BestellArt, BestellPosition, CartLine, CustomRequestLine, CustomerDetails, PaymentMethod } from '../types'
 import { netsInSet, setById, typeById } from '../data/catalog'
 import { STANDARD } from '../data/produktion'
-import { cartTotals, priceForLine } from './pricing'
+import { cartTotals, einzelpreisFuerZeile } from './pricing'
 import { estimateCustomRequest } from './estimate'
 import { formatSize } from './format'
 
@@ -25,7 +25,16 @@ interface Eingang {
   zahlungswunsch?: boolean
 }
 
-function positionenAusWarenkorb(lines: CartLine[]): BestellPosition[] {
+/**
+ * Aus den Warenkorbzeilen werden Positionen.
+ *
+ * `preisChf` ist der STUECKPREIS. Hier stand frueher der Zeilenbetrag, also
+ * Stueckpreis mal Menge - und weil jede Stelle im Adminbereich `preisChf *
+ * menge` rechnet, wurde daraus ein zweites Mal multipliziert. Bei Menge 1
+ * faellt das nicht auf; ab zwei gleichen Netzen stand die doppelte Summe da.
+ * Exportiert, damit bau/warenkorb-test.mjs genau das nachstellen kann.
+ */
+export function positionenAusWarenkorb(lines: CartLine[]): BestellPosition[] {
   return lines.map((line) => {
     if (line.kind === 'set') {
       const set = setById(line.refId)
@@ -39,7 +48,7 @@ function positionenAusWarenkorb(lines: CartLine[]): BestellPosition[] {
         menge: line.quantity,
         bezeichnung: set?.label ?? line.refId,
         detail: set ? `${netsInSet(set)} Netze: ${inhalt}` : '',
-        preisChf: priceForLine(line),
+        preisChf: einzelpreisFuerZeile(line),
         setId: line.refId,
       }
     }
@@ -48,7 +57,7 @@ function positionenAusWarenkorb(lines: CartLine[]): BestellPosition[] {
       menge: line.quantity,
       bezeichnung: typ?.label ?? line.refId,
       detail: typ ? formatSize(typ.widthCm, typ.heightCm) : '',
-      preisChf: priceForLine(line),
+      preisChf: einzelpreisFuerZeile(line),
       typId: line.refId,
       // Die Angaben fuer den Produzenten stehen im Katalog, weil sie
       // Eigenschaften der Ueberbauung sind. Sie werden hier mitgeschrieben

@@ -19,6 +19,7 @@ import {
   verfaellt,
 } from './_speicher.js'
 import { PHASEN, startPhase, vereinheitlichen as phaseVereinheitlichen, type Phase, type RundenBlick } from './_phasen.js'
+import { preiseVereinheitlichen } from './_preise.js'
 import { abmeldeCookie, angemeldet, anmeldeCookie, passwortGesetzt, passwortStimmt } from './_sitzung.js'
 
 /**
@@ -62,8 +63,13 @@ async function rundenBlick(): Promise<RundenBlick[]> {
   return raus
 }
 
+/**
+ * Alles, was ein alter Datensatz braucht, um wie ein heutiger gelesen zu
+ * werden: die Phase aus alten Statuswerten, und der Stueckpreis aus
+ * Positionen, in denen frueher der Zeilenbetrag stand.
+ */
 export function vereinheitlichen(b: Bestellung, runden: RundenBlick[]): Bestellung {
-  return phaseVereinheitlichen(b, runden)
+  return preiseVereinheitlichen(phaseVereinheitlichen(b, runden))
 }
 
 /**

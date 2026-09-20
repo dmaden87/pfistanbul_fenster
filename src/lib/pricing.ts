@@ -5,12 +5,23 @@ import { shopConfig } from '../data/shopConfig'
 /** Lieferung in der Siedlung: persönliche Übergabe, kostenlos. */
 export const SHIPPING_CHF = 0
 
-/** Preis einer Warenkorbzeile ohne Montage. */
-export function priceForLine(line: CartLine): number {
+/**
+ * Preis EINES Stuecks der Zeile, ohne Montage.
+ *
+ * Die Unterscheidung ist nicht kosmetisch: In der Bestellung steht der
+ * Stueckpreis, und alles rechnet ihn mit der Menge mal. Wer hier den
+ * Zeilenbetrag ablegt, bekommt ihn spaeter ein zweites Mal multipliziert.
+ */
+export function einzelpreisFuerZeile(line: CartLine): number {
   if (line.kind === 'set') {
-    return (setById(line.refId)?.priceChf ?? 0) * line.quantity
+    return setById(line.refId)?.priceChf ?? 0
   }
-  return (typeById(line.refId)?.priceChf ?? 0) * line.quantity
+  return typeById(line.refId)?.priceChf ?? 0
+}
+
+/** Preis einer ganzen Warenkorbzeile ohne Montage - also mal Menge. */
+export function priceForLine(line: CartLine): number {
+  return einzelpreisFuerZeile(line) * line.quantity
 }
 
 /** Anzahl Netze einer Zeile – ein Set zählt mit allen enthaltenen Netzen. */

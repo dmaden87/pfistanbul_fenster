@@ -114,6 +114,34 @@ Aufbau des JSON-LD, ob jeder interne Verweis einen Knoten trifft, und ob die
 Preise mit `src/data/catalog.ts` übereinstimmen. Nach jeder Preisänderung
 einmal laufen lassen.
 
+## Was `preisChf` in einer Position bedeutet
+
+**Der Stückpreis.** Nicht der Zeilenbetrag. Jede Stelle rechnet `preisChf ×
+menge`: die Karte im Adminbereich, die Offerte, und der Server, wenn er nach
+einer Änderung `summeChf` neu bildet.
+
+Der Warenkorb legte dort eine Zeit lang den Zeilenbetrag ab, also Stückpreis
+mal Menge. Zwei Fenster zu 150.– standen damit als „2 × 300.–“ im Speicher:
+Die Netze zusammengerechnet gaben 600.–, die mitgespeicherte Summe sagte
+300.–. Aufgefallen ist es erst nach Monaten, weil bei **Menge 1 beide
+Lesarten dieselbe Zahl sind** – und die ersten Bestellungen hatten von jedem
+Fenster genau eines.
+
+Gefährlich war nicht die Anzeige, sondern die Folge: Eine einzige Korrektur
+an den Netzen hätte `summeChf` auf 600.– gesetzt, und die bezahlte Bestellung
+wäre als halb bezahlt dagestanden. Was Stripe belastet, hing nie daran – das
+entscheidet allein die Preistabelle in `api/checkout.ts`.
+
+Bereits gespeicherte Bestellungen werden **beim Lesen** geradegezogen, in
+`api/_preise.ts`, nicht durch ein Umstellskript. Erkannt wird die Lesart an
+`summeChf`: Die stand von Anfang an richtig da. Passt die Summe zu keiner der
+beiden Lesarten, bleibt alles stehen – lieber eine Zahl, die jemandem
+auffällt, als eine stillschweigend veränderte.
+
+```
+node --import ./bau/ts-aufloeser.mjs bau/warenkorb-test.mjs
+```
+
 ## Die Bestell-API prüfen
 
 ```
