@@ -77,18 +77,26 @@
   text-align: center;
 }
 
+/* Auf dem Handy nimmt der Knopf die volle Breite und seine Beschriftung
+   steht mittig - die Zeile darunter folgt ihm, sonst haengt sie schief unter
+   einem zentrierten Knopf. Breiter als 30rem steht der Knopf links in seiner
+   eigenen Breite, und dann gehoert die Zeile ebenfalls nach links. */
 @media (max-width: 30rem) {
   .hero__actions .btn {
     width: 100%;
   }
+
+  .hero__nebenweg {
+    text-align: center;
+  }
 }
 
-/* Die Siedlung als Zeile: lesbar, aber ohne Flaeche. Der negative Einzug
-   stellt den Text buendig unter den Knopf - die Polsterung des Knopfs wuerde
-   ihn sonst um ein paar Pixel einruecken. */
+/* Die Siedlung als Zeile: lesbar, aber ohne Flaeche.
+   HIER STAND EIN NEGATIVER EINZUG, der den Text buendig unter den Knopf
+   stellen sollte. Er schob die Zeile stattdessen aus der Textspalte nach
+   links heraus - sie stand weiter links als alles andere im Hero. */
 .hero__nebenweg {
   margin-top: var(--space-3);
-  margin-inline-start: calc(var(--space-3) * -1);
 }
 
 /* Unterstrichen, damit die Zeile als Weg erkennbar ist. Leise heisst nicht
@@ -99,12 +107,17 @@
   text-underline-offset: 0.25em;
 }
 
+/* list-style: none nimmt die Punkte weg, NICHT die Einrueckung. Ein <ul>
+   traegt vom Browser rund 40 px padding-inline-start; der Strich darueber
+   gehoert zur Box und beginnt deshalb ganz links, der Text erst 40 px
+   weiter. Das sah aus, als waere der Abschnitt rechtsbuendig. */
 .hero__proof {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-6);
   margin-top: var(--space-8);
-  padding-top: var(--space-6);
+  padding-block-start: var(--space-6);
+  padding-inline: 0;
   border-top: 1px solid var(--border);
   list-style: none;
 }

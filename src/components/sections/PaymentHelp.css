@@ -9,11 +9,17 @@
   align-items: start;
 }
 
+/* Der Einzug steht hier, statt sich auf die Vorgabe des Browsers zu
+   verlassen. list-style: none nimmt die Punkte weg, nicht die rund 40 px, die
+   ein <ul> von Haus aus einrueckt - im Hero sah genau das wie ein verrutschter
+   Abschnitt aus. Hier IST die Einrueckung gewollt: Die Balken am linken Rand
+   brauchen den Platz. Nur soll das dastehen und nicht zufaellig stimmen. */
 .payment-help__points {
   list-style: none;
   display: grid;
   gap: var(--space-5);
   margin-top: var(--space-7);
+  padding-inline-start: var(--space-6);
 }
 
 .payment-help__points li {

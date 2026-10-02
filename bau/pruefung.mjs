@@ -449,6 +449,40 @@ for (const satz of ['über unserem Erfahrungsbereich', 'Dort ist die Schätzung 
   pruefe(`kein Bauteil zeigt wieder "${satz}"`, treffer.length === 0, treffer.join(', '))
 }
 
+/*
+ * JEDE LISTE OHNE PUNKTE SAGT, WIE WEIT SIE EINRUECKT.
+ *
+ * `list-style: none` nimmt die Aufzaehlungspunkte weg, nicht die rund 40 px,
+ * die ein <ul> vom Browser mitbekommt. Im Hero stand der Trennstrich deshalb
+ * ganz links und die vier Belege 40 px weiter rechts - das sah aus, als waere
+ * der Abschnitt rechtsbuendig, und niemand hatte es so gebaut.
+ *
+ * Geprueft wird nicht, DASS der Einzug null ist - bei der Zahlungsliste ist
+ * er gewollt, dort sitzen Balken am Rand. Geprueft wird, dass er DASTEHT:
+ * Wer die Punkte abschaltet, soll einmal entscheiden, wie weit eingerueckt
+ * wird, statt es dem Browser zu ueberlassen.
+ */
+const stilblaetter = []
+const sammeln = (ordner) => {
+  for (const eintrag of readdirSync(ordner, { withFileTypes: true })) {
+    const pfad = `${ordner}/${eintrag.name}`
+    if (eintrag.isDirectory()) sammeln(pfad)
+    else if (pfad.endsWith('.css')) stilblaetter.push(pfad)
+  }
+}
+sammeln('src')
+
+const ohneEinzug = []
+for (const pfad of stilblaetter) {
+  const text = readFileSync(pfad, 'utf8')
+  for (const regel of text.matchAll(/([^{}]*)\{([^}]*)\}/g)) {
+    if (!/list-style:\s*none/.test(regel[2])) continue
+    if (/padding(-inline(-start)?)?\s*:/.test(regel[2])) continue
+    ohneEinzug.push(`${pfad} ${regel[1].trim().split('\n').pop().trim()}`)
+  }
+}
+pruefe('jede punktlose Liste nennt ihren Einzug', ohneEinzug.length === 0, ohneEinzug.join(', '))
+
 // --- IndexNow ---------------------------------------------------------------
 //
 // Der Schluessel weist uns gegenueber Bing und Yandex als Betreiber aus. Liegt
