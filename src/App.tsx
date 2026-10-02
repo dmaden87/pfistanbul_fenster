@@ -9,7 +9,6 @@ import { TrustBar } from './components/sections/TrustBar'
 import { Benefits } from './components/sections/Benefits'
 import { TwoPaths } from './components/sections/TwoPaths'
 import { Construction } from './components/sections/Construction'
-import { Shop } from './components/sections/Shop'
 import { HowItWorks } from './components/sections/HowItWorks'
 import { Measuring } from './components/sections/Measuring'
 import { Story } from './components/sections/Story'
@@ -20,14 +19,16 @@ import { Faq } from './components/sections/Faq'
 import { ClosingCta } from './components/sections/ClosingCta'
 import { LegalPage } from './components/sections/LegalPage'
 import { AdminPage } from './components/admin/AdminPage'
+import { Siedlungen } from './components/sections/Siedlungen'
 import { Analytics } from '@vercel/analytics/react'
-import { pfadFuerRechtsseite, rechtsseiteAusPfad, setzeKopfdaten } from './lib/adresse'
+import { pfadFuerSeite, seiteAusPfad, setzeKopfdaten } from './lib/adresse'
 import type { LegalKey } from './data/site'
 import { useCart } from './hooks/useCart'
 import './App.css'
 
 type View =
   | { name: 'shop' }
+  | { name: 'siedlungen' }
   | { name: 'checkout' }
   | { name: 'admin' }
   | { name: 'legal'; page: LegalKey }
@@ -43,13 +44,16 @@ type View =
  * Rechtsseite ist, laeuft unter "/" - siehe lib/adresse.ts.
  */
 function ansichtAusAdresse(): View {
-  const seite = rechtsseiteAusPfad(window.location.pathname)
-  return seite ? { name: 'legal', page: seite } : { name: 'shop' }
+  const seite = seiteAusPfad(window.location.pathname)
+  if (!seite) return { name: 'shop' }
+  return seite === 'siedlungen' ? { name: 'siedlungen' } : { name: 'legal', page: seite }
 }
 
 /** Die Adresse zu einer Ansicht. */
 function adresseFuer(ansicht: View): string {
-  return ansicht.name === 'legal' ? pfadFuerRechtsseite(ansicht.page) : '/'
+  if (ansicht.name === 'legal') return pfadFuerSeite(ansicht.page)
+  if (ansicht.name === 'siedlungen') return pfadFuerSeite('siedlungen')
+  return '/'
 }
 
 function readPaymentReturn(): View | null {
@@ -133,6 +137,8 @@ export default function App() {
 
   const goToLegal = useCallback((page: LegalKey) => gehe({ name: 'legal', page }), [gehe])
 
+  const goToSiedlungen = useCallback(() => gehe({ name: 'siedlungen' }), [gehe])
+
   return (
     <>
       <a className="skip-link" href="#main">
@@ -144,25 +150,31 @@ export default function App() {
         onOpenCart={() => setCartOpen(true)}
         onNavigateHome={goToShop}
         onNavigate={goToAnchor}
+        onSiedlungenClick={goToSiedlungen}
       />
 
       <main id="main">
         {view.name === 'shop' && (
           <>
-            <Hero onShopClick={() => goToAnchor('groessen')} onRequestClick={() => goToAnchor('anfrage')} />
+            {/*
+              Die Reihenfolge folgt dem, was die Leute wirklich suchen: Sondermass
+              zuerst. Das Siedlungsangebot steht weiter hinten als Band und fuehrt
+              auf seine eigene Seite - es ist der Sonderfall geworden, nicht der
+              Normalfall.
+            */}
+            <Hero onRequestClick={() => goToAnchor('anfrage')} onSiedlungenClick={goToSiedlungen} />
             <TrustBar />
             <Benefits />
-            <TwoPaths onStandardClick={() => goToAnchor('groessen')} onCustomClick={() => goToAnchor('anfrage')} />
+            <CustomRequest />
             <Construction />
-            <Shop cart={cart} onOpenCart={() => setCartOpen(true)} onRequestClick={() => goToAnchor('anfrage')} />
-            <HowItWorks />
             <Measuring />
+            <HowItWorks />
+            <TwoPaths onCustomClick={() => goToAnchor('anfrage')} onSiedlungenClick={goToSiedlungen} />
             <Story />
             <Promises />
-            <CustomRequest />
             <PaymentHelp />
             <Faq />
-            <ClosingCta onShopClick={() => goToAnchor('groessen')} onRequestClick={() => goToAnchor('anfrage')} />
+            <ClosingCta onRequestClick={() => goToAnchor('anfrage')} onSiedlungenClick={goToSiedlungen} />
           </>
         )}
 
@@ -197,6 +209,14 @@ export default function App() {
 
         {view.name === 'legal' && <LegalPage page={view.page} onBack={goToShop} />}
 
+        {view.name === 'siedlungen' && (
+          <Siedlungen
+            cart={cart}
+            onOpenCart={() => setCartOpen(true)}
+            onSondermassClick={() => goToAnchor('anfrage')}
+          />
+        )}
+
         {view.name === 'admin' && <AdminPage onBack={goToShop} />}
       </main>
 
@@ -204,6 +224,7 @@ export default function App() {
         onOpenLegal={goToLegal}
         onNavigate={goToAnchor}
         onOpenAdmin={() => gehe({ name: 'admin' })}
+        onSiedlungenClick={goToSiedlungen}
       />
 
       <CartDrawer cart={cart} open={cartOpen} onClose={() => setCartOpen(false)} onCheckout={goToCheckout} />

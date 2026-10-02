@@ -1,7 +1,7 @@
 /** Prueft das ausgelieferte HTML: Kopfangaben, JSON-LD, Sitemap, robots.txt. */
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
-import { windowTypes, netSets } from '../src/data/catalog.ts'
-import { absolut, rechtsseiten, site, startseite } from '../src/data/site.ts'
+import { windowTypes, netSets, activeUeberbauung } from '../src/data/catalog.ts'
+import { absolut, seiten, site, startseite, unterseiten } from '../src/data/site.ts'
 import { operator } from '../src/data/operator.ts'
 import { shopConfig } from '../src/data/shopConfig.ts'
 
@@ -119,9 +119,14 @@ pruefe('elf Fragen mit Antwort', fragen.mainEntity.length === 11 && fragen.mainE
 
 // --- Sitemap und robots ---
 const sitemap = readFileSync('dist/sitemap.xml', 'utf8')
-const erwarteteAdressen = 1 + rechtsseiten.length
-pruefe(`Sitemap nennt ${erwarteteAdressen} Adressen`, (sitemap.match(/<loc>/g) ?? []).length === erwarteteAdressen)
-for (const seite of rechtsseiten) {
+/*
+ * Die erwartete Zahl kommt aus `seiten` und wird nicht mehr von Hand
+ * zusammengezaehlt. Vorher stand hier "1 + rechtsseiten.length"; als die
+ * Siedlungsseite dazukam, haette diese Pruefung eine richtige Sitemap als
+ * falsch gemeldet.
+ */
+pruefe(`Sitemap nennt ${seiten.length} Adressen`, (sitemap.match(/<loc>/g) ?? []).length === seiten.length)
+for (const seite of unterseiten) {
   pruefe(`Sitemap kennt ${seite.pfad}`, sitemap.includes(`<loc>${absolut(seite.pfad)}</loc>`))
 }
 pruefe('Sitemap ohne erfundenes lastmod', !sitemap.includes('lastmod'))
@@ -143,7 +148,38 @@ const startText = nurText(html)
 pruefe('Startseite traegt echten Text', startText.split(' ').length > 2500, `${startText.split(' ').length} Woerter`)
 pruefe('Startseite nennt einen Preis im Text', startText.includes('130'))
 
-for (const seite of rechtsseiten) {
+/*
+ * DER UMBAU, ALS PRUEFUNG.
+ *
+ * Sondermass ist der Standard, die Siedlung das Nebenangebot. Das ist eine
+ * Aussage ueber die Reihenfolge, und nur die laesst sich pruefen: Der Aufruf
+ * zum Ausrechnen muss VOR dem Namen der Ueberbauung stehen. Wer das eines
+ * Tages umstellt, soll es absichtlich tun und nicht aus Versehen.
+ *
+ * Der Verweis auf /siedlungen muss ein echtes <a href> sein, in Kopf und
+ * Fuss. Ein Knopf, der die Adresse nur im Browser wechselt, ist fuer einen
+ * Crawler nicht vorhanden - und die Adresse soll auf Flyer gedruckt werden.
+ */
+pruefe(
+  'Startseite fuehrt mit Sondermass, nicht mit der Siedlung',
+  startText.indexOf('ausrechnen') < startText.indexOf(activeUeberbauung.name),
+  `ausrechnen bei ${startText.indexOf('ausrechnen')}, ${activeUeberbauung.name} bei ${startText.indexOf(activeUeberbauung.name)}`,
+)
+pruefe(
+  'Startseite verlinkt /siedlungen in Kopf und Fuss',
+  (html.match(/href="\/siedlungen"/g) ?? []).length >= 2,
+  String((html.match(/href="\/siedlungen"/g) ?? []).length),
+)
+
+/*
+ * Die Schleife laeuft ueber ALLE Unterseiten, nicht mehr nur die rechtlichen.
+ * Die Siedlungsseite muss dieselben Zusicherungen erfuellen - eigener Titel,
+ * eigenes canonical, echter Text -, denn sie ist die Adresse, die auf Flyer
+ * gedruckt wird. Die Produktdaten liegen weiterhin nur auf der Startseite;
+ * das Sortiment auf /siedlungen ist derselbe Warenkorb, aber ohne eigenen
+ * Markup-Graphen - sonst stuenden dieselben Produkte zweimal im Index.
+ */
+for (const seite of unterseiten) {
   const datei = `dist${seite.pfad}.html`
   let inhalt
   try {

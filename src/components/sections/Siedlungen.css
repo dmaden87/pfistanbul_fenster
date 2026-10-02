@@ -1,0 +1,84 @@
+/* Die Siedlungsseite. Sie borgt sich Abschnitt, Schale und Pille aus dem
+   Grundgeruest; hier steht nur, was es dort nicht schon gibt. */
+
+.siedlungen__liste {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 2rem;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 48rem) {
+  .siedlungen__liste {
+    grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+  }
+}
+
+.siedlung {
+  padding: 1.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.siedlung__kopf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.siedlung__kopf h2 {
+  margin: 0;
+  font-size: var(--step-2);
+}
+
+.siedlung__satz {
+  margin-top: 0.85rem;
+  color: var(--text-muted);
+}
+
+.siedlung__fakten {
+  margin: 1.1rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+  font-size: var(--step--1);
+  color: var(--text-muted);
+}
+
+.siedlung__fakten li {
+  padding-left: 1.4rem;
+  position: relative;
+}
+
+/* Der Haken als Zeichen, nicht als Schriftzeichen: ein Hakensymbol faellt bei
+   fehlender Schrift auf ein Kaestchen zurueck. */
+.siedlung__fakten li::before {
+  content: '';
+  position: absolute;
+  left: 0.15rem;
+  top: 0.45rem;
+  width: 0.45rem;
+  height: 0.75rem;
+  border: solid var(--accent);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.siedlung__sprung {
+  margin-top: 1.25rem;
+}
+
+.siedlungen__fehlt .btn {
+  margin-top: 0.5rem;
+}
+
+.siedlungen__hinweis {
+  margin-top: 1.25rem;
+  max-width: 44rem;
+  font-size: var(--step--1);
+  color: var(--text-muted);
+}

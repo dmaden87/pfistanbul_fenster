@@ -1,13 +1,19 @@
 import { WindowVisual } from './WindowVisual'
-import { priceRange, ueberbauungCta } from '../../data/catalog'
+import { priceRange } from '../../data/catalog'
 import './Hero.css'
 
 interface HeroProps {
-  onShopClick: () => void
   onRequestClick: () => void
+  onSiedlungenClick: () => void
 }
 
-export function Hero({ onShopClick, onRequestClick }: HeroProps) {
+/*
+ * DER ERSTE KNOPF IST JETZT DAS AUSMESSEN. Vorher stand dort der
+ * Siedlungs-Shop: gefuellt, zuoberst, als waere das der Normalfall. Die
+ * Anfragen kommen aber ueberwiegend von Fenstern, die niemand ausgemessen
+ * hat. Das Siedlungsangebot steht daneben und fuehrt auf seine eigene Seite.
+ */
+export function Hero({ onRequestClick, onSiedlungenClick }: HeroProps) {
 
   return (
     <section className="hero" id="top">
@@ -33,12 +39,12 @@ export function Hero({ onShopClick, onRequestClick }: HeroProps) {
           </p>
 
           <div className="hero__actions">
-            <button type="button" className="btn btn--lg btn--stacked" onClick={onShopClick}>
-              <span className="btn__kicker">{ueberbauungCta.anlass}</span>
-              <span>{ueberbauungCta.name}</span>
+            <button type="button" className="btn btn--lg btn--stacked" onClick={onRequestClick}>
+              <span className="btn__kicker">Masse eingeben, Preis sehen</span>
+              <span>Mein Fenster ausrechnen</span>
             </button>
-            <button type="button" className="btn btn--ghost btn--lg" onClick={onRequestClick}>
-              Mein Fenster ausmessen
+            <button type="button" className="btn btn--ghost btn--lg" onClick={onSiedlungenClick}>
+              Ausgemessene Siedlung?
             </button>
           </div>
 
@@ -50,8 +56,8 @@ export function Hero({ onShopClick, onRequestClick }: HeroProps) {
               <span>pro Fenster, Richtwert</span>
             </li>
             <li>
-              <strong>Nach Mass</strong>
-              <span>oder ab ausgemessenem Sortiment</span>
+              <strong>Jedes Fenster</strong>
+              <span>nach Mass gefertigt, kein Standardraster</span>
             </li>
             <li>
               <strong>Meist ohne Bohren</strong>

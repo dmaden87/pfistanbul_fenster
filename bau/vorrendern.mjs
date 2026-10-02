@@ -43,6 +43,7 @@ const ZIEL = 'vorgerendert'
  */
 const PROBE = {
   '/': 'Insektenschutz-Plissee nach Mass',
+  '/siedlungen': 'Einmal ausgemessen',
   '/impressum': 'Verantwortlich für diese Website',
   '/agb': '8. Anwendbares Recht und Gerichtsstand',
   '/datenschutz': 'Welche Daten wir bearbeiten',

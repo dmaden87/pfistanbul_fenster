@@ -1,4 +1,4 @@
-import { absolut, kopfdatenFuer, rechtsseiten, type LegalKey } from '../data/site'
+import { absolut, kopfdatenFuer, unterseiten, type SeitenSchluessel } from '../data/site'
 
 /**
  * Die Adresszeile und was die Seite gerade zeigt, in Einklang bringen.
@@ -7,34 +7,33 @@ import { absolut, kopfdatenFuer, rechtsseiten, type LegalKey } from '../data/sit
  * Das hatte zwei Folgen: `/impressum` antwortete mit 404, und niemand konnte
  * auf unser Impressum verlinken oder es zitieren - auch keine Suchmaschine.
  *
- * Eine eigene Adresse bekommen deshalb die Startseite und die drei
- * rechtlichen Seiten. Bewusst NICHT der Warenkorb, der Bestellablauf und der
- * Adminbereich: Die haengen an Warenkorbinhalt, Anmeldung und der Rueckkehr
+ * Eine eigene Adresse bekommen deshalb die Startseite, die Siedlungen und
+ * die drei rechtlichen Seiten. Bewusst NICHT der Warenkorb, der
+ * Bestellablauf und der Adminbereich: Die haengen an Warenkorbinhalt, Anmeldung und der Rueckkehr
  * von Stripe. Jede weitere Adresse waere ein weiterer Weg, auf dem der
  * funktionierende Bestellablauf kaputtgehen kann, und zu holen gibt es dort
  * fuer eine Suchmaschine ohnehin nichts. Sie laufen weiter unter "/".
  */
 
-/** Zu welcher Rechtsseite eine Adresse gehoert - oder zu keiner. */
-export function rechtsseiteAusPfad(pfad: string): LegalKey | null {
+/** Zu welcher Unterseite eine Adresse gehoert - oder zu keiner. */
+export function seiteAusPfad(pfad: string): SeitenSchluessel | null {
   // Ein angehaengter Schraegstrich soll nicht ins Leere fuehren.
   const sauber = pfad.length > 1 && pfad.endsWith('/') ? pfad.slice(0, -1) : pfad
-  return rechtsseiten.find((seite) => seite.pfad === sauber)?.schluessel ?? null
+  return unterseiten.find((seite) => seite.pfad === sauber)?.schluessel ?? null
 }
 
 /**
- * Der Pfad, unter dem eine Adresse gefuehrt wird. Alles, was keine
- * Rechtsseite ist - auch ein Tippfehler in der Adresszeile -, gilt als
- * Startseite.
+ * Der Pfad, unter dem eine Adresse gefuehrt wird. Alles, was keine eigene
+ * Seite ist - auch ein Tippfehler in der Adresszeile -, gilt als Startseite.
  */
 export function pfadNormalisiert(pfad: string): string {
-  const seite = rechtsseiteAusPfad(pfad)
-  return seite ? pfadFuerRechtsseite(seite) : '/'
+  const seite = seiteAusPfad(pfad)
+  return seite ? pfadFuerSeite(seite) : '/'
 }
 
-/** Die Adresse einer Rechtsseite. */
-export function pfadFuerRechtsseite(schluessel: LegalKey): string {
-  return rechtsseiten.find((seite) => seite.schluessel === schluessel)?.pfad ?? '/'
+/** Die Adresse einer Unterseite. */
+export function pfadFuerSeite(schluessel: SeitenSchluessel): string {
+  return unterseiten.find((seite) => seite.schluessel === schluessel)?.pfad ?? '/'
 }
 
 /** Setzt oder legt ein Element im Kopf an und traegt einen Wert ein. */

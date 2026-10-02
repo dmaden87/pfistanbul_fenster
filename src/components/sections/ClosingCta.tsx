@@ -1,11 +1,11 @@
 import './ClosingCta.css'
 
 interface ClosingCtaProps {
-  onShopClick: () => void
   onRequestClick: () => void
+  onSiedlungenClick: () => void
 }
 
-export function ClosingCta({ onShopClick, onRequestClick }: ClosingCtaProps) {
+export function ClosingCta({ onRequestClick, onSiedlungenClick }: ClosingCtaProps) {
   return (
     <section className="closing">
       <div className="shell">
@@ -14,15 +14,15 @@ export function ClosingCta({ onShopClick, onRequestClick }: ClosingCtaProps) {
           <div className="closing__content">
             <h2>Der nächste warme Abend kommt bestimmt.</h2>
             <p>
-              Bis dahin hängt das Netz. Die vier Formate sind direkt bestellbar, alles andere rechnen wir Ihnen
-              unverbindlich aus.
+              Bis dahin hängt das Netz. Masse eingeben, Richtpreis sehen, unverbindlich anfragen – und wenn Ihre
+              Siedlung schon ausgemessen ist, geht es noch schneller.
             </p>
             <div className="closing__actions">
-              <button type="button" className="btn btn--lg closing__primary" onClick={onShopClick}>
-                Netze aussuchen
+              <button type="button" className="btn btn--lg closing__primary" onClick={onRequestClick}>
+                Mein Fenster ausrechnen
               </button>
-              <button type="button" className="btn btn--ghost btn--lg closing__secondary" onClick={onRequestClick}>
-                Sondermass anfragen
+              <button type="button" className="btn btn--ghost btn--lg closing__secondary" onClick={onSiedlungenClick}>
+                Ausgemessene Siedlungen
               </button>
             </div>
           </div>

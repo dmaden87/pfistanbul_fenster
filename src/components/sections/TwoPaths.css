@@ -79,3 +79,51 @@
     padding: var(--space-6);
   }
 }
+
+/* --- Das Siedlungsband -------------------------------------------------------
+   Eine Karte statt zweier Spalten: Das Siedlungsangebot ist der Sonderfall
+   und braucht keine halbe Seite mehr, aber es muss auf einen Blick erkennbar
+   bleiben - deshalb Name, Preis und Knopf nebeneinander statt untereinander
+   im Fliesstext. */
+
+.two-paths__band {
+  display: grid;
+  gap: 1.5rem;
+  margin-top: 2rem;
+  padding: 1.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+@media (min-width: 52rem) {
+  .two-paths__band {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 2.5rem;
+  }
+}
+
+.two-paths__text h3 {
+  margin: 0.6rem 0 0;
+  font-size: var(--step-2);
+}
+
+.two-paths__text p {
+  margin-top: 0.6rem;
+  color: var(--text-muted);
+}
+
+.two-paths__aktion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: stretch;
+}
+
+@media (min-width: 52rem) {
+  .two-paths__aktion {
+    align-items: flex-end;
+    white-space: nowrap;
+  }
+}

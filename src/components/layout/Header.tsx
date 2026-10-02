@@ -6,18 +6,23 @@ interface HeaderProps {
   onOpenCart: () => void
   onNavigateHome: () => void
   onNavigate: (anchor: string) => void
+  onSiedlungenClick: () => void
 }
 
+/*
+ * "Sondermass" steht vorn, weil es der Normalfall ist. Die Siedlungen sind
+ * kein Abschnitt der Startseite mehr, sondern eine eigene Seite - deshalb
+ * tragen sie hier keinen Anker, sondern ein eigenes Ziel.
+ */
 const NAV = [
-  { anchor: 'ueberuns', label: 'Über uns' },
+  { anchor: 'anfrage', label: 'Preis & Anfrage' },
   { anchor: 'aufbau', label: 'Aufbau' },
-  { anchor: 'groessen', label: 'Überbauungen' },
   { anchor: 'montage', label: 'Messen & Montage' },
-  { anchor: 'anfrage', label: 'Sondermass' },
+  { anchor: 'ueberuns', label: 'Über uns' },
   { anchor: 'faq', label: 'Fragen' },
 ]
 
-export function Header({ cartCount, onOpenCart, onNavigateHome, onNavigate }: HeaderProps) {
+export function Header({ cartCount, onOpenCart, onNavigateHome, onNavigate, onSiedlungenClick }: HeaderProps) {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -78,6 +83,18 @@ export function Header({ cartCount, onOpenCart, onNavigateHome, onNavigate }: He
               {item.label}
             </a>
           ))}
+          {/* Eigene Seite, deshalb ein echter Verweis und kein Anker: So
+              laesst er sich in einem neuen Tab oeffnen und kopieren. */}
+          <a
+            href="/siedlungen"
+            onClick={(event) => {
+              event.preventDefault()
+              setMenuOpen(false)
+              onSiedlungenClick()
+            }}
+          >
+            Siedlungen
+          </a>
         </nav>
 
         <div className="site-header__actions">

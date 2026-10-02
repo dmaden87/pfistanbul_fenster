@@ -7,9 +7,10 @@ interface FooterProps {
   onOpenLegal: (page: LegalKey) => void
   onNavigate: (anchor: string) => void
   onOpenAdmin: () => void
+  onSiedlungenClick: () => void
 }
 
-export function Footer({ onOpenLegal, onNavigate, onOpenAdmin }: FooterProps) {
+export function Footer({ onOpenLegal, onNavigate, onOpenAdmin, onSiedlungenClick }: FooterProps) {
   return (
     <footer className="site-footer">
       <div className="shell site-footer__inner">
@@ -35,7 +36,15 @@ export function Footer({ onOpenLegal, onNavigate, onOpenAdmin }: FooterProps) {
         <nav className="site-footer__col" aria-label="Sortiment">
           <h2>Sortiment</h2>
           <button type="button" onClick={() => onNavigate('aufbau')}>Aufbau</button>
-          <button type="button" onClick={() => onNavigate('groessen')}>Überbauungen</button>
+          <a
+            href="/siedlungen"
+            onClick={(event) => {
+              event.preventDefault()
+              onSiedlungenClick()
+            }}
+          >
+            Ausgemessene Siedlungen
+          </a>
           <button type="button" onClick={() => onNavigate('anfrage')}>Sonderanfertigung</button>
         </nav>
 
