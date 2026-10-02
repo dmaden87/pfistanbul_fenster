@@ -230,6 +230,15 @@
   margin-top: var(--space-2);
 }
 
+/* Auf dem Handy ueber die ganze Breite: Mit `justify-self: start` stand er
+   linksbuendig auf 90 % der Spalte, und die zehn Prozent daneben sahen aus
+   wie ein Versehen. */
+@media (max-width: 30rem) {
+  .rechner__ergebnis .btn {
+    justify-self: stretch;
+  }
+}
+
 /* Platz bleibt reserviert, auch wenn nichts dasteht: Sonst springt der
    Abschnitt beim Bestaetigen um eine Zeile und wieder zurueck. */
 .rechner__quittung {

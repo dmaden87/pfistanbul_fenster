@@ -72,6 +72,15 @@
   margin-top: 1.25rem;
 }
 
+/* Auf dem Handy ueber die ganze Karte statt 29 px links und 37 px rechts:
+   Ein Knopf, der fast die Breite nimmt, soll sie ganz nehmen. */
+@media (max-width: 30rem) {
+  .siedlung__sprung {
+    display: flex;
+    width: 100%;
+  }
+}
+
 .siedlungen__fehlt .btn {
   margin-top: 0.5rem;
 }

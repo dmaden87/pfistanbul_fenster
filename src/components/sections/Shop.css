@@ -285,6 +285,19 @@
   background: color-mix(in srgb, var(--surface) 55%, transparent);
 }
 
+/* Auf dem Handy bricht der Kasten auf zwei Zeilen um, und `space-between`
+   schob den Knopf dann in die Mitte seiner Restzeile - 33 px links, 94 px
+   rechts. Ueber die ganze Breite steht er gerade. */
+@media (max-width: 30rem) {
+  .shop__custom {
+    justify-content: stretch;
+  }
+
+  .shop__custom .btn {
+    width: 100%;
+  }
+}
+
 .shop__custom h3 {
   font-size: var(--step-1);
 }

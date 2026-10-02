@@ -381,3 +381,25 @@ a {
 [id] {
   scroll-margin-top: 5.5rem;
 }
+
+/* --- Handy: grosse Knoepfe nehmen die ganze Breite ---------------------------
+ *
+ * Ein .btn passt sich seiner Beschriftung an. Bei langen Beschriftungen und
+ * schmalen Fenstern kommt dabei etwas Unentschlossenes heraus: "Meine Offerte
+ * anfordern" belegte 86 % der Zeile, "Zur Anfrage unten hinzufuegen" 90 % -
+ * linksbuendig, mit einem Rest rechts daneben. Das sieht nicht nach einem
+ * Knopf aus, der seine Breite gewaehlt hat, sondern nach einem, der
+ * verrutscht ist.
+ *
+ * Ganze Breite loest beides: Die Kante stimmt wieder mit dem Text darueber
+ * ueberein, und die Beschriftung steht mittig - so, wie der Hauptknopf im
+ * Hero es schon macht. Ein Daumen trifft ihn ausserdem ueberall.
+ *
+ * Nur grosse Knoepfe: Die kleinen in Karten und Kaesten sind dort mittig und
+ * sollen ihre Karte nicht sprengen.
+ */
+@media (max-width: 30rem) {
+  .btn--lg {
+    width: 100%;
+  }
+}
