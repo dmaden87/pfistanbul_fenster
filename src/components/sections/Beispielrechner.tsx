@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { raumbeispiele } from '../../data/beispiele'
 import { RELIABLE_AREA_M2, estimateNetChf } from '../../lib/estimate'
 import { formatChf } from '../../lib/format'
-import { lieferhinweis } from '../../data/shopConfig'
+import { preisHinweis } from '../../data/shopConfig'
 import { MAX_CM, MIN_CM } from '../../lib/validate'
 import { PlisseeVisual } from './PlisseeVisual'
 import './Beispielrechner.css'
@@ -303,11 +303,11 @@ export function Beispielrechner({ onUebernehmen }: BeispielrechnerProps) {
         })}
       </div>
 
-      {/* Der Liefersatz kommt aus shopConfig und steht hier nicht im
-          Wortlaut - siehe die Begruendung dort. */}
+      {/* Woraus sich der Preis zusammensetzt, steht in shopConfig und hier
+          nicht im Wortlaut - siehe die Begruendung dort. */}
       <p className="rechner__hinweis">
-        Richtpreise pro Netz, ohne Montage. Sie entstehen aus denselben Zahlen wie unsere ausgemessenen Fenster –
-        den festen Preis nennen wir in der Offerte, und erst die unterschreiben Sie. {lieferhinweis}
+        Die Richtpreise entstehen aus denselben Zahlen wie unsere ausgemessenen Fenster. Den festen Preis nennen wir
+        in der Offerte, und erst die unterschreiben Sie. {preisHinweis}
       </p>
     </div>
   )

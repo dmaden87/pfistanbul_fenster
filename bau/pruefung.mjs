@@ -5,7 +5,7 @@ import { raumbeispiele } from '../src/data/beispiele.ts'
 import { estimateNetChf } from '../src/lib/estimate.ts'
 import { absolut, seiten, site, startseite, unterseiten } from '../src/data/site.ts'
 import { operator } from '../src/data/operator.ts'
-import { lieferhinweis, lieferhinweisKurz, shopConfig } from '../src/data/shopConfig.ts'
+import { preisHinweis, preisHinweisKurz, shopConfig } from '../src/data/shopConfig.ts'
 
 const html = readFileSync('dist/index.html', 'utf8')
 const pruefungen = []
@@ -279,21 +279,38 @@ for (const seite of unterseiten) {
   pruefe(`${seite.pfad} nennt die Organisation`, typen.has('Organization'))
 }
 
-// --- Was wir ueber die Lieferung sagen ---------------------------------------
+// --- Woraus sich ein Preis zusammensetzt -------------------------------------
 //
-// Diese Zusage stand einmal an sechs Stellen im Wortlaut und war an vieren
-// veraltet: "inklusive Lieferung", "im Pfisterhoelzli enthalten, ausserhalb
-// kommt die Anfahrt dazu", "im uebrigen Kanton Zuerich nach Absprache". Drei
-// verschiedene Versprechen auf derselben Seite, und gelesen haette der Kunde
-// das freundlichste. Jetzt kommt der Satz aus shopConfig - geprueft wird
-// beides: dass er ankommt, und dass keine alte Fassung daneben stehen blieb.
+// Netz, Montage, Anfahrt - immer dieselben drei Teile. Die Aussage stand
+// einmal an sechs Stellen im Wortlaut und war an vieren veraltet: "inklusive
+// Lieferung", "im Pfisterhoelzli enthalten, ausserhalb kommt die Anfahrt
+// dazu", "im uebrigen Kanton Zuerich nach Absprache". Drei verschiedene
+// Versprechen auf derselben Seite, und gelesen haette der Kunde das
+// freundlichste. Jetzt kommt der Satz aus shopConfig - geprueft wird beides:
+// dass er ankommt, und dass keine alte Fassung daneben stehen blieb.
 const ausgeliefert = [['/', html], ...unterseiten.map((s) => [s.pfad, readFileSync(`dist${s.pfad}.html`, 'utf8')])]
+
+/*
+ * Geschuetzte Leerzeichen gleichziehen. formatChf setzt zwischen "CHF" und
+ * den Betrag ein U+00A0, damit die Zahl nicht umbricht. nurText fasst
+ * Leerraum mit \s+ zusammen, und \s schliesst U+00A0 ein - auf der Seite
+ * steht danach ein gewoehnliches Leerzeichen, im erwarteten Satz immer noch
+ * das geschuetzte. Im ausgelieferten HTML steht es ausserdem als Entity
+ * &nbsp; und nicht als Zeichen - nurText entfernt Tags, keine Entities.
+ * Ohne diese Zeile vergleicht man zwei Saetze, die gleich aussehen und es
+ * nicht sind.
+ */
+const schmal = (t) => t.replace(/&nbsp;/g, ' ').replace(/\u00a0/g, ' ')
 
 for (const [pfad, seite] of [
   ['/', html],
   ['/agb', readFileSync('dist/agb.html', 'utf8')],
 ]) {
-  pruefe(`${pfad} nennt die Lieferzusage aus shopConfig`, nurText(seite).includes(lieferhinweis), lieferhinweis)
+  pruefe(
+    `${pfad} nennt die Preiszusammensetzung aus shopConfig`,
+    schmal(nurText(seite)).includes(schmal(preisHinweis)),
+    preisHinweis,
+  )
 }
 /*
  * Im FUSS gesucht und nicht auf der ganzen Seite: Die Kurzform ist ein
@@ -305,7 +322,9 @@ const fussVon = (seite) => {
   const von = seite.indexOf('site-footer__base')
   return von < 0 ? '' : nurText(seite.slice(von))
 }
-const ohneFuss = ausgeliefert.filter(([, seite]) => !fussVon(seite).includes(lieferhinweisKurz)).map(([pfad]) => pfad)
+const ohneFuss = ausgeliefert
+  .filter(([, seite]) => !schmal(fussVon(seite)).includes(schmal(preisHinweisKurz)))
+  .map(([pfad]) => pfad)
 pruefe('jede Seite traegt die Kurzform im Fuss', ohneFuss.length === 0, ohneFuss.join(', '))
 
 /*
@@ -322,10 +341,22 @@ for (const alt of [
   'im übrigen Kanton Zürich nach Absprache',
   'Im Pfisterhölzli ist die Lieferung enthalten',
   'inklusive Lieferung, ohne Montage',
+  'Lieferung im Kanton Zürich inbegriffen',
+  'Richtpreise pro Netz, ohne Montage',
 ]) {
   const betroffen = ausgeliefert.filter(([, seite]) => seite.includes(alt)).map(([pfad]) => pfad)
   pruefe(`keine Seite sagt mehr "${alt}"`, betroffen.length === 0, betroffen.join(', '))
 }
+
+/*
+ * Der Montagepreis steht jetzt auch auf der Sondermass-Seite und nicht mehr
+ * nur im Sortiment. Zwei Orte, eine Zahl: Sie muss aus shopConfig kommen.
+ */
+pruefe(
+  `Startseite nennt die Montage mit ${shopConfig.montageChf}.-`,
+  startText.includes(`${shopConfig.montageChf}.00`),
+  `${shopConfig.montageChf}.00`,
+)
 
 // --- IndexNow ---------------------------------------------------------------
 //

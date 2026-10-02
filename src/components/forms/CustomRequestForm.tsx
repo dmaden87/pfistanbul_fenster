@@ -6,7 +6,7 @@ import { PreLaunchNotice } from './PreLaunchNotice'
 import { emptyCustomer, hasErrors, validateCustomLines, validateCustomer, type Errors } from '../../lib/validate'
 import { isDemoMode, makeReference, submitToOperator } from '../../lib/submitOrder'
 import { estimateCustomRequest } from '../../lib/estimate'
-import { lieferhinweis } from '../../data/shopConfig'
+import { preisHinweis } from '../../data/shopConfig'
 import { formatChf, formatSize } from '../../lib/format'
 import './forms.css'
 
@@ -290,8 +290,7 @@ export function CustomRequestForm({ vorgabe }: CustomRequestFormProps = {}) {
               <strong>Das ist eine Schätzung, keine Offerte.</strong> Wir rechnen sie aus den Preisen unseres
               ausgemessenen Sortiments hoch – Sockelbetrag pro Netz plus Gewebefläche, mit einem Zuschlag für
               Unsicherheit. Den verbindlichen Preis nennen wir Ihnen, nachdem wir Ihre Masse angeschaut haben; er liegt
-              erfahrungsgemäss eher darunter. Der Richtpreis gilt für die Netze; die Montage kommt in jedem Fall
-              dazu. {lieferhinweis}
+              erfahrungsgemäss eher darunter. {preisHinweis}
             </p>
 
             {estimate.pendingCount > 0 && (

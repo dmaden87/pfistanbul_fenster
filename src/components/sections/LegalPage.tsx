@@ -1,4 +1,4 @@
-import { lieferhinweis, priceNote, shopConfig } from '../../data/shopConfig'
+import { preisHinweis, priceNote, shopConfig } from '../../data/shopConfig'
 import { operator } from '../../data/operator'
 import type { LegalKey } from '../../data/site'
 import './LegalPage.css'
@@ -180,8 +180,8 @@ function Agb() {
 
       <h2>2. Preise</h2>
       <p>
-        {priceNote} {lieferhinweis} Wir liefern und montieren im {shopConfig.serviceArea}; was ausserhalb davon
-        anfällt, steht in der Offerte, die Sie vor dem Vertragsabschluss erhalten.
+        {priceNote} {preisHinweis} Wir liefern und montieren im {shopConfig.serviceArea}. Die Offerte erhalten Sie
+        vor dem Vertragsabschluss; verbindlich wird sie erst mit Ihrer Zusage.
       </p>
 
       <h2>3. Zahlung</h2>

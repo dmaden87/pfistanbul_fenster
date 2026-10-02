@@ -1,3 +1,5 @@
+import { formatChf } from '../lib/format'
+
 /**
  * Zentrale Stellschrauben. Alles hier hat rechtliche oder kaufmännische
  * Konsequenzen.
@@ -102,24 +104,35 @@ export const shopConfig = {
 } as const
 
 /**
- * Was die Lieferung kostet - EIN Satz, aus dem alle anderen entstehen.
+ * WORAUS SICH EIN PREIS ZUSAMMENSETZT - und zwar immer gleich:
  *
- * WARUM AN EINER STELLE: Diese Aussage stand bisher an sechs Orten im
- * Wortlaut, und sie war an vieren veraltet. Die Startseite versprach
- * "inklusive Lieferung", das Anfrageformular schrieb "im Pfisterhoelzli
- * enthalten, ausserhalb kommt die Anfahrt dazu", der Fuss "im uebrigen
- * Kanton Zuerich nach Absprache" - drei verschiedene Zusagen auf derselben
- * Seite, und der Kunde haette sich die freundlichste merken duerfen.
+ *   1. Der Richtpreis gilt fuer DAS NETZ.
+ *   2. Die Montage kostet montageChf pro Netz. Immer, auch im Set.
+ *   3. Die Anfahrt kostet im serviceArea nichts. Ausserhalb kommt etwas
+ *      fuers Benzin dazu, und das steht in der Offerte.
  *
- * Die Regel selbst steckt schon in shopConfig: Im serviceArea ist die
- * Lieferung inbegriffen, ausserhalb gilt lieferpauschaleChf, und die Offerte
- * weist sie aus (siehe admin/Offerte.tsx). Hier wird sie nur in Worte
- * gefasst. Wer das Liefergebiet aendert, aendert den Satz mit.
+ * WARUM AN EINER STELLE: Diese Aussage stand an sechs Orten im Wortlaut und
+ * war an vieren veraltet. Die Startseite versprach "inklusive Lieferung",
+ * das Anfrageformular schrieb "im Pfisterhoelzli enthalten, ausserhalb kommt
+ * die Anfahrt dazu", der Fuss "im uebrigen Kanton Zuerich nach Absprache" -
+ * drei verschiedene Zusagen auf derselben Seite, und der Kunde haette sich
+ * die freundlichste merken duerfen.
+ *
+ * ANFAHRT, NICHT LIEFERUNG: Die beiden waren auf der Seite durcheinander.
+ * Bezahlt wird nicht, dass das Netz ankommt, sondern dass jemand hinfaehrt -
+ * zum Ausmessen, zum Bringen, zum Montieren. Im Liefergebiet faehrt er
+ * ohnehin.
+ *
+ * Die Zahlen stehen oben in shopConfig und nicht hier. Wer montageChf oder
+ * serviceArea aendert, aendert die Saetze mit.
  */
-export const lieferhinweis = `Lieferung im ${shopConfig.serviceArea} inbegriffen; ausserhalb weisen wir sie in der Offerte aus.`
+export const preisHinweis =
+  `Der Richtpreis gilt für das Netz. Die Montage kostet ${formatChf(shopConfig.montageChf)} pro Netz, ` +
+  `die Anfahrt im ${shopConfig.serviceArea} nichts – ausserhalb kommt sie in der Offerte dazu.`
 
 /** Kurzform fuer Fusszeilen, wo kein ganzer Satz Platz hat. */
-export const lieferhinweisKurz = `Lieferung im ${shopConfig.serviceArea} inbegriffen`
+export const preisHinweisKurz =
+  `Montage ${formatChf(shopConfig.montageChf)} pro Netz · Anfahrt im ${shopConfig.serviceArea} gratis`
 
 /** Preiszusatz, der zur MwSt-Situation passt. */
 export const priceNote = shopConfig.vatRegistered

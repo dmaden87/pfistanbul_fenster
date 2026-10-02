@@ -1,5 +1,5 @@
 import { operator } from '../../data/operator'
-import { lieferhinweisKurz, priceNote } from '../../data/shopConfig'
+import { preisHinweisKurz, priceNote } from '../../data/shopConfig'
 import type { LegalKey } from '../../data/site'
 import './Footer.css'
 
@@ -80,7 +80,7 @@ export function Footer({ onOpenLegal, onNavigate, onOpenAdmin, onSiedlungenClick
       <div className="shell site-footer__base">
         <p>© {new Date().getFullYear()} Pfistanbul Fenster</p>
         <p>
-          {priceNote} · {lieferhinweisKurz}
+          {priceNote} · {preisHinweisKurz}
         </p>
       </div>
     </footer>
