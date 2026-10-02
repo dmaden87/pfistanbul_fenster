@@ -164,8 +164,15 @@ export default function App() {
             */}
             <Hero onRequestClick={() => goToAnchor('anfrage')} onSiedlungenClick={goToSiedlungen} />
             <TrustBar />
-            <Benefits />
+            {/*
+              PREIS VOR BEGRUENDUNG. Vorher stand Benefits dazwischen, und das
+              waren auf dem Handy 3,2 Bildschirme Argument, bevor eine Zahl
+              kam - bei ueber 80 Prozent Handy-Besuchern. Wer wissen will, ob
+              er sich das leisten kann, soll nicht erst lesen muessen, warum
+              es guenstig ist.
+            */}
             <CustomRequest />
+            <Benefits />
             <Construction />
             <Measuring />
             <HowItWorks />

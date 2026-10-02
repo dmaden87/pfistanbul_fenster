@@ -27,10 +27,15 @@ export function CustomRequest() {
         <div className="section__intro">
           <span className="section__eyebrow">Nach Ihrem Mass</span>
           <h2>Ihr Fenster rechnen wir Ihnen aus.</h2>
+          {/*
+            Der erste Satz hiess "Sagen Sie uns, wie viele Netze Sie brauchen
+            und wie gross sie sein sollen" - genau das steht als Anleitung im
+            Formular darunter. Auf dem Handy standen hier acht Zeilen zwischen
+            dem Knopf, der "Preis sehen" verspricht, und der Zahl.
+          */}
           <p className="section__lead">
-            Sagen Sie uns, wie viele Netze Sie brauchen und wie gross sie sein sollen. Den Richtpreis sehen Sie sofort,
-            noch bevor Sie die Anfrage abschicken – bei uns gibt es kein blindes «Preis auf Anfrage». Die feste Offerte
-            kommt danach, ohne Vorauszahlung und ohne Verpflichtung.
+            Den Richtpreis sehen Sie sofort, noch bevor Sie die Anfrage abschicken – bei uns gibt es kein blindes
+            «Preis auf Anfrage». Die feste Offerte kommt danach, ohne Vorauszahlung und ohne Verpflichtung.
           </p>
         </div>
 

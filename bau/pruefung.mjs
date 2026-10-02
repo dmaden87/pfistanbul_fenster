@@ -349,6 +349,33 @@ for (const alt of [
 }
 
 /*
+ * DIE REIHENFOLGE DER STARTSEITE, als Pruefung.
+ *
+ * Ueber 80 Prozent kommen mit dem Handy (Vercel Analytics). Dort ist die
+ * Reihenfolge keine Geschmacksfrage: Jeder Abschnitt vor dem Preis sind
+ * Bildschirme, die jemand scrollt, bevor er weiss, ob er sich das leisten
+ * kann. Gemessen auf 390 x 664: Mit "Vorteile" davor stand der Richtwert bei
+ * 7,2 Bildschirmen, danach bei 3,2.
+ *
+ * Und der Preisbeleg muss VOR der Zeichnung stehen. Im Quelltext steht er
+ * das ohnehin; die Zeichnung wurde frueher per CSS nach oben gezogen, und
+ * genau das hat auf dem Handy die Ueberschrift aus dem ersten Bildschirm
+ * geschoben. Eine Pruefung kann kein Layout messen - sie haelt hier fest,
+ * dass die Reihenfolge im Dokument stimmt, damit niemand sie aus Versehen
+ * dreht.
+ */
+pruefe(
+  'Preis und Anfrage stehen vor der Begruendung',
+  html.indexOf('id="anfrage"') < html.indexOf('id="vorteile"'),
+  `anfrage bei ${html.indexOf('id="anfrage"')}, vorteile bei ${html.indexOf('id="vorteile"')}`,
+)
+pruefe(
+  'der Preisbeleg steht vor der Zeichnung',
+  html.indexOf('hero__proof') < html.indexOf('hero__visual'),
+  `proof bei ${html.indexOf('hero__proof')}, visual bei ${html.indexOf('hero__visual')}`,
+)
+
+/*
  * Der Montagepreis steht jetzt auch auf der Sondermass-Seite und nicht mehr
  * nur im Sortiment. Zwei Orte, eine Zahl: Sie muss aus shopConfig kommen.
  */

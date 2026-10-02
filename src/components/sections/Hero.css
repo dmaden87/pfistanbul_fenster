@@ -112,6 +112,14 @@
   letter-spacing: -0.02em;
 }
 
+/* Nur die Preisspanne, nicht alle Belege: "CHF 100–200" brach am
+   Gedankenstrich um und die 200 stand allein auf der naechsten Zeile. Ein
+   pauschales nowrap auf allen vier Belegen liess dafuer "Meist ohne Bohren"
+   und "Das ganze Jahr" aus ihrer Spalte laufen und uebereinander stehen. */
+.hero__preis {
+  white-space: nowrap;
+}
+
 .hero__proof span {
   color: var(--text-subtle);
   font-size: var(--step--1);
@@ -122,6 +130,8 @@
   justify-content: center;
 }
 
+/* Tablet: eine Spalte, Bild zuerst. Dort ist genug Hoehe, dass Titel und
+   Knopf trotzdem im ersten Bildschirm stehen. */
 @media (max-width: 60rem) {
   .hero__inner {
     grid-template-columns: 1fr;
@@ -135,6 +145,46 @@
 
   .hero__proof {
     gap: var(--space-5);
+  }
+}
+
+/* HANDY: Text zuerst, Bild danach und klein.
+   Gemessen auf einem iPhone-Fenster (390 x 664 nutzbar): Mit dem Bild zuoberst
+   stand die Ueberschrift bei 745 px - also erst im zweiten Bildschirm. Zu
+   sehen war beim Aufruf ein Logo und eine Zeichnung. Bei ueber 80 Prozent
+   Handy-Besuchern ist das der erste Eindruck fast aller.
+
+   Das Bild bleibt, es erklaert in einem Blick, was ein Plissee ist - aber
+   nach dem Knopf und auf ein Drittel der Hoehe. */
+@media (max-width: 48rem) {
+  .hero__visual {
+    order: 0;
+    max-width: 15rem;
+    margin-top: var(--space-6);
+  }
+
+  .hero__title {
+    margin-top: var(--space-3);
+    font-size: var(--step-5);
+  }
+
+  .hero__lead {
+    margin-top: var(--space-3);
+    font-size: var(--step-0);
+  }
+
+  .hero__actions {
+    margin-top: var(--space-5);
+  }
+
+  /* Die Belege als Zweierraster statt als Fliessband: untereinander waren es
+     vier Zeilen, die den Preis vom Knopf wegschoben. */
+  .hero__proof {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
   }
 }
 

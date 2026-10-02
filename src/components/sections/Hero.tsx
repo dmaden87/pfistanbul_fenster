@@ -31,11 +31,18 @@ export function Hero({ onRequestClick, onSiedlungenClick }: HeroProps) {
             <span className="hero__title-accent">Mücken draussen.</span>
           </h1>
 
+          {/*
+            KURZ GEHALTEN, und das ist eine Mobilentscheidung. Hier standen
+            vier Saetze; davon sagten zwei dasselbe wie der Abschnitt
+            "Vorteile" eine Bildschirmhoehe weiter unten - direkt beim
+            Hersteller gekauft, Bestellungen gebuendelt, Bruchteil des
+            Fachbetriebs. Auf dem Handy schob dieser Text den Knopf und den
+            Preis aus dem ersten Bildschirm. Die Begruendung ist nicht weg,
+            sie steht dort, wo sie hingehoert.
+          */}
           <p className="hero__lead">
             Ein Netz, das in Falten in einer schmalen Schiene liegt: einmal montiert, bleibt es das ganze Jahr. Wir
-            fertigen es auf Ihr Mass, kaufen direkt beim Hersteller und bündeln die Bestellungen – deshalb kostet es
-            einen Bruchteil dessen, was ein Fachbetrieb verlangt. Von Freunden und Nachbarn für Freunde und
-            Nachbarn.
+            fertigen es auf Ihr Mass – von Freunden und Nachbarn für Freunde und Nachbarn.
           </p>
 
           <div className="hero__actions">
@@ -50,7 +57,7 @@ export function Hero({ onRequestClick, onSiedlungenClick }: HeroProps) {
 
           <ul className="hero__proof">
             <li>
-              <strong>
+              <strong className="hero__preis">
                 CHF {priceRange.minChf}–{priceRange.maxChf}
               </strong>
               <span>pro Fenster, Richtwert</span>
