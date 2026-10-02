@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { raumbeispiele } from '../../data/beispiele'
-import { RELIABLE_AREA_M2, estimateNetChf } from '../../lib/estimate'
+import { estimateNetChf } from '../../lib/estimate'
 import { formatChf } from '../../lib/format'
 import { preisHinweis } from '../../data/shopConfig'
 import { MAX_CM, MIN_CM } from '../../lib/validate'
@@ -30,7 +30,6 @@ interface Gerechnet {
   gueltig: boolean
   flaecheM2: number
   preisChf: number | null
-  uebergross: boolean
 }
 
 /*
@@ -67,7 +66,6 @@ function rechnen(eingabe: Eingabe): Gerechnet {
     gueltig,
     flaecheM2,
     preisChf: gueltig ? estimateNetChf(flaecheM2) : null,
-    uebergross: gueltig && flaecheM2 > RELIABLE_AREA_M2,
   }
 }
 
@@ -258,10 +256,15 @@ export function Beispielrechner({ onUebernehmen }: BeispielrechnerProps) {
                         {formatChf(zahlen.preisChf)}
                         <span className="visually-hidden"> Richtpreis</span>
                       </p>
-                      <p className="rechner__flaeche">
-                        {zahlen.flaecheM2.toFixed(2).replace('.', ',')} m²
-                        {zahlen.uebergross ? ' · über unserem Erfahrungsbereich' : ''}
-                      </p>
+                      {/*
+                        HIER STAND "ueber unserem Erfahrungsbereich", sobald
+                        die Flaeche RELIABLE_AREA_M2 ueberschritt. Es war als
+                        Ehrlichkeit gedacht und wirkte als Warnung: Wer ein
+                        grosses Fenster eintippt, liest, dass wir uns nicht
+                        sicher sind - ohne zu erfahren, was er damit anfangen
+                        soll. Die Zahl steht ohnehin als Richtpreis da.
+                      */}
+                      <p className="rechner__flaeche">{zahlen.flaecheM2.toFixed(2).replace('.', ',')} m²</p>
                     </>
                   )}
                   {/*

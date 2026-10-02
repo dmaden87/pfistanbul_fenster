@@ -21,12 +21,20 @@ const UNCERTAINTY = 0.05
 /** Auf diesen Betrag wird aufgerundet – nie ab, damit die Offerte nicht teurer ausfällt als der Richtpreis. */
 const ROUND_TO_CHF = 10
 
-/**
- * Bis hierhin liegen wir im ausgemessenen Bereich (das grösste Format im
- * Sortiment misst knapp 2 m²). Darüber extrapoliert die Rechnung, und das
- * sagen wir auch.
+/*
+ * HIER STAND RELIABLE_AREA_M2 = 2.5, und daran hingen zwei Merker: `oversized`
+ * je Element und `anyOversized` ueber die ganze Schaetzung. Beide fuetterten
+ * nur einen Satz - "groesser als alles, was wir bisher ausgemessen haben,
+ * dort ist die Schaetzung ungenauer". Er ist raus: Er verwirrt, ohne dem
+ * Kunden zu sagen, was er damit anfangen soll, und steht ausgerechnet neben
+ * der Zahl, die er gerade wissen wollte.
+ *
+ * DIE EINSCHRAENKUNG IST DAMIT NICHT WEG. Sie steht einmal und ruhig beim
+ * Richtwert: "Fuer gaengige Formate bis rund 2 m²; groessere Flaechen und
+ * Tueren liegen darueber" (priceRange.maxAreaM2). Das ist dieselbe Aussage,
+ * nur als Angabe statt als Warnung - und sie gilt, bevor jemand tippt,
+ * statt ihn mitten im Rechnen zu erschrecken.
  */
-export const RELIABLE_AREA_M2 = 2.5
 
 export interface PriceModel {
   /** Sockelbetrag pro Netz, unabhängig von der Grösse. */
@@ -75,8 +83,6 @@ export interface EstimateLine {
   areaM2: number
   perNetChf: number
   totalChf: number
-  /** Grösser als das, was wir ausgemessen haben – die Schätzung wird unschärfer. */
-  oversized: boolean
 }
 
 export interface Estimate {
@@ -85,7 +91,6 @@ export interface Estimate {
   totalChf: number
   /** Zeilen, die noch nicht vollständig ausgefüllt sind und deshalb fehlen. */
   pendingCount: number
-  anyOversized: boolean
 }
 
 /** Grenzen wie in der Formularprüfung – was dort nicht durchgeht, wird auch nicht geschätzt. */
@@ -121,7 +126,6 @@ function parseLine(item: CustomRequestLine): EstimateLine | null {
     areaM2,
     perNetChf,
     totalChf: perNetChf * Math.floor(quantity),
-    oversized: areaM2 > RELIABLE_AREA_M2,
   }
 }
 
@@ -146,6 +150,5 @@ export function estimateCustomRequest(items: CustomRequestLine[]): Estimate | nu
     netCount: lines.reduce((sum, line) => sum + line.quantity, 0),
     totalChf: lines.reduce((sum, line) => sum + line.totalChf, 0),
     pendingCount,
-    anyOversized: lines.some((line) => line.oversized),
   }
 }

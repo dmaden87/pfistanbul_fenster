@@ -301,12 +301,15 @@ export function CustomRequestForm({ vorgabe }: CustomRequestFormProps = {}) {
               </p>
             )}
 
-            {estimate.anyOversized && (
-              <p className="estimate__flag">
-                Ein Element ist grösser als alles, was wir bisher ausgemessen haben. Dort ist die Schätzung ungenauer –
-                wir schauen es uns persönlich an.
-              </p>
-            )}
+            {/*
+              HIER STAND EIN HINWEIS auf Elemente ueber RELIABLE_AREA_M2:
+              "groesser als alles, was wir bisher ausgemessen haben, dort ist
+              die Schaetzung ungenauer". Dasselbe stand im Rechner darueber
+              und ist dort raus - es verwirrt, ohne dem Kunden zu sagen, was
+              er damit anfangen soll. Dass die Zahl eine Schaetzung ist und
+              der feste Preis in der Offerte steht, sagt der Absatz darueber
+              ohnehin, und zwar fuer jedes Fenster.
+            */}
           </aside>
         )}
       </div>

@@ -424,6 +424,31 @@ pruefe(
   /Ausmessen ist (immer|in jedem Fall) gratis/.test(startText),
 )
 
+/*
+ * ZWEI SAETZE, DIE IM QUELLTEXT GESUCHT WERDEN und nicht im HTML.
+ *
+ * Der Hinweis auf zu grosse Flaechen stand im Rechner neben dem Preis und im
+ * Formular neben der Summe - beide Male als Warnung genau dort, wo jemand
+ * gerade eine Zahl wissen wollte. Er ist raus; was er sagen sollte, steht
+ * einmal und ruhig beim Richtwert.
+ *
+ * Er erschien nur, wenn jemand grosse Masse eintippt, also nie in den
+ * vorgerenderten Seiten. Eine Suche im ausgelieferten HTML waere deshalb
+ * immer gruen gewesen, egal was im Code steht - eine Pruefung, die nichts
+ * prueft. Gesucht wird darum in den Bauteilen selbst.
+ */
+const bauteile = ['src/components/sections/Beispielrechner.tsx', 'src/components/forms/CustomRequestForm.tsx'].map(
+  (pfad) => [pfad, readFileSync(pfad, 'utf8')],
+)
+for (const satz of ['über unserem Erfahrungsbereich', 'Dort ist die Schätzung ungenauer']) {
+  /* Die Begruendung, warum der Satz weg ist, nennt ihn - in einem Kommentar.
+     Gesucht wird deshalb ausserhalb der Kommentare. */
+  const treffer = bauteile
+    .filter(([, text]) => text.replace(/\{?\/\*[\s\S]*?\*\/\}?/g, '').includes(satz))
+    .map(([pfad]) => pfad)
+  pruefe(`kein Bauteil zeigt wieder "${satz}"`, treffer.length === 0, treffer.join(', '))
+}
+
 // --- IndexNow ---------------------------------------------------------------
 //
 // Der Schluessel weist uns gegenueber Bing und Yandex als Betreiber aus. Liegt
