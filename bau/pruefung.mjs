@@ -1,6 +1,8 @@
 /** Prueft das ausgelieferte HTML: Kopfangaben, JSON-LD, Sitemap, robots.txt. */
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { windowTypes, netSets, activeUeberbauung } from '../src/data/catalog.ts'
+import { raumbeispiele } from '../src/data/beispiele.ts'
+import { estimateNetChf } from '../src/lib/estimate.ts'
 import { absolut, seiten, site, startseite, unterseiten } from '../src/data/site.ts'
 import { operator } from '../src/data/operator.ts'
 import { shopConfig } from '../src/data/shopConfig.ts'
@@ -165,6 +167,38 @@ pruefe(
   startText.indexOf('ausrechnen') < startText.indexOf(activeUeberbauung.name),
   `ausrechnen bei ${startText.indexOf('ausrechnen')}, ${activeUeberbauung.name} bei ${startText.indexOf(activeUeberbauung.name)}`,
 )
+/*
+ * DER BEISPIELRECHNER steht vorgerendert auf der Seite, mit Preis. Das ist
+ * mehr als Kosmetik: Wer ohne Javascript ankommt - ein Crawler, ein
+ * Textbrowser, jemand mit blockierten Skripten -, sieht die vier Raeume und
+ * vier Zahlen und nicht vier leere Kaesten. Geprueft wird gegen dieselbe
+ * Funktion, die der Rechner benutzt; eine zweite Preisliste faellt damit auf.
+ */
+const karten = [...html.matchAll(/<li class="rechner__karte">([\s\S]*?)<\/li>/g)].map((m) => ({
+  text: nurText(m[1]),
+  /* Die Masse stehen im value-Attribut des Eingabefelds und nicht im Text -
+     nurText wirft sie mit den Tags weg. */
+  werte: [...m[1].matchAll(/value="([^"]*)"/g)].map((v) => v[1]),
+}))
+pruefe(`Rechner hat ${raumbeispiele.length} Karten`, karten.length === raumbeispiele.length, String(karten.length))
+raumbeispiele.forEach((beispiel, i) => {
+  const karte = karten[i] ?? { text: '', werte: [] }
+  const preis = estimateNetChf((beispiel.breiteCm / 100) * (beispiel.hoeheCm / 100))
+  /*
+   * Je Karte geprueft, nicht gegen die ganze Seite: Bad und Kueche kommen
+   * beide auf denselben Betrag. Eine Suche ueber das ganze Dokument wuerde
+   * auch dann noch gruen melden, wenn eine Karte ihren Preis verloren hat.
+   */
+  pruefe(
+    `Rechner zeigt ${beispiel.label} mit Mass und Richtpreis`,
+    karte.text.includes(beispiel.label) &&
+      karte.text.includes(preis.toFixed(2)) &&
+      karte.werte.includes(String(beispiel.breiteCm)) &&
+      karte.werte.includes(String(beispiel.hoeheCm)),
+    `${beispiel.breiteCm}x${beispiel.hoeheCm}, ${preis.toFixed(2)}`,
+  )
+})
+
 pruefe(
   'Startseite verlinkt /siedlungen in Kopf und Fuss',
   (html.match(/href="\/siedlungen"/g) ?? []).length >= 2,

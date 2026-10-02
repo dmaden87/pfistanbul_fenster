@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { CustomRequestLine, CustomerDetails, SubmissionState } from '../../types'
+import type { Massuebernahme } from '../sections/Beispielrechner'
 import { ContactFields } from './ContactFields'
 import { PreLaunchNotice } from './PreLaunchNotice'
 import { emptyCustomer, hasErrors, validateCustomLines, validateCustomer, type Errors } from '../../lib/validate'
@@ -18,13 +19,22 @@ function newLine(index: number): CustomRequestLine {
   }
 }
 
-export function CustomRequestForm() {
+interface CustomRequestFormProps {
+  /** Masse, die der Beispielrechner herübergibt. Jede Übergabe trägt einen
+      eigenen Stand, damit zweimal dasselbe Fenster auch zweimal ankommt. */
+  vorgabe?: Massuebernahme
+}
+
+export function CustomRequestForm({ vorgabe }: CustomRequestFormProps = {}) {
   const [items, setItems] = useState<CustomRequestLine[]>([newLine(0)])
   const [customer, setCustomer] = useState<CustomerDetails>(emptyCustomer)
   const [contactErrors, setContactErrors] = useState<Errors<CustomerDetails>>({})
   const [lineErrors, setLineErrors] = useState<Record<string, Errors<CustomRequestLine>>>({})
   const [state, setState] = useState<SubmissionState>({ status: 'idle' })
-  const [counter, setCounter] = useState(1)
+  /* Laufende Nummer fuer die Zeilen-Ids. Als Ref und nicht als Zustand: Sie
+     wird auch aus der Uebernahme heraus hochgezaehlt, mitten in einem
+     setItems-Aufruf - ein zweiter Zustand waere dort einen Schritt zu spaet. */
+  const counterRef = useRef(1)
   // Wer den Ausmesstermin ausdrücklich selbst wünscht, schliesst damit das
   // Widerrufsrecht nach Art. 40a ff. OR für ein Haustürgeschäft aus. Der Wunsch
   // muss dokumentiert sein - deshalb wird er hier festgehalten und mitgeschickt.
@@ -35,13 +45,42 @@ export function CustomRequestForm() {
   // nicht erst eine Anfrage stellen muss, um eine Hausnummer zu kennen.
   const estimate = estimateCustomRequest(items)
 
+  /*
+   * MASSE AUS DEM RECHNER.
+   *
+   * Eine leere erste Zeile wird gefuellt, sonst kommt eine dazu - wer vier
+   * Fenster nacheinander uebernimmt, hat danach vier Zeilen und keine leere
+   * davor. Abgehoert wird der Stand, nicht die Masse: Zweimal dasselbe
+   * Fenster ist eine zulaessige Bestellung, und mit den Massen als
+   * Abhaengigkeit kaeme es nur einmal an.
+   */
+  const letzterStand = useRef(0)
+  useEffect(() => {
+    if (!vorgabe || vorgabe.stand === letzterStand.current) return
+    letzterStand.current = vorgabe.stand
+
+    const zeile = {
+      widthCm: String(vorgabe.breiteCm),
+      heightCm: String(vorgabe.hoeheCm),
+      quantity: '1',
+      room: vorgabe.raum,
+    }
+
+    const frisch = newLine(counterRef.current++)
+    setItems((current) => {
+      const leer = current.findIndex((i) => !i.widthCm.trim() && !i.heightCm.trim() && !i.room.trim())
+      if (leer >= 0) return current.map((i, k) => (k === leer ? { ...i, ...zeile } : i))
+      return [...current, { ...frisch, ...zeile }]
+    })
+  }, [vorgabe])
+
   const updateItem = (id: string, patch: Partial<CustomRequestLine>) => {
     setItems((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)))
   }
 
   const addItem = () => {
-    setItems((current) => [...current, newLine(counter)])
-    setCounter((value) => value + 1)
+    const frisch = newLine(counterRef.current++)
+    setItems((current) => [...current, frisch])
   }
 
   const removeItem = (id: string) => {
