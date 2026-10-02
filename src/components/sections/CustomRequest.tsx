@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { CustomRequestForm } from '../forms/CustomRequestForm'
 import { priceRange } from '../../data/catalog'
+import { lieferhinweis } from '../../data/shopConfig'
 import { Beispielrechner, type Massuebernahme } from './Beispielrechner'
 import './CustomRequest.css'
 
@@ -40,7 +41,7 @@ export function CustomRequest() {
               CHF {priceRange.minChf}–{priceRange.maxChf}
             </p>
             <p className="price-anchor__hint">
-              Für gängige Formate bis rund {priceRange.maxAreaM2} m², inklusive Lieferung, ohne Montage. Grössere
+              Für gängige Formate bis rund {priceRange.maxAreaM2} m², ohne Montage. {lieferhinweis} Grössere
               Flächen und Türen liegen darüber. Den festen Preis nennen wir in der Offerte.
             </p>
           </div>

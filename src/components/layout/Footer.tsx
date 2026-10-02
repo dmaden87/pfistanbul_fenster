@@ -1,5 +1,5 @@
 import { operator } from '../../data/operator'
-import { priceNote } from '../../data/shopConfig'
+import { lieferhinweisKurz, priceNote } from '../../data/shopConfig'
 import type { LegalKey } from '../../data/site'
 import './Footer.css'
 
@@ -80,7 +80,7 @@ export function Footer({ onOpenLegal, onNavigate, onOpenAdmin, onSiedlungenClick
       <div className="shell site-footer__base">
         <p>© {new Date().getFullYear()} Pfistanbul Fenster</p>
         <p>
-          {priceNote} · Lieferung im Pfisterhölzli kostenlos, im übrigen Kanton Zürich nach Absprache
+          {priceNote} · {lieferhinweisKurz}
         </p>
       </div>
     </footer>

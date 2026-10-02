@@ -1,4 +1,4 @@
-import { priceNote, shopConfig } from '../../data/shopConfig'
+import { lieferhinweis, priceNote, shopConfig } from '../../data/shopConfig'
 import { operator } from '../../data/operator'
 import type { LegalKey } from '../../data/site'
 import './LegalPage.css'
@@ -180,9 +180,8 @@ function Agb() {
 
       <h2>2. Preise</h2>
       <p>
-        {priceNote} Die Lieferung innerhalb der Siedlung Am Pfisterhölzli ist kostenlos. Ausserhalb liefern und
-        montieren wir im {shopConfig.serviceArea}; Lieferung und allfällige Anfahrt stehen in der Offerte, die Sie vor
-        dem Vertragsabschluss erhalten.
+        {priceNote} {lieferhinweis} Wir liefern und montieren im {shopConfig.serviceArea}; was ausserhalb davon
+        anfällt, steht in der Offerte, die Sie vor dem Vertragsabschluss erhalten.
       </p>
 
       <h2>3. Zahlung</h2>

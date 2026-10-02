@@ -51,11 +51,11 @@ export const shopConfig = {
    * Kleingedruckten und in den AGB. Die Positionierung ist eine andere: von
    * Freunden und Nachbarn fuer Freunde und Nachbarn.
    *
-   * Wichtig fuer die Preisangabe: Der Warenkorb ist bauartbedingt auf die
-   * ausgemessene Ueberbauung beschraenkt, denn nur dort gibt es feste
-   * Formate. Deshalb stimmt "Lieferung kostenlos" im Warenkorb immer. Alles
-   * ausserhalb laeuft ueber die Offerte, in der Lieferung und Montage
-   * einzeln stehen.
+   * Wichtig fuer die Preisangabe: Im Liefergebiet ist die Lieferung
+   * inbegriffen, ausserhalb kommt lieferpauschaleChf dazu und steht in der
+   * Offerte. Den Satz dazu gibt es weiter unten als `lieferhinweis` - auf
+   * der Seite steht er nirgends im Wortlaut, sonst laufen die Fassungen
+   * wieder auseinander.
    */
   serviceArea: 'Kanton Zürich',
 
@@ -100,6 +100,26 @@ export const shopConfig = {
   /** Ort des Gerichtsstands, erscheint in den AGB. */
   jurisdiction: 'Greifensee ZH',
 } as const
+
+/**
+ * Was die Lieferung kostet - EIN Satz, aus dem alle anderen entstehen.
+ *
+ * WARUM AN EINER STELLE: Diese Aussage stand bisher an sechs Orten im
+ * Wortlaut, und sie war an vieren veraltet. Die Startseite versprach
+ * "inklusive Lieferung", das Anfrageformular schrieb "im Pfisterhoelzli
+ * enthalten, ausserhalb kommt die Anfahrt dazu", der Fuss "im uebrigen
+ * Kanton Zuerich nach Absprache" - drei verschiedene Zusagen auf derselben
+ * Seite, und der Kunde haette sich die freundlichste merken duerfen.
+ *
+ * Die Regel selbst steckt schon in shopConfig: Im serviceArea ist die
+ * Lieferung inbegriffen, ausserhalb gilt lieferpauschaleChf, und die Offerte
+ * weist sie aus (siehe admin/Offerte.tsx). Hier wird sie nur in Worte
+ * gefasst. Wer das Liefergebiet aendert, aendert den Satz mit.
+ */
+export const lieferhinweis = `Lieferung im ${shopConfig.serviceArea} inbegriffen; ausserhalb weisen wir sie in der Offerte aus.`
+
+/** Kurzform fuer Fusszeilen, wo kein ganzer Satz Platz hat. */
+export const lieferhinweisKurz = `Lieferung im ${shopConfig.serviceArea} inbegriffen`
 
 /** Preiszusatz, der zur MwSt-Situation passt. */
 export const priceNote = shopConfig.vatRegistered

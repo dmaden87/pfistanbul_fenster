@@ -5,7 +5,7 @@ import { raumbeispiele } from '../src/data/beispiele.ts'
 import { estimateNetChf } from '../src/lib/estimate.ts'
 import { absolut, seiten, site, startseite, unterseiten } from '../src/data/site.ts'
 import { operator } from '../src/data/operator.ts'
-import { shopConfig } from '../src/data/shopConfig.ts'
+import { lieferhinweis, lieferhinweisKurz, shopConfig } from '../src/data/shopConfig.ts'
 
 const html = readFileSync('dist/index.html', 'utf8')
 const pruefungen = []
@@ -277,6 +277,54 @@ for (const seite of unterseiten) {
   const typen = new Set(graph.map((k) => k['@type']))
   pruefe(`${seite.pfad} ohne Produktdaten`, !typen.has('Product') && !typen.has('FAQPage'), [...typen].join(', '))
   pruefe(`${seite.pfad} nennt die Organisation`, typen.has('Organization'))
+}
+
+// --- Was wir ueber die Lieferung sagen ---------------------------------------
+//
+// Diese Zusage stand einmal an sechs Stellen im Wortlaut und war an vieren
+// veraltet: "inklusive Lieferung", "im Pfisterhoelzli enthalten, ausserhalb
+// kommt die Anfahrt dazu", "im uebrigen Kanton Zuerich nach Absprache". Drei
+// verschiedene Versprechen auf derselben Seite, und gelesen haette der Kunde
+// das freundlichste. Jetzt kommt der Satz aus shopConfig - geprueft wird
+// beides: dass er ankommt, und dass keine alte Fassung daneben stehen blieb.
+const ausgeliefert = [['/', html], ...unterseiten.map((s) => [s.pfad, readFileSync(`dist${s.pfad}.html`, 'utf8')])]
+
+for (const [pfad, seite] of [
+  ['/', html],
+  ['/agb', readFileSync('dist/agb.html', 'utf8')],
+]) {
+  pruefe(`${pfad} nennt die Lieferzusage aus shopConfig`, nurText(seite).includes(lieferhinweis), lieferhinweis)
+}
+/*
+ * Im FUSS gesucht und nicht auf der ganzen Seite: Die Kurzform ist ein
+ * Teilstueck des langen Satzes. Eine Suche ueber das ganze Dokument meldete
+ * auch dann gruen, wenn die Fusszeile die Zusage gar nicht mehr traegt -
+ * und auf /impressum oder /datenschutz steht sie nirgends sonst.
+ */
+const fussVon = (seite) => {
+  const von = seite.indexOf('site-footer__base')
+  return von < 0 ? '' : nurText(seite.slice(von))
+}
+const ohneFuss = ausgeliefert.filter(([, seite]) => !fussVon(seite).includes(lieferhinweisKurz)).map(([pfad]) => pfad)
+pruefe('jede Seite traegt die Kurzform im Fuss', ohneFuss.length === 0, ohneFuss.join(', '))
+
+/*
+ * Die ueberholten Fassungen namentlich. Eine allgemeine Regel fuer "sagt
+ * etwas anderes ueber die Lieferung" gibt es nicht; was es gibt, sind genau
+ * diese Saetze, die hier einmal standen. Wer einen davon wieder schreibt,
+ * soll es gemeldet bekommen.
+ *
+ * "Lieferung innerhalb der Siedlung kostenlos" fehlt hier bewusst: Das gilt
+ * weiterhin und widerspricht nichts - in der Siedlung liefern wir an die
+ * Wohnungstuer, und die liegt im Kanton Zuerich.
+ */
+for (const alt of [
+  'im übrigen Kanton Zürich nach Absprache',
+  'Im Pfisterhölzli ist die Lieferung enthalten',
+  'inklusive Lieferung, ohne Montage',
+]) {
+  const betroffen = ausgeliefert.filter(([, seite]) => seite.includes(alt)).map(([pfad]) => pfad)
+  pruefe(`keine Seite sagt mehr "${alt}"`, betroffen.length === 0, betroffen.join(', '))
 }
 
 // --- IndexNow ---------------------------------------------------------------
