@@ -174,15 +174,39 @@ pruefe(
  * vier Zahlen und nicht vier leere Kaesten. Geprueft wird gegen dieselbe
  * Funktion, die der Rechner benutzt; eine zweite Preisliste faellt damit auf.
  */
-const karten = [...html.matchAll(/<li class="rechner__karte">([\s\S]*?)<\/li>/g)].map((m) => ({
-  text: nurText(m[1]),
-  /* Die Masse stehen im value-Attribut des Eingabefelds und nicht im Text -
-     nurText wirft sie mit den Tags weg. */
-  werte: [...m[1].matchAll(/value="([^"]*)"/g)].map((v) => v[1]),
-}))
-pruefe(`Rechner hat ${raumbeispiele.length} Karten`, karten.length === raumbeispiele.length, String(karten.length))
+/*
+ * Die Beispielfelder werden am Anfang des naechsten aufgetrennt, nicht mit
+ * einem Ausdruck fuer "bis zum schliessenden div". Ein Feld enthaelt weitere
+ * divs; ein nicht-gieriger Ausdruck endet dann am ersten inneren Schluss und
+ * schneidet genau das weg, was geprueft werden soll.
+ */
+const anfaenge = [...html.matchAll(/<div([^>]*class="rechner__held")>/g)]
+const felder = anfaenge.map((m, i) => {
+  const von = m.index + m[0].length
+  const bis = i + 1 < anfaenge.length ? anfaenge[i + 1].index : html.indexOf('rechner__hinweis', von)
+  const roh = html.slice(von, bis)
+  return {
+    kopf: m[1],
+    text: nurText(roh),
+    /* Die Masse stehen im value-Attribut des Eingabefelds und nicht im Text -
+       nurText wirft sie mit den Tags weg. */
+    werte: [...roh.matchAll(/value="([^"]*)"/g)].map((v) => v[1]),
+  }
+})
+pruefe(`Rechner hat ${raumbeispiele.length} Beispiele`, felder.length === raumbeispiele.length, String(felder.length))
+/*
+ * Eines sichtbar, drei versteckt. Beide Haelften zaehlen: Faellt `hidden`
+ * weg, stehen vier Beispiele uebereinander auf der Seite, bis Javascript
+ * laedt. Verschwinden die drei ganz aus dem HTML, sieht ein Crawler nur noch
+ * ein Fenster statt vier.
+ */
+pruefe(
+  'genau ein Beispiel ist offen, die anderen stehen versteckt im HTML',
+  felder.filter((f) => !f.kopf.includes('hidden')).length === 1,
+  `${felder.filter((f) => !f.kopf.includes('hidden')).length} offen von ${felder.length}`,
+)
 raumbeispiele.forEach((beispiel, i) => {
-  const karte = karten[i] ?? { text: '', werte: [] }
+  const karte = felder[i] ?? { text: '', werte: [] }
   const preis = estimateNetChf((beispiel.breiteCm / 100) * (beispiel.hoeheCm / 100))
   /*
    * Je Karte geprueft, nicht gegen die ganze Seite: Bad und Kueche kommen

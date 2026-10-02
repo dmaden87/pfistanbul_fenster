@@ -1,7 +1,9 @@
-/* Der Beispielrechner. Vier Karten, die man anfassen kann.
-   Aufbau und Masse lehnen sich bewusst an die Typenkarten im Sortiment an -
-   es sind dieselben vier Raeume, und wer beide Seiten sieht, soll sie
-   wiedererkennen. */
+/* Der Beispielrechner: links die Auswahl, rechts ein grosses Beispiel.
+
+   Die Buehne ist ein Raster aus zwei Spalten. Alle vier Beispielfelder liegen
+   in derselben Zelle uebereinander - die nicht gewaehlten tragen `hidden` und
+   sind damit aus Darstellung und Vorlesereihenfolge draussen, stehen aber im
+   HTML. */
 
 .rechner {
   max-width: 62rem;
@@ -14,73 +16,138 @@
 
 .rechner__kopf p {
   margin-top: var(--space-2);
-  max-width: 56ch;
+  max-width: 60ch;
   color: var(--text-muted);
   font-size: var(--step--1);
 }
 
-/* Vier feste Spalten, nicht auto-fit: Bei vier Karten setzt auto-fit je nach
-   Breite drei um und laesst eine allein in der zweiten Reihe stehen. Die
-   Stufen sind dieselben wie bei den Typenkarten im Sortiment. */
-.rechner__liste {
-  margin: var(--space-5) 0 0;
-  padding: 0;
-  list-style: none;
+.rechner__buehne {
+  margin-top: var(--space-5);
   display: grid;
+  grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
   gap: var(--space-4);
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
 }
 
-@media (max-width: 64rem) {
-  .rechner__liste {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+/* --- Die Balken ---------------------------------------------------------- */
+
+.rechner__wahl {
+  display: grid;
+  gap: var(--space-2);
 }
 
-@media (max-width: 40rem) {
-  .rechner__liste {
-    grid-template-columns: 1fr;
-  }
-}
-
-.rechner__karte {
+.rechner__balken {
   display: flex;
-  flex-direction: column;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+
+.rechner__balken:hover {
+  border-color: var(--accent);
+}
+
+.rechner__balken:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Der gewaehlte Balken ist gefuellt, nicht bloss umrandet: Ein Unterschied,
+   der nur in der Rahmenfarbe liegt, verschwindet auf einem hellen Bildschirm
+   im Sonnenlicht - und genau dort steht jemand, der ueber Insektenschutz
+   nachdenkt. */
+.rechner__balken.is-aktiv {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.rechner__balken-name {
+  font-family: var(--font-display);
+  font-size: var(--step-0);
+  font-weight: 600;
+}
+
+.rechner__balken-preis {
+  font-size: var(--step--1);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+
+/* --- Das Beispiel -------------------------------------------------------- */
+
+.rechner__held {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-5);
+  padding: var(--space-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface);
-  overflow: hidden;
+  /* Alle vier liegen in derselben Rasterzelle. Ohne das stuende jedes Feld in
+     der Zeile seines eigenen Index, also untereinander statt uebereinander. */
+  grid-column: 2;
+  grid-row: 1;
 }
 
-/* Die Skizze bekommt eine feste Hoehe, weil ihr Seitenverhaeltnis an den
-   eingegebenen Massen haengt: ohne festen Rahmen wuerde die ganze Karte
-   beim Tippen huepfen. */
+.rechner__held[hidden] {
+  display: none;
+}
+
+/* DIE BUEHNE HAT EIN FESTES SEITENVERHAELTNIS, und zwar dasselbe, das
+   Beispielrechner.tsx als BUEHNE_RATIO kennt. Wer es hier aendert, muss es
+   dort mitaendern.
+
+   Warum ueberhaupt: Die Skizze soll hineinpassen wie ein Bild mit
+   `object-fit: contain` - breite Fenster an der Breite ausgerichtet, hohe an
+   der Hoehe. CSS kann das fuer eine Box mit Seitenverhaeltnis nicht von
+   selbst; es braucht den Vergleich "Fenster breiter als Buehne?". Steht das
+   Verhaeltnis der Buehne fest, kann das Bauteil diesen Vergleich anstellen
+   und die Entscheidung als Klasse mitgeben.
+
+   Ohne das war das Ergebnis: Die Skizze nahm die volle Hoehe, rechnete sich
+   eine zu grosse Breite aus, wurde an der Spalte abgeschnitten - und jedes
+   Fenster sah gleich quadratisch aus, egal was dastand. */
 .rechner__bild {
-  display: grid;
-  place-items: center;
-  height: 9rem;
-  padding: var(--space-3);
-  background: var(--surface-raised);
-  border-bottom: 1px solid var(--border);
-}
-
-.rechner__bild > * {
-  max-height: 100%;
-  max-width: 100%;
-}
-
-/* Spalte mit den Massen unten: Die Raumzeile im Zimmer bricht auf zwei
-   Zeilen um, und ohne das stuenden die Eingabefelder der vier Karten auf
-   verschiedenen Hoehen. */
-.rechner__text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 4 / 3;
   padding: var(--space-4);
-  flex: 1;
+  background: var(--surface-raised);
+  border-radius: var(--radius-md);
+}
+
+.rechner__bild--breit > * {
+  inline-size: 100%;
+  block-size: auto;
+}
+
+.rechner__bild--hoch > * {
+  block-size: 100%;
+  inline-size: auto;
+}
+
+.rechner__text {
   display: flex;
   flex-direction: column;
 }
 
 .rechner__text h4 {
-  font-size: var(--step-0);
+  font-size: var(--step-1);
 }
 
 .rechner__raum,
@@ -91,15 +158,14 @@
 }
 
 .rechner__masse {
-  margin-top: auto;
-  padding-top: var(--space-4);
+  margin-top: var(--space-4);
   display: grid;
   gap: var(--space-2);
 }
 
 .rechner__masse label {
   display: grid;
-  grid-template-columns: 4rem minmax(0, 1fr) 2rem;
+  grid-template-columns: 4.5rem minmax(0, 1fr) 2rem;
   align-items: center;
   gap: var(--space-2);
   font-size: var(--step--1);
@@ -108,7 +174,7 @@
 
 .rechner__masse input {
   width: 100%;
-  padding: 0.5rem 0.6rem;
+  padding: 0.6rem 0.7rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface-raised);
@@ -126,19 +192,21 @@
   color: var(--text-subtle);
 }
 
-.rechner__fuss {
-  padding: var(--space-4);
-  border-top: 1px solid var(--border);
+/* Das Ergebnis sitzt unten: Die Raumzeile im Zimmer bricht auf zwei Zeilen
+   um, und ohne das wanderte der Preis beim Umschalten mit. */
+.rechner__ergebnis {
+  margin-top: auto;
+  padding-top: var(--space-4);
   display: grid;
   gap: var(--space-2);
 }
 
 .rechner__preis {
   font-family: var(--font-display);
-  font-size: var(--step-2);
+  font-size: var(--step-3);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   line-height: 1;
 }
 
@@ -153,9 +221,9 @@
   color: var(--text-muted);
 }
 
-.rechner__fuss .btn {
-  width: 100%;
-  margin-top: var(--space-1);
+.rechner__ergebnis .btn {
+  justify-self: start;
+  margin-top: var(--space-2);
 }
 
 .rechner__hinweis {
@@ -163,4 +231,42 @@
   max-width: 62ch;
   color: var(--text-muted);
   font-size: var(--step--1);
+}
+
+/* --- Schmal -------------------------------------------------------------- */
+
+/* Die Balken wandern ueber das Beispiel und werden zu zwei Reihen. Sie
+   bleiben sichtbar und beschriftet - ein Auswahlmenue waere kuerzer, aber
+   dann saehe man die vier Preise nicht mehr nebeneinander. */
+@media (max-width: 55rem) {
+  .rechner__buehne {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rechner__wahl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rechner__held {
+    grid-column: 1;
+    grid-row: 2;
+  }
+}
+
+@media (max-width: 40rem) {
+  .rechner__balken {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    padding: var(--space-3);
+  }
+
+  .rechner__held {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--space-4);
+  }
+
+  .rechner__bild {
+    aspect-ratio: 3 / 2;
+  }
 }

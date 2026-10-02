@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { raumbeispiele } from '../../data/beispiele'
 import { RELIABLE_AREA_M2, estimateNetChf } from '../../lib/estimate'
 import { formatChf } from '../../lib/format'
@@ -23,14 +23,75 @@ interface Eingabe {
   hoehe: string
 }
 
+interface Gerechnet {
+  breite: number
+  hoehe: number
+  gueltig: boolean
+  flaecheM2: number
+  preisChf: number | null
+  uebergross: boolean
+}
+
+/*
+ * Grenzen fuers Seitenverhaeltnis der Skizze. Die Rechnung laesst 20 bis 300
+ * cm je Seite zu, also bis 15:1 - eine solche Skizze waere ein Strich und
+ * wuerde aus ihrem Rahmen laufen. Die Zahl darunter stimmt weiterhin; nur das
+ * Bild hoert bei einem Verhaeltnis auf, das noch wie ein Fenster aussieht.
+ */
+const RATIO_MIN = 0.3
+const RATIO_MAX = 3.2
+
 /**
- * Vier Räume zum Anfassen.
+ * Das Seitenverhaeltnis der Buehne, in der die Skizze steht. Gespiegelt aus
+ * Beispielrechner.css (.rechner__bild) - dort steht, warum es feststeht.
+ * Breitere Fenster richten sich an der Breite aus, hoehere an der Hoehe.
+ */
+const BUEHNE_RATIO = 4 / 3
+
+function rechnen(eingabe: Eingabe): Gerechnet {
+  const breite = Number(eingabe.breite)
+  const hoehe = Number(eingabe.hoehe)
+  const gueltig =
+    Number.isFinite(breite) &&
+    Number.isFinite(hoehe) &&
+    breite >= MIN_CM &&
+    breite <= MAX_CM &&
+    hoehe >= MIN_CM &&
+    hoehe <= MAX_CM
+
+  const flaecheM2 = gueltig ? (breite / 100) * (hoehe / 100) : 0
+  return {
+    breite,
+    hoehe,
+    gueltig,
+    flaecheM2,
+    preisChf: gueltig ? estimateNetChf(flaecheM2) : null,
+    uebergross: gueltig && flaecheM2 > RELIABLE_AREA_M2,
+  }
+}
+
+/**
+ * Ein Beispiel zum Anfassen, vier zur Auswahl.
  *
  * WARUM ES DAS GIBT: Die vier Skizzen - Bad, Küche, Zimmer, Balkontüre -
  * waren das, was von der alten Startseite hängenblieb. Sie standen dort als
  * Sortiment mit festen Preisen, und das stimmte nur für eine ausgemessene
  * Siedlung. Jetzt stehen sie als Rechner: dieselben vier Räume, dieselben
  * Skizzen, aber die Masse gehören der Besucherin, nicht uns.
+ *
+ * WARUM EINER STATT VIER: Vier gleichwertige Karten nebeneinander lesen sich
+ * als Sortiment - "wähl eines aus" -, und genau das ist die Ordnung, die wir
+ * abgeräumt haben. Niemand misst vier Fenster gleichzeitig. Links die Auswahl,
+ * rechts ein grosses Beispiel: Das sagt "such das, was deinem am nächsten
+ * kommt, und tipp deine Zahlen rein".
+ *
+ * DIE BALKEN TRAGEN IHREN PREIS MIT. Sonst ginge beim Umbau das Einzige
+ * verloren, was das Nebeneinander konnte - der Vergleich auf einen Blick.
+ *
+ * ALLE VIER BEISPIELE STEHEN IM HTML, die nicht gewählten mit `hidden`. Wer
+ * ohne Javascript ankommt - ein Crawler, ein Textbrowser, jemand mit
+ * blockierten Skripten -, findet damit alle vier Räume samt Zahlen und nicht
+ * einen einzigen. Deshalb wird hier auch nichts bedingt gerendert.
  *
  * Gerechnet wird mit estimateNetChf() - derselben Funktion wie im Formular
  * darunter. Was hier steht, steht dort wieder; eine eigene Rechnung an dieser
@@ -46,46 +107,98 @@ export function Beispielrechner({ onUebernehmen }: BeispielrechnerProps) {
       raumbeispiele.map((b) => [b.id, { breite: String(b.breiteCm), hoehe: String(b.hoeheCm) }]),
     ),
   )
+  const [gewaehlt, setGewaehlt] = useState(raumbeispiele[0].id)
   const [stand, setStand] = useState(0)
+  const balken = useRef<(HTMLButtonElement | null)[]>([])
 
   const aendern = (id: string, teil: Partial<Eingabe>) => {
     setEingaben((alle) => ({ ...alle, [id]: { ...alle[id], ...teil } }))
   }
 
+  /*
+   * Pfeiltasten im Balkenstapel. Ein Reiterwerk, das nur mit der Maus
+   * bedienbar ist, ist für Tastatur und Screenreader eine Sackgasse: Die
+   * nicht gewählten Reiter liegen bewusst ausserhalb der Tabulatorfolge,
+   * also muss etwas anderes zwischen ihnen wechseln.
+   */
+  const taste = (event: React.KeyboardEvent, i: number) => {
+    const schritt =
+      event.key === 'ArrowDown' || event.key === 'ArrowRight'
+        ? 1
+        : event.key === 'ArrowUp' || event.key === 'ArrowLeft'
+          ? -1
+          : event.key === 'Home'
+            ? -i
+            : event.key === 'End'
+              ? raumbeispiele.length - 1 - i
+              : 0
+    if (schritt === 0) return
+    event.preventDefault()
+    const ziel = (i + schritt + raumbeispiele.length) % raumbeispiele.length
+    setGewaehlt(raumbeispiele[ziel].id)
+    balken.current[ziel]?.focus()
+  }
+
   return (
     <div className="rechner">
       <div className="rechner__kopf">
-        <h3>Vier Räume zum Ausprobieren</h3>
+        <h3>Rechnen Sie an einem Beispiel</h3>
         <p>
-          Die Masse sind nur ein Anfang – überschreiben Sie sie mit Ihren. Gemessen wird die Lichte, also die
-          Öffnung von Leibung zu Leibung. Der Preis rechnet beim Tippen mit.
+          Vier typische Fenster als Startpunkt – wählen Sie das, was Ihrem am nächsten kommt, und überschreiben Sie
+          die Masse mit Ihren. Gemessen wird die Lichte, also die Öffnung von Leibung zu Leibung. Der Preis rechnet
+          beim Tippen mit.
         </p>
       </div>
 
-      <ul className="rechner__liste">
+      <div className="rechner__buehne">
+        <div className="rechner__wahl" role="tablist" aria-orientation="vertical" aria-label="Beispiel wählen">
+          {raumbeispiele.map((beispiel, i) => {
+            const zahlen = rechnen(eingaben[beispiel.id])
+            const aktiv = beispiel.id === gewaehlt
+            return (
+              <button
+                key={beispiel.id}
+                type="button"
+                role="tab"
+                id={`rechner-balken-${beispiel.id}`}
+                aria-selected={aktiv}
+                aria-controls={`rechner-feld-${beispiel.id}`}
+                tabIndex={aktiv ? 0 : -1}
+                ref={(el) => {
+                  balken.current[i] = el
+                }}
+                className={`rechner__balken${aktiv ? ' is-aktiv' : ''}`}
+                onClick={() => setGewaehlt(beispiel.id)}
+                onKeyDown={(e) => taste(e, i)}
+              >
+                <span className="rechner__balken-name">{beispiel.label}</span>
+                <span className="rechner__balken-preis">
+                  {zahlen.preisChf === null ? '–' : `≈ ${formatChf(zahlen.preisChf)}`}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+
         {raumbeispiele.map((beispiel, i) => {
           const eingabe = eingaben[beispiel.id]
-          const breite = Number(eingabe.breite)
-          const hoehe = Number(eingabe.hoehe)
-          const gueltig =
-            Number.isFinite(breite) &&
-            Number.isFinite(hoehe) &&
-            breite >= MIN_CM &&
-            breite <= MAX_CM &&
-            hoehe >= MIN_CM &&
-            hoehe <= MAX_CM
-          const flaeche = gueltig ? (breite / 100) * (hoehe / 100) : 0
-          const preis = gueltig ? estimateNetChf(flaeche) : null
-          const gross = gueltig && flaeche > RELIABLE_AREA_M2
+          const zahlen = rechnen(eingabe)
+          const aktiv = beispiel.id === gewaehlt
+          const verhaeltnis = zahlen.gueltig
+            ? Math.min(RATIO_MAX, Math.max(RATIO_MIN, zahlen.breite / zahlen.hoehe))
+            : 1
 
           return (
-            <li className="rechner__karte" key={beispiel.id}>
-              <div className="rechner__bild">
-                <PlisseeVisual
-                  direction={beispiel.oeffnung}
-                  ratio={gueltig ? breite / hoehe : 1}
-                  delayMs={i * 700}
-                />
+            <div
+              key={beispiel.id}
+              role="tabpanel"
+              id={`rechner-feld-${beispiel.id}`}
+              aria-labelledby={`rechner-balken-${beispiel.id}`}
+              hidden={!aktiv}
+              className="rechner__held"
+            >
+              <div className={`rechner__bild rechner__bild--${verhaeltnis >= BUEHNE_RATIO ? 'breit' : 'hoch'}`}>
+                <PlisseeVisual direction={beispiel.oeffnung} ratio={verhaeltnis} delayMs={i * 300} />
               </div>
 
               <div className="rechner__text">
@@ -119,42 +232,48 @@ export function Beispielrechner({ onUebernehmen }: BeispielrechnerProps) {
                     <span className="rechner__einheit">cm</span>
                   </label>
                 </div>
-              </div>
 
-              <div className="rechner__fuss">
-                {preis === null ? (
-                  <p className="rechner__fehler" role="status">
-                    Zwischen {MIN_CM} und {MAX_CM} cm, bitte
-                  </p>
-                ) : (
-                  <>
-                    <p className="rechner__preis">
-                      <span aria-hidden="true">≈ </span>
-                      {formatChf(preis)}
-                      <span className="visually-hidden"> Richtpreis</span>
+                <div className="rechner__ergebnis">
+                  {zahlen.preisChf === null ? (
+                    <p className="rechner__fehler" role="status">
+                      Zwischen {MIN_CM} und {MAX_CM} cm, bitte
                     </p>
-                    <p className="rechner__flaeche">
-                      {flaeche.toFixed(2).replace('.', ',')} m²{gross ? ' · über unserem Erfahrungsbereich' : ''}
-                    </p>
-                  </>
-                )}
-                <button
-                  type="button"
-                  className="btn btn--ghost"
-                  disabled={preis === null}
-                  onClick={() => {
-                    const naechster = stand + 1
-                    setStand(naechster)
-                    onUebernehmen({ breiteCm: breite, hoeheCm: hoehe, raum: beispiel.raum, stand: naechster })
-                  }}
-                >
-                  Masse übernehmen
-                </button>
+                  ) : (
+                    <>
+                      <p className="rechner__preis">
+                        <span aria-hidden="true">≈ </span>
+                        {formatChf(zahlen.preisChf)}
+                        <span className="visually-hidden"> Richtpreis</span>
+                      </p>
+                      <p className="rechner__flaeche">
+                        {zahlen.flaecheM2.toFixed(2).replace('.', ',')} m²
+                        {zahlen.uebergross ? ' · über unserem Erfahrungsbereich' : ''}
+                      </p>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={zahlen.preisChf === null}
+                    onClick={() => {
+                      const naechster = stand + 1
+                      setStand(naechster)
+                      onUebernehmen({
+                        breiteCm: zahlen.breite,
+                        hoeheCm: zahlen.hoehe,
+                        raum: beispiel.raum,
+                        stand: naechster,
+                      })
+                    }}
+                  >
+                    Masse übernehmen
+                  </button>
+                </div>
               </div>
-            </li>
+            </div>
           )
         })}
-      </ul>
+      </div>
 
       {/*
         KEINE ZUSAGE ZUR LIEFERUNG an dieser Stelle. Das Formular zwei
