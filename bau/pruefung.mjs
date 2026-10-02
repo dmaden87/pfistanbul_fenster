@@ -343,6 +343,9 @@ for (const alt of [
   'inklusive Lieferung, ohne Montage',
   'Lieferung im Kanton Zürich inbegriffen',
   'Richtpreise pro Netz, ohne Montage',
+  // Die alte Pauschale. Sie stand nie oeffentlich, aber wer sie wieder
+  // einsetzt, tut es vermutlich mit der alten Zahl.
+  'CHF&nbsp;80.00',
 ]) {
   const betroffen = ausgeliefert.filter(([, seite]) => seite.includes(alt)).map(([pfad]) => pfad)
   pruefe(`keine Seite sagt mehr "${alt}"`, betroffen.length === 0, betroffen.join(', '))
@@ -383,6 +386,22 @@ pruefe(
   `Startseite nennt die Montage mit ${shopConfig.montageChf}.-`,
   startText.includes(`${shopConfig.montageChf}.00`),
   `${shopConfig.montageChf}.00`,
+)
+
+/*
+ * Die Anfahrtspauschale steht an zwei oeffentlichen Stellen: im Preissatz
+ * und in der FAQ. Beide ziehen sie aus shopConfig - geprueft wird, dass die
+ * Seite auch wirklich die Zahl aus der Konfiguration traegt und nicht eine,
+ * die jemand danebengeschrieben hat.
+ */
+pruefe(
+  `Startseite nennt die Anfahrtspauschale mit ${shopConfig.anfahrtspauschaleChf}.-`,
+  schmal(startText).includes(`CHF ${shopConfig.anfahrtspauschaleChf}.00 pauschal`),
+  `CHF ${shopConfig.anfahrtspauschaleChf}.00 pauschal`,
+)
+pruefe(
+  'Startseite sagt, dass das Ausmessen gratis ist',
+  /Ausmessen ist (immer|in jedem Fall) gratis/.test(startText),
 )
 
 // --- IndexNow ---------------------------------------------------------------

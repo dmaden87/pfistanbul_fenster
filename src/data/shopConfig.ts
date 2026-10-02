@@ -54,7 +54,7 @@ export const shopConfig = {
    * Freunden und Nachbarn fuer Freunde und Nachbarn.
    *
    * Wichtig fuer die Preisangabe: Im Liefergebiet ist die Lieferung
-   * inbegriffen, ausserhalb kommt lieferpauschaleChf dazu und steht in der
+   * inbegriffen, ausserhalb kommt anfahrtspauschaleChf dazu und steht in der
    * Offerte. Den Satz dazu gibt es weiter unten als `lieferhinweis` - auf
    * der Seite steht er nirgends im Wortlaut, sonst laufen die Fassungen
    * wieder auseinander.
@@ -76,13 +76,24 @@ export const shopConfig = {
   montageChf: 15,
 
   /**
-   * Lieferpauschale ausserhalb des Liefergebiets, in CHF. Im Kanton Zürich
-   * liefern wir kostenlos; wer weiter weg wohnt, bekommt eine Offerte mit
-   * dieser Pauschale. Bewusst nur in der Offerte und nicht im Warenkorb: Der
-   * Warenkorb ist auf die ausgemessene Überbauung beschränkt, dort ist die
-   * Lieferung immer inbegriffen.
+   * Anfahrtspauschale ausserhalb des Liefergebiets, in CHF. Im serviceArea
+   * fahren wir ohnehin, dort kostet es nichts; wer weiter weg wohnt, bekommt
+   * eine Offerte mit dieser Pauschale.
+   *
+   * SIE HIESS "lieferpauschale" UND STAND BEI 80. Beides war falsch: Bezahlt
+   * wird nicht, dass das Netz ankommt, sondern dass jemand hinfaehrt - und
+   * 80 Franken sind keine Benzinpauschale, sondern ein Posten, ueber den
+   * jemand nachdenkt. Es sind 20.
+   *
+   * NICHT FUERS AUSMESSEN. Der Besuch zum Ausmessen ist immer gratis; lohnt
+   * er sich fuer uns nicht, sagen wir vorher ab, statt ihn zu verrechnen.
+   * Diese Pauschale betrifft Liefern und Montieren.
+   *
+   * Bewusst nur in der Offerte und nicht im Warenkorb: Der Warenkorb ist auf
+   * die ausgemessene Ueberbauung beschraenkt, dort ist die Anfahrt immer
+   * inbegriffen.
    */
-  lieferpauschaleChf: 80,
+  anfahrtspauschaleChf: 20,
 
   /**
    * INTERN, bewusst nicht auf der Seite: Erst ab dieser Anzahl Netze trägt
@@ -128,11 +139,12 @@ export const shopConfig = {
  */
 export const preisHinweis =
   `Der Richtpreis gilt für das Netz. Die Montage kostet ${formatChf(shopConfig.montageChf)} pro Netz, ` +
-  `die Anfahrt im ${shopConfig.serviceArea} nichts – ausserhalb kommt sie in der Offerte dazu.`
+  `die Anfahrt im ${shopConfig.serviceArea} nichts – ausserhalb ${formatChf(shopConfig.anfahrtspauschaleChf)} pauschal. ` +
+  `Das Ausmessen ist immer gratis.`
 
 /** Kurzform fuer Fusszeilen, wo kein ganzer Satz Platz hat. */
 export const preisHinweisKurz =
-  `Montage ${formatChf(shopConfig.montageChf)} pro Netz · Anfahrt im ${shopConfig.serviceArea} gratis`
+  `Montage ${formatChf(shopConfig.montageChf)} pro Netz · Anfahrt im ${shopConfig.serviceArea} gratis · Ausmessen gratis`
 
 /** Preiszusatz, der zur MwSt-Situation passt. */
 export const priceNote = shopConfig.vatRegistered

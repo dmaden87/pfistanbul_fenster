@@ -14,7 +14,7 @@
  */
 import assert from 'node:assert/strict'
 import { auftragAufbauen, kennungFuer, packmass, pakete } from '../src/lib/bestellauftrag.ts'
-import { PACKMASS } from '../src/data/produktion.ts'
+import { MECHANISMEN, PACKMASS, RAHMENFARBEN, beschriften } from '../src/data/produktion.ts'
 
 let bestanden = 0
 const fehler = []
@@ -168,6 +168,35 @@ pruefe('Jedes Paket bekommt sein eigenes Packmass', () => {
 pruefe('Die Kennung ist kurz und ohne Sonderzeichen', () => {
   assert.equal(kennungFuer({ referenz: 'pf-8812', id: 'x' }), 'PF-8812')
   assert.equal(kennungFuer({ referenz: '', id: 'abc-123' }), 'ABC-123')
+})
+
+/*
+ * DER FALL, DER DIE OFFERTE WEISS MACHTE.
+ *
+ * Offerte und Bestellauftrag schlugen direkt in den Tabellen nach:
+ * MECHANISMEN[n.mechanismus].deutsch. Steht in einem gespeicherten Netz ein
+ * Wert, den die heutige Tabelle nicht kennt, ist der Treffer undefined, der
+ * Zugriff wirft, und beim Kunden landet eine leere Seite statt einer Offerte.
+ *
+ * Nachgestellt mit einem Netz, dessen Mechanismus "plissee" heisst - ein
+ * Wort, das es in MECHANISMEN nicht gibt. Der Fall ist nicht erfunden: Zu den
+ * Mechanismen kommen demnaechst die nach innen und aussen oeffnenden
+ * Standardnetze dazu, und alte Netze tragen dann alte Werte.
+ */
+pruefe('Ein unbekannter Mechanismus wirft nicht, sondern steht roh da', () => {
+  assert.equal(beschriften(MECHANISMEN, 'plissee'), 'plissee')
+  assert.equal(beschriften(MECHANISMEN, 'akkordeon'), 'Akkordeon, verschiebbar')
+})
+
+pruefe('Fehlt die Angabe ganz, kommt null zurueck und nicht der Text "undefined"', () => {
+  assert.equal(beschriften(RAHMENFARBEN, undefined), null)
+  assert.equal(beschriften(RAHMENFARBEN, ''), null)
+  assert.equal(beschriften(RAHMENFARBEN, null), null)
+})
+
+pruefe('Die zweite Sprache wird mitgenommen, auch beim Unbekannten', () => {
+  assert.equal(beschriften(RAHMENFARBEN, 'weiss', 'tuerkisch'), 'beyaz')
+  assert.equal(beschriften(RAHMENFARBEN, 'tannengruen', 'tuerkisch'), 'tannengruen')
 })
 
 console.log(`\n${bestanden}/${bestanden + fehler.length} bestanden`)

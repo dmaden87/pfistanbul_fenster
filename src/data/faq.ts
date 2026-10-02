@@ -4,7 +4,15 @@
  * Daten (FAQPage), die Suchmaschinen und KI-Werkzeuge ohne JavaScript lesen
  * koennen. Eine zweite, von Hand gepflegte Kopie wuerde frueher oder spaeter
  * etwas anderes behaupten als die Seite selbst.
+ *
+ * ZAHLEN KOMMEN AUS shopConfig und stehen hier nicht als Text. Die Antwort
+ * unten nannte die Anfahrtspauschale einmal im Wortlaut - das ist dieselbe
+ * Falle, in die der Liefersatz schon getappt ist: Jemand aendert die Zahl an
+ * der Stelle, die er kennt, und die FAQ behauptet ein halbes Jahr lang etwas
+ * anderes.
  */
+import { formatChf } from '../lib/format'
+import { shopConfig } from './shopConfig'
 export interface FaqItem {
   q: string
   a: string
@@ -53,6 +61,6 @@ export const faq: FaqItem[] = [
   },
   {
     q: 'Ich wohne nicht im Pfisterhölzli – bekomme ich trotzdem etwas?',
-    a: 'Ja, und das ist ausdrücklich erwünscht. Wir fertigen jedes Netz nach Mass; das ausgemessene Sortiment ist nur die Abkürzung für eine Siedlung, in der wir selbst wohnen. Im ganzen Kanton Zürich liefern und montieren wir gleich wie bei uns im Haus – Sie stellen eine Anfrage mit Ihren Massen, auf Wunsch kommen wir vorher zum Ausmessen vorbei. Den Richtpreis sehen Sie schon im Formular, den festen Preis nennen wir in der Offerte. Die Anfahrt im Kanton Zürich kostet nichts. Ausserhalb des Kantons fragen Sie uns einfach – meistens findet sich ein Weg, versprechen können wir es aber nicht; was die Anfahrt kostet, steht dann in der Offerte.',
+    a: `Ja, und das ist ausdrücklich erwünscht. Wir fertigen jedes Netz nach Mass; das ausgemessene Sortiment ist nur die Abkürzung für eine Siedlung, in der wir selbst wohnen. Im ganzen ${shopConfig.serviceArea} liefern und montieren wir gleich wie bei uns im Haus – Sie stellen eine Anfrage mit Ihren Massen, auf Wunsch kommen wir vorher zum Ausmessen vorbei. Den Richtpreis sehen Sie schon im Formular, den festen Preis nennen wir in der Offerte. Die Anfahrt im ${shopConfig.serviceArea} kostet nichts, ausserhalb ${formatChf(shopConfig.anfahrtspauschaleChf)} pauschal. Das Ausmessen ist in jedem Fall gratis – lohnt sich die Fahrt für uns nicht, sagen wir vorher ab, statt sie zu verrechnen. Ausserhalb des Kantons fragen Sie uns einfach: meistens findet sich ein Weg, versprechen können wir es aber nicht.`,
   },
 ]

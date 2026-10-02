@@ -19,6 +19,35 @@ export interface Beschriftung {
   tuerkisch: string
 }
 
+/**
+ * Beschriftung nachschlagen, ohne an einem unbekannten Wert zu zerbrechen.
+ *
+ * WARUM ES DAS BRAUCHT: Offerte und Bestellauftrag schlugen direkt in den
+ * Tabellen nach - MECHANISMEN[n.mechanismus].deutsch. Steht in einem
+ * gespeicherten Netz ein Wert, den die aktuelle Tabelle nicht kennt, ist der
+ * Treffer `undefined` und der Zugriff auf `.deutsch` wirft. Die Offerte wird
+ * dann nicht etwa luckenhaft, sondern eine weisse Seite - und das ist das
+ * Dokument, das zum Kunden geht.
+ *
+ * Das ist kein erfundener Fall. Beide Dokumente lesen Datensaetze, die
+ * irgendwann einmal geschrieben wurden; sobald eine dieser Listen waechst
+ * oder ein Wert umbenannt wird, gibt es alte Netze mit alten Werten. Genau
+ * das steht an: Zu den Mechanismen kommen die nach innen und aussen
+ * oeffnenden Standardnetze dazu.
+ *
+ * Unbekanntes wird ROH ANGEZEIGT und nicht verschluckt. Was jemand erfasst
+ * hat, ist eine Information; ein Strich an ihrer Stelle waere der Verlust,
+ * den diese Funktion verhindern soll.
+ */
+export function beschriften(
+  tabelle: Record<string, Beschriftung>,
+  schluessel: string | undefined | null,
+  sprache: keyof Beschriftung = 'deutsch',
+): string | null {
+  if (!schluessel) return null
+  return tabelle[schluessel]?.[sprache] ?? schluessel
+}
+
 /* --- Rahmenfarbe ------------------------------------------------------------ */
 
 export type Rahmenfarbe = 'weiss' | 'schwarz' | 'dunkelbraun'

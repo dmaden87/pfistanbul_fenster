@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Bestellung } from '../../types'
-import { MECHANISMEN, NETZFARBEN, OEFFNUNGEN, RAHMENFARBEN } from '../../data/produktion'
+import { MECHANISMEN, NETZFARBEN, OEFFNUNGEN, RAHMENFARBEN, beschriften } from '../../data/produktion'
 import { operator } from '../../data/operator'
 import { shopConfig } from '../../data/shopConfig'
 import { formatChf } from '../../lib/format'
@@ -70,11 +70,11 @@ export function Offerte({ bestellung: b, onZurueck }: OfferteProps) {
   const runde2 = (x: number) => Math.round(x * 100) / 100
   const netzeChf = runde2(netze.reduce((summe, n) => summe + n.preisChf * n.menge, 0))
   const rabattChf = b.rabattChf ?? 0
-  const lieferungChf = ziel === 'schweiz' ? shopConfig.lieferpauschaleChf : 0
+  const anfahrtChf = ziel === 'schweiz' ? shopConfig.anfahrtspauschaleChf : 0
   // Die Montage kommt aus der Bestellung – siehe montageFuerOfferte().
   const montageChf = montageFuerOfferte(b, anzahl, shopConfig.montageChf)
   const mitMontage = montageChf > 0
-  const totalChf = runde2(netzeChf - rabattChf + lieferungChf + montageChf)
+  const totalChf = runde2(netzeChf - rabattChf + anfahrtChf + montageChf)
   const heute = new Date()
   const bis = new Date(heute.getTime() + GUELTIG_TAGE * 86_400_000)
   const ausgemessen = b.ausgemessenAm ? new Date(b.ausgemessenAm) : null
@@ -89,9 +89,9 @@ export function Offerte({ bestellung: b, onZurueck }: OfferteProps) {
    */
   const bauart = (n: (typeof netze)[number]) =>
     [
-      n.rahmenfarbe && `Rahmen ${RAHMENFARBEN[n.rahmenfarbe].deutsch}`,
-      n.netzfarbe && `Gewebe ${NETZFARBEN[n.netzfarbe].deutsch}`,
-      n.mechanismus && MECHANISMEN[n.mechanismus].deutsch,
+      n.rahmenfarbe && `Rahmen ${beschriften(RAHMENFARBEN, n.rahmenfarbe)}`,
+      n.netzfarbe && `Gewebe ${beschriften(NETZFARBEN, n.netzfarbe)}`,
+      beschriften(MECHANISMEN, n.mechanismus),
     ]
       .filter(Boolean)
       .join(' · ')
@@ -101,8 +101,15 @@ export function Offerte({ bestellung: b, onZurueck }: OfferteProps) {
   const posten = [
     { text: `${anzahl} Plissees nach Mass`, betrag: formatChf(netzeChf) },
     {
-      text: ziel === 'schweiz' ? 'Lieferung, Pauschale übrige Schweiz' : `Lieferung im ${shopConfig.serviceArea}`,
-      betrag: ziel === 'schweiz' ? formatChf(lieferungChf) : 'kostenlos',
+      /*
+       * ANFAHRT, NICHT LIEFERUNG. Bezahlt wird nicht, dass das Netz ankommt,
+       * sondern dass jemand hinfaehrt - und im Liefergebiet faehrt er
+       * ohnehin. Die Seite sagt es seit dem Umbau so; eine Offerte, die ein
+       * anderes Wort benutzt als die Seite, auf der sie bestellt wurde,
+       * laesst den Kunden ueberlegen, ob es zwei Posten sind.
+       */
+      text: ziel === 'schweiz' ? 'Anfahrt, Pauschale übrige Schweiz' : `Anfahrt im ${shopConfig.serviceArea}`,
+      betrag: ziel === 'schweiz' ? formatChf(anfahrtChf) : 'kostenlos',
     },
     ...(mitMontage ? [{ text: 'Montage durch uns', betrag: formatChf(montageChf) }] : []),
     ...(rabattChf > 0 ? [{ text: b.rabattText || 'Rabatt', betrag: `−${formatChf(rabattChf)}` }] : []),
@@ -118,11 +125,11 @@ export function Offerte({ bestellung: b, onZurueck }: OfferteProps) {
       <div className="auftrag__steuerung">
         <div className="auftrag__schritte">
           <label className="auftrag__wahl">
-            Lieferung
+            Anfahrt
             <select value={ziel} onChange={(e) => setZiel(e.target.value as Lieferziel)}>
               <option value="gebiet">{shopConfig.serviceArea} – kostenlos</option>
               <option value="schweiz">
-                Übrige Schweiz – Pauschale {formatChf(shopConfig.lieferpauschaleChf)}
+                Übrige Schweiz – Pauschale {formatChf(shopConfig.anfahrtspauschaleChf)}
               </option>
             </select>
           </label>
@@ -214,10 +221,8 @@ export function Offerte({ bestellung: b, onZurueck }: OfferteProps) {
                 </td>
                 <td className="offerte__ausfuehrung">
                   {gemeinsam
-                    ? n.oeffnung
-                      ? OEFFNUNGEN[n.oeffnung].deutsch
-                      : '—'
-                    : [bauart(n), n.oeffnung && OEFFNUNGEN[n.oeffnung].deutsch].filter(Boolean).join(' · ')}
+                    ? (beschriften(OEFFNUNGEN, n.oeffnung) ?? '—')
+                    : [bauart(n), beschriften(OEFFNUNGEN, n.oeffnung)].filter(Boolean).join(' · ')}
                 </td>
                 <td className="offerte__zahl">{n.menge}</td>
                 <td className="offerte__zahl">{formatChf(n.preisChf)}</td>
@@ -264,18 +269,18 @@ export function Offerte({ bestellung: b, onZurueck }: OfferteProps) {
               </dd>
             </div>
             <div>
-              <dt>Lieferung</dt>
+              <dt>Anfahrt und Lieferung</dt>
               <dd>
                 {ziel === 'schweiz' ? (
                   <>
-                    In die übrige Schweiz zur Pauschale von {formatChf(shopConfig.lieferpauschaleChf)}, oben
+                    In die übrige Schweiz zur Pauschale von {formatChf(shopConfig.anfahrtspauschaleChf)}, oben
                     eingerechnet.
                   </>
                 ) : (
                   <>Im {shopConfig.serviceArea} kostenlos, oben eingerechnet.</>
                 )}{' '}
-                Jedes Netz wird auf Bestellung gefertigt; den Liefertermin nennen wir Ihnen mit der
-                Auftragsbestätigung.
+                Das Ausmessen ist in jedem Fall gratis. Jedes Netz wird auf Bestellung gefertigt; den Liefertermin
+                nennen wir Ihnen mit der Auftragsbestätigung.
               </dd>
             </div>
             <div>

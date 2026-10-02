@@ -14,6 +14,7 @@ import {
   RAHMENFARBEN,
   RICHTUNGSREGEL,
   TEXTE,
+  beschriften,
   type Beschriftung,
 } from '../../data/produktion'
 import { useSprache } from './sprache'
@@ -70,10 +71,10 @@ function netzZeile(n: AuftragsNetz, s: Sprache) {
     breite: mass(n.breiteCm),
     hoehe: mass(n.hoeheCm),
     dicke: n.rahmendicke ?? '—',
-    rahmen: n.rahmenfarbe ? RAHMENFARBEN[n.rahmenfarbe][s] : '—',
-    netz: n.netzfarbe ? NETZFARBEN[n.netzfarbe][s] : '—',
-    mechanismus: n.mechanismus ? MECHANISMEN[n.mechanismus][s] : '—',
-    oeffnung: n.oeffnung ? OEFFNUNGEN[n.oeffnung][s] : '—',
+    rahmen: beschriften(RAHMENFARBEN, n.rahmenfarbe, s) ?? '—',
+    netz: beschriften(NETZFARBEN, n.netzfarbe, s) ?? '—',
+    mechanismus: beschriften(MECHANISMEN, n.mechanismus, s) ?? '—',
+    oeffnung: beschriften(OEFFNUNGEN, n.oeffnung, s) ?? '—',
   }
 }
 
