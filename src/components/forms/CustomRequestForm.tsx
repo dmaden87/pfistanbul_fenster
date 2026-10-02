@@ -68,12 +68,33 @@ export function CustomRequestForm({ vorgabe }: CustomRequestFormProps = {}) {
     }
 
     const frisch = newLine(counterRef.current++)
+
+    /*
+     * NACH EINER VERSCHICKTEN ANFRAGE faengt eine neue an.
+     *
+     * Hier wurde vorher stumpf eine Zeile angehaengt. Nach erfolgreichem
+     * Absenden steht an dieser Stelle aber die Bestaetigung und nicht mehr
+     * das Formular - die Zeile landete also in einer Liste, die niemand
+     * sieht, waehrend der Rechner oben "Steht in der Anfrage" meldete. Wer
+     * nach dem Abschicken ein vergessenes Fenster nachtraegt, bekam damit
+     * eine Zusage auf etwas, das nicht passiert ist.
+     *
+     * Die Kontaktangaben bleiben stehen: Es ist dieselbe Person, und sie
+     * soll sie nicht zweimal tippen.
+     */
+    if (state.status === 'success') {
+      setItems([{ ...frisch, ...zeile }])
+      setLineErrors({})
+      setState({ status: 'idle' })
+      return
+    }
+
     setItems((current) => {
       const leer = current.findIndex((i) => !i.widthCm.trim() && !i.heightCm.trim() && !i.room.trim())
       if (leer >= 0) return current.map((i, k) => (k === leer ? { ...i, ...zeile } : i))
       return [...current, { ...frisch, ...zeile }]
     })
-  }, [vorgabe])
+  }, [vorgabe, state.status])
 
   const updateItem = (id: string, patch: Partial<CustomRequestLine>) => {
     setItems((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)))

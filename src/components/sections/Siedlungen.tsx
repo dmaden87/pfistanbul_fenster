@@ -32,6 +32,11 @@ import './Siedlungen.css'
  * es soweit ist, nicht auf Verdacht.
  */
 
+/** Kleinster Wert - oder null, wenn es nichts zu vergleichen gibt. */
+const kleinster = (werte: number[]): number | null => (werte.length ? Math.min(...werte) : null)
+/** Groesster Wert - oder null. */
+const groesster = (werte: number[]): number | null => (werte.length ? Math.max(...werte) : null)
+
 interface SiedlungenProps {
   cart: ReturnType<typeof useCart>
   onOpenCart: () => void
@@ -40,7 +45,9 @@ interface SiedlungenProps {
 }
 
 export function Siedlungen({ cart, onOpenCart, onSondermassClick }: SiedlungenProps) {
-  const guenstigstesSet = Math.min(...netSets.map((set) => set.priceChf))
+  /* Auch hier: ohne Sets gaebe Math.min Infinity, und im Text staende
+     "Guenstigstes Set heute: CHF ∞". */
+  const guenstigstesSet = kleinster(netSets.map((set) => set.priceChf))
 
   return (
     <>
@@ -57,30 +64,51 @@ export function Siedlungen({ cart, onOpenCart, onSondermassClick }: SiedlungenPr
           </div>
 
           <ul className="siedlungen__liste">
-            {ueberbauungen.map((ueberbauung) => (
-              <li key={ueberbauung.id} className="siedlung">
-                <div className="siedlung__kopf">
-                  <h2>{ueberbauung.name}</h2>
-                  <span className="pill">{ueberbauung.place}</span>
-                </div>
-                <p className="siedlung__satz">
-                  {ueberbauung.windowTypes.length} Fensterformate, {ueberbauung.sets.length} Sets für ganze
-                  Wohnungen. Einzelnes Netz ab {formatChf(Math.min(...ueberbauung.windowTypes.map((t) => t.priceChf)))},
-                  ganze Wohnung ab {formatChf(Math.min(...ueberbauung.sets.map((s) => s.priceChf)))}.
-                </p>
-                <ul className="siedlung__fakten">
-                  <li>Lieferung gratis an die Wohnungstür</li>
-                  <li>Passgarantie: passt es nicht, tauschen wir</li>
-                  <li>
-                    Sets mit {Math.min(...ueberbauung.sets.map(netsInSet))} bis{' '}
-                    {Math.max(...ueberbauung.sets.map(netsInSet))} Netzen
-                  </li>
-                </ul>
-                <a className="btn btn--ghost siedlung__sprung" href="#groessen">
-                  Sortiment und Preise ansehen
-                </a>
-              </li>
-            ))}
+            {ueberbauungen.map((ueberbauung) => {
+              /*
+               * JEDE DIESER ZAHLEN KANN FEHLEN, und zwar nicht theoretisch:
+               * Eine Siedlung wird erfasst, sobald sie ausgemessen ist, und
+               * die Sets kommen danach. Math.min() ueber eine leere Liste ist
+               * Infinity - auf der Seite stand dann "ganze Wohnung ab CHF ∞"
+               * und "Sets mit ∞ bis -∞ Netzen". Lieber weglassen, was noch
+               * nicht da ist, als Unsinn drucken.
+               */
+              const guenstigstesNetz = kleinster(ueberbauung.windowTypes.map((t) => t.priceChf))
+              const guenstigstesSet = kleinster(ueberbauung.sets.map((s) => s.priceChf))
+              const netzeJeSet = ueberbauung.sets.map(netsInSet)
+              const wenigste = kleinster(netzeJeSet)
+              const meiste = groesster(netzeJeSet)
+
+              return (
+                <li key={ueberbauung.id} className="siedlung">
+                  <div className="siedlung__kopf">
+                    <h2>{ueberbauung.name}</h2>
+                    <span className="pill">{ueberbauung.place}</span>
+                  </div>
+                  <p className="siedlung__satz">
+                    {ueberbauung.windowTypes.length} Fensterformate
+                    {ueberbauung.sets.length > 0 && `, ${ueberbauung.sets.length} Sets für ganze Wohnungen`}.
+                    {guenstigstesNetz !== null && ` Einzelnes Netz ab ${formatChf(guenstigstesNetz)}`}
+                    {guenstigstesSet !== null && `, ganze Wohnung ab ${formatChf(guenstigstesSet)}`}
+                    {guenstigstesNetz !== null && '.'}
+                  </p>
+                  <ul className="siedlung__fakten">
+                    <li>Lieferung gratis an die Wohnungstür</li>
+                    <li>Passgarantie: passt es nicht, tauschen wir</li>
+                    {wenigste !== null && meiste !== null && (
+                      <li>
+                        {wenigste === meiste
+                          ? `Sets mit ${wenigste} Netzen`
+                          : `Sets mit ${wenigste} bis ${meiste} Netzen`}
+                      </li>
+                    )}
+                  </ul>
+                  <a className="btn btn--ghost siedlung__sprung" href="#groessen">
+                    Sortiment und Preise ansehen
+                  </a>
+                </li>
+              )
+            })}
           </ul>
         </div>
       </section>
@@ -103,7 +131,8 @@ export function Siedlungen({ cart, onOpenCart, onSondermassClick }: SiedlungenPr
           <p className="siedlungen__hinweis">
             Sie wohnen in einer Überbauung, in der mehrere dasselbe bräuchten? Schreiben Sie uns – ab fünf
             Wohnungen messen wir sie aus und sie bekommt hier ihren eigenen Eintrag, mit festen Preisen für alle.
-            Günstigstes Set heute: {formatChf(guenstigstesSet)} für {activeUeberbauung.shortName}.
+            {guenstigstesSet !== null &&
+              ` Günstigstes Set heute: ${formatChf(guenstigstesSet)} für ${activeUeberbauung.shortName}.`}
           </p>
         </div>
       </section>

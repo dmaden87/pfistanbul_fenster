@@ -206,8 +206,17 @@ export function Beispielrechner({ onUebernehmen }: BeispielrechnerProps) {
               hidden={!aktiv}
               className="rechner__held"
             >
+              {/*
+                DIE SKIZZE NUR IM OFFENEN FELD. Sie laeuft auf einem Takt von
+                3,6 Sekunden; gerendert wurden bisher alle vier, also liefen
+                drei Uhren fuer Felder, die niemand sieht, und loesten dort
+                alle paar Sekunden ein Neuzeichnen aus. Der Text und die
+                Zahlen bleiben in allen vier Feldern stehen - darauf kommt es
+                fuer Crawler an, die Skizze ist aria-hidden und damit fuer sie
+                ohnehin nicht da.
+              */}
               <div className={`rechner__bild rechner__bild--${verhaeltnis >= BUEHNE_RATIO ? 'breit' : 'hoch'}`}>
-                <PlisseeVisual direction={beispiel.oeffnung} ratio={verhaeltnis} delayMs={i * 300} />
+                {aktiv && <PlisseeVisual direction={beispiel.oeffnung} ratio={verhaeltnis} delayMs={i * 300} />}
               </div>
 
               <div className="rechner__text">

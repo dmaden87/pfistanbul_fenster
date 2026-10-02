@@ -175,7 +175,13 @@
 
 /* --- Mobil ------------------------------------------------------------------ */
 
-@media (max-width: 62rem) {
+/* 70rem UND NICHT 62rem. Die Grenze war auf fuenf Navigationspunkte
+   eingestellt; mit "Siedlungen" sind es sechs. Die volle Leiste schaltete
+   dadurch bei 992 px ein, brauchte aber 1032 px - zwischen 992 und rund
+   1110 px ragte der Warenkorbknopf aus dem Fenster und die ganze Seite liess
+   sich seitlich schieben. Nachgemessen bei 320, 360, 390, 414, 768, 1024,
+   1440: nur 1024 war betroffen, und das ist iPad quer. */
+@media (max-width: 70rem) {
   .site-header__inner {
     gap: var(--space-3);
   }
