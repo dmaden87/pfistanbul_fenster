@@ -36,10 +36,13 @@
   gap: var(--space-2);
 }
 
+/* Mittig wie jeder andere Knopf auf der Seite. Linksbuendig lasen sie sich
+   als Menuezeilen und nicht als Schalter - und sie waren das Einzige, was
+   aus der Reihe fiel. */
 .rechner__balken {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.15rem;
   width: 100%;
   padding: var(--space-3) var(--space-4);
@@ -48,7 +51,7 @@
   background: var(--surface);
   color: inherit;
   font: inherit;
-  text-align: left;
+  text-align: center;
   cursor: pointer;
   transition:
     border-color 120ms ease,
