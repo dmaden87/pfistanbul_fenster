@@ -38,9 +38,9 @@
 
 .rechner__balken {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-3);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
   width: 100%;
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border);
@@ -80,11 +80,12 @@
   font-weight: 600;
 }
 
-.rechner__balken-preis {
-  font-size: var(--step--1);
-  font-variant-numeric: tabular-nums;
-  opacity: 0.8;
-  white-space: nowrap;
+/* Der Raum steht klein unter der Bauart: Er ist das Beispiel, nicht die
+   Sache. Frueher stand hier der Preis - er kommt oben im Richtwert und gross
+   im Beispiel selbst, dreimal dieselbe Zahl macht sie nicht wichtiger. */
+.rechner__balken-bsp {
+  font-size: var(--step--2);
+  opacity: 0.75;
 }
 
 /* --- Das Beispiel -------------------------------------------------------- */
@@ -226,6 +227,14 @@
   margin-top: var(--space-2);
 }
 
+/* Platz bleibt reserviert, auch wenn nichts dasteht: Sonst springt der
+   Abschnitt beim Bestaetigen um eine Zeile und wieder zurueck. */
+.rechner__quittung {
+  min-height: 2.4em;
+  color: var(--text-muted);
+  font-size: var(--step--2);
+}
+
 .rechner__hinweis {
   margin-top: var(--space-4);
   max-width: 62ch;
@@ -255,9 +264,6 @@
 
 @media (max-width: 40rem) {
   .rechner__balken {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0;
     padding: var(--space-3);
   }
 

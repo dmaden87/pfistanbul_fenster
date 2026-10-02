@@ -214,12 +214,32 @@ raumbeispiele.forEach((beispiel, i) => {
    * auch dann noch gruen melden, wenn eine Karte ihren Preis verloren hat.
    */
   pruefe(
-    `Rechner zeigt ${beispiel.label} mit Mass und Richtpreis`,
-    karte.text.includes(beispiel.label) &&
+    `Rechner zeigt ${beispiel.bauart} (${beispiel.raumKurz}) mit Mass und Richtpreis`,
+    karte.text.includes(beispiel.bauart) &&
+      karte.text.includes(beispiel.raum) &&
       karte.text.includes(preis.toFixed(2)) &&
       karte.werte.includes(String(beispiel.breiteCm)) &&
       karte.werte.includes(String(beispiel.hoeheCm)),
     `${beispiel.breiteCm}x${beispiel.hoeheCm}, ${preis.toFixed(2)}`,
+  )
+})
+
+/*
+ * Die Balken nennen Bauart und Raumbeispiel. Der Preis gehoert NICHT hinein:
+ * Er steht im Richtwert darueber und gross im Beispiel selbst - dreimal
+ * dieselbe Zahl macht sie nicht wichtiger, und wer sie wieder einbaut, soll
+ * es absichtlich tun.
+ */
+const balkenText = [...html.matchAll(/<button[^>]*class="rechner__balken[^"]*"[\s\S]*?<\/button>/g)].map((m) =>
+  nurText(m[0]),
+)
+pruefe(`Rechner hat ${raumbeispiele.length} Balken`, balkenText.length === raumbeispiele.length, String(balkenText.length))
+raumbeispiele.forEach((beispiel, i) => {
+  const balken = balkenText[i] ?? ''
+  pruefe(
+    `Balken ${beispiel.bauart} nennt die Bauart und das Beispiel, ohne Preis`,
+    balken.includes(beispiel.bauart) && balken.includes(beispiel.raumKurz) && !/CHF/.test(balken),
+    balken,
   )
 })
 

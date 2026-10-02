@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { raumbeispiele } from '../../data/beispiele'
 import { RELIABLE_AREA_M2, estimateNetChf } from '../../lib/estimate'
 import { formatChf } from '../../lib/format'
@@ -109,7 +109,20 @@ export function Beispielrechner({ onUebernehmen }: BeispielrechnerProps) {
   )
   const [gewaehlt, setGewaehlt] = useState(raumbeispiele[0].id)
   const [stand, setStand] = useState(0)
+  const [uebernommen, setUebernommen] = useState<string | null>(null)
   const balken = useRef<(HTMLButtonElement | null)[]>([])
+  const quittung = useRef<number | undefined>(undefined)
+
+  /* Bestaetigung, die von selbst wieder geht. Der Timer wird beim Abbau
+     abgeraeumt, sonst setzt er Zustand auf einem Bauteil, das es nicht mehr
+     gibt. */
+  useEffect(() => () => window.clearTimeout(quittung.current), [])
+
+  const melden = (id: string) => {
+    setUebernommen(id)
+    window.clearTimeout(quittung.current)
+    quittung.current = window.setTimeout(() => setUebernommen(null), 4000)
+  }
 
   const aendern = (id: string, teil: Partial<Eingabe>) => {
     setEingaben((alle) => ({ ...alle, [id]: { ...alle[id], ...teil } }))
@@ -144,16 +157,15 @@ export function Beispielrechner({ onUebernehmen }: BeispielrechnerProps) {
       <div className="rechner__kopf">
         <h3>Rechnen Sie an einem Beispiel</h3>
         <p>
-          Vier typische Fenster als Startpunkt – wählen Sie das, was Ihrem am nächsten kommt, und überschreiben Sie
-          die Masse mit Ihren. Gemessen wird die Lichte, also die Öffnung von Leibung zu Leibung. Der Preis rechnet
-          beim Tippen mit.
+          Vier Arten, wie ein Netz aufgeht – der Raum dahinter ist nur das Beispiel, bei dem man sie am ehesten
+          antrifft. Wählen Sie, was Ihrem Fenster am nächsten kommt, und überschreiben Sie die Masse mit Ihren.
+          Gemessen wird die Lichte, also die Öffnung von Leibung zu Leibung. Der Preis rechnet beim Tippen mit.
         </p>
       </div>
 
       <div className="rechner__buehne">
         <div className="rechner__wahl" role="tablist" aria-orientation="vertical" aria-label="Beispiel wählen">
           {raumbeispiele.map((beispiel, i) => {
-            const zahlen = rechnen(eingaben[beispiel.id])
             const aktiv = beispiel.id === gewaehlt
             return (
               <button
@@ -171,10 +183,8 @@ export function Beispielrechner({ onUebernehmen }: BeispielrechnerProps) {
                 onClick={() => setGewaehlt(beispiel.id)}
                 onKeyDown={(e) => taste(e, i)}
               >
-                <span className="rechner__balken-name">{beispiel.label}</span>
-                <span className="rechner__balken-preis">
-                  {zahlen.preisChf === null ? '–' : `≈ ${formatChf(zahlen.preisChf)}`}
-                </span>
+                <span className="rechner__balken-name">{beispiel.bauart}</span>
+                <span className="rechner__balken-bsp">Beispiel: {beispiel.raumKurz}</span>
               </button>
             )
           })}
@@ -202,8 +212,10 @@ export function Beispielrechner({ onUebernehmen }: BeispielrechnerProps) {
               </div>
 
               <div className="rechner__text">
-                <h4>{beispiel.label}</h4>
-                <p className="rechner__raum">{beispiel.raum}</p>
+                <h4>{beispiel.bauart}</h4>
+                {/* Nicht nochmals "Beispiel: Badfenster" - das steht im Balken
+                    daneben. Hier steht, wo die Bauart sonst noch vorkommt. */}
+                <p className="rechner__raum">Typisch für {beispiel.raum}</p>
                 <p className="rechner__oeffnung">{beispiel.oeffnungLabel}</p>
 
                 <div className="rechner__masse">
@@ -251,13 +263,23 @@ export function Beispielrechner({ onUebernehmen }: BeispielrechnerProps) {
                       </p>
                     </>
                   )}
+                  {/*
+                    DER KNOPF SAGT, WOHIN. "Masse übernehmen" stand hier
+                    zuerst und liess offen, wohin sie übernommen werden - dass
+                    eine Bildschirmhöhe weiter unten eine Anfrage steht,
+                    musste man raten. Jetzt steht es auf dem Knopf, und die
+                    Rückmeldung danach sagt, dass es angekommen ist: Der
+                    Zuwachs passiert ausserhalb des Sichtfelds, also muss er
+                    hier bestätigt werden.
+                  */}
                   <button
                     type="button"
-                    className="btn"
+                    className={`btn${uebernommen === beispiel.id ? ' btn--done' : ''}`}
                     disabled={zahlen.preisChf === null}
                     onClick={() => {
                       const naechster = stand + 1
                       setStand(naechster)
+                      melden(beispiel.id)
                       onUebernehmen({
                         breiteCm: zahlen.breite,
                         hoeheCm: zahlen.hoehe,
@@ -266,8 +288,13 @@ export function Beispielrechner({ onUebernehmen }: BeispielrechnerProps) {
                       })
                     }}
                   >
-                    Masse übernehmen
+                    {uebernommen === beispiel.id ? 'Steht in der Anfrage ✓' : 'Zur Anfrage unten hinzufügen'}
                   </button>
+                  <p className="rechner__quittung" role="status">
+                    {uebernommen === beispiel.id
+                      ? 'Sie können weitere Fenster dazunehmen.'
+                      : ''}
+                  </p>
                 </div>
               </div>
             </div>
