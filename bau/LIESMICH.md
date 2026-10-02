@@ -103,6 +103,38 @@ sich der gerenderte Code nicht als genau die Adresse, die hineinging, entsteht
 gar keine Datei. Ohne Adresse rendert die Karte mit einem Musterbalken – wie
 der ENTWURF-Balken auf dem Blatt an Bora, und aus demselben Grund.
 
+## Warum die vorgerenderten Seiten nicht am Bundle-Namen hängen
+
+Die Seiten in `vorgerendert/` werden hier gerendert und von Vercel nur noch
+kopiert – auf dem Bauserver gibt es keinen Browser. Veraltete Kopien sind
+dabei die Gefahr: Sie liefern alten Inhalt und zeigen auf Bundle-Dateien, die
+es nicht mehr gibt.
+
+Erkannt wurde das früher am **Namen der Bundle-Datei**. Der ist eine
+Prüfsumme des fertigen Bundles – und damit ein Vergleich zwischen zwei
+Maschinen. Das ging gut, solange dieselbe Maschine rendert und baut. Auf
+Vercel kam derselbe Quelltext mit einem anderen Abhängigkeitsbaum heraus,
+also mit einem anderen Namen; der Build brach ab, obwohl nichts veraltet war.
+Von hier aus war es nicht einmal zu beheben – man müsste eine fremde
+Prüfsumme treffen.
+
+Jetzt zwei getrennte Dinge:
+
+**Veraltet oder nicht** entscheidet ein Fingerabdruck der Quellen
+(`bau/quellstand.mjs`, abgelegt in `vorgerendert/stand.json`): sha256 über
+Pfad und Inhalt jeder Datei in `src/` plus `index.html`, nach Pfad sortiert.
+Gleicher Quelltext, gleicher Wert – auf jedem Rechner. Passt er nicht,
+scheitert der Build, hier wie dort.
+
+**Die Verweise auf die Bundle-Dateien** werden nicht mehr verglichen, sondern
+auf die Dateien *dieses* Builds umgeschrieben. Damit kann eine ausgelieferte
+Seite gar nicht mehr auf ein Bundle zeigen, das es nicht gibt – die weisse
+Seite ist als Fehlerbild ausgeschlossen statt nur bemerkt.
+
+Teilt der Build das Bundle eines Tages in mehrere Dateien je Endung auf, ist
+die Zuordnung nicht mehr eindeutig. Dann wird nicht geraten: Der Build bricht
+ab und sagt, dass die Zuordnung in `bau/vorgerendert.ts` nachzuziehen ist.
+
 ## Prüfen
 
 ```

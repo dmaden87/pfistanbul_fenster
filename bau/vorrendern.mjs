@@ -27,6 +27,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, normalize } from 'node:path'
 import { absolut, kopfdatenFuer, seiten } from '../src/data/site.ts'
+import { quellstand } from './quellstand.mjs'
 
 const CHROMIUM = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
 const DIST = 'dist'
@@ -227,6 +228,14 @@ try {
     const gezeigt = /<title>([^<]*)<\/title>/.exec(html)?.[1] ?? '?'
     console.log(`${seite.pfad.padEnd(14)} → ${(name + '.html').padEnd(18)} ${String(Math.round(html.length / 1024)).padStart(3)} kB, ${String(woerter).padStart(4)} Wörter   ${gezeigt}`)
   }
+  /*
+   * Der Stand der Quellen, aus denen diese Seiten entstanden sind. Daran
+   * erkennt bau/vorgerendert.ts spaeter, ob sie noch passen - unabhaengig
+   * davon, auf welcher Maschine gebaut wird.
+   */
+  const quelle = await quellstand()
+  await writeFile(join(ZIEL, 'stand.json'), JSON.stringify({ quelle, erzeugt: new Date().toISOString() }, null, 2) + '\n')
+  console.log(`stand.json      → Quellstand ${quelle.slice(0, 12)}`)
 } finally {
   server.close()
   await rm(arbeitsordner, { recursive: true, force: true })

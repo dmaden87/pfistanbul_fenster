@@ -1,6 +1,7 @@
 import { readFile, readdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { Plugin } from 'vite'
+import { quellstand } from './quellstand.mjs'
 
 /**
  * Setzt die vorgerenderten Seiten in den Build ein.
@@ -12,10 +13,29 @@ import type { Plugin } from 'vite'
  * nur noch.
  *
  * DIE GEFAHR DABEI ist eine veraltete Kopie: Aendert jemand den Code, ohne
- * neu zu rendern, zeigt die ausgelieferte Datei auf Bundle-Dateien, die es
- * gar nicht mehr gibt - die Seite bliebe weiss. Deshalb prueft dieses Plugin
- * die Verweise und laesst den Build lieber scheitern, als eine kaputte Seite
- * auszuliefern.
+ * neu zu rendern, traegt die ausgelieferte Datei den alten Inhalt - und zeigt
+ * auf Bundle-Dateien, die es gar nicht mehr gibt. Die Seite bliebe weiss.
+ *
+ * FRUEHER wurde das am Namen der Bundle-Datei erkannt: Stimmte er nicht mit
+ * dem ueberein, was der Build gerade erzeugte, brach der Build ab. Das war
+ * ein Vergleich von Pruefsummen ZWEIER MASCHINEN - und es ging schief, sobald
+ * gerendert und gebaut nicht am selben Ort geschah. Auf dem Bauserver von
+ * Vercel kam derselbe Quelltext mit einem anderen Abhaengigkeitsbaum heraus,
+ * also mit einem anderen Bundle-Namen; der Build scheiterte, obwohl nichts
+ * veraltet war, und das Deployment blieb liegen. Von hier aus war es nicht
+ * einmal zu reparieren: Man muesste eine fremde Pruefsumme treffen.
+ *
+ * STATTDESSEN ZWEI SACHEN:
+ *
+ *  - Veraltet oder nicht entscheidet ein Fingerabdruck der QUELLEN
+ *    (bau/quellstand.mjs). Gleicher Quelltext, gleicher Wert - auf jedem
+ *    Rechner. Passt er nicht, scheitert der Build wie bisher, und zwar
+ *    ueberall gleich.
+ *  - Die Verweise auf die Bundle-Dateien werden nicht verglichen, sondern
+ *    auf die Dateien DIESES Builds umgeschrieben. Damit kann eine
+ *    ausgelieferte Seite gar nicht mehr auf ein Bundle zeigen, das es nicht
+ *    gibt - die weisse Seite ist als Fehlerbild ausgeschlossen, statt nur
+ *    bemerkt zu werden.
  */
 
 const ORDNER = 'vorgerendert'
@@ -23,6 +43,30 @@ const ORDNER = 'vorgerendert'
 /** Die Bundle-Dateien, auf die eine Seite verweist. */
 function verweise(html: string): string[] {
   return [...html.matchAll(/\/assets\/[A-Za-z0-9._-]+/g)].map((treffer) => treffer[0]).sort()
+}
+
+/**
+ * Schreibt die Verweise auf die Bundle-Dateien auf die dieses Builds um.
+ *
+ * Zugeordnet wird nach Dateiendung und Reihenfolge. Das traegt, solange es je
+ * Endung genau eine Datei gibt - der Fall hier. Sobald der Build das Bundle
+ * aufteilt, ist die Zuordnung nicht mehr eindeutig; dann wird NICHT geraten,
+ * sondern der Aufrufer bekommt null und faellt auf die strenge Pruefung
+ * zurueck.
+ */
+function verweiseUmschreiben(html: string, frisch: string[]): string | null {
+  const endung = (pfad: string) => pfad.slice(pfad.lastIndexOf('.'))
+  const nachEndung = new Map<string, string[]>()
+  for (const datei of frisch) nachEndung.set(endung(datei), [...(nachEndung.get(endung(datei)) ?? []), datei])
+  if ([...nachEndung.values()].some((liste) => liste.length > 1)) return null
+
+  let unbekannt = false
+  const neu = html.replace(/\/assets\/[A-Za-z0-9._-]+/g, (alt) => {
+    const ziel = nachEndung.get(endung(alt))?.[0]
+    if (!ziel) unbekannt = true
+    return ziel ?? alt
+  })
+  return unbekannt ? null : neu
 }
 
 /** Die strukturierten Daten einer Seite, als vergleichbare Knotenliste. */
@@ -83,6 +127,30 @@ export function vorgerendertEinsetzen(): Plugin {
       const ziel = 'dist'
       const frisch = verweise(await readFile(join(ziel, 'index.html'), 'utf8'))
 
+      /*
+       * Erste Probe, und die einzige, die ueber "veraltet" entscheidet: Sind
+       * die Quellen noch dieselben wie beim Rendern? Der Wert haengt nur an
+       * den Dateien, nicht an der Maschine - deshalb faellt diese Probe hier
+       * und auf dem Bauserver gleich aus.
+       */
+      let stand: { quelle?: string } = {}
+      try {
+        stand = JSON.parse(await readFile(join(ORDNER, 'stand.json'), 'utf8')) as { quelle?: string }
+      } catch {
+        throw new Error(
+          `${ORDNER}/stand.json fehlt. Ohne diese Datei laesst sich nicht feststellen, ob die ` +
+            'vorgerenderten Seiten noch zum Code passen. Bitte `npm run vorrendern` ausfuehren.',
+        )
+      }
+      const jetzt = await quellstand()
+      if (stand.quelle !== jetzt) {
+        throw new Error(
+          `Die vorgerenderten Seiten stammen von einem anderen Stand des Quelltextes ` +
+            `(abgelegt ${String(stand.quelle).slice(0, 12)}, jetzt ${jetzt.slice(0, 12)}). ` +
+            'Sie wuerden den alten Inhalt ausliefern. Bitte `npm run vorrendern` ausfuehren und neu einchecken.',
+        )
+      }
+
       let dateien: string[]
       try {
         dateien = (await readdir(ORDNER)).filter((name) => name.endsWith('.html'))
@@ -112,15 +180,22 @@ export function vorgerendertEinsetzen(): Plugin {
       const frischerKopf = kopfangaben(frischesIndex)
 
       for (const name of dateien) {
-        const html = await readFile(join(ORDNER, name), 'utf8')
-        const alt = verweise(html)
-        if (alt.join('|') !== frisch.join('|')) {
+        const abgelegt = await readFile(join(ORDNER, name), 'utf8')
+        /*
+         * Die Verweise auf dieses Bundle umbiegen. Die Quellen stimmen laut
+         * Fingerabdruck; was sich unterscheiden kann, sind allein die Namen
+         * der Bundle-Dateien, und die sind mechanisch.
+         */
+        const umgeschrieben = verweiseUmschreiben(abgelegt, frisch)
+        if (umgeschrieben === null) {
           throw new Error(
-            `${ORDNER}/${name} ist veraltet: Die Seite verweist auf ${alt.join(', ') || '(nichts)'}, ` +
-              `dieser Build erzeugt aber ${frisch.join(', ')}. Wuerde die Datei so ausgeliefert, ` +
-              'bliebe die Seite weiss. Bitte `npm run vorrendern` ausfuehren und neu einchecken.',
+            `${ORDNER}/${name} laesst sich nicht auf dieses Bundle umschreiben: Die Seite verweist auf ` +
+              `${verweise(abgelegt).join(', ') || '(nichts)'}, dieser Build erzeugt ${frisch.join(', ')}. ` +
+              'Vermutlich ist das Bundle neu aufgeteilt - die Zuordnung muss dann in bau/vorgerendert.ts ' +
+              'nachgezogen werden.',
           )
         }
+        const html = umgeschrieben
 
         /*
          * Dritte Probe. Die ersten beiden griffen nicht, als nur die
