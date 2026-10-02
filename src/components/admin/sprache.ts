@@ -120,6 +120,16 @@ const PAARE = {
 
   /* --- Phase 4: Verkaufspreise festlegen ---------------------------------- */
   verkaufspreiseTitel: ['Verkaufspreise festlegen', 'Satış fiyatlarını belirle'],
+  /*
+   * Wegweiser im Preisblock. Wer hier steht, offeriert gerade - und genau
+   * dann faellt auf, dass ein Netz zu viel drin ist. Die Liste hier kann
+   * nur Preise; entfernt wird im Netz-Editor, und der liegt zwei Klicks
+   * entfernt hinter einer Klappe. Ohne diesen Satz sucht man ihn nicht.
+   */
+  netzZuVielSatz: [
+    'Ein Netz zu viel? Unter „Netze und Angaben anzeigen“ lässt sich jedes einzeln entfernen.',
+    'Fazla bir sineklik mi var? „Sineklikleri ve bilgileri göster“ altında tek tek kaldırabilirsin.',
+  ],
   verkaufspreiseSatz: [
     'Boras Kosten sind da. Lege je Netz den Verkaufspreis fest – bis dahin steht der Richtpreis aus der Anfrage drin.',
     'Bora’nın maliyetleri geldi. Her sineklik için satış fiyatını belirleyin – o zamana kadar talepteki tahmini fiyat durur.',
@@ -274,7 +284,11 @@ const PAARE = {
     'Katalog ürünü: ürünü seçin, adet ve odayı ayarlayın. Ölçü, yapı ve fiyat katalogdadır, burada değişmez.',
   ],
   netzeSpeichern: ['Netze speichern', 'Sineklikleri kaydet'],
+  // Fuer die Vorlesehilfe, zusammen mit der Nummer: "Netz 3 entfernen".
   netzEntfernen: ['entfernen', 'kaldır'],
+  // Die sichtbare Beschriftung. Sie nennt die Sache beim Namen - ein blankes
+  // Kreuz wurde im Betrieb nicht als Entfernen erkannt.
+  netzWegKnopf: ['Dieses Netz entfernen', 'Bu sinekliği kaldır'],
   montageInsgesamt: ['Montage insgesamt (CHF)', 'Toplam montaj (CHF)'],
   montageProFenster: [
     '{preis} pro Fenster. Leer lassen oder 0, wenn selbst montiert wird.',

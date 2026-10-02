@@ -103,6 +103,12 @@ export function PreisFestlegen({ bestellung: b, montageProNetz, onSpeichern, onA
       <div className="preise__kopf">
         <h4>{t.verkaufspreiseTitel}</h4>
         <p className="admin__detail">{t.verkaufspreiseSatz}</p>
+        {/*
+          Diese Liste kann nur Preise. Dass ein Netz auch ganz weg kann, steht
+          hier, weil hier gesucht wird: Dass die Kundin eines weniger will,
+          faellt beim Offerieren auf - nicht im Netz-Editor.
+        */}
+        <p className="admin__detail">{t.netzZuVielSatz}</p>
       </div>
 
       <table className="netze__tabelle preise__tabelle">

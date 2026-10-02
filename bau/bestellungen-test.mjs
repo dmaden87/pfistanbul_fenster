@@ -273,6 +273,47 @@ await pruefe('Zusage, bestellt, unterwegs, Paket und Zahlungskommentar', async (
   assert.equal(a.daten.bestellung.zahlungKommentar, 'Rate 1 bar, Rest TWINT')
 })
 
+/*
+ * Der Fall aus dem Betrieb: Offerte ueber fuenf Netze, die Kundin will nur
+ * vier. Das Entfernen geschieht, indem der Browser die verbleibenden
+ * Positionen schickt - der Server tauscht die Liste aus, er mischt nicht.
+ * Die Summe muss dabei mitgehen, sonst steht in der Liste ein Betrag fuer
+ * fuenf Netze, waehrend vier dastehen.
+ */
+await pruefe('Ein einzelnes Netz entfernen: vier von fuenf bleiben, die Summe folgt', async () => {
+  const fuenf = [1, 2, 3, 4, 5].map((n) => ({
+    menge: 1, bezeichnung: `Netz ${n}`, breiteCm: 100 + n, hoeheCm: 120, preisChf: 100,
+  }))
+  const a = await ruf({ method: 'POST', aktion: 'erfassen', cookie, body: {
+    art: 'anfrage', referenz: 'PF-WEG', kunde: { name: 'Fuenf', telefon: '079' },
+    positionen: fuenf, montage: true, montageChf: 75,
+  } })
+  const b = a.daten.bestellung
+  assert.equal(b.positionen.length, 5)
+  assert.equal(b.summeChf, 575, 'fuenf Netze zu 100 plus 75 Montage')
+
+  // Der Browser schickt die vier verbliebenen Positionen MIT ihren Kennungen.
+  const bleiben = b.positionen.filter((p) => p.bezeichnung !== 'Netz 3')
+  const n = await ruf({ method: 'PATCH', cookie, body: { id: b.id, positionen: bleiben, montageChf: 60 } })
+  assert.equal(n.code, 200)
+  const nachher = n.daten.bestellung
+  assert.equal(nachher.positionen.length, 4, 'das entfernte Netz ist zurueckgekommen')
+  assert.deepEqual(nachher.positionen.map((p) => p.bezeichnung), ['Netz 1', 'Netz 2', 'Netz 4', 'Netz 5'])
+  assert.deepEqual(nachher.positionen.map((p) => p.id), bleiben.map((p) => p.id), 'die Kennungen muessen bleiben')
+  assert.equal(nachher.summeChf, 460, 'vier Netze zu 100 plus 60 Montage')
+})
+
+await pruefe('Auch das letzte Netz laesst sich entfernen', async () => {
+  const a = await ruf({ method: 'POST', aktion: 'erfassen', cookie, body: {
+    art: 'anfrage', referenz: 'PF-LEER', kunde: { name: 'Leer', telefon: '079' },
+    positionen: [{ menge: 1, bezeichnung: 'Einziges', preisChf: 100 }], montage: false, montageChf: 0,
+  } })
+  const n = await ruf({ method: 'PATCH', cookie, body: { id: a.daten.bestellung.id, positionen: [] } })
+  assert.equal(n.code, 200)
+  assert.equal(n.daten.bestellung.positionen.length, 0)
+  assert.equal(n.daten.bestellung.summeChf, 0)
+})
+
 await pruefe('Boras Kosten von Hand: je Position, Fracht, Zoll; null loescht; fremde Kennung zaehlt nicht', async () => {
   const a = await ruf({ method: 'POST', aktion: 'erfassen', cookie, body: {
     art: 'anfrage', referenz: 'PF-EK', kunde: { name: 'Einkauf', telefon: '079' },

@@ -302,14 +302,6 @@ export function NetzEditor({
               <span>{t.preisChf}</span>
               <input className="input" inputMode="decimal" value={e.preisChf} disabled={katalog} onChange={(ev) => aendere(i, { preisChf: ev.target.value })} />
             </label>
-            <button
-              type="button"
-              className="netze__weg"
-              aria-label={`${t.netzNummer} ${i + 1} ${t.netzEntfernen}`}
-              onClick={() => setEntwuerfe((liste) => liste.filter((_, j) => j !== i))}
-            >
-              ×
-            </button>
           </div>
 
           {/* Was der Produzent braucht. Er kennt unser Sortiment nicht. */}
@@ -364,6 +356,25 @@ export function NetzEditor({
                 ))}
               </select>
             </label>
+          </div>
+
+          {/*
+            Das Entfernen steht als BESCHRIFTETER Knopf am Fuss des Blocks und
+            nicht mehr als blankes Kreuz in der Eingabezeile. Dort rutschte es
+            beim Umbruch unter das Preisfeld und sah aus wie ein leeres
+            Kaestchen - der Betrieb hielt das Entfernen fuer nicht vorhanden
+            und rief deswegen an. Eine Funktion, die niemand findet, gibt es
+            nicht.
+          */}
+          <div className="netz__fuss">
+            <button
+              type="button"
+              className="netze__weg"
+              aria-label={`${t.netzNummer} ${i + 1} ${t.netzEntfernen}`}
+              onClick={() => setEntwuerfe((liste) => liste.filter((_, j) => j !== i))}
+            >
+              <span aria-hidden="true">×</span> {t.netzWegKnopf}
+            </button>
           </div>
         </fieldset>
       ))}
