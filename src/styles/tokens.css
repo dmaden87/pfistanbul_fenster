@@ -62,6 +62,12 @@
   --surface: #ffffff;
   --surface-raised: #f5f2ec;
   --surface-invert: #10302b;
+  /* Der Akzent, der AUF --surface-invert liegt. Er muss mitdrehen: Im
+     Dunkelmodus wird die Flaeche hell, und eine helle Minze darauf ist nicht
+     mehr zu sehen. Gemessen stand der Trust-Balken dort bei 1,38 : 1, das
+     Zeichen im Kreis bei 1,10 : 1 - gefordert sind 3 : 1. Hier liegt die
+     Flaeche dunkel, also bleibt die helle Minze. */
+  --invert-accent: #7ee0c4;
 
   --text: #17211f;
   --text-muted: #4d5b57;
@@ -107,6 +113,9 @@
     --surface: #16211e;
     --surface-raised: #1d2b27;
     --surface-invert: #eaf2ee;
+    /* Helle Flaeche, also ein dunkles Gruen: 6,93 : 1 gegen das Band und
+       5,24 : 1 gegen den getoenten Kreis. */
+    --invert-accent: #115c4d;
 
     --text: #e8efec;
     --text-muted: #a9bab4;
@@ -156,6 +165,8 @@
   --surface: #16211e;
   --surface-raised: #1d2b27;
   --surface-invert: #eaf2ee;
+  /* Siehe oben: helle Flaeche, dunkles Gruen. */
+  --invert-accent: #115c4d;
 
   --text: #e8efec;
   --text-muted: #a9bab4;

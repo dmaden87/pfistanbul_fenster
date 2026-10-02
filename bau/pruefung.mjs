@@ -483,6 +483,42 @@ for (const pfad of stilblaetter) {
 }
 pruefe('jede punktlose Liste nennt ihren Einzug', ohneEinzug.length === 0, ohneEinzug.join(', '))
 
+/*
+ * DER AKZENT AUF DER GEDREHTEN FLAECHE MUSS LESBAR SEIN.
+ *
+ * Der Trust-Balken liegt auf --surface-invert: im Hellmodus dunkelgruen, im
+ * Dunkelmodus hell. Die Zeichen darauf nahmen --footer-accent, eine feste
+ * helle Minze - die im Dunkelmodus auf hellem Grund verschwand. Gemessen:
+ * 1,38 : 1 gegen das Band, 1,10 : 1 gegen den getoenten Kreis. Gefordert sind
+ * 3 : 1 fuer Zeichen, die etwas bedeuten.
+ *
+ * Eine Auslieferungspruefung sieht keine Farben auf dem Bildschirm, aber sie
+ * kann rechnen: Hier werden die Wertepaare aus tokens.css gelesen und ihr
+ * Kontrast bestimmt - fuer jedes Farbschema einzeln. Wer eines der beiden
+ * aendert, bekommt es gesagt, bevor es jemand mit dem Auge findet.
+ */
+const tokens = readFileSync('src/styles/tokens.css', 'utf8')
+const blöcke = [...tokens.matchAll(/\{([\s\S]*?)\}/g)].map((m) => m[1])
+const paare = blöcke
+  .map((b) => [/--surface-invert:\s*(#[0-9a-f]{6})/i.exec(b)?.[1], /--invert-accent:\s*(#[0-9a-f]{6})/i.exec(b)?.[1]])
+  .filter(([flaeche, akzent]) => flaeche && akzent)
+
+const kanal = (h, i) => parseInt(h.slice(1 + i * 2, 3 + i * 2), 16)
+const helligkeit = (h) =>
+  [0, 1, 2]
+    .map((i) => { const v = kanal(h, i) / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4 })
+    .reduce((summe, v, i) => summe + v * [0.2126, 0.7152, 0.0722][i], 0)
+const kontrast = (a, b) => {
+  const [hoch, tief] = [helligkeit(a), helligkeit(b)].sort((x, y) => y - x)
+  return (hoch + 0.05) / (tief + 0.05)
+}
+
+pruefe('beide Farbschemen setzen --invert-accent', paare.length === 3, `${paare.length} von 3 Bloecken`)
+for (const [flaeche, akzent] of paare) {
+  const wert = kontrast(flaeche, akzent)
+  pruefe(`${akzent} auf ${flaeche} ist lesbar`, wert >= 3, `${wert.toFixed(2)} : 1`)
+}
+
 // --- IndexNow ---------------------------------------------------------------
 //
 // Der Schluessel weist uns gegenueber Bing und Yandex als Betreiber aus. Liegt

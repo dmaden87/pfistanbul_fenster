@@ -23,8 +23,12 @@
   width: 2.5rem;
   height: 2.5rem;
   border-radius: var(--radius-full);
-  background: color-mix(in srgb, var(--footer-accent) 18%, transparent);
-  color: var(--footer-accent);
+  /* --invert-accent und nicht --footer-accent: Der Fuss bleibt in beiden
+     Schemen dunkel, dieses Band dreht mit --surface-invert. Mit der festen
+     Fussfarbe standen die Zeichen im Dunkelmodus bei 1,38 : 1 auf dem Band
+     und 1,10 : 1 im Kreis - sichtbar war nichts. */
+  background: color-mix(in srgb, var(--invert-accent) 18%, transparent);
+  color: var(--invert-accent);
 }
 
 .trust-bar__title {
