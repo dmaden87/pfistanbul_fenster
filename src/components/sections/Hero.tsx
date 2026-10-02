@@ -81,9 +81,20 @@ export function Hero({ onRequestClick, onSiedlungenClick }: HeroProps) {
               <strong>Jedes Fenster</strong>
               <span>nach Mass gefertigt, kein Standardraster</span>
             </li>
+            {/*
+              "Meist ohne Bohren" brach auf dem Handy auf zwei Zeilen um,
+              waehrend die drei Nachbarn einzeilig blieben. Die Aussage steht
+              jetzt in der Unterzeile, wo sie Platz hat.
+
+              NICHT "geklemmt": Es klemmt nichts. Der Rahmen wird in den
+              aeusseren Fensterrahmen gesetzt und haelt mit doppelseitigem
+              Band und einer umlaufenden Buerstendichtung - so steht es in
+              der FAQ, bei "Messen & Montage" und in den Produktdaten. Ein
+              Klemmteil gibt es nirgends.
+            */}
             <li>
-              <strong>Meist ohne Bohren</strong>
-              <span>geklebt statt gedübelt</span>
+              <strong>Einfach montiert</strong>
+              <span>meist ohne Bohren, eingesetzt und geklebt</span>
             </li>
             <li>
               <strong>Das ganze Jahr</strong>

@@ -91,6 +91,7 @@
   }
 }
 
+
 /* Die Siedlung als Zeile: lesbar, aber ohne Flaeche.
    HIER STAND EIN NEGATIVER EINZUG, der den Text buendig unter den Knopf
    stellen sollte. Er schob die Zeile stattdessen aus der Textspalte nach
@@ -200,6 +201,14 @@
     margin-top: var(--space-5);
   }
 
+  /* Eine Stufe kleiner, damit die Titel in die halbe Spalte passen. Bei
+     --step-2 blieb die Spalte bei 360 px Fensterbreite rund 152 px breit, und
+     alles ueber vierzehn Zeichen brach um: "Einfach montiert" stand zweizeilig
+     neben einzeiligen Nachbarn. Gemessen passen bei --step-1 alle vier. */
+  .hero__proof strong {
+    font-size: var(--step-1);
+  }
+
   /* Die Belege als Zweierraster statt als Fliessband: untereinander waren es
      vier Zeilen, die den Preis vom Knopf wegschoben. */
   .hero__proof {
@@ -211,4 +220,16 @@
   }
 }
 
+/* Unter 22rem traegt auch --step-1 die laengeren Titel nicht mehr: Bei 320 px
+   Fensterbreite bleiben je Spalte rund 130 px. Dort steht der Beleg lieber
+   untereinander als zweizeilig - ein alter iPhone-SE-Bildschirm ist selten,
+   aber er ist kein Grund fuer vier Umbrueche.
 
+   GANZ AM SCHLUSS, weil die Zweierspalte im 48rem-Block steht: Bei gleicher
+   Spezifitaet gewinnt die spaetere Regel. Weiter oben stand dieser Block
+   zwar da und tat nichts. */
+@media (max-width: 22rem) {
+  .hero__proof {
+    grid-template-columns: 1fr;
+  }
+}
