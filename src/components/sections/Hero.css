@@ -67,26 +67,36 @@
 }
 
 .hero__actions {
-  /* Beide Wege sind gleichwertig: gleiche Breite, gleiche Zeile. */
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-3);
   margin-top: var(--space-7);
-  /* Breit genug, dass die Kampagnen-Beschriftung des ersten Knopfs auf zwei
-     Zeilen passt statt auf drei - sonst steht er hoeher als sein Nachbar. */
-  max-width: 36rem;
 }
 
+/* Der Knopf nimmt seine eigene Breite, nicht die halbe Spalte - er steht
+   allein da. Auf dem Handy die volle Breite, weil ein Daumen das trifft. */
 .hero__actions .btn {
-  width: 100%;
-  padding-inline: var(--space-4);
+  padding-inline: var(--space-6);
   text-align: center;
 }
 
 @media (max-width: 30rem) {
-  .hero__actions {
-    grid-template-columns: 1fr;
+  .hero__actions .btn {
+    width: 100%;
   }
+}
+
+/* Die Siedlung als Zeile: lesbar, aber ohne Flaeche. Der negative Einzug
+   stellt den Text buendig unter den Knopf - die Polsterung des Knopfs wuerde
+   ihn sonst um ein paar Pixel einruecken. */
+.hero__nebenweg {
+  margin-top: var(--space-3);
+  margin-inline-start: calc(var(--space-3) * -1);
+}
+
+/* Unterstrichen, damit die Zeile als Weg erkennbar ist. Leise heisst nicht
+   unsichtbar: Ohne das stand hier ein gedaempfter Satz, der sich wie der
+   Schluss des Textes davor las, und niemand haette ihn angetippt. */
+.hero__nebenweg .btn {
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
 }
 
 .hero__proof {

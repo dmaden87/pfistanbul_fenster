@@ -379,6 +379,26 @@ pruefe(
 )
 
 /*
+ * EIN GROSSER KNOPF IM HERO, nicht zwei. Daneben stand bis vor Kurzem die
+ * Siedlung als gleich breiter zweiter Knopf - auf dem Handy untereinander,
+ * beide ueber die volle Breite. Das las sich als zwei gleichwertige Wege und
+ * schob ausserdem den Preisbeleg aus dem ersten Bildschirm. Der Weg zur
+ * Siedlung ist nicht weg, er ist eine Zeile; dass es ihn noch gibt, prueft
+ * die Zeile darunter.
+ */
+const heroHtml = html.slice(html.indexOf('class="hero'), html.indexOf('trust-bar'))
+const grosse = (heroHtml.match(/class="[^"]*btn--lg/g) ?? []).length
+pruefe('der Hero hat genau einen grossen Knopf', grosse === 1, `${grosse} gefunden`)
+pruefe(
+  'der Weg zur Siedlung steht im Hero als leise Zeile',
+  heroHtml.includes('hero__nebenweg') && /btn--quiet/.test(heroHtml),
+)
+pruefe(
+  'unter dem Rechner zweigt es zur Siedlung ab',
+  html.includes('custom-request__abzweig'),
+)
+
+/*
  * Der Montagepreis steht jetzt auch auf der Sondermass-Seite und nicht mehr
  * nur im Sortiment. Zwei Orte, eine Zahl: Sie muss aus shopConfig kommen.
  */

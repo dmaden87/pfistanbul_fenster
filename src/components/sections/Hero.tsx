@@ -45,15 +45,30 @@ export function Hero({ onRequestClick, onSiedlungenClick }: HeroProps) {
             fertigen es auf Ihr Mass – von Freunden und Nachbarn für Freunde und Nachbarn.
           </p>
 
+          {/*
+            EIN KNOPF, NICHT ZWEI. Hier standen zwei gleich breite Knoepfe
+            nebeneinander - auf dem Handy untereinander, beide ueber die volle
+            Breite. Das las sich als zwei gleichwertige Wege, und genau diese
+            Ordnung haben wir abgeraeumt: Die Siedlung ist das Nebenangebot.
+            Ausserdem schob der zweite Knopf den Preisbeleg aus dem ersten
+            Bildschirm.
+
+            Der Weg zur Siedlung bleibt - als Zeile statt als Knopf. Wer einen
+            Flyer im Briefkasten hatte, sucht danach und findet eine Zeile
+            genauso; wer nicht danach sucht, wird nicht mehr gefragt.
+          */}
           <div className="hero__actions">
             <button type="button" className="btn btn--lg btn--stacked" onClick={onRequestClick}>
               <span className="btn__kicker">Masse eingeben, Preis sehen</span>
               <span>Mein Fenster ausrechnen</span>
             </button>
-            <button type="button" className="btn btn--ghost btn--lg" onClick={onSiedlungenClick}>
-              Ausgemessene Siedlung?
-            </button>
           </div>
+
+          <p className="hero__nebenweg">
+            <button type="button" className="btn btn--quiet" onClick={onSiedlungenClick}>
+              Wohnen Sie in einer ausgemessenen Siedlung?
+            </button>
+          </p>
 
           <ul className="hero__proof">
             <li>

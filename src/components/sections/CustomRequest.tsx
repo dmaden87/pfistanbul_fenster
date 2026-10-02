@@ -18,7 +18,11 @@ import './CustomRequest.css'
  * konnte nichts damit tun. Jetzt sind es dieselben vier Räume, aber mit den
  * Massen der Besucherin und einem Knopf, der sie ins Formular trägt.
  */
-export function CustomRequest() {
+interface CustomRequestProps {
+  onSiedlungenClick: () => void
+}
+
+export function CustomRequest({ onSiedlungenClick }: CustomRequestProps) {
   const [vorgabe, setVorgabe] = useState<Massuebernahme | undefined>(undefined)
 
   return (
@@ -53,6 +57,22 @@ export function CustomRequest() {
         </div>
 
         <Beispielrechner onUebernehmen={setVorgabe} />
+
+        {/*
+          DIE ABZWEIGUNG STEHT HIER und nicht mehr als zweiter Knopf im Hero.
+          Oben war sie ein gleich breiter Knopf neben dem Hauptaufruf - zwei
+          gleichwertige Wege, also wieder die Ordnung, die wir abgeraeumt
+          haben. Hier trifft sie genau die Richtige: jemanden, der gerade sein
+          Fenster ausgerechnet hat und dabei merkt, dass es jemand anders
+          laengst gemessen hat.
+        */}
+        <p className="custom-request__abzweig">
+          Wohnen Sie in einer Siedlung, die wir schon ausgemessen haben? Dann gibt es feste Preise und Sets für die
+          ganze Wohnung – und Sie müssen gar nichts messen.{' '}
+          <button type="button" className="btn btn--ghost" onClick={onSiedlungenClick}>
+            Ausgemessene Siedlungen ansehen
+          </button>
+        </p>
 
         <CustomRequestForm vorgabe={vorgabe} />
       </div>

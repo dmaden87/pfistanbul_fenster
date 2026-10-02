@@ -56,3 +56,25 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Die Abzweigung zur Siedlung: ein Satz zwischen Rechner und Formular, mit
+   einem leisen Knopf am Ende. Kein eigener Abschnitt - sie soll gefunden
+   werden, wenn jemand sie braucht, und sonst nicht im Weg stehen. */
+.custom-request__abzweig {
+  max-width: 62rem;
+  margin-bottom: var(--space-7);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  font-size: var(--step--1);
+}
+
+/* Als Knopf und nicht als Textzeile: Mit der leisen Variante stand er in
+   derselben gedaempften Farbe wie der Satz davor und las sich als dessen
+   Fortsetzung. Was man anklicken soll, muss anklickbar aussehen. */
+.custom-request__abzweig .btn {
+  display: inline-flex;
+  margin-top: var(--space-3);
+}

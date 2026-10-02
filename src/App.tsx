@@ -171,7 +171,7 @@ export default function App() {
               er sich das leisten kann, soll nicht erst lesen muessen, warum
               es guenstig ist.
             */}
-            <CustomRequest />
+            <CustomRequest onSiedlungenClick={goToSiedlungen} />
             <Benefits />
             <Construction />
             <Measuring />
