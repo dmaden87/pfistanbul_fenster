@@ -1,4 +1,4 @@
-// Gemeinsame Formen für Logo und Baum-Skizzen.
+// Gemeinsame Formen für Logo, Wortmarken und Baum-Skizzen.
 // Glas nach Foto: Rand fast so breit wie der Boden, sanfte Taille, voller runder Bauch.
 export const GLAS = 'M68,66 H132 C131,82 121,90 121,104 C121,120 131,130 131,142 C131,151 126,155 118,155 H82 C74,155 69,151 69,142 C69,130 79,120 79,104 C79,90 69,82 68,66 Z'
 // Untersetzer: breiter Teller mit tiefer Mulde darunter.
@@ -33,3 +33,32 @@ export const baeume = {
   },
 }
 
+
+const svg = (inhalt) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="currentColor" role="img">${inhalt}</svg>`
+const maske = (id, inhalt) => `<mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200">${inhalt}</mask>`
+
+// Glas vor die Krone stellen: [Fusspunkt-y im Bild, Massstab]. Das Glas steht im Original bei y 155.
+const glasLage = (fuss, massstab) => `translate(100 ${fuss}) scale(${massstab}) translate(-100 155)`.replace('-100 155', '-100 -155')
+const RAND = 'M68,66 H132'
+const TELLER_LINIEN = LINIEN.slice(2)
+const GLAS_LINIEN = [RAND, ...LINIEN.slice(0, 2)]
+
+// Eine Variante: Kronenkreis, Äste, Glas (immer mit geschlossenem Rand), Teller.
+// Alle Linien haben dieselbe Stärke – im Bild gemessen, unabhängig vom Massstab des Glases.
+export function zeichen({ kreis: [cx, cy, r], strich, aeste = [], fuss, massstab, teller }) {
+  const lage = glasLage(fuss, massstab)
+  const luecke = `<path d="${GLAS}" transform="${lage}" fill="#000" stroke="#000" stroke-width="${(strich * 3.2) / massstab}" stroke-linejoin="round"/>`
+  const linie = (d) => `<path d="${d}"/>`
+  return (p) => svg(
+    `<defs>${maske(`${p}r`, `<circle cx="${cx}" cy="${cy}" r="${r + strich / 2}" fill="#fff"/><circle cx="${cx}" cy="${cy}" r="${r - strich / 2}" fill="#000"/>${luecke}`)}` +
+    `${maske(`${p}a`, `<rect width="200" height="200" fill="#fff"/>${luecke}`)}</defs>` +
+    `<rect width="200" height="200" fill="currentColor" mask="url(#${p}r)"/>` +
+    `<g fill="none" stroke="currentColor" stroke-width="${strich}" stroke-linecap="round" stroke-linejoin="round">` +
+    `<g mask="url(#${p}a)">${aeste.map(linie).join('')}</g>` +
+    `<g transform="${lage}" stroke-width="${strich / massstab}">${GLAS_LINIEN.map(linie).join('')}${teller ? '' : TELLER_LINIEN.map(linie).join('')}</g>` +
+    `${teller ? teller.map(linie).join('') : ''}</g>`)
+}
+
+// Das gewählte Zeichen «Pur»: Krone bis auf den Teller, ohne Äste.
+export const PUR = { kreis: [100, 92, 70], strich: 4.5, fuss: 158, massstab: 0.8 }

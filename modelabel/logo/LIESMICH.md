@@ -14,6 +14,14 @@ einem Webetikett und auf einem Kartonanhänger.
 `node modelabel/logo/erzeuge.mjs` baut SVGs und Vorschau neu. Glas und
 Teller stehen in `formen.mjs`, die Varianten oben in `erzeuge.mjs`.
 
+## Name und Wortmarke
+
+`wortmarken.html` setzt die Namen-Kandidaten Zarif, Otium, Safa und Mola
+neben das Zeichen «Pur»: in drei Schriftrichtungen (Grotesk weit, Antiqua,
+rund klein), gestapelt und nebeneinander, auf Webetikett und Anhänger. Bei
+Otium und Mola zusätzlich mit dem Zeichen als Buchstabe O.
+`node modelabel/logo/wortmarken.mjs` baut die Seite neu.
+
 ## Die Bäume als Skizze
 
 `baeume.html` zeigt Platane, Zypresse und Teestrauch als Zeichnung neben
