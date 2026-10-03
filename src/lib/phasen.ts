@@ -111,6 +111,62 @@ export function nachAbschnitt(bestellungen: Bestellung[]): Map<Abschnitt, Bestel
   return gruppen
 }
 
+/**
+ * Ein Eintrag in der Liste eines Abschnitts: eine einzelne Bestellung – oder
+ * ein ganzes Paket.
+ */
+export type Listeneintrag =
+  | { art: 'einzeln'; bestellung: Bestellung }
+  | { art: 'paket'; paket: string; bestellungen: Bestellung[] }
+
+/**
+ * Fasst Bestellungen mit demselben Paket-Etikett zu einem Eintrag zusammen.
+ *
+ * WARUM: Ein Paket geht als Ganzes zu Bora, kommt als Ganzes zurueck und
+ * traegt eine Sendungsnummer. In der Liste standen seine Auftraege aber
+ * einzeln untereinander, jeder mit denselben Knoepfen und derselben Marke –
+ * bei vier Auftraegen vier fast gleiche Karten, und die Frage "was liegt
+ * eigentlich bei Bora?" war nicht mehr auf einen Blick zu beantworten.
+ *
+ * Die Reihenfolge bleibt: Ein Paket steht dort, wo sein erster Auftrag stand.
+ * Sonst sprigen Eintraege beim Buendeln an eine andere Stelle, und man sucht
+ * den Auftrag, den man gerade noch gesehen hat.
+ *
+ * Gruppiert wird nur, wo es Pakete gibt – siehe den Aufruf in AdminPage.
+ * Ein einzelner Auftrag mit Etikett bleibt ein Paket mit einem Auftrag: Er
+ * IST eines, und die naechste Bestellung kann dazukommen.
+ */
+export function nachPaket(bestellungen: Bestellung[]): Listeneintrag[] {
+  const raus: Listeneintrag[] = []
+  const stelle = new Map<string, number>()
+
+  for (const b of bestellungen) {
+    if (!b.paket) {
+      raus.push({ art: 'einzeln', bestellung: b })
+      continue
+    }
+    const platz = stelle.get(b.paket)
+    if (platz === undefined) {
+      stelle.set(b.paket, raus.length)
+      raus.push({ art: 'paket', paket: b.paket, bestellungen: [b] })
+    } else {
+      const eintrag = raus[platz]
+      if (eintrag.art === 'paket') eintrag.bestellungen.push(b)
+    }
+  }
+  return raus
+}
+
+/** Wie viele Netze in diesen Bestellungen stecken. Sets zaehlen als eine Position. */
+export function netzZahl(bestellungen: Bestellung[]): number {
+  return bestellungen.reduce((n, b) => n + b.positionen.reduce((m, p) => m + p.menge, 0), 0)
+}
+
+/** Was diese Bestellungen zusammen kosten – der Verkaufspreis, nicht unsere Kosten. */
+export function summeVon(bestellungen: Bestellung[]): number {
+  return Math.round(bestellungen.reduce((s, b) => s + b.summeChf, 0) * 100) / 100
+}
+
 /** Die naechste Phase im Ablauf, oder undefined am Ende. */
 export function naechstePhase(status: BestellStatus): BestellStatus | undefined {
   const i = PHASEN.indexOf(status as Phase)

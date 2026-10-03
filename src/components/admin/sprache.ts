@@ -354,6 +354,14 @@ const PAARE = {
     'Seçilen siparişler ortak bir paket etiketi ve ortak bir sipariş fişi alır.',
   ],
   paketAufloesen: ['Aus dem Paket nehmen', 'Paketten çıkar'],
+  paketInhalt: [
+    '{auftraege} {auftragWort} · {netze} {netzWort}',
+    '{auftraege} {auftragWort} · {netze} {netzWort}',
+  ],
+  paketZugeklapptSatz: [
+    'Aufklappen, um die einzelnen Bestellungen zu bearbeiten.',
+    'Tek tek siparişleri düzenlemek için açın.',
+  ],
   imPaketMit: ['im Paket mit', 'paketinde, birlikte'],
 
   /* --- Dokument-Steuerung ------------------------------------------------ */

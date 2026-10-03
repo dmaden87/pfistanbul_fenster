@@ -14,10 +14,13 @@ import {
   abschnittFuer,
   bezahltAm,
   nachAbschnitt,
+  nachPaket,
   naechstePhase,
+  netzZahl,
   ohneEinkauf,
   phaseNachWiederoeffnen,
   restbetragChf,
+  summeVon,
   zahlungAusstehend,
 } from '../src/lib/phasen.ts'
 import { PHASEN as PHASEN_API, phaseVon, startPhase, vereinheitlichen } from '../api/_phasen.ts'
@@ -275,6 +278,53 @@ pruefe('Wiederoeffnen fuehrt dorthin, wo die Bestellung war', () => {
   const bepreist = best({ status: 'abgesagt', positionen: [{ id: 'p1', menge: 1, bezeichnung: 'A', detail: '', preisChf: 150, einkaufChf: 40 }] })
   assert.equal(phaseNachWiederoeffnen(bepreist), 'neu')
   assert.equal(ohneEinkauf(bepreist), 0)
+})
+
+/* --- Pakete in der Liste ----------------------------------------------------- */
+
+pruefe('Ein Paket wird zu einem Eintrag, Einzelne bleiben einzeln', () => {
+  const liste = [
+    best({ id: 'a' }),
+    best({ id: 'b', paket: 'P-2026-01' }),
+    best({ id: 'c' }),
+    best({ id: 'd', paket: 'P-2026-01' }),
+    best({ id: 'e', paket: 'P-2026-02' }),
+  ]
+  const eintraege = nachPaket(liste)
+  assert.deepEqual(
+    eintraege.map((e) => (e.art === 'paket' ? `paket:${e.paket}(${e.bestellungen.length})` : `einzeln:${e.bestellung.id}`)),
+    ['einzeln:a', 'paket:P-2026-01(2)', 'einzeln:c', 'paket:P-2026-02(1)'],
+  )
+})
+
+pruefe('Das Paket steht, wo sein erster Auftrag stand', () => {
+  // Sonst springen Eintraege beim Buendeln an eine andere Stelle, und man
+  // sucht den Auftrag, den man gerade noch gesehen hat.
+  const liste = [best({ id: 'a', paket: 'P-1' }), best({ id: 'b' }), best({ id: 'c', paket: 'P-1' })]
+  const eintraege = nachPaket(liste)
+  assert.equal(eintraege[0].art, 'paket')
+  assert.equal(eintraege[1].art, 'einzeln')
+  assert.equal(eintraege.length, 2, 'der zweite Auftrag des Pakets darf keinen eigenen Eintrag bekommen')
+})
+
+pruefe('Ohne Pakete aendert sich nichts an der Liste', () => {
+  const liste = [best({ id: 'a' }), best({ id: 'b' })]
+  assert.deepEqual(
+    nachPaket(liste).map((e) => e.art),
+    ['einzeln', 'einzeln'],
+  )
+  assert.deepEqual(nachPaket([]), [])
+})
+
+pruefe('Der Kopf des Pakets zaehlt Netze und Franken zusammen', () => {
+  const zwei = [
+    best({ id: 'a', positionen: [{ id: 'p1', menge: 2, bezeichnung: 'A', detail: '', preisChf: 170 }], summeChf: 370 }),
+    best({ id: 'b', positionen: [{ id: 'p2', menge: 1, bezeichnung: 'B', detail: '', preisChf: 180 }], summeChf: 160 }),
+  ]
+  assert.equal(netzZahl(zwei), 3, 'Mengen zaehlen, nicht Positionen')
+  assert.equal(summeVon(zwei), 530)
+  assert.equal(netzZahl([]), 0)
+  assert.equal(summeVon([]), 0)
 })
 
 console.log(`\n${bestanden}/${bestanden + fehler.length} bestanden`)

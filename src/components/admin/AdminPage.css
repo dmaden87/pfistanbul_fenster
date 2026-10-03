@@ -859,6 +859,118 @@
   margin-right: var(--space-2);
 }
 
+/* --- Das Paket als ein Eintrag ---------------------------------------------- */
+
+/*
+ * Die Paketkarte sieht aus wie eine Bestellkarte, ist aber eine Huelle. Sie
+ * traegt deshalb keine eigene Polsterung – die steckt im Kopf, damit der
+ * ganze Kopf anklickbar ist und nicht nur die Schrift darin.
+ */
+.admin__paket {
+  padding: 0;
+  overflow: hidden;
+}
+
+.admin__paket-kopf {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-4) var(--space-5);
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin__paket-kopf:hover {
+  background: var(--surface-raised);
+}
+
+/* Alles ausser dem Pfeil – darf umbrechen, so viel es will. */
+.admin__paket-text {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  min-width: 0;
+}
+
+.admin__paket-zeile {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-3);
+  min-width: 0;
+}
+
+.admin__paket-marken {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Das Etikett traegt den Namen – es ist das, was auf der Kiste steht. */
+.admin__marke--paket {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.admin__paket-pfeil {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+}
+
+/* Die Schritte des Pakets – dieselbe Reihe wie auf einer Bestellkarte. */
+.admin__paket-schritte {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: 0 var(--space-5) var(--space-4);
+}
+
+.admin__paket-sendung {
+  margin: 0;
+  padding: 0 var(--space-5) var(--space-4);
+}
+
+.admin__paket-satz {
+  padding: 0 var(--space-5) var(--space-4);
+  color: var(--text-muted);
+  font-size: var(--step--2);
+}
+
+/*
+ * Die Bestellungen im Paket. Eingerueckt und leicht abgesetzt, damit man
+ * sieht, dass sie zu der Zeile darueber gehoeren.
+ */
+.admin__paket-liste {
+  margin: 0;
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  border-top: 1px solid var(--border);
+  background: var(--surface-raised);
+}
+
+@media (max-width: 34rem) {
+  .admin__paket-kopf {
+    padding: var(--space-3);
+  }
+
+  .admin__paket-satz,
+  .admin__paket-schritte,
+  .admin__paket-sendung {
+    padding: 0 var(--space-3) var(--space-3);
+  }
+
+  .admin__paket-liste {
+    padding: var(--space-2);
+  }
+}
+
 /* --- Testumgebung ----------------------------------------------------------- */
 
 /*

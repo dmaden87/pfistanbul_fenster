@@ -79,6 +79,13 @@ interface BestellKarteProps {
   /** Fuers Paket gewaehlt. Nur in "Bestellen". */
   gewaehlt?: boolean
   onWahl?: (id: string, gewaehlt: boolean) => void
+  /**
+   * Die Karte steht INNERHALB einer Paketkarte. Dann fehlen ihr alles, was
+   * das ganze Paket betrifft – die Paketmarke, der Haken "unterwegs", die
+   * Sendungsnummer und die Knoepfe fuers Paket. Das steht einmal im Kopf
+   * darueber und nicht auf jeder Karte noch einmal.
+   */
+  imPaket?: boolean
 }
 
 /** Die Gruende fuer eine Absage, in der Reihenfolge, in der sie vorkommen. */
@@ -96,7 +103,7 @@ function fehlendeAngaben(b: Bestellung): number {
  * es leise und mit Grund. "Absagen" gibt es ueberall ausser im Archiv –
  * eine Bestellung kann in jeder Phase sterben.
  */
-function knoepfe(b: Bestellung, abschnitt: Abschnitt, t: AdminTexte): KartenKnopf[] {
+function knoepfe(b: Bestellung, abschnitt: Abschnitt, t: AdminTexte, imPaket: boolean): KartenKnopf[] {
   const absagen: KartenKnopf = { tat: 'absagen', text: t.knopfAbsagen, art: 'still' }
   const zurueck = (phase: Bestellung['status'], name: string): KartenKnopf => ({
     tat: { status: phase },
@@ -184,10 +191,17 @@ function knoepfe(b: Bestellung, abschnitt: Abschnitt, t: AdminTexte): KartenKnop
        * Telefon aus wie zwei gleich wichtige Wege, und die Karte wurde zur
        * Wand aus Knoepfen.
        */
-      const liste: KartenKnopf[] = [
-        { tat: 'boraBestellt', text: b.paket ? t.knopfPaketBestellt : t.knopfBeiBoraBestellt, art: 'haupt' },
-        { tat: 'bestellBlatt', text: b.paket ? t.bestelltalonPaket : t.bestelltalonAnzeigen, art: 'still' },
-      ]
+      /*
+       * IM PAKET STEHEN DIESE BEIDEN OBEN, nicht hier. Sie betreffen das
+       * ganze Paket; auf jeder Karte wiederholt waeren sie bei vier
+       * Auftraegen viermal derselbe Knopf, der viermal dasselbe tut.
+       */
+      const liste: KartenKnopf[] = imPaket
+        ? []
+        : [
+            { tat: 'boraBestellt', text: t.knopfBeiBoraBestellt, art: 'haupt' },
+            { tat: 'bestellBlatt', text: t.bestelltalonAnzeigen, art: 'still' },
+          ]
       if (b.paket) liste.push({ tat: { paket: '' }, text: t.paketAufloesen, art: 'still' })
       if (!phasenEntfallen(b)) liste.push({ tat: { status: 'zusage', zusage: false }, text: t.knopfZusageZurueck, art: 'still' })
       liste.push(absagen)
@@ -199,10 +213,15 @@ function knoepfe(b: Bestellung, abschnitt: Abschnitt, t: AdminTexte): KartenKnop
        * (Haken in der Reihe darueber) und unter welcher Nummer. Der Schritt
        * vorwaerts ist "angekommen".
        */
-      const liste: KartenKnopf[] = [{ tat: { status: 'ausliefern' }, text: t.knopfAngekommen, art: 'haupt' }]
-      liste.push({ tat: 'bestellBlatt', text: b.paket ? t.bestelltalonPaket : t.bestelltalonAnzeigen, art: 'still' })
+      // Auch hier gilt: Was die ganze Sendung betrifft, steht im Paketkopf.
+      const liste: KartenKnopf[] = imPaket
+        ? []
+        : [
+            { tat: { status: 'ausliefern' }, text: t.knopfAngekommen, art: 'haupt' },
+            { tat: 'bestellBlatt', text: t.bestelltalonAnzeigen, art: 'still' },
+          ]
       if (b.paket) liste.push({ tat: { paket: '' }, text: t.paketAufloesen, art: 'still' })
-      liste.push(zurueck('bestellen', t.phaseBestellen))
+      if (!imPaket) liste.push(zurueck('bestellen', t.phaseBestellen))
       liste.push(absagen)
       return liste
     }
@@ -282,6 +301,7 @@ export function BestellKarte({
   onBlatt,
   gewaehlt,
   onWahl,
+  imPaket = false,
 }: BestellKarteProps) {
   const [offen, setOffen] = useState(false)
   const [bearbeitet, setBearbeitet] = useState(false)
@@ -357,7 +377,7 @@ export function BestellKarte({
         {b.bezahlung?.status === 'bezahlt' && (
           <span className="admin__marke admin__marke--gut">{t.bezahltMarke} · {formatChf(b.bezahlung.betragChf)}</span>
         )}
-        {b.paket && (abschnitt === 'bestellen' || abschnitt === 'bora' || abschnitt === 'ausliefern') && (
+        {b.paket && !imPaket && (abschnitt === 'bestellen' || abschnitt === 'bora' || abschnitt === 'ausliefern') && (
           <span className="admin__marke">
             {t.paketMarke} {b.paket}
             {mitgenossen.length > 0 && ` · ${t.imPaketMit} ${mitgenossen.map((x) => x.referenz || x.id).join(', ')}`}
@@ -405,7 +425,7 @@ export function BestellKarte({
         hier – im Backlog ist noch nichts bestellt, und nach der Ankunft
         interessiert die Nummer niemanden mehr.
       */}
-      {abschnitt === 'bora' && (
+      {abschnitt === 'bora' && !imPaket && (
         <div className="admin__haken-reihe">
           {b.bestelltAm && (
             <span className="admin__marke admin__marke--gut">
@@ -691,7 +711,7 @@ export function BestellKarte({
             </button>
           </span>
         ) : (
-          knoepfe(b, abschnitt, t).map((k) => (
+          knoepfe(b, abschnitt, t, imPaket).map((k) => (
             <span key={k.text} className="admin__schritt">
               <button
                 type="button"

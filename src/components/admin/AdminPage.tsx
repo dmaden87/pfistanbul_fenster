@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { AdminStatus, Bestellung, BestellAenderung } from '../../types'
-import { ABSCHNITTE, nachAbschnitt, type Abschnitt } from '../../lib/phasen'
+import { ABSCHNITTE, nachAbschnitt, nachPaket, type Abschnitt } from '../../lib/phasen'
 import type { AdminTexte } from './sprache'
 import {
   abmelden,
@@ -13,6 +13,7 @@ import {
 } from '../../lib/adminApi'
 import { shopConfig } from '../../data/shopConfig'
 import { BestellKarte } from './BestellKarte'
+import { PaketKarte } from './PaketKarte'
 import { Bestellauftrag } from './Bestellauftrag'
 import { Offerte } from './Offerte'
 import { NeueBestellung } from './NeueBestellung'
@@ -58,6 +59,13 @@ function abschnittTexte(t: AdminTexte): Record<Abschnitt, { titel: string; satz:
  * nicht bei Bora liegt. Was dort liegt, laesst sich nicht mehr buendeln.
  */
 const MIT_KAESTCHEN: readonly Abschnitt[] = ['bestellen']
+
+/**
+ * Wo Pakete als EIN Eintrag erscheinen: dort, wo es sie gibt. Im Archiv
+ * nicht – eine abgesagte Bestellung traegt ihr altes Etikett vielleicht
+ * noch, aber als Paket gefuehrt wird sie nicht mehr.
+ */
+const MIT_PAKETEN: readonly Abschnitt[] = ['bestellen', 'bora']
 
 /** Das naechste freie Paket-Etikett: P-<Jahr>-<laufende Nummer>. */
 function naechstesPaket(bestellungen: Bestellung[]): string {
@@ -281,6 +289,37 @@ function AdminMaske({ onBack }: AdminPageProps) {
     }
   }
 
+  /**
+   * Eine Bestellkarte. Als Funktion und nicht zweimal geschrieben: Sie steht
+   * einmal frei in der Liste und einmal im aufgeklappten Paket, und zwei
+   * Fassungen derselben Karte laufen auseinander, sobald jemand an einer
+   * davon etwas aendert.
+   */
+  const karte = (b: Bestellung, abschnitt: Abschnitt, imPaket = false) => (
+    <BestellKarte
+      key={b.id}
+      bestellung={b}
+      abschnitt={abschnitt}
+      paket={paketVon(b)}
+      montageProNetz={shopConfig.montageChf}
+      onAendern={handleAendern}
+      onLoeschen={handleLoeschen}
+      onOfferte={setOffeneOfferte}
+      onBlatt={(ids, art, nummer) => setBlatt({ ids, art, nummer })}
+      gewaehlt={auswahl.includes(b.id)}
+      /*
+        Kein Kaestchen, wenn der Auftrag schon ein Paket traegt: Ein zweites
+        Zusammenfuehren schriebe ihm ein neues Etikett und riss ihn damit
+        still aus dem alten Paket heraus – die anderen Auftraege blieben unter
+        der alten Kennung zurueck, und auf zwei Talons stuenden Netze, die in
+        derselben Kiste liegen. Wer umpacken will, nimmt ihn erst aus dem
+        Paket.
+      */
+      onWahl={MIT_KAESTCHEN.includes(abschnitt) && !b.paket ? waehle : undefined}
+      imPaket={imPaket}
+    />
+  )
+
   const offerte = offeneOfferte ? bestellungen.find((b) => b.id === offeneOfferte) : undefined
   if (offerte) {
     return (
@@ -453,30 +492,25 @@ function AdminMaske({ onBack }: AdminPageProps) {
 
               {!zu && treffer.length > 0 && (
                 <ul className="admin__karten">
-                  {treffer.map((b) => (
-                    <BestellKarte
-                      key={b.id}
-                      bestellung={b}
-                      abschnitt={abschnitt}
-                      paket={paketVon(b)}
-                      montageProNetz={shopConfig.montageChf}
-                      onAendern={handleAendern}
-                      onLoeschen={handleLoeschen}
-                      onOfferte={setOffeneOfferte}
-                      onBlatt={(ids, art, nummer) => setBlatt({ ids, art, nummer })}
-                      gewaehlt={auswahl.includes(b.id)}
-                      /*
-                        Kein Kaestchen, wenn der Auftrag schon ein Paket
-                        traegt: Ein zweites Zusammenfuehren schriebe ihm ein
-                        neues Etikett und riss ihn damit still aus dem alten
-                        Paket heraus – die anderen Auftraege blieben unter der
-                        alten Kennung zurueck, und auf zwei Talons stuenden
-                        Netze, die in derselben Kiste liegen. Wer umpacken
-                        will, nimmt ihn erst aus dem Paket.
-                      */
-                      onWahl={MIT_KAESTCHEN.includes(abschnitt) && !b.paket ? waehle : undefined}
-                    />
-                  ))}
+                  {(MIT_PAKETEN.includes(abschnitt)
+                    ? nachPaket(treffer)
+                    : treffer.map((b) => ({ art: 'einzeln' as const, bestellung: b }))
+                  ).map((eintrag) =>
+                    eintrag.art === 'paket' ? (
+                      <PaketKarte
+                        key={eintrag.paket}
+                        paket={eintrag.paket}
+                        bestellungen={eintrag.bestellungen}
+                        abschnitt={abschnitt}
+                        onAendern={handleAendern}
+                        onBlatt={(ids, art, nummer) => setBlatt({ ids, art, nummer })}
+                      >
+                        {eintrag.bestellungen.map((b) => karte(b, abschnitt, true))}
+                      </PaketKarte>
+                    ) : (
+                      karte(eintrag.bestellung, abschnitt)
+                    ),
+                  )}
                 </ul>
               )}
 
