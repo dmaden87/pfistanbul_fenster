@@ -195,8 +195,17 @@ export function Bestellauftrag({ bestellungen, art, nummer, onZurueck }: Bestell
             */}
             <h1>{w(art === 'anfrage' ? TEXTE.titelAnfrage : TEXTE.titelBestellung)}</h1>
             <p className="blatt__stand">{w(art === 'anfrage' ? TEXTE.untertitelAnfrage : TEXTE.untertitelBestellung)}</p>
+            {/*
+              "Sendung" vor der Nummer: Auf diesem Blatt gibt es die Lieferung
+              als Ganzes und das Buendel je Auftrag. Beide hiessen "Paket",
+              bis hier ein Wort stand.
+            */}
             <p className="blatt__zeile">
-              {nummer && <strong>{nummer} · </strong>}
+              {nummer && (
+                <strong>
+                  {w(TEXTE.sendung)} {nummer} ·{' '}
+                </strong>
+              )}
               {heute}
             </p>
           </div>
@@ -209,17 +218,26 @@ export function Bestellauftrag({ bestellungen, art, nummer, onZurueck }: Bestell
           <p>{w(RICHTUNGSREGEL)}</p>
         </section>
 
-        <section className="blatt__termin">
-          {art === 'anfrage' ? (
-            <p>
-              {w(TEXTE.terminOffen)}: <span className="blatt__leer" />
-            </p>
-          ) : (
-            <p>
-              {w(TEXTE.terminGesetzt)}: <strong>{termin || '—'}</strong>
-            </p>
-          )}
-        </section>
+        {/*
+          Der Termin. Auf der Anfrage ein leeres Feld, das er fuellt; auf der
+          Bestellung unsere Erwartung – und wenn keine getippt wurde, steht
+          die Zeile gar nicht erst da. "Erwarteter Liefertermin: —" auf einem
+          verbindlichen Auftrag sagt nichts und sieht aus, als waere etwas
+          verlorengegangen.
+        */}
+        {(art === 'anfrage' || termin.trim()) && (
+          <section className="blatt__termin">
+            {art === 'anfrage' ? (
+              <p>
+                {w(TEXTE.terminOffen)}: <span className="blatt__leer" />
+              </p>
+            ) : (
+              <p>
+                {w(TEXTE.terminGesetzt)}: <strong>{termin.trim()}</strong>
+              </p>
+            )}
+          </section>
+        )}
 
         {bemerkung && <p className="blatt__bemerkung">{bemerkung}</p>}
 
@@ -254,7 +272,7 @@ export function Bestellauftrag({ bestellungen, art, nummer, onZurueck }: Bestell
             <thead>
               <tr>
                 <th className="blatt__eng">{w(TEXTE.nummer)}</th>
-                <th>{w(TEXTE.paket)}</th>
+                <th>{w(TEXTE.buendel)}</th>
                 <th>{w(TEXTE.fenster)}</th>
                 <th className="blatt__eng">{w(TEXTE.breite)}</th>
                 <th className="blatt__eng">{w(TEXTE.hoehe)}</th>
@@ -306,11 +324,11 @@ export function Bestellauftrag({ bestellungen, art, nummer, onZurueck }: Bestell
         */}
         {paketliste.length > 1 && (
           <section className="blatt__pakete">
-            <h2>{w(TEXTE.paketeTitel)}</h2>
+            <h2>{w(TEXTE.buendelTitel)}</h2>
             <table className="blatt__tabelle blatt__paketliste">
               <thead>
                 <tr>
-                  <th>{w(TEXTE.paket)}</th>
+                  <th>{w(TEXTE.buendel)}</th>
                   <th className="blatt__eng">{w(TEXTE.stueck)}</th>
                 </tr>
               </thead>

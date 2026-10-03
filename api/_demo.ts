@@ -89,8 +89,20 @@ function netz(
     oeffnung,
     // "fertig" heisst: Die Angaben fuer Bora sind da. Ohne sie bleibt der
     // Weg aus der Klaerung gesperrt – und genau das soll sich testen lassen.
+    /*
+     * DIE WERTE MUESSEN AUS src/data/produktion.ts STAMMEN. Hier stand
+     * `mechanismus: 'plissee'` – das gibt es nicht; gueltig sind "akkordeon"
+     * und "fix". Auf dem Blatt an Bora erschien daraufhin das rohe Wort
+     * "plissee" statt "Akkordeon, verschiebbar", weil `beschriften()`
+     * Unbekanntes anzeigt, statt es zu verschlucken. Genau dafuer ist diese
+     * Anzeige da – und hier hat sie den Fehler gezeigt.
+     *
+     * api/ darf nicht aus src/ importieren (siehe bau/api-test.mjs), also
+     * stehen die Werte als Text da. bau/demo-test.mjs prueft sie gegen die
+     * echten Tabellen.
+     */
     ...(fertig
-      ? { rahmendicke: '60 mm', rahmenfarbe: 'weiss', netzfarbe: 'grau', mechanismus: 'plissee' }
+      ? { rahmendicke: '60 mm', rahmenfarbe: 'weiss', netzfarbe: 'grau', mechanismus: 'akkordeon' }
       : {}),
   }
 }

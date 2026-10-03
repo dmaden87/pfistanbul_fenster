@@ -37,7 +37,7 @@ export interface AuftragsNetz {
 }
 
 /**
- * Ein Paket, wie es auf dem Blatt erscheint.
+ * Ein Buendel, wie es auf dem Blatt erscheint: die Verpackung EINES Auftrags.
  *
  * Wird aus den Zeilen abgeleitet und nicht aus den Bestellungen. So gilt
  * dieselbe Rechnung fuer die frisch berechneten Zeilen einer Runde im Entwurf
@@ -65,7 +65,7 @@ export interface AuftragsPaket {
  * Eine Zeile des Auftrags: genau EIN Plissee.
  *
  * Bewusst nicht "3 × dieses Netz". Der Produzent fertigt Stueck fuer Stueck,
- * und auf jedem Stueck muss die Paketkennung stehen – bei einer
+ * und auf jedem Stueck muss die Buendelkennung stehen – bei einer
  * zusammengefassten Zeile stuenden dort drei verschiedene. Gleiche Bauarten
  * stehen dafuer hintereinander, damit er sie in einem Zug fertigen kann.
  *
@@ -169,8 +169,15 @@ function netzeAusPosition(p: BestellPosition): AuftragsNetz[] {
 }
 
 /**
- * Die Kennung, die auf das Paket kommt. Kurz und ohne Umlaute: Sie wird von
- * Hand abgeschrieben, und alles Laengere wird dabei verstuemmelt.
+ * Die Kennung, die auf das BUENDEL kommt – also auf die Verpackung eines
+ * einzelnen Auftrags. Kurz und ohne Umlaute: Sie wird von Hand
+ * abgeschrieben, und alles Laengere wird dabei verstuemmelt.
+ *
+ * NICHT ZU VERWECHSELN MIT DEM PAKET-ETIKETT (P-2026-01). Das bezeichnet die
+ * ganze Sendung, in der mehrere Buendel reisen. Auf dem Blatt an Bora steht
+ * die Sendung oben rechts und das Buendel in der Spalte – beide hiessen
+ * einmal "Paket", und auf einem Blatt, auf dem beides vorkommt, war nicht zu
+ * erkennen, welches gemeint war.
  */
 export function kennungFuer(b: { referenz: string; id: string }): string {
   return (b.referenz || b.id).toUpperCase().replace(/[^A-Z0-9-]/g, '')
@@ -250,7 +257,7 @@ export function netzeAusBestellung(bestellung: Bestellung): (AuftragsNetz & { pr
   }))
 }
 
-/** Die Pakete einer Zeilenliste, in der Reihenfolge des ersten Auftretens. */
+/** Die Buendel einer Zeilenliste, in der Reihenfolge des ersten Auftretens. */
 export function pakete(zeilen: AuftragsZeile[]): AuftragsPaket[] {
   const nachKennung = new Map<string, AuftragsZeile[]>()
   for (const zeile of zeilen) {

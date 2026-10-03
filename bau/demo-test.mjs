@@ -143,6 +143,37 @@ await pruefe('Die Beispieldaten decken jede Phase ab und rechnen auf', async () 
   )
 })
 
+await pruefe('Die Beispieldaten benutzen nur Werte, die es wirklich gibt', async () => {
+  /*
+   * DER GRUND: In den Beispielen stand `mechanismus: 'plissee'`. Diesen Wert
+   * gibt es nicht – gueltig sind "akkordeon" und "fix". Auf dem Blatt an Bora
+   * erschien daraufhin das rohe Wort statt "Akkordeon, verschiebbar".
+   *
+   * Auffallen konnte das nur jemandem, der das Blatt liest: api/_demo.ts darf
+   * nicht aus src/ importieren, also kann TypeScript die Texte dort nicht
+   * pruefen. Dieser Testlauf darf es – er laeuft nicht auf Vercel.
+   */
+  const { demoSaat } = await import('../api/_demo.ts')
+  const { MECHANISMEN, NETZFARBEN, OEFFNUNGEN, RAHMENFARBEN } = await import('../src/data/produktion.ts')
+  const tabellen = {
+    mechanismus: MECHANISMEN,
+    netzfarbe: NETZFARBEN,
+    oeffnung: OEFFNUNGEN,
+    rahmenfarbe: RAHMENFARBEN,
+  }
+  for (const b of demoSaat()) {
+    for (const p of b.positionen) {
+      for (const [feld, tabelle] of Object.entries(tabellen)) {
+        if (p[feld] === undefined) continue
+        assert.ok(
+          p[feld] in tabelle,
+          `${b.id}/${p.id}: ${feld} = "${p[feld]}" gibt es nicht. Erlaubt: ${Object.keys(tabelle).join(', ')}`,
+        )
+      }
+    }
+  }
+})
+
 /* --- Ergebnis ---------------------------------------------------------------- */
 
 console.log(`\n${bestanden}/${bestanden + fehler.length} bestanden`)

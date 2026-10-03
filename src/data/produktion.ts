@@ -215,13 +215,28 @@ export const TEXTE = {
   titelAnfrage: { deutsch: 'Preisanfrage', tuerkisch: 'Fiyat Talebi' },
   titelBestellung: { deutsch: 'Definitive Bestellung', tuerkisch: 'Kesin Sipariş' },
   untertitelAnfrage: {
-    deutsch: 'Bitte Stückpreis und Frachtkosten eintragen und zurückschicken.',
-    tuerkisch: 'Lütfen birim fiyatları ve nakliye bedelini yazıp geri gönderin.',
+    deutsch: 'Bitte Stückpreis je Zeile eintragen und zurückschicken.',
+    tuerkisch: 'Lütfen her satır için birim fiyatı yazıp geri gönderin.',
   },
+  /*
+   * KEINE PREISE MEHR AUF DIESEM BLATT, also auch keine im Untertitel. Dort
+   * stand "Verbindlicher Auftrag zu den eingetragenen Preisen" – neben einer
+   * Tabelle, in der keine Preise mehr stehen. Ein Satz, der auf eine Spalte
+   * zeigt, die es nicht gibt, laesst den Leser suchen.
+   */
   untertitelBestellung: {
-    deutsch: 'Verbindlicher Auftrag zu den eingetragenen Preisen. Bitte fertigen.',
-    tuerkisch: 'Yazılı fiyatlarla kesin sipariştir. Lütfen üretime alın.',
+    deutsch: 'Verbindlicher Auftrag. Bitte fertigen.',
+    tuerkisch: 'Kesin sipariştir. Lütfen üretime alın.',
   },
+  /*
+   * "Sendung" vor der Nummer oben rechts, und das ist keine Zierde: Auf
+   * diesem Blatt gibt es ZWEI Dinge, die man Paket nennen koennte – die
+   * Lieferung als Ganzes (P-2026-01) und das Buendel je Auftrag (PF-D004),
+   * das getrennt verpackt und beschriftet wird. Ohne Wort davor standen
+   * beide als "Paket" da, und Bora haette raten muessen, welches gemeint
+   * ist.
+   */
+  sendung: { deutsch: 'Sendung', tuerkisch: 'Sevkiyat' },
   /* Die interne Notiz eines Auftrags – Sonderwuensche, Fragen, Bemerkungen. */
   notizen: { deutsch: 'Bemerkungen und Sonderwünsche', tuerkisch: 'Notlar ve özel istekler' },
   terminOffen: { deutsch: 'Ungefährer Liefertermin', tuerkisch: 'Yaklaşık teslim tarihi' },
@@ -234,29 +249,25 @@ export const TEXTE = {
     tuerkisch: 'Tüm ölçüler santimetre cinsinden, genişlik × yükseklik.',
   },
   /*
-   * Gestrichene Zeilen bleiben stehen, statt zu verschwinden.
-   *
-   * Bora hat seine Preise auf die Zeilennummern der Anfrage geschrieben. Wer
-   * beim verbindlichen Auftrag neu ab eins durchnummeriert, zwingt ihn, jede
-   * Zahl neu zu suchen – und irgendwann landet eine am falschen Netz. Also
-   * behalten die Zeilen ihre Nummer, und was herausgefallen ist, wird
-   * durchgestrichen.
+   * HIER STANDEN ZWEI BESCHRIFTUNGEN FUER GESTRICHENE ZEILEN. Sie stammen
+   * aus einer Zeit, in der die Bestellung aus der Anfrage entstand und deren
+   * Zeilennummern behielt, damit Boras Preise am richtigen Netz blieben.
+   * Benutzt hat sie nie jemand – das Blatt kennt diesen Zustand nicht –, und
+   * seit auf der Bestellung keine Preise mehr stehen, gibt es auch den Grund
+   * dafuer nicht mehr.
    */
-  gestrichen: {
-    deutsch: 'gestrichen',
-    tuerkisch: 'iptal',
-  },
-  gestrichenHinweis: {
-    deutsch: 'Durchgestrichene Zeilen sind nicht bestellt. Die Nummern bleiben wie in der Anfrage.',
-    tuerkisch: 'Üstü çizili satırlar sipariş edilmemiştir. Numaralar talepteki gibi kalır.',
-  },
-  paketeTitel: {
-    deutsch: 'Pakete · bitte getrennt verpacken und beschriften',
-    tuerkisch: 'Paketler · lütfen ayrı ayrı paketleyip üzerine yazın',
+  buendelTitel: {
+    deutsch: 'Bündel · bitte getrennt verpacken und beschriften',
+    tuerkisch: 'Koliler · lütfen ayrı ayrı paketleyip üzerine yazın',
   },
   /* Spaltenkoepfe */
   nummer: { deutsch: 'Nr.', tuerkisch: 'No.' },
-  paket: { deutsch: 'Paket', tuerkisch: 'Paket' },
+  /*
+   * Das BUENDEL, nicht die Sendung: Jeder Auftrag wird fuer sich verpackt
+   * und beschriftet, damit wir ihn beim Ausliefern nicht erst auseinander
+   * sortieren muessen. Mehrere Buendel reisen in einer Sendung.
+   */
+  buendel: { deutsch: 'Bündel', tuerkisch: 'Koli' },
   fenster: { deutsch: 'Fenster', tuerkisch: 'Pencere' },
   breite: { deutsch: 'Breite', tuerkisch: 'Genişlik' },
   hoehe: { deutsch: 'Höhe', tuerkisch: 'Yükseklik' },
