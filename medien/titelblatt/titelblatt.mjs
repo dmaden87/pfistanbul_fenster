@@ -1,16 +1,19 @@
 /**
  * Baut das Titelblatt von Pfistanbul Fenster als Bilddatei.
  *
- *   node titelblatt.mjs            # alle Motive
- *   node titelblatt.mjs falten     # nur eines
+ *   node titelblatt.mjs                  # alle Motive, beide Formate
+ *   node titelblatt.mjs tuere            # ein Motiv, beide Formate
+ *   node titelblatt.mjs tuere --a4       # ein Motiv, nur A4
  *
- * Ergebnis: titelblatt-<motiv>.jpg, A4 hoch bei 300 dpi (2480 x 3508).
+ * Ergebnis:
+ *   titelblatt-<motiv>.jpg        A4 hoch, 2480 x 3508, 300 dpi – zum Drucken
+ *   titelblatt-<motiv>-9x16.jpg   1080 x 1920 – als erstes Bild in einem Reel
  *
  * Die fertigen Blaetter liegen ANDERS ALS BEIM REEL im Repository. Zwei
  * Gruende: Sie sind klein, und sie gehen aus dem Haus – an eine Druckerei,
- * in eine Offerte, auf ein Papier. Was wir weitergeben, soll auffindbar
- * sein und nicht davon abhaengen, dass jemand Chromium in genau dieser
- * Fassung zur Hand hat. In arbeit/ bleibt nur Wegwerfzeug.
+ * in eine Offerte, auf ein Papier. Was wir weitergeben, soll auffindbar sein
+ * und nicht davon abhaengen, dass jemand Chromium in genau dieser Fassung
+ * zur Hand hat. In arbeit/ bleibt nur Wegwerfzeug.
  *
  * WARUM CHROMIUM UND NICHT EIN BILDWERKZEUG: Die Schriften der Marke liegen
  * als woff2 im Projekt. Nur der Browser liest die; ImageMagick und ffmpeg
@@ -34,11 +37,20 @@ const SCHRIFTEN = resolve(HIER, '../../public/fonts')
 const ROH = resolve(HIER, '../roh')
 const ARBEIT = join(HIER, 'arbeit')
 
-/* A4 hoch. Die Seite wird in 150 dpi gesetzt und in doppelter Aufloesung
-   aufgenommen – das ergibt 300 dpi und haelt die Zahlen im Stil lesbar. */
-const B = 1240
-const H = 1754
-const DPI = 300
+/* --- Die Formate ------------------------------------------------------------
+ *
+ * Beide Seiten werden in halber Groesse gesetzt und doppelt aufgenommen.
+ * `skala` passt die Schriftgroessen an die schmalere Seite an.
+ *
+ * ZUM FUSS IM HOCHFORMAT: Instagram legt unten Name, Bildunterschrift und
+ * Knoepfe ueber das Bild – rund 250 Punkte hoch. Deshalb sitzt der Schriftzug
+ * dort deutlich weiter oben als auf dem Papier, sonst steht die Marke hinter
+ * der Bedienung.
+ */
+const FORMATE = {
+  a4: { kuerzel: '', B: 1240, H: 1754, dpi: 300, skala: 1, rand: 100, fussUnten: 104 },
+  '9x16': { kuerzel: '-9x16', B: 540, H: 960, dpi: 72, skala: 0.46, rand: 46, fussUnten: 150 },
+}
 
 /* --- Die Motive -------------------------------------------------------------
  *
@@ -62,8 +74,12 @@ const MOTIVE = {
     bild: 'plissees-angelehnt-falten.jpg',
     /* NICHT `cover`: Das Bild ist fast so hoch wie A4, bei `cover` bleibt
        senkrecht nichts zu schieben – `pos` waere wirkungslos, und oben steht
-       ein Streifen Zimmerdecke. Mit 124 Prozent entsteht Spielraum. */
-    groesse: '124%',
+       ein Streifen Zimmerdecke.
+       UND DIE ANGABE GILT DER HOEHE, nicht der Breite: Ein Mass wie `117%`
+       allein rechnet auf die Breite der Seite. Im Hochformat ist die Seite
+       schmaler und viel hoeher – das Bild deckte sie dann nicht mehr, und
+       oben stand ein gruener Streifen. Genau so war die erste Fassung. */
+    groesse: 'auto 117%',
     pos: '46% 64%',
   },
   /* NICHT VERWENDEN ohne neuen Ausschnitt: Auf der Schiene klebt der echte
@@ -78,8 +94,8 @@ const MOTIVE = {
 
 /** Das Zeichen der Marke – dieselbe Zeichnung wie in public/favicon.svg,
  *  nur hell auf dem Bild statt dunkel auf Papier. */
-const ZEICHEN = `
-<svg viewBox="0 0 32 32" width="78" height="78" aria-hidden="true">
+const zeichen = (gr) => `
+<svg viewBox="0 0 32 32" width="${gr}" height="${gr}" aria-hidden="true">
   <rect width="32" height="32" rx="7" fill="rgba(244,247,245,0.96)"/>
   <g stroke="#0f3b34" stroke-linecap="round" fill="none">
     <rect x="7.5" y="7.5" width="17" height="17" rx="2.5" stroke-width="2.6"/>
@@ -87,8 +103,10 @@ const ZEICHEN = `
   </g>
 </svg>`
 
-function seite(motiv) {
+function seite(motiv, f) {
   const m = MOTIVE[motiv]
+  const s = (px) => Math.round(px * f.skala) // Schriftgroessen ans Format
+
   return `<!doctype html><html lang="de-CH"><head><meta charset="utf-8"><style>
   @font-face { font-family:'Fraunces'; src:url('file://${SCHRIFTEN}/fraunces-normal-700-latin.woff2') format('woff2'); font-weight:700; font-style:normal; font-display:block; }
   @font-face { font-family:'Fraunces'; src:url('file://${SCHRIFTEN}/fraunces-italic-600-latin.woff2') format('woff2'); font-weight:600; font-style:italic; font-display:block; }
@@ -96,8 +114,8 @@ function seite(motiv) {
   @font-face { font-family:'Inter'; src:url('file://${SCHRIFTEN}/inter-normal-600-latin.woff2') format('woff2'); font-weight:600; font-style:normal; font-display:block; }
 
   * { margin:0; padding:0; box-sizing:border-box; }
-  html, body { width:${B}px; height:${H}px; background:#0d2621; }
-  .blatt { position:relative; width:${B}px; height:${H}px; overflow:hidden; background:#0d2621; }
+  html, body { width:${f.B}px; height:${f.H}px; background:#0d2621; }
+  .blatt { position:relative; width:${f.B}px; height:${f.H}px; overflow:hidden; background:#0d2621; }
 
   .bild {
     position:absolute; inset:0;
@@ -113,8 +131,6 @@ function seite(motiv) {
     position:absolute; inset:0;
     background:radial-gradient(130% 95% at 50% 38%, rgba(0,0,0,0) 45%, rgba(0,0,0,0.42) 100%);
   }
-  /* Der Verlauf traegt die Schrift. Ohne ihn steht Weiss auf Weiss, und
-     genau unten sitzt bei allen drei Motiven etwas Helles. */
   /* Der Verlauf traegt die Schrift. Er muss unten FAST DECKEND werden, nicht
      nur dunkel: Bei der Tuere lag Ufuks Arm hinter dem Schriftzug und war bei
      0,94 noch zu sehen – ein Schriftzug auf einem Ellbogen. Die letzte
@@ -131,30 +147,30 @@ function seite(motiv) {
   /* Oben links steht das Zeichen hell auf hell – bei allen drei Motiven ist
      dort Wand oder Decke. Ohne diesen Schleier verschwindet es. */
   .kopfschleier {
-    position:absolute; inset:0 0 auto 0; height:320px;
+    position:absolute; inset:0 0 auto 0; height:${s(320)}px;
     background:linear-gradient(to bottom, rgba(13,38,33,0.62) 0%, rgba(13,38,33,0) 100%);
   }
 
-  .zeichen { position:absolute; left:100px; top:96px; display:block; }
+  .zeichen { position:absolute; left:${f.rand}px; top:${s(96)}px; display:block; }
 
-  .fuss { position:absolute; left:100px; right:100px; bottom:104px; }
+  .fuss { position:absolute; left:${f.rand}px; right:${f.rand}px; bottom:${f.fussUnten}px; }
   .marke {
-    font-family:'Fraunces', serif; font-weight:700; font-size:146px; line-height:0.98;
+    font-family:'Fraunces', serif; font-weight:700; font-size:${s(146)}px; line-height:0.98;
     letter-spacing:-0.025em; color:#f4f7f5;
   }
   .sparte {
-    margin-top:14px;
-    font-family:'Inter', sans-serif; font-weight:600; font-size:37px;
+    margin-top:${s(14)}px;
+    font-family:'Inter', sans-serif; font-weight:600; font-size:${s(37)}px;
     letter-spacing:0.42em; text-transform:uppercase; color:#7ee0c4;
   }
-  .strich { margin:52px 0 46px; width:132px; height:2px; background:rgba(126,224,196,0.55); }
+  .strich { margin:${s(52)}px 0 ${s(46)}px; width:${s(132)}px; height:2px; background:rgba(126,224,196,0.55); }
   .satz {
     font-family:'Fraunces', serif; font-weight:600; font-style:italic;
-    font-size:60px; line-height:1.2; color:#f4f7f5;
+    font-size:${s(60)}px; line-height:1.2; color:#f4f7f5;
   }
   .zeile {
-    margin-top:44px;
-    font-family:'Inter', sans-serif; font-weight:400; font-size:29px; line-height:1.55;
+    margin-top:${s(44)}px;
+    font-family:'Inter', sans-serif; font-weight:400; font-size:${s(29)}px; line-height:1.55;
     letter-spacing:0.01em; color:rgba(244,247,245,0.66);
   }
 </style></head><body><div class="blatt">
@@ -162,7 +178,7 @@ function seite(motiv) {
   <div class="vignette"></div>
   <div class="kopfschleier"></div>
   <div class="schleier"></div>
-  <div class="zeichen">${ZEICHEN}</div>
+  <div class="zeichen">${zeichen(s(78))}</div>
   <div class="fuss">
     <div class="marke">Pfistanbul</div>
     <div class="sparte">Fenster</div>
@@ -176,14 +192,13 @@ function seite(motiv) {
 /* --- Chromium ueber das DevTools-Protokoll ---------------------------------- */
 
 function starte(profil) {
-  const kind = execFile(CHROMIUM, [
+  return execFile(CHROMIUM, [
     '--headless=new', '--disable-gpu', '--no-sandbox', '--hide-scrollbars',
     '--allow-file-access-from-files', '--force-device-scale-factor=1',
     '--remote-debugging-port=0', `--user-data-dir=${profil}`,
     '--no-first-run', '--no-default-browser-check',
     'about:blank',
   ], () => {})
-  return kind
 }
 
 async function hafen(profil) {
@@ -254,11 +269,18 @@ function dichteSetzen(jpeg, dpi) {
 
 /* --- Ablauf ----------------------------------------------------------------- */
 
-const gewuenscht = process.argv.slice(2)
-const motive = gewuenscht.length ? gewuenscht : Object.keys(MOTIVE)
+const args = process.argv.slice(2)
+const nurFormat = args.find((a) => a.startsWith('--'))?.slice(2)
+if (nurFormat && !FORMATE[nurFormat]) {
+  throw new Error(`Unbekanntes Format: ${nurFormat}. Da sind: ${Object.keys(FORMATE).join(', ')}`)
+}
+const motive = args.filter((a) => !a.startsWith('--'))
 for (const motiv of motive) {
   if (!MOTIVE[motiv]) throw new Error(`Unbekanntes Motiv: ${motiv}. Da sind: ${Object.keys(MOTIVE).join(', ')}`)
 }
+// Ohne Angabe die zwei gebauten Motive – `schiene` steht nur zum Nachschlagen.
+const gewaehlt = motive.length ? motive : ['tuere', 'falten']
+const formate = nurFormat ? [nurFormat] : Object.keys(FORMATE)
 
 mkdirSync(ARBEIT, { recursive: true })
 const profil = join(ARBEIT, 'browserprofil')
@@ -273,41 +295,45 @@ const sitzung = verbinde(browser.webSocketDebuggerUrl)
 const { targetId } = await sitzung.ruf('Target.createTarget', { url: 'about:blank' })
 const seiteWs = verbinde(`ws://127.0.0.1:${port}/devtools/page/${targetId}`)
 await seiteWs.ruf('Page.enable')
-await seiteWs.ruf('Emulation.setDeviceMetricsOverride', {
-  width: B, height: H, deviceScaleFactor: 1, mobile: false,
-})
 
-for (const motiv of motive) {
-  const html = join(ARBEIT, `${motiv}.html`)
-  writeFileSync(html, seite(motiv))
-  await seiteWs.ruf('Page.navigate', { url: `file://${html}` })
-
-  // Auf Schriften UND Bild warten. Allein die Ladeanzeige reicht nicht: Das
-  // Hintergrundbild steht im Stil, und Schriften mit font-display:block
-  // kommen spaeter. Kaeme der Schnappschuss zu frueh, waere die Schrift die
-  // Ersatzschrift und das Foto ein gruenes Rechteck.
-  await new Promise((f) => setTimeout(f, 400))
-  await seiteWs.ruf('Runtime.evaluate', {
-    awaitPromise: true,
-    expression: `(async () => {
-      await document.fonts.ready
-      const bild = new Image()
-      bild.src = getComputedStyle(document.querySelector('.bild')).backgroundImage.slice(5, -2)
-      if (!bild.complete) await bild.decode()
-      await new Promise((f) => requestAnimationFrame(() => requestAnimationFrame(f)))
-    })()`,
+for (const name of formate) {
+  const f = FORMATE[name]
+  await seiteWs.ruf('Emulation.setDeviceMetricsOverride', {
+    width: f.B, height: f.H, deviceScaleFactor: 1, mobile: false,
   })
 
-  const { data } = await seiteWs.ruf('Page.captureScreenshot', {
-    format: 'jpeg',
-    quality: 96,
-    captureBeyondViewport: true,
-    clip: { x: 0, y: 0, width: B, height: H, scale: 2 },
-  })
-  const ziel = join(HIER, `titelblatt-${motiv}.jpg`)
-  writeFileSync(ziel, dichteSetzen(Buffer.from(data, 'base64'), DPI))
-  const kb = Math.round(readFileSync(ziel).length / 1024)
-  console.log(`${ziel}  ${B * 2} x ${H * 2} · ${DPI} dpi · ${kb} kB`)
+  for (const motiv of gewaehlt) {
+    const html = join(ARBEIT, `${motiv}-${name}.html`)
+    writeFileSync(html, seite(motiv, f))
+    await seiteWs.ruf('Page.navigate', { url: `file://${html}` })
+
+    // Auf Schriften UND Bild warten. Allein die Ladeanzeige reicht nicht: Das
+    // Hintergrundbild steht im Stil, und Schriften mit font-display:block
+    // kommen spaeter. Kaeme der Schnappschuss zu frueh, waere die Schrift die
+    // Ersatzschrift und das Foto ein gruenes Rechteck.
+    await new Promise((f) => setTimeout(f, 400))
+    await seiteWs.ruf('Runtime.evaluate', {
+      awaitPromise: true,
+      expression: `(async () => {
+        await document.fonts.ready
+        const bild = new Image()
+        bild.src = getComputedStyle(document.querySelector('.bild')).backgroundImage.slice(5, -2)
+        if (!bild.complete) await bild.decode()
+        await new Promise((f) => requestAnimationFrame(() => requestAnimationFrame(f)))
+      })()`,
+    })
+
+    const { data } = await seiteWs.ruf('Page.captureScreenshot', {
+      format: 'jpeg',
+      quality: 96,
+      captureBeyondViewport: true,
+      clip: { x: 0, y: 0, width: f.B, height: f.H, scale: 2 },
+    })
+    const ziel = join(HIER, `titelblatt-${motiv}${f.kuerzel}.jpg`)
+    writeFileSync(ziel, dichteSetzen(Buffer.from(data, 'base64'), f.dpi))
+    const kb = Math.round(readFileSync(ziel).length / 1024)
+    console.log(`${ziel}  ${f.B * 2} x ${f.H * 2} · ${f.dpi} dpi · ${kb} kB`)
+  }
 }
 
 seiteWs.zu()

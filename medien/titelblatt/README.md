@@ -1,14 +1,24 @@
 # Titelblatt
 
-Das Titelblatt von Pfistanbul Fenster als Bilddatei: **A4 hoch, 2480 × 3508
-Punkte, 300 dpi, JPEG**. So gross, dass es gedruckt werden kann, und klein
-genug, um es zu verschicken.
+Das Titelblatt von Pfistanbul Fenster als Bilddatei, in zwei Formaten:
+
+| Format | Grösse | Wofür |
+|---|---|---|
+| A4 hoch | 2480 × 3508, 300 dpi | Druck, Offerte, Beilage |
+| 9 : 16 | 1080 × 1920 | Erstes Bild in einem Reel, Story |
 
 ```bash
 cd medien/titelblatt
-node titelblatt.mjs            # alle Motive
-node titelblatt.mjs tuere      # nur eines
+node titelblatt.mjs                  # alle Motive, beide Formate
+node titelblatt.mjs tuere            # ein Motiv, beide Formate
+node titelblatt.mjs tuere --a4       # nur A4
 ```
+
+**Das 9 : 16 ist nicht derselbe Schnitt.** Wer das A4-Blatt in ein Reel legt,
+bekommt schwarze Balken oben und unten – das Papier ist 1 : 1,41, das Telefon
+1 : 1,78. Und unten legt Instagram Name, Bildunterschrift und Knöpfe über das
+Bild; deshalb sitzt der Schriftzug im Hochformat deutlich höher als auf dem
+Papier.
 
 Gebraucht wird nur Chromium – kein ffmpeg, kein ImageMagick, kein `npm
 install`.
