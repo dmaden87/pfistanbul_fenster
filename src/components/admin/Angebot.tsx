@@ -198,11 +198,11 @@ export function Angebot({ bestellung: b, onSpeichern, onAbbrechen }: AngebotProp
               const abweichung = vorschlag !== null && v > 0 ? runde2((v - vorschlag) * p.menge) : null
               return (
                 <tr key={schluessel(p, i)}>
-                  <td>
+                  <td className="preise__netz">
                     {p.menge}× {p.bezeichnung}
                     {positionDetail(p) && <span className="admin__detail"> {positionDetail(p)}</span>}
                   </td>
-                  <td className="preise__zahl">
+                  <td className="preise__zahl" data-titel={t.richtpreisSpalte}>
                     {vorschlag !== null ? (
                       formatChf(vorschlag)
                     ) : (
@@ -211,7 +211,7 @@ export function Angebot({ bestellung: b, onSpeichern, onAbbrechen }: AngebotProp
                       </span>
                     )}
                   </td>
-                  <td className="preise__zahl">
+                  <td className="preise__zahl" data-titel={t.verkaufJeStueck}>
                     <input
                       className="input netze__feld preise__feld"
                       inputMode="decimal"
@@ -220,7 +220,10 @@ export function Angebot({ bestellung: b, onSpeichern, onAbbrechen }: AngebotProp
                       onChange={(e) => setPreise((alt) => ({ ...alt, [schluessel(p, i)]: e.target.value }))}
                     />
                   </td>
-                  <td className={`preise__zahl ${abweichung !== null && abweichung < 0 ? 'preise__schlecht' : ''}`}>
+                  <td
+                    className={`preise__zahl ${abweichung !== null && abweichung < 0 ? 'preise__schlecht' : ''}`}
+                    data-titel={t.abweichungSpalte}
+                  >
                     {abweichung === null || abweichung === 0 ? '—' : `${abweichung > 0 ? '+' : '−'}${formatChf(Math.abs(abweichung))}`}
                   </td>
                 </tr>

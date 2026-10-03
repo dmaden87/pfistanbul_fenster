@@ -178,9 +178,15 @@ function knoepfe(b: Bestellung, abschnitt: Abschnitt, t: AdminTexte): KartenKnop
        * zusammenstellt und dann jeden Auftrag einzeln weiterklicken muesste,
        * vergisst den dritten.
        */
+      /*
+       * Genau EIN Hauptknopf, und das ist der Schritt vorwaerts. Der Talon
+       * steht leise daneben: Zwei dunkle Knoepfe uebereinander sahen auf dem
+       * Telefon aus wie zwei gleich wichtige Wege, und die Karte wurde zur
+       * Wand aus Knoepfen.
+       */
       const liste: KartenKnopf[] = [
-        { tat: 'bestellBlatt', text: b.paket ? t.bestelltalonPaket : t.bestelltalonAnzeigen, art: 'haupt' },
         { tat: 'boraBestellt', text: b.paket ? t.knopfPaketBestellt : t.knopfBeiBoraBestellt, art: 'haupt' },
+        { tat: 'bestellBlatt', text: b.paket ? t.bestelltalonPaket : t.bestelltalonAnzeigen, art: 'still' },
       ]
       if (b.paket) liste.push({ tat: { paket: '' }, text: t.paketAufloesen, art: 'still' })
       if (!phasenEntfallen(b)) liste.push({ tat: { status: 'zusage', zusage: false }, text: t.knopfZusageZurueck, art: 'still' })

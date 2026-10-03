@@ -174,3 +174,40 @@ export function vorschlagFuer(p: BestellPosition): number | null {
   if (!p.breiteCm || !p.hoeheCm) return null
   return estimateNetChf((p.breiteCm / 100) * (p.hoeheCm / 100))
 }
+
+/**
+ * Was der Rechner aus Massen macht, je Stueck. Ohne beide Masse nichts.
+ *
+ * Dieselbe Funktion, die der Kundschaft auf der Startseite ihren Richtpreis
+ * zeigt – deshalb steht hier kein eigener Satz Zahlen, sondern ein Aufruf.
+ */
+export function gerechneterPreis(breiteCm: number | undefined, hoeheCm: number | undefined): number | null {
+  if (!breiteCm || !hoeheCm) return null
+  return estimateNetChf((breiteCm / 100) * (hoeheCm / 100))
+}
+
+/**
+ * Welcher Verkaufspreis beim Bearbeiten der Netze gespeichert wird.
+ *
+ * DIE FRAGE DAHINTER: Im Netz-Editor tippt niemand mehr einen Preis. Trotzdem
+ * muss beim Speichern eine Zahl in die Position – und es gibt zwei Kandidaten:
+ * den gerechneten Vorschlag und den, den jemand im Angebot von Hand
+ * festgelegt hat.
+ *
+ * Die Regel: Ein festgelegter Preis gewinnt, solange die MASSE dieselben sind.
+ * Aendern sich die Masse, ist es ein anderes Netz, und der alte Preis gehoerte
+ * zu einem Fenster, das es so nicht gibt – dann rechnet der Rechner neu, und
+ * im Angebot steht die Abweichung wieder bei null.
+ *
+ * Ohne Vorschlag (kein Mass) und ohne alten Preis bleibt 0. Das ist ehrlich:
+ * Die Offerte zeigt dann eine Luecke, statt eine Zahl zu erfinden.
+ */
+export function verkaufspreisFuer(
+  alt: Pick<BestellPosition, 'preisChf' | 'breiteCm' | 'hoeheCm'> | undefined,
+  neu: Pick<BestellPosition, 'breiteCm' | 'hoeheCm'>,
+  vorschlag: number | null,
+): number {
+  const masseGleich = Boolean(alt) && alt!.breiteCm === neu.breiteCm && alt!.hoeheCm === neu.hoeheCm
+  if (masseGleich && alt!.preisChf > 0) return alt!.preisChf
+  return vorschlag ?? 0
+}

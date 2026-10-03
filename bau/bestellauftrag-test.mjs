@@ -13,8 +13,8 @@
  *  - Fehlende Angaben werden GEMELDET und nicht mit einer Annahme gefuellt.
  */
 import assert from 'node:assert/strict'
-import { auftragAufbauen, kennungFuer, packmass, pakete } from '../src/lib/bestellauftrag.ts'
-import { MECHANISMEN, PACKMASS, RAHMENFARBEN, beschriften } from '../src/data/produktion.ts'
+import { auftragAufbauen, kennungFuer, pakete } from '../src/lib/bestellauftrag.ts'
+import { MECHANISMEN, RAHMENFARBEN, beschriften } from '../src/data/produktion.ts'
 
 let bestanden = 0
 const fehler = []
@@ -131,38 +131,23 @@ pruefe('Was in der Bestellung steht, gilt vor dem Katalog', () => {
   assert.equal(a.zeilen[0].breiteCm, 119)
 })
 
-pruefe('Das Packmass nimmt die laengste einzelne Stange als Buendellaenge', () => {
-  // Zerlegt geliefert: Die laengste Stange ist die lange Seite des Fensters.
-  const m = packmass([{ menge: 1, bezeichnung: 'x', breiteCm: 128.6, hoeheCm: 182.5 }])
-  assert.equal(m.laengeCm, Math.ceil(182.5 + PACKMASS.zuschlagCm))
-})
+/*
+ * HIER STANDEN VIER PRUEFUNGEN FUERS PACKMASS – Buendellaenge, Querschnitt
+ * nach Anzahl, mehr Netze dickeres Buendel, ohne Masse kein Mass. Die
+ * Rechnung ist weg, also auch ihre Pruefungen: Das Blatt an Bora traegt
+ * keine geschaetzten Paketmasse und keine Frachtspalte mehr.
+ *
+ * Die Paketliste selbst bleibt und wird weiter geprueft – sie zaehlt, was in
+ * welche Kiste geht.
+ */
 
-pruefe('Der Querschnitt haengt an der Anzahl, nicht an der Breite der Fenster', () => {
-  // Das ist der Kern des Modells: Ein Buendel Stangen wird nicht breiter,
-  // wenn die Fenster breiter sind - nur laenger.
-  const schmal = packmass([{ menge: 4, bezeichnung: 'x', breiteCm: 60, hoeheCm: 180 }])
-  const breit = packmass([{ menge: 4, bezeichnung: 'x', breiteCm: 160, hoeheCm: 180 }])
-  assert.equal(schmal.seiteCm, breit.seiteCm, 'die Buendelseite haengt an der Fensterbreite')
-  assert.equal(schmal.laengeCm, breit.laengeCm)
-})
-
-pruefe('Mehr Plissees ergeben ein dickeres Buendel', () => {
-  const wenig = packmass([{ menge: 2, bezeichnung: 'x', breiteCm: 100, hoeheCm: 180 }])
-  const viel = packmass([{ menge: 20, bezeichnung: 'x', breiteCm: 100, hoeheCm: 180 }])
-  assert.ok(viel.seiteCm > wenig.seiteCm)
-  assert.equal(viel.laengeCm, wenig.laengeCm, 'die Laenge darf mit der Anzahl nicht wachsen')
-})
-
-pruefe('Ohne Masse gibt es kein Packmass statt eines erfundenen', () => {
-  assert.equal(packmass([{ menge: 1, bezeichnung: 'x' }]), undefined)
-  assert.equal(packmass([]), undefined)
-})
-
-pruefe('Jedes Paket bekommt sein eigenes Packmass', () => {
+pruefe('Jedes Paket zaehlt seine eigenen Stuecke', () => {
+  // Die Paketliste ist die Packanweisung: Welche Kiste enthaelt wie viele
+  // Netze. Ein Mass dazu gibt es nicht mehr – siehe oben.
   const netz = { menge: 1, bezeichnung: 'Wohnzimmer', detail: '', preisChf: 170, breiteCm: 128.6, hoeheCm: 182.5, ...KOMPLETT }
   const p = pakete(auftragAufbauen([bestellung('PF-20', [netz]), bestellung('PF-21', [netz, netz])]).zeilen)
-  assert.ok(p[0].packmass)
-  assert.ok(p[1].packmass.seiteCm > p[0].packmass.seiteCm, 'zwei Stueck muessten dicker buendeln')
+  assert.deepEqual(p.map((x) => [x.kennung, x.anzahl]), [['PF-20', 1], ['PF-21', 2]])
+  assert.equal('packmass' in p[0], false, 'das geschaetzte Packmass ist weg')
 })
 
 pruefe('Die Kennung ist kurz und ohne Sonderzeichen', () => {

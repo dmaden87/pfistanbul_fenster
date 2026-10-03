@@ -1,7 +1,6 @@
 import type { Bestellung, BestellPosition, OpeningDirection, ZeilenHerkunft } from '../types'
 import type { Mechanismus, Netzfarbe, Rahmenfarbe } from '../data/produktion'
 import { setById, typeById } from '../data/catalog'
-import { PACKMASS } from '../data/produktion'
 
 /**
  * Aus Bestellungen wird ein Auftrag an den Produzenten.
@@ -48,9 +47,19 @@ export interface AuftragsPaket {
   /** Was auf das Paket geschrieben wird. Kurz, ohne Umlaute. */
   kennung: string
   anzahl: number
-  /** Ungefaehres Packmass in cm. Fehlt, sobald einer Zeile die Masse fehlen. */
-  packmass?: { laengeCm: number; seiteCm: number }
 }
+
+/*
+ * HIER STAND EIN GERECHNETES PACKMASS – "ca. 162 × 11 × 11 cm", aus einem
+ * angenommenen Querschnitt je zerlegtem Plissee. Es stand auf dem Blatt an
+ * Bora, neben einer Spalte fuer die Fracht.
+ *
+ * Beides ist raus. Die Rechnung war eine Schaetzung von uns ueber etwas, das
+ * der Produzent genauer weiss, und sie half ihm beim Packen nicht; was die
+ * Lieferung kostet, traegt er nach der Bestellung in unsere Buchhaltung ein.
+ * Eine Zahl auf einem Arbeitspapier, die niemand braucht und die niemand
+ * nachpruefen kann, ist keine Information, sondern Ballast.
+ */
 
 /**
  * Eine Zeile des Auftrags: genau EIN Plissee.
@@ -168,40 +177,6 @@ export function kennungFuer(b: { referenz: string; id: string }): string {
 }
 
 /**
- * Was das Paket ungefaehr misst.
- *
- * Die Plissees kommen zerlegt: geliefert werden die Rahmenstangen, gestapelt,
- * eingewickelt und mit Klebeband gesichert. Ein Paket ist damit ein BUENDEL
- * und kein Karton.
- *
- * Daraus folgt die Rechnung. Die Laenge des Buendels ist die laengste einzelne
- * Stange – also die laengste Seite des groessten Fensters. Der Querschnitt
- * haengt an der ANZAHL der Plissees und nicht an ihrer Breite: Jedes bringt
- * seine vier Profile mit, egal wie gross das Fenster ist. Angenommen wird ein
- * ungefaehr quadratisches Buendel, daher die Wurzel.
- *
- * DAS IST EINE SCHAETZUNG und keine Frachtangabe. Der Querschnitt je Plissee
- * steht in PACKMASS und gehoert nach der ersten Lieferung korrigiert.
- */
-export function packmass(netze: AuftragsNetz[]): AuftragsPaket['packmass'] {
-  let laengsteStange = 0
-  let stueck = 0
-
-  for (const netz of netze) {
-    if (!netz.breiteCm || !netz.hoeheCm) return undefined
-    laengsteStange = Math.max(laengsteStange, netz.breiteCm, netz.hoeheCm)
-    stueck += netz.menge
-  }
-  if (stueck === 0) return undefined
-
-  const querschnitt = stueck * PACKMASS.querschnittJePlisseeCm2
-  return {
-    laengeCm: Math.ceil(laengsteStange + PACKMASS.zuschlagCm),
-    seiteCm: Math.ceil(Math.sqrt(querschnitt) + PACKMASS.zuschlagCm),
-  }
-}
-
-/**
  * Alle Zeilen der Auftraege, in stabiler Reihenfolge: Bestellung fuer
  * Bestellung, Position fuer Position, Stueck fuer Stueck. Nach Bauart
  * sortiert erst `auftragAufbauen` fuer das Dokument.
@@ -286,6 +261,5 @@ export function pakete(zeilen: AuftragsZeile[]): AuftragsPaket[] {
   return [...nachKennung.entries()].map(([kennung, liste]) => ({
     kennung,
     anzahl: liste.length,
-    packmass: packmass(liste),
   }))
 }

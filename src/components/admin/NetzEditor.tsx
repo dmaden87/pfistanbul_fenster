@@ -12,7 +12,7 @@ import {
 } from '../../data/produktion'
 import { formatChf, formatSize } from '../../lib/format'
 import { netSets, netsInSet, setById, typeById, windowTypes } from '../../data/catalog'
-import { positionenSumme } from './hilfen'
+import { gerechneterPreis, positionenSumme, verkaufspreisFuer } from './hilfen'
 import { fuelle, useSprache } from './sprache'
 
 /**
@@ -31,6 +31,24 @@ import { fuelle, useSprache } from './sprache'
  * Die zweite Zeile je Netz ist das, was der Produzent braucht. Sie steht hier
  * und nicht erst im Bestellauftrag, weil sie am Fenster erhoben wird – wer
  * beim Ausmessen steht, soll sie gleich eintragen koennen.
+ *
+ * DEN PREIS TIPPT HIER NIEMAND MEHR. Bei Katalogware stand er immer im
+ * Katalog; beim Sondermass rechnet ihn der Rechner aus den Massen – derselbe,
+ * der der Kundschaft auf der Seite ihren Richtpreis zeigt. Er steht hier nur
+ * noch als Zahl daneben und laeuft mit, sobald ein Mass sich aendert oder ein
+ * Netz dazukommt.
+ *
+ * Der Grund ist nicht Bequemlichkeit, sondern Zustaendigkeit: Der
+ * Verkaufspreis wird im Angebot festgelegt, von Hand und mit dem Vorschlag
+ * daneben. Ein zweites Preisfeld in der Klaerung heisst, dass derselbe Betrag
+ * an zwei Stellen entsteht – und dann gewinnt die Stelle, an der zuletzt
+ * jemand gespeichert hat.
+ *
+ * WAS EINMAL FESTGELEGT IST, BLEIBT. Wer im Angebot 185 statt 160 verlangt
+ * hat und danach hier noch eine Bezeichnung korrigiert, findet die 185
+ * wieder. Nur wenn sich die MASSE aendern, wird neu gerechnet: Dann ist es ein
+ * anderes Netz, und der alte Preis gehoerte zu einem Fenster, das es so nicht
+ * gibt.
  */
 
 interface Entwurf {
@@ -208,7 +226,28 @@ export function NetzEditor({
     setEntwuerfe((liste) => liste.map((e, i) => (i === index ? { ...e, ...teil } : e)))
   }
 
-  const netze = entwuerfe.map(ausEntwurf)
+  /** Die Netze, wie sie vorher im Datensatz standen – zum Vergleich der Masse. */
+  const vorher = new Map(positionen.filter((p) => p.id).map((p) => [p.id as string, p]))
+
+  /**
+   * Der Preis, der gespeichert wird.
+   *
+   * Katalogware: aus dem Katalog, unangetastet. Sondermass: der gerechnete
+   * Vorschlag – ausser es stand schon ein Preis da UND die Masse sind
+   * dieselben. Dann hat ihn jemand im Angebot festgelegt, und der gilt.
+   */
+  const mitPreis = (e: Entwurf, position: BestellPosition): BestellPosition => {
+    if (katalog) return position
+    const vorschlag = gerechneterPreis(position.breiteCm, position.hoeheCm)
+    const alt = e.id ? vorher.get(e.id) : undefined
+    return {
+      ...position,
+      preisChf: verkaufspreisFuer(alt, position, vorschlag),
+      ...(vorschlag !== null ? { richtpreisChf: vorschlag } : {}),
+    }
+  }
+
+  const netze = entwuerfe.map((e) => mitPreis(e, ausEntwurf(e)))
   const summeNetze = positionenSumme(netze)
   const summe = Math.round((summeNetze + zahl(montage)) * 100) / 100
 
@@ -238,7 +277,11 @@ export function NetzEditor({
 
   return (
     <div className="netze">
-      {katalog && <p className="netze__hinweis">{t.katalogSatz}</p>}
+      {katalog ? (
+        <p className="netze__hinweis">{t.katalogSatz}</p>
+      ) : (
+        <p className="netze__hinweis">{t.preisGerechnetSatz}</p>
+      )}
       {entwuerfe.map((e, i) => (
         <fieldset className="netz" key={i}>
           <legend className="netz__nummer">
@@ -298,10 +341,24 @@ export function NetzEditor({
               <span>{t.hoeheCm}</span>
               <input className="input" inputMode="decimal" placeholder="182.5" value={e.hoeheCm} disabled={katalog} onChange={(ev) => aendere(i, { hoeheCm: ev.target.value })} />
             </label>
-            <label className="netz__feld netz__feld--klein">
-              <span>{t.preisChf}</span>
-              <input className="input" inputMode="decimal" value={e.preisChf} disabled={katalog} onChange={(ev) => aendere(i, { preisChf: ev.target.value })} />
-            </label>
+            {/*
+              Katalogware zeigt ihren Katalogpreis im gesperrten Feld.
+              Sondermass zeigt, was der Rechner sagt – und was gespeichert
+              wird, falls im Angebot noch nichts festgelegt wurde.
+            */}
+            {katalog ? (
+              <label className="netz__feld netz__feld--klein">
+                <span>{t.preisChf}</span>
+                <input className="input" inputMode="decimal" value={e.preisChf} disabled onChange={() => {}} />
+              </label>
+            ) : (
+              <div className="netz__feld netz__feld--klein">
+                <span>{t.preisGerechnet}</span>
+                <output className="netz__gerechnet">
+                  {netze[i].preisChf > 0 ? formatChf(netze[i].preisChf) : '—'}
+                </output>
+              </div>
+            )}
           </div>
 
           {/* Was der Produzent braucht. Er kennt unser Sortiment nicht. */}

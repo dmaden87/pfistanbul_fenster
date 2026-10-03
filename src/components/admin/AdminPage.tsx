@@ -265,9 +265,17 @@ function AdminMaske({ onBack }: AdminPageProps) {
   const zusammenfuehren = async () => {
     const etikett = naechstesPaket(bestellungen)
     try {
-      for (const b of gewaehlte) await handleAendern(b.id, { paket: etikett })
+      /*
+       * Nur Auftraege ohne Paket. Das Kaestchen gibt es fuer die anderen
+       * gar nicht; der Riegel steht hier ein zweites Mal, weil eine Auswahl
+       * eine Weile im Zustand liegen kann – etwa wenn inzwischen ein anderes
+       * Fenster denselben Auftrag gebuendelt hat.
+       */
+      const frisch = gewaehlte.filter((x) => !x.paket)
+      for (const b of frisch) await handleAendern(b.id, { paket: etikett })
       setAuswahl([])
-      setBlatt({ ids: gewaehlte.map((b) => b.id), art: 'bestellung', nummer: etikett })
+      // Auf den Talon kommt, was das Etikett wirklich bekommen hat.
+      setBlatt({ ids: frisch.map((b) => b.id), art: 'bestellung', nummer: etikett })
     } catch {
       // handleAendern hat den Fehler schon angezeigt und neu geladen.
     }
@@ -457,7 +465,16 @@ function AdminMaske({ onBack }: AdminPageProps) {
                       onOfferte={setOffeneOfferte}
                       onBlatt={(ids, art, nummer) => setBlatt({ ids, art, nummer })}
                       gewaehlt={auswahl.includes(b.id)}
-                      onWahl={MIT_KAESTCHEN.includes(abschnitt) ? waehle : undefined}
+                      /*
+                        Kein Kaestchen, wenn der Auftrag schon ein Paket
+                        traegt: Ein zweites Zusammenfuehren schriebe ihm ein
+                        neues Etikett und riss ihn damit still aus dem alten
+                        Paket heraus – die anderen Auftraege blieben unter der
+                        alten Kennung zurueck, und auf zwei Talons stuenden
+                        Netze, die in derselben Kiste liegen. Wer umpacken
+                        will, nimmt ihn erst aus dem Paket.
+                      */
+                      onWahl={MIT_KAESTCHEN.includes(abschnitt) && !b.paket ? waehle : undefined}
                     />
                   ))}
                 </ul>

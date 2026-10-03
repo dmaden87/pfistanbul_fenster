@@ -1,11 +1,9 @@
 import { useState } from 'react'
 import type { Bestellung } from '../../types'
-import { auftragAufbauen, kennungFuer, pakete, type AuftragsNetz, type AuftragsZeile } from '../../lib/bestellauftrag'
+import { auftragAufbauen, kennungFuer, pakete, type AuftragsNetz } from '../../lib/bestellauftrag'
 import {
   ABSENDER,
   GANZE_LIEFERUNG,
-  LIEFERKOSTEN,
-  PACKMASS_TITEL,
   MASSREGEL,
   MECHANISMEN,
   NETZFARBEN,
@@ -24,10 +22,19 @@ import './Bestellauftrag.css'
 /**
  * Der Auftrag an den Produzenten – als Preisanfrage oder als Bestellung.
  *
- * Es ist dasselbe Dokument. Der Unterschied steht gross im Titel und in einer
- * Spalte: Bei der Anfrage bleibt der Stueckpreis leer, damit er ihn eintraegt,
- * und der Liefertermin ist ein leeres Feld. Bei der Bestellung steht unser
- * erwarteter Termin gedruckt da und es gibt nichts auszufuellen.
+ * Es ist dasselbe Dokument. Der Unterschied: Die Anfrage hat eine leere
+ * Preisspalte, damit er sie fuellt, und einen offenen Liefertermin. Die
+ * Bestellung nennt unseren erwarteten Termin und enthaelt KEINE Zahlen zum
+ * Geld.
+ *
+ * WARUM AUF DER BESTELLUNG KEINE KOSTEN MEHR STEHEN. Das Blatt trug einmal
+ * eine Stueckpreisspalte, eine Frachtspalte je Paket und ein theoretisch
+ * gerechnetes Packmass ("ca. 162 × 11 × 11 cm"). Drei Dinge, die beim Bauen
+ * eines Netzes nicht helfen: Was die Lieferung kostet, traegt Bora nach der
+ * Bestellung direkt in unsere Buchhaltung ein, und wie dick ein Buendel
+ * Stangen wirklich wird, weiss er besser als unsere Schaetzung. Was bleibt,
+ * ist eine Fertigungs- und Packanweisung – und die liest sich jetzt auf
+ * einen Blick.
  *
  * ZUM PDF: ueber die Druckfunktion des Browsers ("Als PDF sichern"). Das
  * spart eine Programmbibliothek, funktioniert auf dem Telefon genauso und
@@ -59,11 +66,6 @@ interface BestellauftragProps {
 
 function mass(wert: number | undefined): string {
   return wert === undefined ? '—' : String(wert)
-}
-
-/** Ein Betrag als reine Zahl: "45" oder "45.5", nie "CHF". Leer, wenn keiner da ist. */
-function zahlOhneWaehrung(wert: number | undefined): string {
-  return typeof wert === 'number' ? String(Math.round(wert * 100) / 100) : ''
 }
 
 function netzZeile(n: AuftragsNetz, s: Sprache) {
@@ -112,26 +114,11 @@ export function Bestellauftrag({ bestellungen, art, nummer, onZurueck }: Bestell
   const notizen = bestellungen.filter((b) => b.notiz?.trim()).map((b) => [kennungFuer(b), b.notiz!.trim()] as const)
 
   /*
-   * Auf der Bestellung stehen Boras Preise gedruckt – als reine Zahl, ohne
-   * Waehrung, so wie er sie auf der Anfrage eingetragen hat. Auf der
-   * Anfrage bleibt das Feld leer, damit er es fuellt. Ein Set ist fuer das
-   * Geld eine Position, fuer ihn sechs Netze; sein Preis je Set laesst sich
-   * nicht auf eine Zeile schreiben, also bleibt das Feld dort leer.
+   * Die Preisspalte gibt es nur auf der ANFRAGE, und sie ist immer leer: Sie
+   * ist die Frage. Auf der Bestellung steht keine Zahl zum Geld – was die
+   * Lieferung kostet, traegt Bora danach in unsere Buchhaltung ein.
    */
-  const preisDerZeile = (z: AuftragsZeile): number | undefined => {
-    if (art !== 'bestellung' || !z.herkunft) return undefined
-    const b = bestellungen.find((x) => x.id === z.herkunft!.bestellungId)
-    const p = b?.positionen.find((x, i) => (x.id ?? `#${i}`) === z.herkunft!.positionId)
-    return p && !p.setId ? p.einkaufChf : undefined
-  }
-  const frachtDesPakets = (kennung: string): number | undefined => {
-    if (art !== 'bestellung') return undefined
-    return bestellungen.find((b) => kennungFuer(b) === kennung)?.lieferkostenChf
-  }
-  const frachtGesamt = paketliste.map((p) => frachtDesPakets(p.kennung))
-  const frachtSumme = frachtGesamt.every((x) => typeof x === 'number')
-    ? Math.round(frachtGesamt.reduce((s, x) => s + (x as number), 0) * 100) / 100
-    : undefined
+  const mitPreisspalte = art === 'anfrage'
   /** Kuerzel fuer "nimm die Fassung in der gewaehlten Sprache". */
   const w = (b: Beschriftung) => b[sprache]
   const heute = new Date().toLocaleDateString(sprache === 'tuerkisch' ? 'tr-TR' : 'de-CH', {
@@ -276,13 +263,7 @@ export function Bestellauftrag({ bestellungen, art, nummer, onZurueck }: Bestell
                 <th>{w(TEXTE.netz)}</th>
                 <th>{w(TEXTE.mechanismus)}</th>
                 <th>{w(TEXTE.oeffnung)}</th>
-                {/*
-                  Der Preis wird NIE gedruckt, auch nicht auf der Bestellung.
-                  Er ist veraenderlich – bei groesseren Mengen guenstiger – und
-                  wird beim Produzenten ausgehandelt. Eine gedruckte Zahl waere
-                  entweder falsch oder eine Behauptung.
-                */}
-                <th className="blatt__preis">{w(TEXTE.stueckpreis)}</th>
+                {mitPreisspalte && <th className="blatt__preis">{w(TEXTE.stueckpreis)}</th>}
               </tr>
             </thead>
             <tbody>
@@ -300,7 +281,7 @@ export function Bestellauftrag({ bestellungen, art, nummer, onZurueck }: Bestell
                     <td>{z2.netz}</td>
                     <td>{z2.mechanismus}</td>
                     <td>{z2.oeffnung}</td>
-                    <td className="blatt__preis blatt__leer-feld">{zahlOhneWaehrung(preisDerZeile(z))}</td>
+                    {mitPreisspalte && <td className="blatt__preis blatt__leer-feld" />}
                   </tr>
                 )
               })}
@@ -314,56 +295,42 @@ export function Bestellauftrag({ bestellungen, art, nummer, onZurueck }: Bestell
         </section>
 
         {/*
-          Die Pakete zum Nachzaehlen beim Packen – die einzelnen Netze stehen
-          oben und tragen ihre Kennung selbst.
+          Die Pakete zum Nachzaehlen beim Packen – und nur dann, wenn es
+          mehrere sind. Bei einem einzigen Paket stand hier eine Zeile und
+          darunter dieselbe Zahl als "ganze Lieferung": zwei Zeilen, die
+          dasselbe sagen.
 
-          Die Lieferkosten sind etwas anderes als der Stueckpreis und stehen
-          deshalb hier. Eintragbar je Paket ODER fuer die ganze Lieferung, je
-          nachdem, wie er rechnet: Beides anzubieten kostet eine Zeile und
-          erspart eine Rueckfrage nach Istanbul.
+          Das ungefaehre Packmass und die Frachtspalte sind raus. Beides war
+          eine Rechnung von uns ueber etwas, das er besser weiss, und die
+          Kosten gehoeren nach der Bestellung in unsere Buchhaltung.
         */}
-        <section className="blatt__pakete">
-          <h2>{w(TEXTE.paketeTitel)}</h2>
-          <table className="blatt__tabelle blatt__tabelle--handschrift blatt__paketliste">
-            <thead>
-              <tr>
-                <th>{w(TEXTE.paket)}</th>
-                <th className="blatt__eng">{w(TEXTE.stueck)}</th>
-                {/*
-                  Nur eine Groessenordnung fuers Abschaetzen der Fracht, keine
-                  Frachtangabe: Wie dick ein flach gepacktes Plissee wirklich
-                  auftraegt, weiss der Produzent. Die Annahmen stehen in
-                  src/data/produktion.ts und gehoeren nach der ersten Lieferung
-                  korrigiert. Darum steht "ca." davor.
-                */}
-                <th>{w(PACKMASS_TITEL)}</th>
-                <th className="blatt__preis">{w(LIEFERKOSTEN)}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paketliste.map((block) => (
-                <tr key={block.kennung}>
-                  <td>
-                    <span className="blatt__kennung">{block.kennung}</span>
-                  </td>
-                  <td className="blatt__zahl">{block.anzahl}</td>
-                  <td className="blatt__packmass">
-                    {block.packmass
-                      ? `${block.packmass.laengeCm} × ${block.packmass.seiteCm} × ${block.packmass.seiteCm} cm`
-                      : '—'}
-                  </td>
-                  <td className="blatt__preis blatt__leer-feld">{zahlOhneWaehrung(frachtDesPakets(block.kennung))}</td>
+        {paketliste.length > 1 && (
+          <section className="blatt__pakete">
+            <h2>{w(TEXTE.paketeTitel)}</h2>
+            <table className="blatt__tabelle blatt__paketliste">
+              <thead>
+                <tr>
+                  <th>{w(TEXTE.paket)}</th>
+                  <th className="blatt__eng">{w(TEXTE.stueck)}</th>
                 </tr>
-              ))}
-              <tr className="blatt__gesamt">
-                <td>{w(GANZE_LIEFERUNG)}</td>
-                <td className="blatt__zahl">{anzahl}</td>
-                <td />
-                <td className="blatt__preis blatt__leer-feld">{zahlOhneWaehrung(frachtSumme)}</td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
+              </thead>
+              <tbody>
+                {paketliste.map((block) => (
+                  <tr key={block.kennung}>
+                    <td>
+                      <span className="blatt__kennung">{block.kennung}</span>
+                    </td>
+                    <td className="blatt__zahl">{block.anzahl}</td>
+                  </tr>
+                ))}
+                <tr className="blatt__gesamt">
+                  <td>{w(GANZE_LIEFERUNG)}</td>
+                  <td className="blatt__zahl">{anzahl}</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        )}
 
       </article>
     </>

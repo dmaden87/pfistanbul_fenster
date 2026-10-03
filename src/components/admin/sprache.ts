@@ -223,7 +223,7 @@ const PAARE = {
   zuVielRichtung: ['zu viel bezahlt', 'fazla ödendi'],
 
   /* --- Knoepfe je Phase -------------------------------------------------- */
-  knopfAngenommen: ['Angenommen – Auftragsklärung', 'Kabul edildi – netleştirme'],
+  knopfAngenommen: ['Angenommen – Auftrag klären', 'Kabul edildi – siparişi netleştir'],
   knopfGeprueftBestellen: ['Geprüft – bereit zum Bestellen', 'Kontrol edildi – siparişe hazır'],
   knopfBeiBoraBestellt: ['Bei Bora bestellt', 'Bora’ya sipariş verildi'],
   knopfPaketBestellt: ['Ganzes Paket bei Bora bestellt', 'Tüm paketi Bora’ya sipariş ver'],
@@ -261,6 +261,11 @@ const PAARE = {
   breiteCm: ['Breite cm', 'Genişlik cm'],
   hoeheCm: ['Höhe cm', 'Yükseklik cm'],
   preisChf: ['Preis CHF', 'Fiyat CHF'],
+  preisGerechnet: ['Richtpreis gerechnet', 'Hesaplanan fiyat'],
+  preisGerechnetSatz: [
+    'Der Preis wird aus den Massen gerechnet – derselbe Richtpreis, den die Kundschaft auf der Seite sieht. Festgelegt wird der Verkaufspreis später unter „Angebot erstellen“; ein dort von Hand gesetzter Preis bleibt stehen, solange die Masse gleich bleiben.',
+    'Fiyat ölçülerden hesaplanır – müşterinin sitede gördüğü tahmini fiyatın aynısı. Satış fiyatı daha sonra „Teklif hazırlama“ altında belirlenir; orada elle girilen fiyat, ölçüler değişmediği sürece korunur.',
+  ],
   rahmendicke: ['Rahmendicke', 'Kasa kalınlığı'],
   rahmen: ['Rahmen', 'Kasa'],
   netzSpalte: ['Netz', 'Tül'],

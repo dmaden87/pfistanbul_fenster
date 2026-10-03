@@ -155,18 +155,12 @@ export const ABSENDER = {
   land: { deutsch: 'SCHWEIZ', tuerkisch: 'İSVİÇRE' } as Beschriftung,
 } as const
 
-/**
- * Lieferkosten. Etwas anderes als der Stueckpreis und deshalb ein eigenes
- * Feld: Verpackung und Transport stecken darin, Steuern nicht – die zahlen
- * wir in der Schweiz und gehen den Produzenten nichts an.
- *
- * Eintragbar je Paket ODER fuer die ganze Lieferung, je nachdem, wie er
- * rechnet. Beides anzubieten kostet eine Spalte und erspart eine Rueckfrage.
+/*
+ * HIER STAND EINE BESCHRIFTUNG "Lieferkosten" fuer eine Spalte auf dem Blatt
+ * an Bora – je Paket und fuer die ganze Lieferung. Sie ist weg: Was die
+ * Lieferung kostet, traegt er nach der Bestellung in unsere Buchhaltung ein,
+ * nicht von Hand auf ein Papier, das danach abgetippt werden muesste.
  */
-export const LIEFERKOSTEN: Beschriftung = {
-  deutsch: 'Lieferkosten',
-  tuerkisch: 'Nakliye bedeli',
-}
 
 export const GANZE_LIEFERUNG: Beschriftung = {
   deutsch: 'Ganze Lieferung',
@@ -174,51 +168,32 @@ export const GANZE_LIEFERUNG: Beschriftung = {
 }
 
 /**
- * Warum auf dem Blatt NIE ein Preis gedruckt steht.
+ * Die Bitte auf der PREISANFRAGE – und nur dort.
  *
- * Die Preise sind veraenderlich – bei groesseren Mengen werden sie guenstiger,
- * und ausgehandelt wird beim Produzenten. Ein gedruckter Preis waere also
- * entweder falsch oder eine Behauptung. Das Feld bleibt darum in beiden
- * Faellen leer, auch auf der Bestellung; wir tragen die Zahlen danach bei uns
- * ein, um die Marge gegen unsere Verkaufspreise zu pruefen.
+ * Auf der Bestellung steht keine Zahl zum Geld mehr. Die Preise sind
+ * veraenderlich, bei groesseren Mengen guenstiger, und ausgehandelt wird beim
+ * Produzenten; eine gedruckte Zahl waere entweder falsch oder eine
+ * Behauptung. Die Anfrage dagegen IST die Frage nach dem Preis, also hat sie
+ * eine leere Spalte dafuer.
+ *
+ * Nach Lieferkosten wird hier nicht mehr gefragt: Die traegt Bora nach der
+ * Bestellung in unsere Buchhaltung ein.
  */
 export const PREISHINWEIS: Beschriftung = {
-  deutsch: 'Bitte Stückpreis je Zeile und die Lieferkosten eintragen.',
-  tuerkisch: 'Lütfen her satır için birim fiyatı ve nakliye bedelini yazın.',
+  deutsch: 'Bitte den Stückpreis je Zeile eintragen.',
+  tuerkisch: 'Lütfen her satır için birim fiyatı yazın.',
 }
 
-/**
- * Woraus das ungefaehre Packmass gerechnet wird.
+/*
+ * HIER STAND DAS MODELL FUERS PACKMASS: ein angenommener Querschnitt je
+ * zerlegtem Plissee, ein Zuschlag fuer Folie und Klebeband, daraus ein
+ * Buendelmass "ca. 162 × 11 × 11 cm" auf dem Blatt an Bora.
  *
- * WICHTIG, WEIL ES DAS MODELL BESTIMMT: Die Plissees kommen zerlegt. Was
- * geliefert wird, sind die Rahmenstangen – zusammengebaut, aber nicht
- * zusammengesteckt. Das Netz steckt bereits im Profil und traegt nichts
- * zusaetzlich auf. Verpackt wird nicht in Kartons, sondern gestapelt,
- * eingewickelt und mit Klebeband gesichert.
- *
- * Ein Paket ist also ein BUENDEL STANGEN und kein Stapel Platten. Damit
- * haengt die Laenge am laengsten Einzelstueck und der Querschnitt an der
- * ANZAHL der Stangen – nicht an der Breite der Fenster. Ein frueheres Modell
- * rechnete flach gestapelte Platten und kam auf einen viel zu voluminoesen
- * Karton.
- *
- * ACHTUNG, DER QUERSCHNITT IST GESCHAETZT. Wie dick die Profile wirklich
- * sind, weiss der Produzent. Angesetzt ist, was ein zerlegtes Plissee im
- * Buendel ungefaehr belegt: Kassettenprofil mit eingelegtem Netz, Laufprofil
- * und zwei Fuehrungsschienen. Nach der ersten Lieferung nachmessen und diese
- * zwei Zahlen korrigieren – sie stehen absichtlich an einer einzigen Stelle.
+ * Das Modell war gut durchdacht und half niemandem. Wie dick ein Buendel
+ * Stangen wirklich wird, weiss der Produzent, und zum Bauen eines Netzes
+ * braucht er die Zahl nicht. Sie ist samt der Frachtspalte vom Blatt
+ * verschwunden – uebrig bleibt eine Fertigungs- und Packanweisung.
  */
-export const PACKMASS = {
-  /** Querschnitt, den ein zerlegtes Plissee im Buendel belegt, in cm². */
-  querschnittJePlisseeCm2: 35,
-  /** Zuschlag fuer Folie und Klebeband, in cm. */
-  zuschlagCm: 2,
-} as const
-
-export const PACKMASS_TITEL: Beschriftung = {
-  deutsch: 'Packmass ca. (indikativ, theoretisch gerechnet)',
-  tuerkisch: 'Yaklaşık paket ölçüsü (teorik hesap)',
-}
 
 /**
  * Alle uebrigen Beschriftungen des Auftrags.

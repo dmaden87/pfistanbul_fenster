@@ -239,12 +239,6 @@
   min-width: 130mm;
 }
 
-/* Nur eine Groessenordnung – tritt entsprechend zurueck. */
-.blatt__packmass {
-  color: #444444;
-  white-space: nowrap;
-}
-
 .blatt__gesamt td {
   border-top: 1.5px solid #111111;
   font-weight: 700;

@@ -543,6 +543,23 @@
   margin-top: 0.5rem;
 }
 
+/*
+ * Der gerechnete Preis. Kein Eingabefeld, aber an derselben Stelle und in
+ * derselben Hoehe wie eines – sonst springt die Zeile, je nachdem, ob
+ * Katalogware oder Sondermass bearbeitet wird.
+ */
+.netz__gerechnet {
+  display: block;
+  padding: 0.35rem 0.5rem;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-size: var(--step--1);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--text);
+  background: var(--surface-raised);
+}
+
 .netze__weg {
   display: inline-flex;
   align-items: center;
@@ -950,27 +967,93 @@
   width: 6.5rem;
 }
 
-/* Auf schmalen Schirmen zaehlt jeder Millimeter. */
+/*
+ * AUF DEM TELEFON WIRD DIE PREISTABELLE GESTAPELT.
+ *
+ * Vier Spalten mit Betraegen passen nicht in 390 Pixel. Der erste Versuch war
+ * waagrechtes Rollen – und sah aus wie ein Fehler: Rechts stand ein
+ * abgeschnittenes "CHF", und dass man dort wischen kann, sieht man einem
+ * stehenden Bild nicht an. Niemand wischt in einer Karte, die aussieht wie
+ * ein Textblock.
+ *
+ * Gestapelt wird jede Zeile zu einem kleinen Block: oben das Netz, darunter
+ * drei Zeilen "Titel … Wert". Die Titel kommen aus `data-titel` an der Zelle,
+ * damit dieselbe Angabe nicht zweimal im Markup steht.
+ */
 @media (max-width: 34rem) {
-  .preise__tabelle .preise__feld,
-  .posten__zeile .preise__feld {
-    width: 4.5rem;
-  }
-
-  /* Die Spaltentitel duerfen umbrechen – "Vorschlag / Stück" braucht sonst
-     allein 180 Pixel. */
-  .preise__tabelle th.preise__zahl {
-    white-space: normal;
-  }
-
-  /* Der Block gibt seine Polsterung her, damit die Tabelle mehr Platz hat. */
   .preise {
     padding: var(--space-3);
   }
 
   .preise__rollen {
-    margin-inline: calc(var(--space-3) * -1);
-    padding-inline: var(--space-3);
+    overflow-x: visible;
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+
+  /* Die Kopfzeile faellt weg – jede Zelle sagt selbst, was sie ist. */
+  .preise__tabelle thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .preise__tabelle,
+  .preise__tabelle tbody,
+  .preise__tabelle tr,
+  .preise__tabelle td {
+    display: block;
+    width: 100%;
+    /*
+     * DIE 32rem MUESSEN HIER WEG. Weiter oben steht fuer alle
+     * `.netze__tabelle` unter 44rem ein `min-width: 32rem` – gedacht fuer die
+     * Netztabelle, die in ihrem eigenen Rahmen rollt. Die Angebotstabelle
+     * traegt dieselbe Klasse und war damit 512 Pixel breit, obwohl sie
+     * gestapelt ist: Die Beschriftungen standen da, die Betraege lagen
+     * ausserhalb der Karte.
+     */
+    min-width: 0;
+  }
+
+  .preise__tabelle tr {
+    padding-block: var(--space-2);
+  }
+
+  .preise__tabelle tr + tr {
+    border-top: 1px solid var(--border);
+  }
+
+  .preise__tabelle td {
+    padding: 0.15rem 0;
+    border: 0;
+  }
+
+  .preise__netz {
+    font-weight: 600;
+  }
+
+  /* Titel links, Wert rechts – eine Zeile je Angabe. */
+  .preise__tabelle td[data-titel] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    text-align: right;
+  }
+
+  .preise__tabelle td[data-titel]::before {
+    content: attr(data-titel);
+    color: var(--text-muted);
+    font-size: var(--step--2);
+    font-weight: 400;
+    text-align: left;
+  }
+
+  .preise__tabelle .preise__feld,
+  .posten__zeile .preise__feld {
+    width: 5.5rem;
   }
 }
 
@@ -1066,4 +1149,39 @@
 .posten__zeile .admin__haken {
   min-width: 11rem;
   font-weight: 600;
+}
+
+/*
+ * SCHMAL WIRD JEDER POSTEN EIN BLOCK: Kaestchen auf einer Zeile, darunter
+ * Feld und Erklaerung. Nebeneinander lief die Bezeichnung des Rabatts ueber
+ * den Rand des Kastens hinaus – `min-width: 14rem` auf dem breiten Feld sind
+ * 224 Pixel, und daneben stand noch die zweizeilige Beschriftung.
+ */
+@media (max-width: 34rem) {
+  .posten__zeile {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .posten__zeile .admin__haken {
+    min-width: 0;
+  }
+
+  .posten__zeile .admin__termin {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  /* Das breite Textfeld nimmt die Zeile fuer sich. */
+  .posten__zeile .admin__termin--breit {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .posten__zeile .admin__termin--breit .input {
+    min-width: 0;
+    width: 100%;
+  }
 }
