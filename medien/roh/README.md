@@ -35,13 +35,14 @@ Was daraus für die Webseite wird, gehört nach `public/fotos/` und entsteht
 | `musterbuch-gewebe-farben.jpg` | Musterbuch aufgeschlagen: Gewebe- und Farbmuster | 2576 × 1932, 4:3 |
 | `balkontuere-bedienen.mov` | Plissee der Balkontüre wird zugezogen und wieder geöffnet | 6,6 s |
 | `lieferung-pakete.mov` | Schwenk über die angekommene Sendung, Pakete auf dem Boden | 5,7 s |
+| `grossnetz-zuziehen.mov` | Grosses zweiteiliges Netz, an die Wand gelehnt, wird ganz zugezogen | 8,4 s |
 
-Ursprüngliche Dateinamen der Videos: `IMG_0322.mov` (Bedienen) und
-`IMG_0309.mov` (Lieferung).
+Ursprüngliche Dateinamen der Videos: `IMG_0322.mov` (Bedienen),
+`IMG_0309.mov` (Lieferung) und `IMG_0324.mov` (Grossnetz).
 
 ## Technisches zu den Videos
 
-Beide gleich aufgenommen, und zwei Eigenschaften sind beim Verarbeiten
+Alle drei gleich aufgenommen, und zwei Eigenschaften sind beim Verarbeiten
 wichtig:
 
 - **1920 × 1080 mit 90° Drehung im Container**, angezeigt also **1080 × 1920
@@ -70,6 +71,12 @@ Decoder; `npm install ffmpeg-static` liefert eine brauchbare Fassung.
 - **`lieferung-pakete.mov`** taugt als kurzer Einschub zum Thema Lieferung.
   Die ersten drei Sekunden sind brauchbar, danach wird der Schwenk unruhig
   und die letzten Bilder sind verwischt.
+- **`grossnetz-zuziehen.mov`** zeigt, was auf keinem anderen Bild zu sehen
+  ist: die Grösse. Ein zweiteiliges Netz, fast so hoch wie der Raum, wird in
+  einem Zug zugezogen – und daneben steht ein Mensch, an dem man es messen
+  kann. Das Netz lehnt an der Wand und ist nicht montiert; wer daraus etwas
+  über Montage erzählen will, erzählt es falsch. Als Beleg für „nach Mass,
+  auch gross" ist es das beste Stück im Ordner.
 - **`unterschiene-logo.jpg`** ist das beste Markenbild: Produkt, Logo und
   Handwerk in einem Ausschnitt, ohne Text.
 - **Die beiden Gewebebilder** gehören zusammen. Sie zeigen zwei verschiedene
