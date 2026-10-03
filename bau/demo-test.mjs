@@ -131,9 +131,16 @@ await pruefe('Die Beispieldaten decken jede Phase ab und rechnen auf', async () 
   for (const phase of ['neu', 'klaerung', 'offerte', 'bestellen']) {
     assert.ok(phasen.includes(phase), `keine Beispielbestellung in "${phase}"`)
   }
-  // Ein Paket braucht zwei: Mit einem einzigen Auftrag im Backlog waere die
-  // Paketfunktion in der Testumgebung nicht auszuprobieren.
-  assert.ok(phasen.filter((p) => p === 'bestellen').length >= 2, 'fuer ein Paket braucht es zwei im Backlog')
+  /*
+   * Drei im Backlog, und das ist kein Zufall: Zwei braucht ein Paket
+   * ueberhaupt, der dritte ist der Nachzuegler, an dem sich "einem
+   * bestehenden Paket hinzufuegen" ausprobieren laesst. Mit zweien waere
+   * nach dem Buendeln nichts mehr da, was man hinzufuegen koennte.
+   */
+  assert.ok(
+    phasen.filter((p) => p === 'bestellen').length >= 3,
+    'fuer Paket UND Nachzuegler braucht es drei im Backlog',
+  )
 })
 
 /* --- Ergebnis ---------------------------------------------------------------- */

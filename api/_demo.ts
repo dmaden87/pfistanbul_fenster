@@ -47,9 +47,10 @@ export const demoModus = umgebung !== 'production' && /(^|[/-])demo$/.test(zweig
 /* --- Die Beispieldaten ------------------------------------------------------ */
 
 /**
- * Fuenf Auftraege, einer je Phase – damit jeder Schritt ohne Vorarbeit
- * ausprobiert werden kann. Zwei davon stehen im Backlog, denn ein Paket
- * braucht mindestens zwei.
+ * Sechs Auftraege, einer je Phase – damit jeder Schritt ohne Vorarbeit
+ * ausprobiert werden kann. DREI davon stehen im Backlog: zwei, weil ein Paket
+ * mindestens zwei braucht, und ein dritter, damit sich auch ausprobieren
+ * laesst, einen Nachzuegler in ein bestehendes Paket zu legen.
  *
  * Die Richtpreise sind nicht geraten, sondern die Zahlen, die
  * `estimateNetChf` fuer diese Flaechen liefert – dieselbe Rechnung wie auf
@@ -245,6 +246,32 @@ export function demoSaat(): Record<string, unknown>[] {
       summeChf: 160,
       quelle: 'instagram',
       notiz: 'Wohnt im Erdgeschoss, Leiter nicht nötig.',
+    },
+
+    /* 6. Der Nachzuegler: kam zu spaet fuers Paket und soll noch dazu. */
+    {
+      id: 'demo-6',
+      referenz: 'PF-D006',
+      art: 'anfrage',
+      status: 'bestellen',
+      eingang: tage(11),
+      geaendert: tage(1),
+      phaseSeit: tage(1),
+      ausgemessenAm: tage(7),
+      preiseFestgelegtAm: tage(3),
+      offerteAm: tage(3),
+      zusageAm: tage(1),
+      kunde: kunde('Anita Lüthi', 'a.luethi@example.ch', '079 000 00 06', 'Kirchbühlstrasse 6', '8606 Greifensee'),
+      positionen: [netz('d6p1', 'Küche', 70, 120, 140, 'nach-oben')],
+      montage: true,
+      montageChf: 15,
+      anfahrt: true,
+      anfahrtChf: 0,
+      rabatt: false,
+      zahlung: 'uebergabe',
+      zahlungswunsch: false,
+      summeChf: 155,
+      quelle: 'web',
     },
   ]
 }

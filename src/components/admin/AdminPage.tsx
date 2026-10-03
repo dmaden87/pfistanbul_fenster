@@ -18,7 +18,7 @@ import { Bestellauftrag } from './Bestellauftrag'
 import { Offerte } from './Offerte'
 import { NeueBestellung } from './NeueBestellung'
 import { SprachRahmen } from './SprachRahmen'
-import { useSprache } from './sprache'
+import { fuelle, useSprache } from './sprache'
 import './AdminPage.css'
 
 interface AdminPageProps {
@@ -111,6 +111,8 @@ function AdminMaske({ onBack }: AdminPageProps) {
   const [auswahl, setAuswahl] = useState<string[]>([])
   /** Welcher Talon gerade offen ist. */
   const [blatt, setBlatt] = useState<OffenesBlatt | null>(null)
+  /** Wohin die Auswahl soll: leer heisst "neues Paket", sonst ein Etikett. */
+  const [zielPaket, setZielPaket] = useState('')
   /** Welche Bestellung gerade als Offerte angezeigt wird. */
   const [offeneOfferte, setOffeneOfferte] = useState<string | null>(null)
   /* Nur das Archiv startet zugeklappt: Die Phasen sind die Arbeit. */
@@ -266,12 +268,43 @@ function AdminMaske({ onBack }: AdminPageProps) {
     b.paket ? bestellungen.filter((x) => x.paket === b.paket) : [b]
 
   /**
+   * Die Pakete, denen sich noch etwas hinzufuegen laesst: die im Backlog.
+   *
+   * Was bei Bora liegt, ist bestellt – ein Netz, das jetzt noch dazukaeme,
+   * stuende auf keinem Talon und fehlte in der Lieferung. Deshalb sind nur
+   * Pakete aus "Bereit zum Bestellen" ein Ziel.
+   */
+  const offenePakete = [
+    ...new Map(
+      bestellungen
+        .filter((b) => b.paket && b.status === 'bestellen')
+        .map((b) => [b.paket as string, 0]),
+    ).keys(),
+  ]
+    .sort()
+    .map((etikett) => ({
+      etikett,
+      anzahl: bestellungen.filter((b) => b.paket === etikett && b.status === 'bestellen').length,
+    }))
+
+  /**
    * Zusammenfuehren: Alle Gewaehlten bekommen dasselbe Etikett, dann geht
    * der gemeinsame Bestelltalon auf. Das Etikett ist der ganze Zustand –
    * es gibt kein Paket ausser den Auftraegen, die es tragen.
+   *
+   * Das Ziel ist waehlbar: ein neues Etikett, oder eines, das es schon gibt.
+   * Der zweite Fall ist der haeufige – es kommt eine Bestellung herein,
+   * waehrend das Paket fuer die naechste Sendung schon steht.
    */
   const zusammenfuehren = async () => {
-    const etikett = naechstesPaket(bestellungen)
+    // Ein inzwischen weitergezogenes Ziel darf nicht stillschweigend ein
+    // neues Paket werden: Dann lieber nichts tun und die Leiste stehen lassen.
+    if (zielPaket && !offenePakete.some((p) => p.etikett === zielPaket)) {
+      setFehler(t.paketZielWeg)
+      setZielPaket('')
+      return
+    }
+    const etikett = zielPaket || naechstesPaket(bestellungen)
     try {
       /*
        * Nur Auftraege ohne Paket. Das Kaestchen gibt es fuer die anderen
@@ -282,8 +315,16 @@ function AdminMaske({ onBack }: AdminPageProps) {
       const frisch = gewaehlte.filter((x) => !x.paket)
       for (const b of frisch) await handleAendern(b.id, { paket: etikett })
       setAuswahl([])
-      // Auf den Talon kommt, was das Etikett wirklich bekommen hat.
-      setBlatt({ ids: frisch.map((b) => b.id), art: 'bestellung', nummer: etikett })
+      setZielPaket('')
+      /*
+       * Auf den Talon kommt das GANZE Paket – die neuen Auftraege und die,
+       * die schon drin waren. Ein Talon mit nur den Nachzueglern waere ein
+       * zweites Blatt zur selben Kiste, und Bora haette zwei Listen fuer
+       * eine Sendung.
+       */
+      const schon = bestellungen.filter((b) => b.paket === etikett).map((b) => b.id)
+      const ids = [...new Set([...schon, ...frisch.map((b) => b.id)])]
+      setBlatt({ ids, art: 'bestellung', nummer: etikett })
     } catch {
       // handleAendern hat den Fehler schon angezeigt und neu geladen.
     }
@@ -446,8 +487,27 @@ function AdminMaske({ onBack }: AdminPageProps) {
             <span>
               <strong>{gewaehlte.length}</strong> {gewaehlte.length === 1 ? t.bestellung : t.bestellungen} {t.fuerPaketGewaehlt}
             </span>
+            {/*
+              Die Wahl erscheint erst, wenn es etwas zu waehlen gibt. Gibt es
+              kein offenes Paket, ist "neu" die einzige Moeglichkeit – ein
+              Auswahlfeld mit einem einzigen Eintrag waere eine Frage, auf die
+              es nur eine Antwort gibt.
+            */}
+            {offenePakete.length > 0 && (
+              <label className="admin__termin">
+                <span>{t.paketZiel}</span>
+                <select className="input" value={zielPaket} onChange={(e) => setZielPaket(e.target.value)}>
+                  <option value="">{t.paketNeu}</option>
+                  {offenePakete.map((p) => (
+                    <option key={p.etikett} value={p.etikett}>
+                      {fuelle(t.paketMitAnzahl, { paket: p.etikett, n: p.anzahl })}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <button type="button" className="btn" onClick={zusammenfuehren}>
-              {t.zumPaketZusammenfuehren}
+              {zielPaket ? fuelle(t.paketDazu, { paket: zielPaket }) : t.paketNeuAnlegen}
             </button>
             <button type="button" className="btn btn--quiet" onClick={() => setAuswahl([])}>
               {t.auswahlAufheben}

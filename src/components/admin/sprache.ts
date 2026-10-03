@@ -348,10 +348,18 @@ const PAARE = {
   knopfAngekommen: ['Angekommen – ausliefern', 'Geldi – teslim et'],
   paketMarke: ['Paket', 'Paket'],
   fuerPaket: ['zum Paket', 'pakete'],
-  zumPaketZusammenfuehren: ['Zu einem Paket zusammenführen', 'Tek pakette birleştir'],
   paketSatz: [
-    'Die gewählten Aufträge bekommen ein gemeinsames Paket-Etikett und einen gemeinsamen Bestelltalon.',
-    'Seçilen siparişler ortak bir paket etiketi ve ortak bir sipariş fişi alır.',
+    'Ein neues Paket, oder dazu in eines, das noch nicht bei Bora ist. Danach geht der gemeinsame Bestelltalon auf.',
+    'Yeni bir paket ya da henüz Bora’da olmayan bir pakete ekleme. Ardından ortak sipariş fişi açılır.',
+  ],
+  paketZiel: ['Wohin', 'Nereye'],
+  paketNeu: ['Neues Paket', 'Yeni paket'],
+  paketNeuAnlegen: ['Neues Paket anlegen', 'Yeni paket oluştur'],
+  paketDazu: ['Zu {paket} hinzufügen', '{paket} paketine ekle'],
+  paketMitAnzahl: ['{paket} · {n} bisher', '{paket} · şu ana kadar {n}'],
+  paketZielWeg: [
+    'Dieses Paket ist inzwischen bei Bora – ihm lässt sich nichts mehr hinzufügen. Bitte neu wählen.',
+    'Bu paket artık Bora’da – ona bir şey eklenemez. Lütfen yeniden seçin.',
   ],
   paketAufloesen: ['Aus dem Paket nehmen', 'Paketten çıkar'],
   paketInhalt: [

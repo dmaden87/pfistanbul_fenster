@@ -859,6 +859,17 @@
   margin-right: var(--space-2);
 }
 
+/*
+ * Das Auswahlfeld in der Paketleiste. `.input` setzt width 100%, und in einer
+ * Reihe mit Text und Knoepfen draengte es die anderen heraus – hier gilt die
+ * Breite des Inhalts.
+ */
+.admin__runde select.input {
+  width: auto;
+  max-width: 16rem;
+  padding-block: 0.3rem;
+}
+
 /* --- Das Paket als ein Eintrag ---------------------------------------------- */
 
 /*
