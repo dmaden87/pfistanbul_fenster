@@ -62,3 +62,5 @@ export function zeichen({ kreis: [cx, cy, r], strich, aeste = [], fuss, massstab
 
 // Das gewählte Zeichen «Pur»: Krone bis auf den Teller, ohne Äste.
 export const PUR = { kreis: [100, 92, 70], strich: 4.5, fuss: 158, massstab: 0.8 }
+// «Fein»: Krone über dem Glas, eine Astgabel.
+export const FEIN = { kreis: [100, 68, 62], strich: 4.5, aeste: ['M100,112 V66', 'M100,66 L84,46', 'M100,66 L116,44'], fuss: 162, massstab: 0.9 }

@@ -3,7 +3,7 @@
 import { writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { zeichen, PUR } from './formen.mjs'
+import { zeichen, PUR, FEIN } from './formen.mjs'
 
 const hier = dirname(fileURLToPath(import.meta.url))
 
@@ -16,7 +16,7 @@ const varianten = [
     datei: 'runde-krone-fein',
     name: 'Fein',
     text: 'Die gewählte Form, aber mit einer einzigen, feinen Linienstärke für alles. Nur noch eine Astgabel, das Glas etwas grösser. Wirkt leiser und hochwertiger, ohne etwas Neues zu erfinden.',
-    svg: zeichen({ kreis: [100, 68, 62], strich: 4.5, aeste: ['M100,112 V66', 'M100,66 L84,46', 'M100,66 L116,44'], fuss: 162, massstab: 0.9 }),
+    svg: zeichen(FEIN),
   },
   {
     datei: 'runde-krone-pur',

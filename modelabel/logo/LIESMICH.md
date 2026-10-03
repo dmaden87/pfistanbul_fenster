@@ -16,11 +16,11 @@ Teller stehen in `formen.mjs`, die Varianten oben in `erzeuge.mjs`.
 
 ## Name und Wortmarke
 
-`wortmarken.html` setzt die Namen-Kandidaten Zarif, Otium, Safa und Mola
-neben das Zeichen «Pur»: in drei Schriftrichtungen (Grotesk weit, Antiqua,
-rund klein), gestapelt und nebeneinander, auf Webetikett und Anhänger. Bei
-Otium und Mola zusätzlich mit dem Zeichen als Buchstabe O.
-`node modelabel/logo/wortmarken.mjs` baut die Seite neu.
+Schrift: Antiqua (Platzhalter Cormorant Garamond). `wortmarken.html` setzt
+Zarif, Otium, Safa und Mola je neben «Pur» und «Fein»: gestapelt,
+nebeneinander, bei Otium und Mola mit dem Zeichen als O, auf Webetikett und
+Anhänger. Bilder davon in `bilder/`. `node modelabel/logo/wortmarken.mjs`
+baut die Seite neu.
 
 ## Die Bäume als Skizze
 
