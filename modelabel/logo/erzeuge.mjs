@@ -1,113 +1,132 @@
-// Baut die Logo-Vorschläge (SVG) und die Vorschauseite.
+// Baut die Logo-Varianten (SVG) und die Vorschauseite.
 // node modelabel/logo/erzeuge.mjs [ziel-für-artifact.html]
 import { writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { GLAS, TELLER, LINIEN, kronen } from './formen.mjs'
+import { GLAS, LINIEN } from './formen.mjs'
 
 const hier = dirname(fileURLToPath(import.meta.url))
 
-// Glas und Teller etwas kleiner vor den Baum stellen (Fusspunkt bleibt unten).
-const VORNE = 'translate(100 182) scale(.8) translate(-100 -182)'
-
 const svg = (inhalt) =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="currentColor" role="img">${inhalt}</svg>`
-
-const kreise = (k, d, farbe) => k.kreise.map(([x, y, r]) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(r + d).toFixed(1)}" fill="${farbe}"/>`).join('')
-const glasLuecke = `<path d="${GLAS}" transform="${VORNE}" fill="#000" stroke="#000" stroke-width="18" stroke-linejoin="round"/>`
-const voll = '<rect width="200" height="200" fill="#fff"/>'
 const maske = (id, inhalt) => `<mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200">${inhalt}</mask>`
 
-// Linie: Umriss der Kronen-Vereinigung (aussen +3, innen -3), Glas davor ausgespart.
-const reduziert = (k) => (p) => svg(
-  `<defs>${maske(`${p}r`, kreise(k, 3, '#fff') + kreise(k, -3, '#000') + glasLuecke)}${maske(`${p}a`, voll + glasLuecke)}</defs>` +
-  `<rect width="200" height="200" mask="url(#${p}r)"/>` +
-  `<g mask="url(#${p}a)" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round">` + [k.stamm, ...k.aeste].filter(Boolean).map(d => `<path d="${d}"/>`).join('') + `</g>` +
-  `<g transform="${VORNE}" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round">` + ['M68,66 H132', ...LINIEN].map(d => `<path d="${d}"/>`).join('') + `</g>`)
+// Glas vor die Krone stellen: [Fusspunkt-y im Bild, Massstab]. Das Glas steht im Original bei y 155.
+const glasLage = (fuss, massstab) => `translate(100 ${fuss}) scale(${massstab}) translate(-100 155)`.replace('-100 155', '-100 -155')
+const RAND = 'M68,66 H132'
+const TELLER_LINIEN = LINIEN.slice(2)
+const GLAS_LINIEN = [RAND, ...LINIEN.slice(0, 2)]
 
-// Siegel: Krone, Glas und Teller aus dem Kreis ausgespart, Äste bleiben stehen.
-const siegel = (k) => (p) => svg(
-  `<defs>${maske(`${p}m`, '<circle cx="100" cy="100" r="96" fill="#fff"/>' +
-    `<g transform="translate(100 100) scale(.74) translate(-100 -96)">` + kreise(k, 0, '#000') +
-    (k.stamm ? `<path d="${k.stamm}" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round"/>` : '') +
-    k.aeste.map(d => `<path d="${d}" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/>`).join('') +
-    `<g transform="${VORNE}" fill="#000" stroke="#fff" stroke-width="11" stroke-linejoin="round" paint-order="stroke"><path d="${GLAS}"/><path d="${TELLER}"/></g></g>`)}</defs>` +
-  `<circle cx="100" cy="100" r="96" mask="url(#${p}m)"/>`)
+// Eine Variante: Kronenkreis, Äste, Glas (immer mit geschlossenem Rand), Teller.
+// Alle Linien haben dieselbe Stärke – im Bild gemessen, unabhängig vom Massstab des Glases.
+function zeichen({ kreis: [cx, cy, r], strich, aeste = [], fuss, massstab, teller }) {
+  const lage = glasLage(fuss, massstab)
+  const luecke = `<path d="${GLAS}" transform="${lage}" fill="#000" stroke="#000" stroke-width="${(strich * 3.2) / massstab}" stroke-linejoin="round"/>`
+  const linie = (d) => `<path d="${d}"/>`
+  return (p) => svg(
+    `<defs>${maske(`${p}r`, `<circle cx="${cx}" cy="${cy}" r="${r + strich / 2}" fill="#fff"/><circle cx="${cx}" cy="${cy}" r="${r - strich / 2}" fill="#000"/>${luecke}`)}` +
+    `${maske(`${p}a`, `<rect width="200" height="200" fill="#fff"/>${luecke}`)}</defs>` +
+    `<rect width="200" height="200" fill="currentColor" mask="url(#${p}r)"/>` +
+    `<g fill="none" stroke="currentColor" stroke-width="${strich}" stroke-linecap="round" stroke-linejoin="round">` +
+    `<g mask="url(#${p}a)">${aeste.map(linie).join('')}</g>` +
+    `<g transform="${lage}" stroke-width="${strich / massstab}">${GLAS_LINIEN.map(linie).join('')}${teller ? '' : TELLER_LINIEN.map(linie).join('')}</g>` +
+    `${teller ? teller.map(linie).join('') : ''}</g>`)
+}
 
-const varianten = Object.entries(kronen).flatMap(([schluessel, k]) => [
-  { datei: `reduziert-cinar-${schluessel}`, stil: 'Reduziert', krone: k, svg: reduziert(k) },
-  { datei: `siegel-cinar-${schluessel}`, stil: 'Siegel', krone: k, svg: siegel(k) },
-])
+// Im Kreis: Teller als Sehne genau bis an den Kreis.
+const SEHNE_Y = 152, KREIS_R = 86
+const sehne = Math.sqrt(KREIS_R ** 2 - (SEHNE_Y - 100) ** 2)
 
-for (const v of varianten) writeFileSync(join(hier, `${v.datei}.svg`), v.svg(v.datei).replaceAll('currentColor', '#111111').replace('<rect width="200" height="200" mask', '<rect width="200" height="200" fill="#111111" mask') + '\n')
+const varianten = [
+  {
+    datei: 'runde-krone-fein',
+    name: 'Fein',
+    text: 'Die gewählte Form, aber mit einer einzigen, feinen Linienstärke für alles. Nur noch eine Astgabel, das Glas etwas grösser. Wirkt leiser und hochwertiger, ohne etwas Neues zu erfinden.',
+    svg: zeichen({ kreis: [100, 68, 62], strich: 4.5, aeste: ['M100,112 V66', 'M100,66 L84,46', 'M100,66 L116,44'], fuss: 162, massstab: 0.9 }),
+  },
+  {
+    datei: 'runde-krone-pur',
+    name: 'Pur',
+    text: 'Ohne Äste. Die Krone reicht bis auf den Teller, das Glas steht ganz in ihr. Am reduziertesten und sehr ruhig. Der Baum ist hier eher Andeutung als Bild.',
+    svg: zeichen({ kreis: [100, 92, 70], strich: 4.5, fuss: 158, massstab: 0.8 }),
+  },
+  {
+    datei: 'runde-krone-im-kreis',
+    name: 'Im Kreis',
+    text: 'Die Krone umschliesst alles, der Teller ist eine Sehne genau von Rand zu Rand. Der Kreis ist Baum und Rahmen zugleich. Fertig für Knopf, Prägung und Profilbild, ohne ein zusätzliches Siegel.',
+    svg: zeichen({
+      kreis: [100, 100, KREIS_R], strich: 4.5, aeste: ['M100,86 V62', 'M100,62 L89,47', 'M100,62 L111,45'], fuss: 146, massstab: 0.7,
+      teller: [`M${(100 - sehne).toFixed(1)},${SEHNE_Y} H${(100 + sehne).toFixed(1)}`, 'M84,161 C94,163.5 106,163.5 116,161'],
+    }),
+  },
+]
 
-const paare = Object.values(kronen).map((k, j) => {
-  const zwei = varianten.filter(v => v.krone === k)
-  return `
-    <section class="paar">
-      <div class="paarkopf"><h2>${k.name}</h2><p>${k.text}</p></div>
-      <div class="zwei">${zwei.map((v, i) => `
-        <article class="vorschlag">
-          <div class="buehne">${v.svg(`g${j}${i}`)}</div>
-          <div class="fuss">
-            <span class="stil">${v.stil}</span>
-            <div class="proben" aria-label="Grössenprobe">
-              <span class="mittel">${v.svg(`m${j}${i}`)}</span>
-              <span class="klein">${v.svg(`k${j}${i}`)}</span>
-              <span class="dunkel">${v.svg(`d${j}${i}`)}</span>
-              <span class="teegrund">${v.svg(`t${j}${i}`)}</span>
-            </div>
-          </div>
-        </article>`).join('')}
+for (const v of varianten) writeFileSync(join(hier, `${v.datei}.svg`), v.svg(v.datei).replaceAll('currentColor', '#111111') + '\n')
+
+const karten = varianten.map((v, i) => `
+    <article class="vorschlag">
+      <div class="buehne">${v.svg(`g${i}`)}</div>
+      <div class="info"><h2>${v.name}</h2><p>${v.text}</p></div>
+      <div class="proben" aria-label="Grössenprobe">
+        <span class="mittel">${v.svg(`m${i}`)}</span>
+        <span class="klein">${v.svg(`k${i}`)}</span>
+        <span class="mini">${v.svg(`n${i}`)}</span>
       </div>
-    </section>`
-}).join('')
+      <div class="anwendung">
+        <figure class="etikett">${v.svg(`e${i}`)}<figcaption>Webetikett</figcaption></figure>
+        <figure class="anhaenger"><span class="loch"></span>${v.svg(`h${i}`)}<figcaption>Anhänger</figcaption></figure>
+      </div>
+    </article>`).join('')
 
 const seite = `<title>Çay-Glas Logo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500&family=Jost:wght@400;500&display=swap">
 <style>
-/* Layout: pro Krone ein Paar (Reduziert | Siegel) nebeneinander, darunter Grössen- und Grundprobe */
+/* Layout: drei gleich breite Spalten, je Variante Zeichen, Text, Grössen und zwei Anwendungen */
 :root {
-  --papier: #f6f5f3; --karte: #ffffff; --tinte: #141312; --leise: #6b6763; --linie: #e3e0dc; --tee: #9e2a1c;
+  --papier: #f6f5f3; --karte: #ffffff; --tinte: #141312; --leise: #6b6763; --linie: #e3e0dc;
+  --stoff: #22262b; --faden: #e8e1d2; --karton: #e9e4da;
   --anzeige: 'Bodoni Moda', 'Didot', 'Bodoni 72', Georgia, serif;
   --text: 'Jost', 'Futura', 'Avenir Next', system-ui, sans-serif;
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --papier: #121110; --karte: #1b1a19; --tinte: #f1efec; --leise: #a29d97; --linie: #2e2c2a; --tee: #b23a26; color-scheme: dark } }
-:root[data-theme="dark"] { --papier: #121110; --karte: #1b1a19; --tinte: #f1efec; --leise: #a29d97; --linie: #2e2c2a; --tee: #b23a26; color-scheme: dark }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --papier: #121110; --karte: #1b1a19; --tinte: #f1efec; --leise: #a29d97; --linie: #2e2c2a; --stoff: #0c0e10; --karton: #d9d3c7; color-scheme: dark } }
+:root[data-theme="dark"] { --papier: #121110; --karte: #1b1a19; --tinte: #f1efec; --leise: #a29d97; --linie: #2e2c2a; --stoff: #0c0e10; --karton: #d9d3c7; color-scheme: dark }
 body { background: var(--papier); color: var(--tinte); font-family: var(--text); font-size: 16px; line-height: 1.55 }
-.rahmen { max-width: 1040px; margin: 0 auto; padding-inline: 20px; padding-block: 48px 64px; display: grid; gap: 48px }
-header { display: grid; gap: 12px; max-width: 62ch }
+.rahmen { max-width: 1120px; margin: 0 auto; padding-inline: 20px; padding-block: 48px 64px; display: grid; gap: 40px }
+header { display: grid; gap: 12px; max-width: 64ch }
 .zeile { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--leise) }
 h1 { font-family: var(--anzeige); font-weight: 500; font-size: clamp(34px, 6vw, 54px); line-height: 1.05; margin: 0; text-wrap: balance }
 header p { margin: 0; color: var(--leise) }
-.paar { display: grid; gap: 16px }
-.paarkopf { display: grid; gap: 2px; max-width: 62ch }
-h2 { font-family: var(--anzeige); font-weight: 500; font-size: 28px; margin: 0 }
-.paarkopf p { margin: 0; color: var(--leise) }
-.zwei { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 20px }
-.vorschlag { background: var(--karte); border: 1px solid var(--linie); border-radius: 6px; display: grid }
-.buehne { color: var(--tinte); display: grid; place-items: center; padding: 32px 24px 16px }
-.buehne svg { width: min(100%, 240px); height: auto }
-.fuss { border-top: 1px solid var(--linie); padding: 14px 20px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px }
-.stil { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--leise) }
-.proben { display: flex; align-items: center; gap: 12px; color: var(--tinte) }
-.proben span { display: grid; place-items: center }
-.mittel svg { width: 32px } .klein svg { width: 16px }
-.dunkel, .teegrund { width: 52px; height: 52px; border-radius: 50% }
-.dunkel { background: #141312; color: #f1efec } .teegrund { background: var(--tee); color: #fff }
-.dunkel svg, .teegrund svg { width: 38px }
+.raster { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 20px }
+.vorschlag { background: var(--karte); border: 1px solid var(--linie); border-radius: 6px; display: grid; grid-template-rows: auto 1fr auto auto }
+.buehne { color: var(--tinte); display: grid; place-items: center; padding: 40px 28px 20px }
+.buehne svg { width: min(100%, 220px); height: auto }
+.info { padding: 0 24px; display: grid; gap: 4px; align-content: start }
+h2 { font-family: var(--anzeige); font-weight: 500; font-size: 26px; margin: 0 }
+.info p { margin: 0; color: var(--leise); font-size: 14.5px }
+.proben { display: flex; align-items: end; gap: 16px; padding: 20px 24px; color: var(--tinte) }
+.mittel svg { width: 48px; display: block } .klein svg { width: 24px; display: block } .mini svg { width: 16px; display: block }
+.anwendung { border-top: 1px solid var(--linie); padding: 20px 24px 24px; display: flex; gap: 16px; align-items: end }
+figure { margin: 0; display: grid; gap: 8px; justify-items: center }
+figcaption { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--leise) }
+.etikett svg, .anhaenger svg { display: block }
+.etikett svg { width: 46px; padding: 12px 34px; background: var(--stoff); color: var(--faden); border-radius: 2px;
+  background-image: repeating-linear-gradient(90deg, rgba(255,255,255,.04) 0 1px, transparent 1px 3px) }
+.anhaenger { position: relative }
+.anhaenger svg { width: 54px; padding: 34px 20px 22px; background: var(--karton); color: #1d1c1a; border-radius: 3px }
+.loch { position: absolute; top: 12px; left: 50%; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; background: var(--karte); box-shadow: inset 0 0 0 1px rgba(0,0,0,.15) }
 footer { color: var(--leise); font-size: 14px; max-width: 70ch }
 footer p { margin: 0 }
 </style>
 <div class="rahmen">
   <header>
-    <span class="zeile">Modelabel · Logo · dritte Runde</span>
-    <h1>Das Çay-Glas unter der Çınar</h1>
-    <p>Vier Wege, die Platane zu zeichnen, jeweils als Linie und als Siegel. Das Glas behält die Form aus deinem Foto.</p>
+    <span class="zeile">Modelabel · Logo · vierte Runde</span>
+    <h1>Runde Krone, reduziert</h1>
+    <p>Drei Varianten für das Basic-Premium-Segment. Alle haben jetzt eine einzige, gleichmässige Linienstärke und mehr Luft. Darunter siehst du jede Variante in 48, 24 und 16 Pixeln, auf einem gewebten Etikett und auf einem Anhänger aus Karton.</p>
   </header>
-  ${paare}
-  <footer><p>Die Zeichen liegen als SVG im Ordner <code>modelabel/logo/</code> und lassen sich beliebig gross drucken, sticken oder plotten.</p></footer>
+  <section class="raster">${karten}
+  </section>
+  <footer><p>Die Zeichen liegen als SVG im Ordner <code>modelabel/logo/</code> und lassen sich beliebig gross drucken, sticken oder prägen.</p></footer>
 </div>
 `
 

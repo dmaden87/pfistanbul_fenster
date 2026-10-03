@@ -1,18 +1,18 @@
-# Logo für das Modelabel – dritte Runde
+# Logo für das Modelabel – vierte Runde
 
-Çay-Glas (Form nach Foto) vor einer Platane (çınar). Vier Kronen, jede als
-«Reduziert» (Linie) und als «Siegel» (Kreis, Motiv ausgespart).
-`vorschau.html` im Browser öffnen für alle Grössen- und Grundproben.
+Gewählt: Çay-Glas (Form nach Foto) vor einer runden Platanenkrone (çınar),
+als Linie. Drei Varianten für das Basic-Premium-Segment, alle mit einer
+einzigen Linienstärke. `vorschau.html` zeigt sie in 48/24/16 Pixeln, auf
+einem Webetikett und auf einem Kartonanhänger.
 
-| Krone | Linie | Siegel |
-|---|---|---|
-| Runde Krone | `reduziert-cinar-rund.svg` | `siegel-cinar-rund.svg` |
-| Wolkenkrone | `reduziert-cinar-wolke.svg` | `siegel-cinar-wolke.svg` |
-| Drei Kreise | `reduziert-cinar-drei.svg` | `siegel-cinar-drei.svg` |
-| Im Schatten | `reduziert-cinar-schatten.svg` | `siegel-cinar-schatten.svg` |
+| Datei | Idee |
+|---|---|
+| `runde-krone-fein.svg` | gewählte Form, feiner, eine Astgabel, Glas etwas grösser |
+| `runde-krone-pur.svg` | ohne Äste, Krone reicht bis auf den Teller |
+| `runde-krone-im-kreis.svg` | Krone umschliesst alles, Teller als Sehne im Kreis |
 
-`node modelabel/logo/erzeuge.mjs` baut SVGs und Vorschau neu. Glas, Teller
-und Kronen stehen in `formen.mjs`.
+`node modelabel/logo/erzeuge.mjs` baut SVGs und Vorschau neu. Glas und
+Teller stehen in `formen.mjs`, die Varianten oben in `erzeuge.mjs`.
 
 ## Die Bäume als Skizze
 

@@ -33,37 +33,3 @@ export const baeume = {
   },
 }
 
-// Çınar-Kronen aus Kreisen [x, y, r]; die Vereinigung ergibt die Krone.
-const wolkenkranz = [-15, 25, 60, 90, 120, 155, 195].map(w => {
-  const b = (w * Math.PI) / 180
-  return [100 + 46 * Math.cos(b), 72 - 46 * Math.sin(b), 24]
-})
-// Y-förmig: der Stamm endet in der Gabel, die Äste gehen nach oben auseinander.
-const aeste = ['M100,114 V68', 'M100,68 L84,48', 'M100,68 L116,46', 'M100,88 L82,74']
-export const kronen = {
-  rund: {
-    name: 'Runde Krone',
-    text: 'Ein einziger Kreis. Am ruhigsten und am besten zu sticken. Der Glasrand ist jetzt geschlossen, so liest sich das Glas klar als eigener Gegenstand vor dem Baum.',
-    kreise: [[100, 72, 62]],
-    aeste,
-  },
-  wolke: {
-    name: 'Wolkenkrone',
-    text: 'Die Krone aus Bögen, wie das Laub einer Platane. Sofort als Baum erkennbar, auch ohne Erklärung.',
-    kreise: [[100, 74, 44], ...wolkenkranz],
-    aeste,
-  },
-  drei: {
-    name: 'Drei Kreise',
-    text: 'Drei Kreise als Krone, die unteren beiden rahmen das Glas ein. Geometrisch und modisch, gut für Druck und Prägung.',
-    kreise: [[100, 50, 40], [64, 88, 30], [136, 88, 30]],
-    aeste: ['M100,114 V58', 'M100,58 L86,40', 'M100,58 L114,38', 'M100,80 L84,68'],
-  },
-  schatten: {
-    name: 'Im Schatten',
-    text: 'Der Stamm steht neben dem Glas, die breite Krone wölbt sich darüber. Erzählt das Bild vom Tee im Schatten der Çınar.',
-    kreise: [[42, 62, 20], [72, 48, 30], [108, 38, 34], [144, 48, 30], [170, 64, 18]],
-    stamm: 'M40,178 C38,140 50,100 84,62',
-    aeste: ['M84,62 L112,44', 'M84,62 L74,40'],
-  },
-}
