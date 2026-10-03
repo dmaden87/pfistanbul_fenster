@@ -2,7 +2,15 @@ import { useCallback, useEffect, useState } from 'react'
 import type { AdminStatus, Bestellung, BestellAenderung } from '../../types'
 import { ABSCHNITTE, nachAbschnitt, type Abschnitt } from '../../lib/phasen'
 import type { AdminTexte } from './sprache'
-import { abmelden, adminStatus, aendereBestellung, anmelden, entferneBestellung, ladeBestellungen } from '../../lib/adminApi'
+import {
+  abmelden,
+  adminStatus,
+  aendereBestellung,
+  anmelden,
+  demoZuruecksetzen,
+  entferneBestellung,
+  ladeBestellungen,
+} from '../../lib/adminApi'
 import { shopConfig } from '../../data/shopConfig'
 import { BestellKarte } from './BestellKarte'
 import { Bestellauftrag } from './Bestellauftrag'
@@ -17,7 +25,7 @@ interface AdminPageProps {
 }
 
 /**
- * Die Uebersicht folgt dem Workflow des Betreibers: sieben Phasen in seiner
+ * Die Uebersicht folgt dem Workflow des Betreibers: die Phasen in seiner
  * Reihenfolge, dazu das Archiv. Jede Bestellung steht in genau einem
  * Abschnitt, und zwar in dem, den ihr `status` nennt. Nichts wird mehr
  * abgeleitet – jede Bewegung ist ein Klick, auf der Karte oder auf der
@@ -31,19 +39,23 @@ function abschnittTexte(t: AdminTexte): Record<Abschnitt, { titel: string; satz:
   return {
     neu: { titel: t.phaseNeu, satz: t.phaseNeuSatz },
     klaerung: { titel: t.phaseKlaerung, satz: t.phaseKlaerungSatz },
-    kosten: { titel: t.phaseKosten, satz: t.phaseKostenSatz },
     offerte: { titel: t.phaseOfferte, satz: t.phaseOfferteSatz },
     zusage: { titel: t.phaseZusage, satz: t.phaseZusageSatz },
     bestellen: { titel: t.phaseBestellen, satz: t.phaseBestellenSatz },
+    bora: { titel: t.phaseBora, satz: t.phaseBoraSatz },
     ausliefern: { titel: t.phaseAusliefern, satz: t.phaseAusliefernSatz },
     archiv: { titel: t.phaseArchiv, satz: t.phaseArchivSatz },
   }
 }
 
 /**
- * Nur in "Bestellen" gibt es ein Kaestchen: Dort lassen sich mehrere
- * zugesagte Auftraege zu einem Paket zusammenfuehren – ein Etikett, ein
- * gemeinsamer Bestelltalon. Sonst wird jeder Auftrag fuer sich gefuehrt.
+ * Nur im Backlog "Bereit zum Bestellen" gibt es ein Kaestchen: Dort lassen
+ * sich mehrere zugesagte Auftraege zu einem Paket zusammenfuehren – ein
+ * Etikett, ein gemeinsamer Bestelltalon, eine Sendung. Sonst wird jeder
+ * Auftrag fuer sich gefuehrt.
+ *
+ * Genau deshalb ist der Backlog eine eigene Phase: Gebuendelt wird, was noch
+ * nicht bei Bora liegt. Was dort liegt, laesst sich nicht mehr buendeln.
  */
 const MIT_KAESTCHEN: readonly Abschnitt[] = ['bestellen']
 
@@ -233,6 +245,7 @@ function AdminMaske({ onBack }: AdminPageProps) {
     )
   }
 
+  const demo = status.demo === true
   const gruppen = nachAbschnitt(bestellungen)
   const zuTun = bestellungen.length - gruppen.get('archiv')!.length
   const gewaehlte = bestellungen.filter((b) => auswahl.includes(b.id))
@@ -325,17 +338,19 @@ function AdminMaske({ onBack }: AdminPageProps) {
             <button type="button" className="btn btn--ghost" onClick={laden}>
               {t.aktualisieren}
             </button>
-            <button
-              type="button"
-              className="btn btn--quiet"
-              onClick={async () => {
-                await abmelden()
-                setStatus((s) => (s ? { ...s, angemeldet: false } : s))
-                setBestellungen([])
-              }}
-            >
-              {t.abmelden}
-            </button>
+            {!demo && (
+              <button
+                type="button"
+                className="btn btn--quiet"
+                onClick={async () => {
+                  await abmelden()
+                  setStatus((s) => (s ? { ...s, angemeldet: false } : s))
+                  setBestellungen([])
+                }}
+              >
+                {t.abmelden}
+              </button>
+            )}
             <button type="button" className="btn btn--quiet" onClick={onBack}>
               {t.zurSeite}
             </button>
@@ -343,6 +358,36 @@ function AdminMaske({ onBack }: AdminPageProps) {
         </div>
 
         {fehler && <p className="form-status form-status--error">{fehler}</p>}
+
+        {/*
+          Der Balken der Testumgebung. Er steht ueber der Liste und nicht in
+          einer Ecke: Wer hier arbeitet, soll keinen Moment glauben, er sehe
+          echte Bestellungen – und umgekehrt soll auf der echten Seite nie
+          dieser Balken stehen koennen. Die Bedingung dafuer trifft allein der
+          Server, siehe api/_demo.ts.
+        */}
+        {demo && (
+          <div className="admin__demo">
+            <div>
+              <strong>{t.demoTitel}</strong>
+              <p className="admin__detail">{t.demoSatz}</p>
+            </div>
+            <button
+              type="button"
+              className="btn btn--quiet"
+              onClick={async () => {
+                try {
+                  await demoZuruecksetzen()
+                  await laden()
+                } catch (f) {
+                  setFehler(f instanceof Error ? f.message : 'Die Beispieldaten liessen sich nicht zurücksetzen.')
+                }
+              }}
+            >
+              {t.demoZuruecksetzen}
+            </button>
+          </div>
+        )}
 
         {/*
           Die Leiste erscheint erst, wenn etwas gewaehlt ist. Sie steht oben

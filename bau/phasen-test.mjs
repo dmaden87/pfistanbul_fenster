@@ -79,16 +79,50 @@ pruefe('Gestern: neu ohne Runde bleibt neu, mit Aufmass wird es klaerung', () =>
 })
 
 pruefe('Gestern: neu in einer Runde folgt der Runde', () => {
-  assert.equal(phaseVon(best({ status: 'neu' }), [runde('entwurf')]), 'kosten')
-  assert.equal(phaseVon(best({ status: 'neu' }), [runde('angefragt')]), 'kosten')
+  // Jede Runde heisst "Netze erfasst, Bora gefragt" – das war die Phase
+  // "kosten" und ist heute das Angebot.
+  assert.equal(phaseVon(best({ status: 'neu' }), [runde('entwurf')]), 'offerte')
+  assert.equal(phaseVon(best({ status: 'neu' }), [runde('angefragt')]), 'offerte')
   assert.equal(phaseVon(best({ status: 'neu' }), [runde('preise')]), 'offerte')
-  assert.equal(phaseVon(best({ status: 'neu' }), [runde('bestellt')]), 'bestellen')
+  assert.equal(phaseVon(best({ status: 'neu' }), [runde('bestellt')]), 'bora')
   assert.equal(phaseVon(best({ status: 'neu' }), [runde('geliefert')]), 'ausliefern')
+})
+
+pruefe('Die aufgehobene Phase "kosten" wird zum Angebot', () => {
+  // Sie liegt im produktiven Speicher: Wer dort stand, hatte seine Netze
+  // erfasst und wartete auf Zahlen. Er gehoert ins Angebot und nicht zurueck
+  // in die Klaerung – sonst muesste jemand dieselbe Arbeit nochmals machen.
+  assert.equal(phaseVon(best({ status: 'kosten' }), []), 'offerte')
+  assert.equal(phaseVon(best({ status: 'kosten', phaseSeit: 'x' }), []), 'offerte')
+  assert.equal(phaseVon(best({ status: 'kosten', ausgemessenAm: 'x' }), [runde('angefragt')]), 'offerte')
+  // Und "kosten" ist kein gueltiger Wert mehr.
+  assert.equal(PHASEN_API.includes('kosten'), false)
+})
+
+pruefe('Der Backlog teilt sich an den eigenen Stempeln', () => {
+  /*
+   * "bestellen" heisst heute: zugesagt, noch nicht bei Bora. Wer bestellt
+   * oder verschickt ist, steht in "bora". Entschieden wird das am Stempel
+   * der Bestellung selbst – eine alte Lieferrunde darf einen gesetzten
+   * Status nicht wegziehen.
+   */
+  assert.equal(phaseVon(best({ status: 'bestellen', phaseSeit: 'x' }), []), 'bestellen')
+  assert.equal(phaseVon(best({ status: 'bestellen', phaseSeit: 'x', bestelltAm: 'y' }), []), 'bora')
+  assert.equal(phaseVon(best({ status: 'bestellen', phaseSeit: 'x', versandAm: 'y' }), []), 'bora')
+  assert.equal(
+    phaseVon(best({ status: 'bestellen', phaseSeit: 'x' }), [runde('geliefert')]),
+    'bestellen',
+    'eine alte Runde zieht den gesetzten Status nicht weg',
+  )
+  // Heutiges "bora" bleibt, was es ist.
+  assert.equal(phaseVon(best({ status: 'bora', phaseSeit: 'x', bestelltAm: 'y' }), []), 'bora')
 })
 
 pruefe('Gestern: offeriert wird offerte, zugesagt wird bestellen', () => {
   assert.equal(phaseVon(best({ status: 'offeriert' }), []), 'zusage')
   assert.equal(phaseVon(best({ status: 'zugesagt' }), []), 'bestellen')
+  assert.equal(phaseVon(best({ status: 'zugesagt' }), [runde('bestellt')]), 'bora')
+  assert.equal(phaseVon(best({ status: 'zugesagt', bestelltAm: 'x' }), []), 'bora')
   assert.equal(phaseVon(best({ status: 'zugesagt' }), [runde('geliefert')]), 'ausliefern')
   assert.equal(phaseVon(best({ status: 'abgesagt' }), []), 'abgesagt')
 })
@@ -97,6 +131,8 @@ pruefe('Von Hand erfasste Katalogware geht durch die Phasen wie jede andere', ()
   assert.equal(phaseVon(best({ status: 'neu', art: 'bestellung', quelle: 'whatsapp' }), []), 'neu')
   assert.equal(phaseVon(best({ status: 'offerte', art: 'bestellung', quelle: 'telefon', phaseSeit: 'x' }), []), 'offerte')
   assert.equal(phaseNachWiederoeffnen(best({ status: 'abgesagt', art: 'bestellung', quelle: 'whatsapp' })), 'neu')
+  // Katalogware AUS DEM WEBSHOP dagegen springt beim Wiederoeffnen in den Backlog.
+  assert.equal(phaseNachWiederoeffnen(best({ status: 'abgesagt', art: 'bestellung' })), 'bestellen')
 })
 
 pruefe('Gestern: Katalogware unter "neu" war nie in Phase 1', () => {
@@ -111,7 +147,7 @@ pruefe('Ganz alt: offerte entscheidet sich am Haken und an der Runde', () => {
   assert.equal(phaseVon(best({ status: 'offerte', offerteAm: 'x' }), []), 'zusage')
   assert.equal(phaseVon(best({ status: 'offerte' }), []), 'neu')
   assert.equal(phaseVon(best({ status: 'offerte', ausgemessenAm: 'x' }), []), 'klaerung')
-  assert.equal(phaseVon(best({ status: 'offerte' }), [runde('angefragt')]), 'kosten')
+  assert.equal(phaseVon(best({ status: 'offerte' }), [runde('angefragt')]), 'offerte')
   assert.equal(phaseVon(best({ status: 'offerte' }), [runde('preise')]), 'offerte')
 })
 
@@ -130,13 +166,18 @@ pruefe('Heutiges "offerte" bleibt offerte – erkennbar am Stempel, nicht an der
 })
 
 pruefe('Ganz alt: bestellt, erledigt, geloescht', () => {
+  // "bestellt" hiess bestellt – das ist heute "bei Bora".
+  assert.equal(phaseVon(best({ status: 'bestellt', bestelltAm: 'x' }), []), 'bora')
+  assert.equal(phaseVon(best({ status: 'bestellt' }), [runde('bestellt')]), 'bora')
+  // Ohne jeden Stempel bleibt nur der Backlog: Dass bestellt wurde, steht
+  // nirgends ausser im Wort – und ein Wort ist kein Datum.
   assert.equal(phaseVon(best({ status: 'bestellt' }), []), 'bestellen')
   assert.equal(phaseVon(best({ status: 'erledigt' }), []), 'ausliefern')
   assert.equal(phaseVon(best({ status: 'geloescht' }), []), 'abgesagt')
 })
 
 pruefe('vereinheitlichen gibt dasselbe Objekt zurueck, wenn nichts zu tun ist', () => {
-  const b = best({ status: 'kosten' })
+  const b = best({ status: 'offerte', phaseSeit: 'x' })
   assert.equal(vereinheitlichen(b, []), b)
 })
 
@@ -161,8 +202,8 @@ pruefe('Ganz alt: erledigt wird zu ausliefern MIT beiden Haken', () => {
 pruefe('Die neueste Runde gewinnt', () => {
   const alt = { ...runde('geliefert'), erstellt: '2026-01-01T00:00:00.000Z' }
   const neu = { ...runde('angefragt'), erstellt: '2026-03-01T00:00:00.000Z' }
-  assert.equal(phaseVon(best({ status: 'neu' }), [alt, neu]), 'kosten')
-  assert.equal(phaseVon(best({ status: 'neu' }), [neu, alt]), 'kosten')
+  assert.equal(phaseVon(best({ status: 'neu' }), [alt, neu]), 'offerte')
+  assert.equal(phaseVon(best({ status: 'neu' }), [neu, alt]), 'offerte')
 })
 
 /* --- Bezahlt, abgeschlossen, Abschnitte ------------------------------------- */
@@ -198,7 +239,7 @@ pruefe('Abschnitt: Phasen bleiben, abgesagt und abgeschlossen gehen ins Archiv',
 })
 
 pruefe('Gruppieren verliert keine Bestellung und kennt jeden Abschnitt', () => {
-  const liste = [best({ id: 'a', status: 'neu' }), best({ id: 'b', status: 'kosten' }), best({ id: 'c', status: 'abgesagt' })]
+  const liste = [best({ id: 'a', status: 'neu' }), best({ id: 'b', status: 'bora' }), best({ id: 'c', status: 'abgesagt' })]
   const g = nachAbschnitt(liste)
   assert.equal([...g.values()].reduce((n, l) => n + l.length, 0), 3)
   assert.deepEqual([...g.keys()], [...PHASEN, 'archiv'])
@@ -208,19 +249,31 @@ pruefe('Naechste Phase folgt der Reihenfolge und endet nach ausliefern', () => {
   assert.equal(naechstePhase('neu'), 'klaerung')
   assert.equal(naechstePhase('offerte'), 'zusage')
   assert.equal(naechstePhase('zusage'), 'bestellen')
+  assert.equal(naechstePhase('bestellen'), 'bora')
+  assert.equal(naechstePhase('bora'), 'ausliefern')
   assert.equal(naechstePhase('ausliefern'), undefined)
   assert.equal(naechstePhase('abgesagt'), undefined)
 })
 
 pruefe('Wiederoeffnen fuehrt dorthin, wo die Bestellung war', () => {
+  /*
+   * Entschieden wird an ausdruecklichen Spuren, von hinten nach vorn. Die
+   * blosse Anwesenheit von Netzen ist keine: Die bringt jede Anfrage von der
+   * Seite mit, und mit ihr kaeme nichts mehr in "neu" zurueck.
+   */
   assert.equal(phaseNachWiederoeffnen(best({ status: 'abgesagt' })), 'neu')
+  assert.equal(phaseNachWiederoeffnen(best({ status: 'abgesagt', klaerungTermin: '2026-05-01' })), 'klaerung')
   assert.equal(phaseNachWiederoeffnen(best({ status: 'abgesagt', ausgemessenAm: 'x' })), 'klaerung')
-  assert.equal(phaseNachWiederoeffnen(best({ status: 'abgesagt', einkaufAusRunde: 'L-1' })), 'kosten')
-  const bepreist = best({ status: 'abgesagt', positionen: [{ id: 'p1', menge: 1, bezeichnung: 'A', detail: '', preisChf: 150, einkaufChf: 40 }] })
-  assert.equal(phaseNachWiederoeffnen(bepreist), 'offerte')
+  assert.equal(phaseNachWiederoeffnen(best({ status: 'abgesagt', preiseFestgelegtAm: 'x' })), 'offerte')
   assert.equal(phaseNachWiederoeffnen(best({ status: 'abgesagt', offerteAm: 'x' })), 'zusage')
   assert.equal(phaseNachWiederoeffnen(best({ status: 'abgesagt', zusageAm: 'x' })), 'bestellen')
-  assert.equal(phaseNachWiederoeffnen(best({ status: 'abgesagt', art: 'bestellung' })), 'bestellen')
+  assert.equal(phaseNachWiederoeffnen(best({ status: 'abgesagt', zusageAm: 'x', bestelltAm: 'y' })), 'bora')
+  assert.equal(phaseNachWiederoeffnen(best({ status: 'abgesagt', zusageAm: 'x', versandAm: 'y' })), 'bora')
+  assert.equal(phaseNachWiederoeffnen(best({ status: 'abgesagt', ausgeliefertAm: 'x' })), 'ausliefern')
+  // Boras Einkaufspreise sagen nichts mehr ueber die Phase: Die Zahl gehoert
+  // in die Buchhaltung, nicht in den Ablauf.
+  const bepreist = best({ status: 'abgesagt', positionen: [{ id: 'p1', menge: 1, bezeichnung: 'A', detail: '', preisChf: 150, einkaufChf: 40 }] })
+  assert.equal(phaseNachWiederoeffnen(bepreist), 'neu')
   assert.equal(ohneEinkauf(bepreist), 0)
 })
 

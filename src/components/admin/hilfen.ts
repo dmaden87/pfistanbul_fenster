@@ -1,4 +1,5 @@
 import type { AbsageGrund, Bestellung, BestellPosition, BestellQuelle } from '../../types'
+import { estimateNetChf } from '../../lib/estimate'
 import type { AdminTexte } from './sprache'
 
 /**
@@ -135,6 +136,16 @@ export function montageBetrag(b: Bestellung): number {
 export function montageFuerOfferte(b: Bestellung, netze: number, proNetzChf: number): number {
   const betrag = montageBetrag(b)
   if (betrag > 0) return betrag
+  /*
+   * Ist das Angebot festgelegt, gilt der Betrag – AUCH die Null. Dort hat
+   * jemand den Haken gesetzt und 0.00 hingeschrieben, und das heisst
+   * "Montage inbegriffen", nicht "rechne mir etwas aus". Ohne diesen Riegel
+   * erfaende das Blatt fuenfzehn Franken je Netz gegen eine ausdrueckliche
+   * Entscheidung.
+   */
+  if (b.preiseFestgelegtAm) return 0
+  // Davor: Der Haken kommt aus dem Bestellformular, einen Betrag gibt es
+  // noch nicht. Dann ist der Ansatz je Netz die beste Auskunft.
   return b.montage ? Math.round(netze * proNetzChf * 100) / 100 : 0
 }
 
@@ -147,4 +158,19 @@ export function zahlungsdifferenz(b: Bestellung): number | null {
   if (b.bezahlung?.status !== 'bezahlt') return null
   const abweichung = Math.round((b.summeChf - b.bezahlung.betragChf) * 100) / 100
   return abweichung === 0 ? null : abweichung
+}
+
+/**
+ * Was der Rechner fuer dieses Netz vorschlaegt, je Stueck.
+ *
+ * Erst der gestempelte Wert: Er ist der, den die Kundschaft gesehen hat, und
+ * er gilt. Nur wenn keiner da ist – von Hand erfasste Auftraege, Anfragen aus
+ * WhatsApp –, wird gerechnet, und zwar mit genau der Funktion, die auch auf
+ * der Startseite rechnet. Ohne Masse gibt es keinen Vorschlag; dann steht das
+ * auch so da, statt eine Zahl zu erfinden.
+ */
+export function vorschlagFuer(p: BestellPosition): number | null {
+  if (typeof p.richtpreisChf === 'number' && p.richtpreisChf > 0) return p.richtpreisChf
+  if (!p.breiteCm || !p.hoeheCm) return null
+  return estimateNetChf((p.breiteCm / 100) * (p.hoeheCm / 100))
 }

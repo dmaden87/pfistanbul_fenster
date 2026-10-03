@@ -73,30 +73,30 @@ const PAARE = {
     'Eingegangen. Annehmen – oder absagen, wenn es Spam oder ein Doppel ist.',
     'Geldi. Kabul edin – ya da spam veya kopya ise iptal edin.',
   ],
-  phaseKlaerung: ['Auftragsklärung', 'Sipariş netleştirme'],
+  phaseKlaerung: ['Auftrag klären', 'Siparişi netleştir'],
   phaseKlaerungSatz: [
     'Termin beim Kunden, ausmessen, Netze erfassen. Weiter, sobald alle Angaben da sind.',
     'Müşteride randevu, ölçüm, sineklikleri girin. Tüm bilgiler tamam olunca devam.',
   ],
-  phaseKosten: ['Kosten klären', 'Maliyet netleştirme'],
-  phaseKostenSatz: [
-    'Preisanfrage an Bora schicken, seine Kosten eintragen. Weiter, sobald jedes Netz einen Einkaufspreis hat.',
-    'Bora’ya fiyat talebi gönderin, maliyetlerini girin. Her sinekliğin alış fiyatı olunca devam.',
-  ],
   phaseOfferte: ['Angebot erstellen', 'Teklif hazırlama'],
   phaseOfferteSatz: [
-    'Verkaufspreise festlegen, Offerte rechnen und verschicken.',
-    'Satış fiyatlarını belirleyin, teklifi hesaplayın ve gönderin.',
+    'Preise prüfen, Montage, Anfahrt und Rabatt setzen, Offerte verschicken.',
+    'Fiyatları kontrol edin, montaj, yol ve indirimi ayarlayın, teklifi gönderin.',
   ],
   phaseZusage: ['Warten auf Zusage', 'Onay bekleniyor'],
   phaseZusageSatz: [
     'Die Offerte ist beim Kunden. Zusage → Bestellen, Nachbessern → zurück zum Angebot, Absage → Archiv.',
     'Teklif müşteride. Onay → Sipariş, düzeltme → teklife geri, ret → Arşiv.',
   ],
-  phaseBestellen: ['Bestellen', 'Sipariş verme'],
+  phaseBestellen: ['Bereit zum Bestellen', 'Siparişe hazır'],
   phaseBestellenSatz: [
-    'Zugesagt. Bestelltalon an Bora, bestellt, unterwegs, angekommen. Mehrere Aufträge lassen sich zu einem Paket zusammenführen.',
-    'Onaylandı. Bora’ya sipariş fişi, sipariş verildi, yolda, geldi. Birden fazla sipariş tek pakette birleştirilebilir.',
+    'Zugesagt, aber noch nicht bei Bora. Mehrere Aufträge zu einem Paket zusammenführen und als Ganzes bestellen.',
+    'Onaylandı ama henüz Bora’da değil. Birden fazla siparişi tek pakette birleştirip bir bütün olarak sipariş edin.',
+  ],
+  phaseBora: ['Bei Bora', 'Bora’da'],
+  phaseBoraSatz: [
+    'Bestellt. Sobald die Sendung läuft: Haken «Unterwegs» und, wenn es eine gibt, die Sendungsnummer.',
+    'Sipariş verildi. Gönderi yola çıkınca: «Yolda» işareti ve varsa gönderi numarası.',
   ],
   phaseAusliefern: ['Ausliefern', 'Teslim etme'],
   phaseAusliefernSatz: [
@@ -118,8 +118,8 @@ const PAARE = {
   einkaufspreiseStand: ['{da} von {alle} Einkaufspreisen da', '{alle} alış fiyatından {da} tanesi var'],
   restbetrag: ['Rest offen', 'Kalan'],
 
-  /* --- Phase 4: Verkaufspreise festlegen ---------------------------------- */
-  verkaufspreiseTitel: ['Verkaufspreise festlegen', 'Satış fiyatlarını belirle'],
+  /* --- Angebot zusammenstellen -------------------------------------------- */
+  angebotTitel: ['Angebot zusammenstellen', 'Teklifi oluştur'],
   /*
    * Wegweiser im Preisblock. Wer hier steht, offeriert gerade - und genau
    * dann faellt auf, dass ein Netz zu viel drin ist. Die Liste hier kann
@@ -130,23 +130,37 @@ const PAARE = {
     'Ein Netz zu viel? Unter „Netze und Angaben anzeigen“ lässt sich jedes einzeln entfernen.',
     'Fazla bir sineklik mi var? „Sineklikleri ve bilgileri göster“ altında tek tek kaldırabilirsin.',
   ],
-  verkaufspreiseSatz: [
-    'Boras Kosten sind da. Lege je Netz den Verkaufspreis fest – bis dahin steht der Richtpreis aus der Anfrage drin.',
-    'Bora’nın maliyetleri geldi. Her sineklik için satış fiyatını belirleyin – o zamana kadar talepteki tahmini fiyat durur.',
+  angebotSatz: [
+    'Der Rechner schlägt je Netz einen Preis vor – denselben, den die Kundschaft auf der Seite sieht. Überschreibe ihn, wo es nötig ist; der Vorschlag bleibt daneben stehen.',
+    'Hesaplayıcı her sineklik için bir fiyat önerir – müşterinin sitede gördüğü fiyatın aynısı. Gerekirse üzerine yazın; öneri yanında kalır.',
   ],
-  richtpreisMarke: ['Richtpreise – Verkaufspreise noch nicht festgelegt', 'Tahmini fiyatlar – satış fiyatı henüz belirlenmedi'],
-  preiseFestgelegtAm: ['Verkaufspreise festgelegt am', 'Satış fiyatları belirlendi'],
+  richtpreisMarke: ['Preise noch nicht festgelegt', 'Fiyatlar henüz belirlenmedi'],
+  preiseFestgelegtAm: ['Angebot festgelegt am', 'Teklif belirlendi'],
   verkaufJeStueck: ['Verkauf / Stück', 'Satış / adet'],
-  einkaufJeStueck: ['Einkauf / Stück', 'Alış / adet'],
-  margeZeile: ['Marge', 'Kâr'],
+  richtpreisSpalte: ['Vorschlag / Stück', 'Öneri / adet'],
+  abweichungSpalte: ['Abweichung', 'Fark'],
+  richtpreiseUebernehmen: ['Vorschlag für alle übernehmen', 'Öneriyi tümüne uygula'],
+  keinVorschlag: [
+    'Für dieses Netz gibt es keinen Vorschlag – es fehlen die Masse.',
+    'Bu sineklik için öneri yok – ölçüler eksik.',
+  ],
+  postenTitel: ['Dazu oder davon ab', 'Ekle veya çıkar'],
+  postenAnfahrt: ['Anfahrt verrechnen', 'Yol ücreti ekle'],
+  postenRabatt: ['Rabatt geben', 'İndirim ver'],
+  anfahrtBetrag: ['Anfahrt (CHF)', 'Yol (CHF)'],
+  anfahrtSatz: [
+    'Im {gebiet} kostenlos, ausserhalb {preis} pauschal. Aktiv mit 0.00 heisst auf der Offerte «kostenlos» – das ist ein Argument und soll dastehen.',
+    '{gebiet} içinde ücretsiz, dışında {preis} sabit. 0.00 ile aktif olması teklifte «ücretsiz» demektir – bu bir argüman, görünsün.',
+  ],
+  anfahrtSumme: ['Anfahrt', 'Yol'],
+  kostenlos: ['kostenlos', 'ücretsiz'],
+  totalSumme: ['Total', 'Toplam'],
   rabattSumme: ['Rabatt', 'İndirim'],
   rabattBetrag: ['Rabatt auf die Bestellung (CHF)', 'Siparişe indirim (CHF)'],
   rabattText: ['Bezeichnung des Rabatts', 'İndirimin adı'],
   rabattTextBeispiel: ['z. B. Kennenlernrabatt', 'örn. tanışma indirimi'],
-  knopfPreiseFestlegen: ['Verkaufspreise festlegen', 'Satış fiyatlarını belirle'],
-  knopfPreiseAendern: ['Verkaufspreise ändern', 'Satış fiyatlarını değiştir'],
-  aufschlagSatz: ['Alle: Aufschlag auf den Einkauf in %', 'Tümü: alışa yüzde ekle'],
-  aufschlagAnwenden: ['Anwenden', 'Uygula'],
+  knopfPreiseFestlegen: ['Angebot festlegen', 'Teklifi belirle'],
+  knopfPreiseAendern: ['Angebot ändern', 'Teklifi değiştir'],
   preisFehltSatz: [
     'Jedes Netz braucht einen Verkaufspreis über 0.',
     'Her sinekliğin 0’dan büyük bir satış fiyatı olmalı.',
@@ -210,9 +224,10 @@ const PAARE = {
 
   /* --- Knoepfe je Phase -------------------------------------------------- */
   knopfAngenommen: ['Angenommen – Auftragsklärung', 'Kabul edildi – netleştirme'],
-  knopfGeprueftBestellen: ['Geprüft – bestellen', 'Kontrol edildi – sipariş'],
-  knopfKlaerungFertig: ['Auftragsdetails vollständig – Kosten klären', 'Sipariş bilgileri tamam – maliyet'],
-  knopfKostenDa: ['Kosten da – Offerte rechnen', 'Maliyet geldi – teklifi hesapla'],
+  knopfGeprueftBestellen: ['Geprüft – bereit zum Bestellen', 'Kontrol edildi – siparişe hazır'],
+  knopfBeiBoraBestellt: ['Bei Bora bestellt', 'Bora’ya sipariş verildi'],
+  knopfPaketBestellt: ['Ganzes Paket bei Bora bestellt', 'Tüm paketi Bora’ya sipariş ver'],
+  knopfKlaerungFertig: ['Auftrag geklärt – Angebot rechnen', 'Sipariş netleşti – teklifi hesapla'],
   knopfOfferteAnzeigen: ['Offerte anzeigen', 'Teklifi göster'],
   knopfOfferteRaus: ['Offerte ist raus', 'Teklif gönderildi'],
   knopfKundeZugesagt: ['Kunde hat zugesagt', 'Müşteri onayladı'],
@@ -236,25 +251,9 @@ const PAARE = {
   grundStorno: ['Storno nach Zusage', 'Onaydan sonra iptal'],
   abgesagtWeil: ['abgesagt', 'iptal'],
 
-  /* --- Einkauf und Marge --------------------------------------------------- */
-  einkauf: ['Einkauf', 'Alış'],
-  zoll: ['Zoll', 'Gümrük'],
-  warenerloes: ['Warenerlös (ohne Montage)', 'Mal geliri (montaj hariç)'],
-  montageErloes: ['Montage (Erlös, keine Kosten)', 'Montaj (gelir, maliyetsiz)'],
-  marge: ['Marge', 'Kâr'],
+  /* --- Paket -------------------------------------------------------------- */
   fuerPaketGewaehlt: ['fürs Paket gewählt', 'paket için seçildi'],
   auswahlAufheben: ['Auswahl aufheben', 'Seçimi kaldır'],
-  einkaufTitel: ['Einkauf und Marge', 'Alış ve kâr'],
-  einkaufSumme: ['Einkauf', 'Alış'],
-  frachtAnteil: ['Fracht', 'Nakliye'],
-  frachtGeschaetzt: ['geschätzt', 'tahmini'],
-  ausRunde: ['aus', 'kaynak'],
-  datensatzUnvollstaendig: ['Datensatz unvollständig', 'Kayıt eksik'],
-  einkaufFehltSatz: [
-    'Bei {n} Position(en) fehlt der Einkaufspreis. Die Marge ist deshalb zu gut – es fehlen Kosten, nicht Erlöse.',
-    '{n} kalemde alış fiyatı eksik. Bu yüzden kâr olduğundan iyi görünüyor – gelir değil, maliyet eksik.',
-  ],
-  nurUnvollstaendige: ['Nur unvollständige', 'Yalnızca eksikler'],
 
   /* --- Netz-Editor ------------------------------------------------------- */
   anzahlKurz: ['Anz.', 'Adet'],
@@ -332,22 +331,15 @@ const PAARE = {
   bemerkungFuersBlatt: ['Bemerkung an den Produzenten (auf dem Blatt)', 'Üreticiye not (belgede)'],
   auftraegeAufDemBlatt: ['Aufträge auf diesem Blatt', 'Bu belgedeki siparişler'],
 
-  /* --- Boras Kosten eintragen -------------------------------------------- */
-  kostenVonBora: ['Kosten von Bora', 'Bora’nın maliyetleri'],
-  kostenVonBoraSatz: [
-    'Vom Talon abtippen: Stückpreis je Netz, Fracht und später der Zoll für diesen Auftrag.',
-    'Fişten girin: sineklik başına birim fiyat, nakliye ve sonra bu siparişin gümrüğü.',
-  ],
-  kostenEintragen: ['Kosten eintragen', 'Maliyet gir'],
-  kostenAendern: ['Kosten ändern', 'Maliyeti değiştir'],
-  kostenSpeichern: ['Kosten speichern', 'Maliyeti kaydet'],
-  zeileAufTalon: ['Zeile', 'Satır'],
-  frachtDiesenAuftrag: ['Fracht für diesen Auftrag (CHF)', 'Bu siparişin nakliyesi (CHF)'],
-  zollDiesenAuftrag: ['Zoll, Steuer, Gebühren (CHF)', 'Gümrük, vergi, ücretler (CHF)'],
-
-  /* --- Phase 5: bestellt, unterwegs, Paket -------------------------------- */
+  /* --- Bei Bora: bestellt, unterwegs, Paket ------------------------------- */
   bestelltBeiBora: ['Bei Bora bestellt', 'Bora’ya sipariş verildi'],
   unterwegs: ['Unterwegs', 'Yolda'],
+  unterwegsPaket: ['Unterwegs – ganzes Paket', 'Yolda – tüm paket'],
+  sendungsnummer: ['Sendungsnummer (freiwillig)', 'Gönderi numarası (isteğe bağlı)'],
+  sendungsnummerPaket: [
+    'Sendungsnummer – gilt für das ganze Paket',
+    'Gönderi numarası – tüm paket için geçerli',
+  ],
   knopfAngekommen: ['Angekommen – ausliefern', 'Geldi – teslim et'],
   paketMarke: ['Paket', 'Paket'],
   fuerPaket: ['zum Paket', 'pakete'],
@@ -372,6 +364,14 @@ const PAARE = {
     'Bilgiler ilgili siparişin sineklik düzenleyicisinde. Sonra buraya tekrar gelin.',
   ],
   bemerkungAnProduzenten: ['Bemerkung an den Produzenten (freiwillig)', 'Üreticiye not (isteğe bağlı)'],
+
+  /* --- Testumgebung ------------------------------------------------------- */
+  demoTitel: ['Testumgebung', 'Test ortamı'],
+  demoSatz: [
+    'Beispieldaten zum Durchklicken. Keine Anmeldung, keine echten Bestellungen – die Produktivdaten liegen in einer anderen Tabelle und werden hier nicht angefasst.',
+    'Denemek için örnek veriler. Giriş yok, gerçek sipariş yok – canlı veriler başka bir tabloda ve buradan hiç dokunulmuyor.',
+  ],
+  demoZuruecksetzen: ['Beispieldaten zurücksetzen', 'Örnek verileri sıfırla'],
 } as const satisfies Record<string, Paar>
 
 export type AdminTexte = { [K in keyof typeof PAARE]: string }

@@ -15,8 +15,8 @@
  * jemand die Bestellung ohnehin aendert.
  */
 
-export type Phase = 'neu' | 'klaerung' | 'kosten' | 'offerte' | 'zusage' | 'bestellen' | 'ausliefern' | 'abgesagt'
-export const PHASEN: Phase[] = ['neu', 'klaerung', 'kosten', 'offerte', 'zusage', 'bestellen', 'ausliefern', 'abgesagt']
+export type Phase = 'neu' | 'klaerung' | 'offerte' | 'zusage' | 'bestellen' | 'bora' | 'ausliefern' | 'abgesagt'
+export const PHASEN: Phase[] = ['neu', 'klaerung', 'offerte', 'zusage', 'bestellen', 'bora', 'ausliefern', 'abgesagt']
 
 /** Was die Abbildung von einer Runde wissen muss. */
 export interface RundenBlick {
@@ -40,6 +40,9 @@ interface BestellBlick {
   ausgemessenAm?: string
   offerteAm?: string
   zusageAm?: string
+  /** Die beiden Stempel bei Bora – sie teilen den Backlog von "bei Bora". */
+  bestelltAm?: string
+  versandAm?: string
   ausgeliefertAm?: string
   bezahltAm?: string
   einkaufAusRunde?: string
@@ -76,7 +79,21 @@ function rundeFuer(id: string, runden: RundenBlick[]): RundenBlick | undefined {
  * Drei Generationen liegen im Speicher:
  *   - ganz alt:  neu | offerte | bestellt | erledigt | geloescht
  *   - gestern:   neu | offeriert | zugesagt | abgesagt
- *   - heute:     die sieben Phasen und abgesagt
+ *   - vorgestern die sieben Phasen mit "kosten", ohne "bora"
+ *   - heute:     neu | klaerung | offerte | zusage | bestellen | bora |
+ *                ausliefern | abgesagt
+ *
+ * ZWEI AENDERUNGEN AN DEN PHASEN SELBST liegen damit im Speicher:
+ *
+ * "kosten" (Bora nach Preisen fragen) gibt es nicht mehr. Ein Auftrag, der
+ * dort steht, hat seine Netze erfasst und wartete nur noch auf Zahlen - er
+ * gehoert ins Angebot.
+ *
+ * "bestellen" war die Phase von der Zusage bis zur Ankunft. Heute ist sie nur
+ * der Backlog, und was bei Bora liegt, steht in "bora". Entschieden wird das
+ * nicht am Status, sondern an den Stempeln: Wer bestelltAm oder versandAm
+ * traegt, ist bei Bora - das steht in genau dem Datensatz, um den es geht,
+ * und nicht in einer Vermutung.
  *
  * "neu" gibt es in allen dreien – aber gestern konnte eine "neue"
  * Bestellung laengst in einer Runde bei Bora stecken (der Stand der Ware
@@ -92,16 +109,33 @@ export function phaseVon<B extends BestellBlick>(b: B, runden: RundenBlick[]): P
   // Katalogware (WhatsApp, Telefon) geht wie jede andere durch die Phasen.
   const katalog = b.art === 'bestellung' && (!b.quelle || b.quelle === 'web')
 
-  // Katalogware war nie in den Phasen 1–5, unter keinem alten Wert.
-  const abBestellen = (): Phase => (rundenStand === 'geliefert' ? 'ausliefern' : 'bestellen')
+  /*
+   * Wohin ein "schon zugesagt" fuehrt. Katalogware war nie in Klaerung oder
+   * Angebot, unter keinem alten Wert - sie landet hier.
+   *
+   * Die Reihenfolge ist die des Ablaufs von hinten: geliefert schlaegt
+   * unterwegs, unterwegs schlaegt bestellt, und ohne jeden Stempel bleibt es
+   * der Backlog.
+   */
+  const beiBora = Boolean(b.bestelltAm || b.versandAm) || rundenStand === 'bestellt'
+  const abBestellen = (): Phase =>
+    rundenStand === 'geliefert' ? 'ausliefern' : beiBora ? 'bora' : 'bestellen'
 
   if (alt === 'abgesagt' || alt === 'geloescht') return 'abgesagt'
   if (alt === 'erledigt') return 'ausliefern'
+  // Die aufgehobene Phase: Netze sind erfasst, es fehlt nur das Angebot.
+  if (alt === 'kosten') return 'offerte'
+  /*
+   * Der Backlog, aufgeteilt. Entschieden wird an den eigenen Stempeln und
+   * NICHT an einer Runde: "bestellen" hat jemand gesetzt, und eine alte
+   * Lieferrunde darf diesen Klick nicht wieder wegziehen - derselbe Riegel
+   * wie unten bei "neu".
+   */
+  if (alt === 'bestellen') return b.bestelltAm || b.versandAm ? 'bora' : 'bestellen'
   if (
     alt === 'ausliefern' ||
-    alt === 'bestellen' ||
+    alt === 'bora' ||
     alt === 'zusage' ||
-    alt === 'kosten' ||
     alt === 'klaerung' ||
     alt === 'offerte'
   ) {
@@ -113,8 +147,14 @@ export function phaseVon<B extends BestellBlick>(b: B, runden: RundenBlick[]): P
     const heutig = Boolean(b.phaseSeit || b.einkaufAm || b.preiseFestgelegtAm || b.offerteAm || b.zusageAm)
     if (alt === 'offerte' && !heutig) {
       if (katalog) return abBestellen()
-      if (rundenStand === 'angefragt' || rundenStand === 'entwurf') return 'kosten'
-      if (rundenStand === 'preise' || rundenStand === 'bestellt' || rundenStand === 'geliefert') return 'offerte'
+      /*
+       * Jede dieser Runden bedeutete "Netze sind erfasst, Bora ist gefragt".
+       * Das war die Phase "kosten"; heute ist es das Angebot. Die beiden
+       * Runden, die weiter sind (bestellt, geliefert), stehen trotzdem hier:
+       * Unter dem ganz alten "offerte" war die Offerte noch nicht raus, und
+       * ein Auftrag ohne Offerte ist kein Auftrag bei Bora.
+       */
+      if (rundenStand) return 'offerte'
       if (b.einkaufAusRunde || b.positionen?.some((p) => typeof p.einkaufChf === 'number')) return 'offerte'
       return b.ausgemessenAm ? 'klaerung' : 'neu'
     }
@@ -134,10 +174,10 @@ export function phaseVon<B extends BestellBlick>(b: B, runden: RundenBlick[]): P
   // nach "bestellen" – die Bestellung waere nicht zu halten.
   if (b.phaseSeit) return 'neu'
   if (katalog) return abBestellen()
-  if (rundenStand === 'bestellt') return 'bestellen'
+  if (rundenStand === 'bestellt') return 'bora'
   if (rundenStand === 'geliefert') return 'ausliefern'
-  if (rundenStand === 'preise') return 'offerte'
-  if (rundenStand === 'angefragt' || rundenStand === 'entwurf') return 'kosten'
+  // "preise", "angefragt", "entwurf": Netze erfasst, Bora gefragt – ins Angebot.
+  if (rundenStand) return 'offerte'
   if (b.einkaufAusRunde) return 'offerte'
   if (b.ausgemessenAm) return 'klaerung'
   return 'neu'

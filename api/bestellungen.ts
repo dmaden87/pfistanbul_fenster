@@ -15,11 +15,13 @@ import {
   speicherBereit,
   SpeicherFehlt,
   TABELLE_BESTELLUNGEN,
+  TABELLE_DEMO,
   TABELLE_LIEFERUNGEN,
   verfaellt,
 } from './_speicher.js'
+import { demoModus, demoSaat } from './_demo.js'
 import { PHASEN, startPhase, vereinheitlichen as phaseVereinheitlichen, type Phase, type RundenBlick } from './_phasen.js'
-import { preiseVereinheitlichen } from './_preise.js'
+import { postenVereinheitlichen, preiseVereinheitlichen } from './_preise.js'
 import { abmeldeCookie, angemeldet, anmeldeCookie, passwortGesetzt, passwortStimmt } from './_sitzung.js'
 
 /**
@@ -34,7 +36,13 @@ import { abmeldeCookie, angemeldet, anmeldeCookie, passwortGesetzt, passwortStim
  * checkout.ts, wo die Beträge ausschliesslich aus der Server-Tabelle kommen.
  */
 
-const TABELLE = TABELLE_BESTELLUNGEN
+/*
+ * In der Testumgebung eine andere Tabelle – siehe api/_demo.ts. Die
+ * Entscheidung faellt hier EINMAL, fuer Lesen, Schreiben und Loeschen
+ * gemeinsam: Wo sie an mehreren Stellen fiele, waere die eine Stelle, die
+ * sie falsch faellt, ein Zugriff auf die echten Bestellungen.
+ */
+const TABELLE = demoModus ? TABELLE_DEMO : TABELLE_BESTELLUNGEN
 
 /** Nach so vielen Fehlversuchen ist für eine Viertelstunde Ruhe. */
 const MAX_VERSUCHE = 8
@@ -69,7 +77,7 @@ async function rundenBlick(): Promise<RundenBlick[]> {
  * Positionen, in denen frueher der Zeilenbetrag stand.
  */
 export function vereinheitlichen(b: Bestellung, runden: RundenBlick[]): Bestellung {
-  return preiseVereinheitlichen(phaseVereinheitlichen(b, runden))
+  return postenVereinheitlichen(preiseVereinheitlichen(phaseVereinheitlichen(b, runden)))
 }
 
 /**
@@ -100,9 +108,17 @@ interface Position {
   typId?: string
   setId?: string
   /**
+   * Was der Rechner vorgeschlagen hat, je Stueck. Wird EINMAL gestempelt und
+   * danach vom Server bewahrt – siehe `bewahren`. Der Browser darf ihn
+   * mitschicken, aber nie aendern: Er ist der Vergleichswert zum von Hand
+   * gesetzten Verkaufspreis, und ein ueberschriebener Vergleichswert
+   * vergleicht nichts.
+   */
+  richtpreisChf?: number
+  /**
    * Boras Preis je Stueck. Kommt NIE vom Browser: Er wird von der
    * Lieferrunde zurueckgeschrieben (api/lieferungen.ts) und beim Aendern der
-   * Netze vom Server je Kennung bewahrt – siehe `einkaufBewahren`.
+   * Netze vom Server je Kennung bewahrt – siehe `bewahren`.
    */
   einkaufChf?: number
 }
@@ -141,6 +157,10 @@ interface Bestellung {
    * Montage - die Summe wuerde stillschweigend kleiner.
    */
   montageChf?: number
+  /** Die Anfahrt als eigener Posten – im Liefergebiet aktiv mit 0.-. */
+  anfahrt?: boolean
+  anfahrtChf?: number
+  rabatt?: boolean
   rabattChf?: number
   rabattText?: string
   zahlung: 'uebergabe' | 'online'
@@ -163,6 +183,8 @@ interface Bestellung {
   montageTermin?: string
   bestelltAm?: string
   versandAm?: string
+  /** Sendungsnummer der Lieferung, freiwillig. Gehoert zur Sendung, also zum Paket. */
+  sendungsnummer?: string
   paket?: string
   absageGrund?: AbsageGrund
   absageAm?: string
@@ -236,6 +258,14 @@ function positionen(wert: unknown): Position[] {
       detail: text(roh?.detail, 160),
       preisChf: zahl(roh?.preisChf),
     }
+    /*
+     * Der Richtpreis darf vom Browser KOMMEN, aber nur als Erstbelegung: Hat
+     * die Position schon einen, bewahrt ihn `bewahren` und ueberschreibt
+     * diesen Wert wieder. Eine 0 gilt als "keiner" - ein Vorschlag von null
+     * Franken ist keiner.
+     */
+    const richtpreis = zahl(roh?.richtpreisChf)
+    if (richtpreis > 0) position.richtpreisChf = richtpreis
     const breite = masszahl(roh?.breiteCm)
     const hoehe = masszahl(roh?.hoeheCm)
     if (breite !== undefined) position.breiteCm = breite
@@ -251,32 +281,46 @@ function positionen(wert: unknown): Position[] {
   })
 }
 
-/** Die Felder, an denen Boras Preis haengt. Aendert sich eines, gilt er nicht mehr. */
+/**
+ * Die Felder, an denen die bewahrten Preise haengen. Aendert sich eines, ist
+ * es ein anderes Netz, und die alten Zahlen gehoeren nicht mehr dazu.
+ */
 const PREISRELEVANT = ['breiteCm', 'hoeheCm', 'rahmendicke', 'rahmenfarbe', 'netzfarbe', 'mechanismus', 'typId', 'setId'] as const
 
 /**
- * Traegt Boras Einkaufspreise von den alten auf die neuen Positionen.
+ * Traegt die beiden Preise, die nicht vom Browser kommen duerfen, von den
+ * alten auf die neuen Positionen: Boras Einkaufspreis und den Richtpreis des
+ * Rechners.
  *
- * Der Browser schickt beim "Netze speichern" die Positionen ohne
+ * BORAS PREIS. Der Browser schickt beim "Netze speichern" die Positionen ohne
  * Einkaufspreis – er kennt sie zwar, darf sie aber nicht setzen, denn die
  * einzige Quelle dafuer ist die Lieferrunde. Wuerde der Server die neuen
  * Positionen einfach uebernehmen, waere jeder korrigierte Verkaufspreis das
- * Ende der Marge: alle einkaufChf weg, "Datensatz unvollstaendig", und die
- * naechste Runde muesste Bora dieselbe Frage nochmals stellen.
+ * Ende der Erfolgsrechnung: alle einkaufChf weg, und die naechste Runde
+ * muesste Bora dieselbe Frage nochmals stellen.
+ *
+ * DER RICHTPREIS. Er wird einmal gestempelt und danach nie wieder angetastet.
+ * Steht er schon da, gewinnt der alte Wert gegen alles, was ankommt: Er ist
+ * der Vergleich zum von Hand gesetzten Verkaufspreis, und ein Vergleichswert,
+ * den man mitschicken kann, ist keiner.
  *
  * Bewahrt wird JE POSITION, nicht je Bestellung: Wer ein fuenftes Netz
  * dazunimmt, aendert die vier bepreisten nicht. Und bewahrt wird nur, wenn
  * die preisrelevanten Angaben gleich geblieben sind – ein Netz mit neuen
- * Massen ist fuer Bora ein anderes Netz, und sein alter Preis waere eine
- * Zahl zu Massen, die es nicht mehr gibt.
+ * Massen ist ein anderes Netz, und beide Zahlen gehoerten zu Massen, die es
+ * nicht mehr gibt. Fuer den Richtpreis heisst das: Er wird beim naechsten
+ * Angebot neu gerechnet, und das ist richtig so.
  */
-function einkaufBewahren(alt: Position[], neu: Position[]): Position[] {
+function bewahren(alt: Position[], neu: Position[]): Position[] {
   const vorher = new Map(alt.filter((p) => p.id).map((p) => [p.id as string, p]))
   return neu.map((p) => {
     const alte = p.id ? vorher.get(p.id) : undefined
-    if (!alte || typeof alte.einkaufChf !== 'number') return p
-    const gleich = PREISRELEVANT.every((feld) => alte[feld] === p[feld])
-    return gleich ? { ...p, einkaufChf: alte.einkaufChf } : p
+    if (!alte) return p
+    if (!PREISRELEVANT.every((feld) => alte[feld] === p[feld])) return p
+    const gleich = { ...p }
+    if (typeof alte.einkaufChf === 'number') gleich.einkaufChf = alte.einkaufChf
+    if (typeof alte.richtpreisChf === 'number') gleich.richtpreisChf = alte.richtpreisChf
+    return gleich
   })
 }
 
@@ -293,8 +337,15 @@ function positionenSumme(liste: Position[]): number {
  */
 function montageBetrag(b: Bestellung): number {
   if (typeof b.montageChf === 'number') return b.montageChf
-  const rest = b.summeChf - positionenSumme(b.positionen) + (b.rabattChf ?? 0)
+  const rest = b.summeChf - positionenSumme(b.positionen) - (b.anfahrtChf ?? 0) + (b.rabattChf ?? 0)
   return rest > 0 ? Math.round(rest * 100) / 100 : 0
+}
+
+/** Die Summe einer Bestellung: Netze, dann die drei Posten des Angebots. */
+function summeVon(b: Bestellung): number {
+  const roh =
+    positionenSumme(b.positionen) + (b.montageChf ?? 0) + (b.anfahrtChf ?? 0) - (b.rabattChf ?? 0)
+  return Math.round(roh * 100) / 100
 }
 
 /**
@@ -338,6 +389,18 @@ function ausRohdaten(roh: Record<string, unknown>, vonHand = false): Bestellung 
   const status = vonHand && STATUS.includes(roh.status as Status) ? (roh.status as Status) : startPhase()
   const quelle = vonHand && QUELLEN.includes(roh.quelle as Quelle) ? (roh.quelle as Quelle) : 'web'
   const netze = positionen(roh.positionen)
+  /*
+   * Der Richtpreis wird bei der Geburt gestempelt, und zwar aus dem Preis,
+   * der mitkommt: Bei einer Anfrage von der Seite ist das genau die Zahl, die
+   * der Rechner der Kundin gezeigt hat; bei Katalogware der Katalogpreis.
+   *
+   * Hier und nicht erst im Angebot, weil es hier noch stimmt. Spaeter liesse
+   * er sich nur nachrechnen - und dann aus Katalogpreisen, die bis dahin
+   * jemand geaendert haben kann.
+   */
+  for (const n of netze) {
+    if (n.richtpreisChf === undefined && n.preisChf > 0) n.richtpreisChf = n.preisChf
+  }
   const montageChf = zahl(roh.montageChf)
 
   return {
@@ -364,6 +427,9 @@ function ausRohdaten(roh: Record<string, unknown>, vonHand = false): Bestellung 
     positionen: netze,
     montage: roh.montage === true,
     montageChf,
+    // Die beiden anderen Posten entstehen im Angebot, nicht bei der Geburt.
+    anfahrt: false,
+    rabatt: false,
     zahlung: roh.zahlung === 'online' ? 'online' : 'uebergabe',
     zahlungswunsch: roh.zahlungswunsch === true,
     // Von Hand erfasst wird die Summe hier gerechnet und nicht uebernommen:
@@ -386,6 +452,33 @@ function nichtAngemeldet(res: VercelResponse) {
   return res.status(401).json({ error: 'Nicht angemeldet.' })
 }
 
+/**
+ * Darf diese Anfrage die Liste sehen und aendern?
+ *
+ * In der Testumgebung immer – sie hat keine Anmeldung und auch keine Daten,
+ * die eine braeuchten. Sonst entscheidet die Sitzung aus _sitzung.ts, also
+ * das Cookie mit der Unterschrift.
+ */
+function darf(req: VercelRequest): boolean {
+  return demoModus || angemeldet(req.headers.cookie)
+}
+
+/**
+ * Fuellt die Tabelle der Testumgebung mit den Beispielen.
+ *
+ * `nurWennLeer` ist der Normalfall: Beim ersten Aufruf ist nichts da, danach
+ * bleibt stehen, was jemand beim Durchklicken verschoben hat – sonst waere
+ * die Arbeit beim naechsten Neuladen weg. Der Knopf im Adminbereich ruft es
+ * ohne diese Schonung auf und raeumt vorher ab.
+ */
+async function demoFuellen(nurWennLeer: boolean): Promise<void> {
+  if (!demoModus) return
+  const vorhanden = await hGetAll(TABELLE)
+  if (nurWennLeer && Object.keys(vorhanden).length > 0) return
+  for (const feld of Object.keys(vorhanden)) await hDel(TABELLE, feld)
+  for (const satz of demoSaat()) await hSet(TABELLE, String(satz.id), JSON.stringify(satz))
+}
+
 /* --- Einstieg --------------------------------------------------------------- */
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -399,13 +492,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     if (req.method === 'GET' && aktion === 'status') {
       // Verrät nur, ob der Bereich überhaupt eingerichtet ist – nie, ob ein
-      // Passwort richtig war.
+      // Passwort richtig war. In der Testumgebung braucht es kein Passwort,
+      // wohl aber einen Speicher.
       return res.status(200).json({
-        eingerichtet: speicherBereit && passwortGesetzt,
+        eingerichtet: speicherBereit && (passwortGesetzt || demoModus),
         speicher: speicherBereit,
         passwort: passwortGesetzt,
-        angemeldet: angemeldet(req.headers.cookie),
+        angemeldet: darf(req),
+        ...(demoModus ? { demo: true } : {}),
       })
+    }
+    if (req.method === 'POST' && aktion === 'demo-neu') {
+      if (!demoModus) return res.status(404).json({ error: 'Nicht vorhanden.' })
+      await demoFuellen(false)
+      return res.status(200).json({ ok: true })
     }
     if (req.method === 'POST' && aktion === 'erfassen') return await erfassen(req, res)
     if (req.method === 'POST') return await anlegen(req, res)
@@ -468,7 +568,7 @@ async function anlegen(req: VercelRequest, res: VercelResponse) {
  * koennen. Wer hier Status und Quelle setzen darf, muss angemeldet sein.
  */
 async function erfassen(req: VercelRequest, res: VercelResponse) {
-  if (!angemeldet(req.headers.cookie)) return nichtAngemeldet(res)
+  if (!darf(req)) return nichtAngemeldet(res)
 
   const koerper = (typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body) ?? {}
   const bestellung = ausRohdaten(koerper as Record<string, unknown>, true)
@@ -479,7 +579,10 @@ async function erfassen(req: VercelRequest, res: VercelResponse) {
 }
 
 async function auflisten(req: VercelRequest, res: VercelResponse) {
-  if (!angemeldet(req.headers.cookie)) return nichtAngemeldet(res)
+  if (!darf(req)) return nichtAngemeldet(res)
+
+  // Beim ersten Blick in die leere Testumgebung: Beispiele hineinlegen.
+  await demoFuellen(true)
 
   const [alle, runden] = await Promise.all([hGetAll(TABELLE), rundenBlick()])
   const liste: Bestellung[] = []
@@ -503,7 +606,7 @@ async function auflisten(req: VercelRequest, res: VercelResponse) {
  * Loeschversprechen aus der Datenschutzerklaerung auch halten koennen.
  */
 async function entfernen(req: VercelRequest, res: VercelResponse) {
-  if (!angemeldet(req.headers.cookie)) return nichtAngemeldet(res)
+  if (!darf(req)) return nichtAngemeldet(res)
 
   const koerper = (typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body) ?? {}
   const id = text(koerper.id, 40)
@@ -529,7 +632,7 @@ async function entfernen(req: VercelRequest, res: VercelResponse) {
  * Identitaet des Eintrags; wer sie braucht, legt einen neuen an.
  */
 async function aendern(req: VercelRequest, res: VercelResponse) {
-  if (!angemeldet(req.headers.cookie)) return nichtAngemeldet(res)
+  if (!darf(req)) return nichtAngemeldet(res)
 
   const koerper = (typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body) ?? {}
   const id = text(koerper.id, 40)
@@ -592,6 +695,10 @@ async function aendern(req: VercelRequest, res: VercelResponse) {
   }
   if (koerper.versand !== undefined) {
     bestellung.versandAm = koerper.versand === true ? jetzt : undefined
+    geaendert = true
+  }
+  if (koerper.sendungsnummer !== undefined) {
+    bestellung.sendungsnummer = text(koerper.sendungsnummer, 80) || undefined
     geaendert = true
   }
   if (koerper.paket !== undefined) {
@@ -673,38 +780,71 @@ async function aendern(req: VercelRequest, res: VercelResponse) {
     geaendert = true
   }
 
-  if (koerper.montage !== undefined) {
-    bestellung.montage = koerper.montage === true
-    geaendert = true
-  }
-
-  // Netze und Montagebetrag haengen an der Summe. Wird eines davon
-  // angefasst, wird die Summe neu gerechnet - sonst stuende in der Liste ein
-  // Betrag, der zu den sichtbaren Positionen nicht mehr passt.
+  /*
+   * DIE DREI POSTEN DES ANGEBOTS: Montage, Anfahrt, Rabatt. Jeder ist ein
+   * Schalter mit einem Betrag, und beide haengen an der Summe – wird einer
+   * angefasst oder werden die Netze getauscht, wird die Summe neu gerechnet.
+   * Sonst stuende in der Liste ein Betrag, der zu den sichtbaren Positionen
+   * nicht mehr passt.
+   *
+   * Je Posten zwei Regeln, in dieser Reihenfolge:
+   *
+   *   1. Ein Betrag groesser null SCHALTET EIN. Das ist die alte Lehre aus der
+   *      Montage: Dort gab es den Haken aus dem Bestellformular und den Betrag
+   *      aus dem Preisblock, und wer einen Betrag eintrug, setzte keinen
+   *      Haken – die veranschlagte Montage verschwand von der Offerte,
+   *      waehrend die Karte sie anzeigte.
+   *   2. Ein AUSDRUECKLICH abgeschalteter Posten hat keinen Betrag. Sonst
+   *      liegt im Datensatz eine Zahl, die abgeschaltet aussieht und beim
+   *      naechsten Einschalten unbemerkt wieder auftaucht.
+   *
+   * Regel 1 verliert gegen ein `false` im selben Aufruf: Wer abschaltet, will
+   * abschalten, auch wenn im Feld noch eine Zahl stand.
+   */
   const netzeNeu = koerper.positionen !== undefined
-  const montageNeu = koerper.montageChf !== undefined
-  const rabattNeu = koerper.rabattChf !== undefined || koerper.rabattText !== undefined
-  if (netzeNeu || montageNeu || rabattNeu) {
+  const montageNeu = koerper.montage !== undefined || koerper.montageChf !== undefined
+  const anfahrtNeu = koerper.anfahrt !== undefined || koerper.anfahrtChf !== undefined
+  const rabattNeu =
+    koerper.rabatt !== undefined || koerper.rabattChf !== undefined || koerper.rabattText !== undefined
+  if (netzeNeu || montageNeu || anfahrtNeu || rabattNeu) {
     // Die Montage MUSS vor dem Austausch der Positionen bestimmt werden. Bei
     // Alteintraegen ohne eigenes Feld ergibt sie sich aus der Differenz
     // zwischen Summe und Positionen – wird danach gerechnet, bezieht sich die
     // Differenz auf die neuen Netze und ist Unsinn. Bei mehr Netzen als
     // vorher wird sie sogar negativ und faellt auf 0: Die Montagepauschale
     // waere spurlos aus der Bestellung verschwunden.
-    const montage = montageNeu ? zahl(koerper.montageChf) : montageBetrag(bestellung)
-    if (netzeNeu) bestellung.positionen = einkaufBewahren(bestellung.positionen, positionen(koerper.positionen))
-    bestellung.montageChf = montage
-    /*
-     * Der Rabatt auf die ganze Bestellung: nie mehr als Netze und Montage
-     * zusammen, ohne Betrag gar nicht da – und dann auch ohne Wort.
-     */
+    const montageVorher = montageBetrag(bestellung)
+    if (netzeNeu) bestellung.positionen = bewahren(bestellung.positionen, positionen(koerper.positionen))
+
+    // Montage
+    if (koerper.montage !== undefined) bestellung.montage = koerper.montage === true
+    bestellung.montageChf = koerper.montageChf !== undefined ? zahl(koerper.montageChf) : montageVorher
+    if (bestellung.montageChf > 0 && koerper.montage !== false) bestellung.montage = true
+    if (!bestellung.montage) bestellung.montageChf = 0
+
+    // Anfahrt. Null Franken sind hier eine Aussage ("im Liefergebiet
+    // kostenlos"), deshalb schaltet nur der Schalter ein, nicht der Betrag.
+    if (koerper.anfahrt !== undefined) bestellung.anfahrt = koerper.anfahrt === true
+    if (koerper.anfahrtChf !== undefined) bestellung.anfahrtChf = zahl(koerper.anfahrtChf)
+    if ((bestellung.anfahrtChf ?? 0) > 0 && koerper.anfahrt !== false) bestellung.anfahrt = true
+    if (!bestellung.anfahrt) bestellung.anfahrtChf = 0
+
+    // Rabatt: nie mehr als Netze, Montage und Anfahrt zusammen – sonst
+    // stuende ein negatives Total auf der Offerte. Ohne Betrag auch ohne Wort.
+    if (koerper.rabatt !== undefined) bestellung.rabatt = koerper.rabatt === true
     if (koerper.rabattChf !== undefined) {
-      const rabatt = Math.min(zahl(koerper.rabattChf), positionenSumme(bestellung.positionen) + montage)
-      bestellung.rabattChf = rabatt > 0 ? rabatt : undefined
+      const deckel = positionenSumme(bestellung.positionen) + bestellung.montageChf + (bestellung.anfahrtChf ?? 0)
+      bestellung.rabattChf = Math.min(zahl(koerper.rabattChf), deckel)
+    }
+    if ((bestellung.rabattChf ?? 0) > 0 && koerper.rabatt !== false) bestellung.rabatt = true
+    if (!bestellung.rabatt || !bestellung.rabattChf) {
+      bestellung.rabatt = false
+      bestellung.rabattChf = undefined
     }
     if (koerper.rabattText !== undefined) bestellung.rabattText = text(koerper.rabattText, 80) || undefined
     if (!bestellung.rabattChf) delete bestellung.rabattText
-    bestellung.summeChf = Math.round((positionenSumme(bestellung.positionen) + montage - (bestellung.rabattChf ?? 0)) * 100) / 100
+
+    bestellung.summeChf = summeVon(bestellung)
     geaendert = true
   }
 

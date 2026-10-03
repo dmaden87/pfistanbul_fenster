@@ -16,13 +16,21 @@ import type { Bestellung, BestellStatus } from '../types'
  * bau/phasen-test.mjs haelt beide gleich.)
  */
 
-/** Eine der sieben Phasen des Ablaufs – ohne das Ende "abgesagt". */
+/** Eine der Phasen des Ablaufs – ohne das Ende "abgesagt". */
 export type Phase = Exclude<BestellStatus, 'abgesagt'>
 
-/** Die sieben Phasen in der Reihenfolge des Ablaufs. "abgesagt" steht daneben. */
-export const PHASEN: readonly Phase[] = ['neu', 'klaerung', 'kosten', 'offerte', 'zusage', 'bestellen', 'ausliefern']
+/** Die Phasen in der Reihenfolge des Ablaufs. "abgesagt" steht daneben. */
+export const PHASEN: readonly Phase[] = [
+  'neu',
+  'klaerung',
+  'offerte',
+  'zusage',
+  'bestellen',
+  'bora',
+  'ausliefern',
+]
 
-/** Die Abschnitte der Uebersicht: die sieben Phasen und das Archiv. */
+/** Die Abschnitte der Uebersicht: die Phasen und das Archiv. */
 export type Abschnitt = Phase | 'archiv'
 export const ABSCHNITTE: readonly Abschnitt[] = [...PHASEN, 'archiv']
 
@@ -71,7 +79,14 @@ export function phasenEntfallen(b: Bestellung): boolean {
   return b.art === 'bestellung' && (!b.quelle || b.quelle === 'web')
 }
 
-/** Wie viele Positionen noch keinen Einkaufspreis von Bora haben. */
+/**
+ * Wie viele Positionen noch keinen Einkaufspreis von Bora haben.
+ *
+ * Im Verkaufs-CRM steht das nirgends mehr: Der Adminbereich zeigt nur, was
+ * hereinkommt. Die Zahl bleibt hier fuer die Buchhaltung, die als eigener
+ * Bereich daneben entsteht - dort ist eine Position ohne Einkaufspreis eine
+ * Luecke in der Erfolgsrechnung und nicht blosse Zierde.
+ */
 export function ohneEinkauf(b: Bestellung): number {
   return b.positionen.filter((p) => typeof p.einkaufChf !== 'number').length
 }
@@ -111,11 +126,19 @@ export function naechstePhase(status: BestellStatus): BestellStatus | undefined 
  */
 export function phaseNachWiederoeffnen(b: Bestellung): BestellStatus {
   if (phasenEntfallen(b)) return 'bestellen'
+  // Von hinten nach vorn: der weiteste Stempel gewinnt.
+  if (b.ausgeliefertAm) return 'ausliefern'
+  if (b.bestelltAm || b.versandAm) return 'bora'
   if (b.zusageAm) return 'bestellen'
   if (b.offerteAm) return 'zusage'
-  if (b.positionen.length > 0 && ohneEinkauf(b) === 0) return 'offerte'
-  if (b.einkaufAusRunde) return 'kosten'
-  if (b.ausgemessenAm) return 'klaerung'
+  if (b.preiseFestgelegtAm) return 'offerte'
+  /*
+   * Nur ausdrueckliche Spuren zaehlen – ein Termin, ein Aufmass. NICHT die
+   * blosse Anwesenheit von Netzen: Die bringt jede Anfrage von der Seite
+   * schon mit, und damit kaeme nichts mehr in "neu" zurueck, obwohl es dort
+   * abgesagt wurde.
+   */
+  if (b.ausgemessenAm || b.klaerungTermin) return 'klaerung'
   return 'neu'
 }
 

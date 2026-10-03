@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import type { Bestellung } from '../../types'
 import { MECHANISMEN, NETZFARBEN, OEFFNUNGEN, RAHMENFARBEN, beschriften } from '../../data/produktion'
 import { operator } from '../../data/operator'
@@ -35,8 +34,17 @@ import './Offerte.css'
  * so auf dem Blatt statt im Kleingedruckten.
  *
  * KEINE UNGEFAEHREN BEDINGUNGEN. Eine Offerte, die "nach Absprache" sagt,
- * ist keine. Deshalb ist die Lieferung eine Zahl: im Liefergebiet null, sonst
- * die Pauschale, und zwar als Posten in beiden Totalen.
+ * ist keine. Deshalb ist die Anfahrt eine Zahl: im Liefergebiet null, sonst
+ * die Pauschale, und zwar als Posten im Total.
+ *
+ * DIE ANFAHRT STAND HIER ALS AUSWAHLFELD. Man waehlte beim Drucken "Kanton
+ * Zuerich" oder "uebrige Schweiz", und die Wahl war weg, sobald man das Blatt
+ * schloss: Sie stand nirgends im Datensatz, die Summe in der Arbeitsliste
+ * wusste nichts davon, und beim zweiten Druck musste man sich erinnern.
+ * Jetzt wird sie im Angebot entschieden, zusammen mit Montage und Rabatt, und
+ * dieses Blatt liest nur noch, was dort festgelegt wurde. Ein Dokument, das
+ * eine kaufmaennische Entscheidung enthaelt, die sonst niemand kennt, ist
+ * kein Dokument, sondern ein Zettel.
  */
 
 interface OfferteProps {
@@ -47,9 +55,6 @@ interface OfferteProps {
 /** Wie lange wir uns an die Offerte halten. */
 const GUELTIG_TAGE = 30
 
-/** Wohin geliefert wird. Entscheidet ueber die Lieferpauschale. */
-type Lieferziel = 'gebiet' | 'schweiz'
-
 function datum(d: Date): string {
   return d.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
@@ -58,19 +63,18 @@ export function Offerte({ bestellung: b, onZurueck }: OfferteProps) {
   useSeitenformat('hoch', 14)
   useDokumentName(`pfistanbul_offerte_${(b.referenz || b.id).replace(/[^A-Za-z0-9-]/g, '') || 'entwurf'}`)
 
-  /*
-   * Von Hand gewaehlt und nicht aus der Postleitzahl geraten: Die Zuercher
-   * Postleitzahlen sind nicht zusammenhaengend (8200 ist Schaffhausen), und
-   * eine falsch geratene Pauschale steht in einem verbindlichen Angebot.
-   */
-  const [ziel, setZiel] = useState<Lieferziel>('gebiet')
-
   const netze = netzeAusBestellung(b)
   const anzahl = netze.reduce((summe, n) => summe + n.menge, 0)
   const runde2 = (x: number) => Math.round(x * 100) / 100
   const netzeChf = runde2(netze.reduce((summe, n) => summe + n.preisChf * n.menge, 0))
   const rabattChf = b.rabattChf ?? 0
-  const anfahrtChf = ziel === 'schweiz' ? shopConfig.anfahrtspauschaleChf : 0
+  /*
+   * Die Anfahrt kommt aus dem Angebot. Aktiv mit 0.00 ist etwas anderes als
+   * nicht aktiv: Das eine sagt der Kundschaft "kostenlos" und ist ein
+   * Argument, das andere sagt nichts und laesst sie rechnen.
+   */
+  const mitAnfahrt = b.anfahrt === true
+  const anfahrtChf = mitAnfahrt ? (b.anfahrtChf ?? 0) : 0
   // Die Montage kommt aus der Bestellung – siehe montageFuerOfferte().
   const montageChf = montageFuerOfferte(b, anzahl, shopConfig.montageChf)
   const mitMontage = montageChf > 0
@@ -100,17 +104,21 @@ export function Offerte({ bestellung: b, onZurueck }: OfferteProps) {
   /** Die Posten des Totals. Der Rabatt steht zuletzt, direkt ueber dem Total – er zieht von allem ab. */
   const posten = [
     { text: `${anzahl} Plissees nach Mass`, betrag: formatChf(netzeChf) },
-    {
-      /*
-       * ANFAHRT, NICHT LIEFERUNG. Bezahlt wird nicht, dass das Netz ankommt,
-       * sondern dass jemand hinfaehrt - und im Liefergebiet faehrt er
-       * ohnehin. Die Seite sagt es seit dem Umbau so; eine Offerte, die ein
-       * anderes Wort benutzt als die Seite, auf der sie bestellt wurde,
-       * laesst den Kunden ueberlegen, ob es zwei Posten sind.
-       */
-      text: ziel === 'schweiz' ? 'Anfahrt, Pauschale übrige Schweiz' : `Anfahrt im ${shopConfig.serviceArea}`,
-      betrag: ziel === 'schweiz' ? formatChf(anfahrtChf) : 'kostenlos',
-    },
+    /*
+     * ANFAHRT, NICHT LIEFERUNG. Bezahlt wird nicht, dass das Netz ankommt,
+     * sondern dass jemand hinfaehrt - und im Liefergebiet faehrt er ohnehin.
+     * Die Seite sagt es seit dem Umbau so; eine Offerte, die ein anderes Wort
+     * benutzt als die Seite, auf der bestellt wurde, laesst den Kunden
+     * ueberlegen, ob es zwei Posten sind.
+     */
+    ...(mitAnfahrt
+      ? [
+          {
+            text: anfahrtChf > 0 ? 'Anfahrt, Pauschale übrige Schweiz' : `Anfahrt im ${shopConfig.serviceArea}`,
+            betrag: anfahrtChf > 0 ? formatChf(anfahrtChf) : 'kostenlos',
+          },
+        ]
+      : []),
     ...(mitMontage ? [{ text: 'Montage durch uns', betrag: formatChf(montageChf) }] : []),
     ...(rabattChf > 0 ? [{ text: b.rabattText || 'Rabatt', betrag: `−${formatChf(rabattChf)}` }] : []),
   ].map((zeile, i) => (
@@ -124,15 +132,6 @@ export function Offerte({ bestellung: b, onZurueck }: OfferteProps) {
     <>
       <div className="auftrag__steuerung">
         <div className="auftrag__schritte">
-          <label className="auftrag__wahl">
-            Anfahrt
-            <select value={ziel} onChange={(e) => setZiel(e.target.value as Lieferziel)}>
-              <option value="gebiet">{shopConfig.serviceArea} – kostenlos</option>
-              <option value="schweiz">
-                Übrige Schweiz – Pauschale {formatChf(shopConfig.anfahrtspauschaleChf)}
-              </option>
-            </select>
-          </label>
           <button type="button" className="btn" onClick={() => window.print()}>
             Drucken / als PDF sichern
           </button>
@@ -271,13 +270,16 @@ export function Offerte({ bestellung: b, onZurueck }: OfferteProps) {
             <div>
               <dt>Anfahrt und Lieferung</dt>
               <dd>
-                {ziel === 'schweiz' ? (
-                  <>
-                    In die übrige Schweiz zur Pauschale von {formatChf(shopConfig.anfahrtspauschaleChf)}, oben
-                    eingerechnet.
-                  </>
+                {/*
+                  Die Bedingung steht auch dann da, wenn die Anfahrt kein
+                  Posten im Total ist: Sie ist eine Zusage und nicht eine
+                  Rechnungszeile. Nur "oben eingerechnet" darf dann nicht
+                  behauptet werden, denn oben steht sie nicht.
+                */}
+                {anfahrtChf > 0 ? (
+                  <>In die übrige Schweiz zur Pauschale von {formatChf(anfahrtChf)}, oben eingerechnet.</>
                 ) : (
-                  <>Im {shopConfig.serviceArea} kostenlos, oben eingerechnet.</>
+                  <>Im {shopConfig.serviceArea} kostenlos{mitAnfahrt ? ', oben eingerechnet' : ''}.</>
                 )}{' '}
                 Das Ausmessen ist in jedem Fall gratis. Jedes Netz wird auf Bestellung gefertigt; den Liefertermin
                 nennen wir Ihnen mit der Auftragsbestätigung.

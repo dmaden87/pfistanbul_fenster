@@ -760,6 +760,214 @@ await pruefe('Loeschen ohne Anmeldung wird abgewiesen', async () => {
   assert.equal((await ruf({ method: 'DELETE', body: { id: vonHand.id } })).code, 401)
 })
 
+
+/* --- Die drei Posten des Angebots ------------------------------------------- */
+
+/**
+ * Legt eine Anfrage mit zwei Netzen an und gibt ihre Id zurueck. Fuer alles,
+ * was am Angebot geprueft wird – dort braucht es Positionen mit Massen.
+ */
+async function anfrageMitNetzen(referenz) {
+  await ruf({
+    method: 'POST',
+    aktion: 'erfassen',
+    cookie,
+    body: {
+      art: 'anfrage',
+      quelle: 'whatsapp',
+      referenz,
+      kunde,
+      positionen: [
+        { menge: 1, bezeichnung: 'Bad', detail: '', preisChf: 140, breiteCm: 120, hoeheCm: 80 },
+        { menge: 2, bezeichnung: 'Zimmer', detail: '', preisChf: 170, breiteCm: 160, hoeheCm: 120 },
+      ],
+    },
+  })
+  const liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
+  return liste.find((x) => x.referenz === referenz)
+}
+
+await pruefe('Die Anfahrt geht in die Summe ein – aktiv mit 0.00 ebenso', async () => {
+  const b = await anfrageMitNetzen('A-ANF')
+  assert.equal(b.summeChf, 480, '140 + 2x170')
+
+  // Aktiv mit 0: Die Summe bleibt, der Posten ist aber da – auf der Offerte
+  // heisst er "kostenlos" und ist ein Argument.
+  let n = await ruf({ method: 'PATCH', cookie, body: { id: b.id, anfahrt: true, anfahrtChf: 0 } })
+  assert.equal(n.daten.bestellung.anfahrt, true)
+  assert.equal(n.daten.bestellung.anfahrtChf, 0)
+  assert.equal(n.daten.bestellung.summeChf, 480)
+
+  // Mit Betrag: Die Summe steigt.
+  n = await ruf({ method: 'PATCH', cookie, body: { id: b.id, anfahrtChf: 20 } })
+  assert.equal(n.daten.bestellung.summeChf, 500)
+
+  // Abgeschaltet: Der Betrag MUSS mitgehen, sonst taucht er beim naechsten
+  // Einschalten unbemerkt wieder auf.
+  n = await ruf({ method: 'PATCH', cookie, body: { id: b.id, anfahrt: false } })
+  assert.equal(n.daten.bestellung.anfahrt, false)
+  assert.equal(n.daten.bestellung.anfahrtChf, 0)
+  assert.equal(n.daten.bestellung.summeChf, 480)
+})
+
+await pruefe('Ein Betrag schaltet den Posten ein, ein ausdrueckliches Nein gewinnt', async () => {
+  const b = await anfrageMitNetzen('A-SCH')
+  // Nur der Betrag: Der Schalter folgt. Das ist die alte Lehre aus der
+  // Montage – wer einen Betrag eintraegt, meint den Posten.
+  let n = await ruf({ method: 'PATCH', cookie, body: { id: b.id, montageChf: 45 } })
+  assert.equal(n.daten.bestellung.montage, true)
+  assert.equal(n.daten.bestellung.summeChf, 525)
+
+  // Betrag UND Nein im selben Aufruf: Das Nein gewinnt.
+  n = await ruf({ method: 'PATCH', cookie, body: { id: b.id, montage: false, montageChf: 45 } })
+  assert.equal(n.daten.bestellung.montage, false)
+  assert.equal(n.daten.bestellung.montageChf, 0)
+  assert.equal(n.daten.bestellung.summeChf, 480)
+})
+
+await pruefe('Der Rabatt ist auf Netze, Montage und Anfahrt gedeckelt', async () => {
+  const b = await anfrageMitNetzen('A-RAB')
+  let n = await ruf({
+    method: 'PATCH',
+    cookie,
+    body: { id: b.id, montage: true, montageChf: 45, anfahrt: true, anfahrtChf: 20, rabatt: true, rabattChf: 9999 },
+  })
+  // 480 + 45 + 20 = 545 ist der Deckel; mehr Rabatt gaebe ein negatives Total.
+  assert.equal(n.daten.bestellung.rabattChf, 545)
+  assert.equal(n.daten.bestellung.summeChf, 0)
+
+  n = await ruf({ method: 'PATCH', cookie, body: { id: b.id, rabattChf: 50, rabattText: 'Kennenlernrabatt' } })
+  assert.equal(n.daten.bestellung.summeChf, 495)
+  assert.equal(n.daten.bestellung.rabattText, 'Kennenlernrabatt')
+
+  // Abgeschaltet: Betrag und Wort gehen mit.
+  n = await ruf({ method: 'PATCH', cookie, body: { id: b.id, rabatt: false } })
+  assert.equal(n.daten.bestellung.rabatt, false)
+  assert.equal(n.daten.bestellung.rabattChf, undefined)
+  assert.equal(n.daten.bestellung.rabattText, undefined)
+  assert.equal(n.daten.bestellung.summeChf, 545)
+})
+
+/* --- Der Richtpreis des Rechners -------------------------------------------- */
+
+await pruefe('Der Richtpreis wird beim Anlegen gestempelt', async () => {
+  const b = await anfrageMitNetzen('A-RP1')
+  // Er ist der Preis, der mitkam – bei einer Anfrage von der Seite genau die
+  // Zahl, die der Rechner der Kundschaft gezeigt hat.
+  assert.deepEqual(
+    b.positionen.map((p) => p.richtpreisChf),
+    [140, 170],
+  )
+})
+
+await pruefe('Der Richtpreis ueberlebt jeden geaenderten Verkaufspreis', async () => {
+  const b = await anfrageMitNetzen('A-RP2')
+  const n = await ruf({
+    method: 'PATCH',
+    cookie,
+    body: {
+      id: b.id,
+      // So kommt es aus dem Angebot: neue Verkaufspreise, und der Browser
+      // schickt sogar einen anderen Richtpreis mit. Beides darf den
+      // gestempelten Wert nicht anfassen.
+      positionen: b.positionen.map((p) => ({ ...p, preisChf: p.preisChf + 30, richtpreisChf: 1 })),
+    },
+  })
+  assert.deepEqual(
+    n.daten.bestellung.positionen.map((p) => p.richtpreisChf),
+    [140, 170],
+    'der Vergleichswert wurde ueberschrieben',
+  )
+  assert.deepEqual(
+    n.daten.bestellung.positionen.map((p) => p.preisChf),
+    [170, 200],
+  )
+})
+
+await pruefe('Neue Masse heissen neuer Richtpreis', async () => {
+  const b = await anfrageMitNetzen('A-RP3')
+  const n = await ruf({
+    method: 'PATCH',
+    cookie,
+    body: {
+      id: b.id,
+      // Beim Aufmass kam ein anderes Mass heraus. Der alte Vorschlag gehoerte
+      // zu Massen, die es nicht mehr gibt – er darf nicht bewahrt werden.
+      positionen: [{ ...b.positionen[0], breiteCm: 200, hoeheCm: 200, richtpreisChf: 260 }, b.positionen[1]],
+    },
+  })
+  assert.equal(n.daten.bestellung.positionen[0].richtpreisChf, 260)
+  assert.equal(n.daten.bestellung.positionen[1].richtpreisChf, 170, 'das unberuehrte Netz behaelt seinen')
+})
+
+await pruefe('Boras Einkaufspreis bleibt bewahrt, auch ohne Anzeige im Admin', async () => {
+  const b = await anfrageMitNetzen('A-EK')
+  await ruf({
+    method: 'PATCH',
+    cookie,
+    body: { id: b.id, einkauf: { jePosition: { [b.positionen[0].id]: 42 }, lieferkostenChf: 18 } },
+  })
+  // Das Verkaufs-CRM zeigt die Zahl nicht mehr. Verloren gehen darf sie
+  // trotzdem nicht: Die Buchhaltung aus Schritt 2 rechnet damit.
+  const n = await ruf({
+    method: 'PATCH',
+    cookie,
+    body: { id: b.id, positionen: b.positionen.map((p) => ({ ...p, preisChf: 200 })) },
+  })
+  assert.equal(n.daten.bestellung.positionen[0].einkaufChf, 42)
+  assert.equal(n.daten.bestellung.lieferkostenChf, 18)
+})
+
+/* --- Bei Bora: Phase und Sendungsnummer ------------------------------------- */
+
+await pruefe('Die Phase "bora" ist gueltig, "kosten" nicht mehr', async () => {
+  const b = await anfrageMitNetzen('A-BORA')
+  const n = await ruf({ method: 'PATCH', cookie, body: { id: b.id, status: 'bora', bestellt: true } })
+  assert.equal(n.code, 200)
+  assert.equal(n.daten.bestellung.status, 'bora')
+  assert.ok(n.daten.bestellung.bestelltAm)
+  assert.equal((await ruf({ method: 'PATCH', cookie, body: { id: b.id, status: 'kosten' } })).code, 400)
+})
+
+await pruefe('Die Sendungsnummer ist Freitext und laesst sich wieder leeren', async () => {
+  const b = await anfrageMitNetzen('A-SEND')
+  let n = await ruf({ method: 'PATCH', cookie, body: { id: b.id, sendungsnummer: ' GLS 1234-5678 ' } })
+  assert.equal(n.daten.bestellung.sendungsnummer, 'GLS 1234-5678')
+  n = await ruf({ method: 'PATCH', cookie, body: { id: b.id, sendungsnummer: '' } })
+  assert.equal(n.daten.bestellung.sendungsnummer, undefined)
+})
+
+/* --- Alte Datensaetze: die Schalter werden beim Lesen abgeleitet ------------- */
+
+await pruefe('Alteintraege bekommen beim Lesen ehrliche Schalter', async () => {
+  gespeichert.schreib('alt-posten', {
+    id: 'alt-posten',
+    referenz: 'ALT-P',
+    art: 'anfrage',
+    status: 'offerte',
+    phaseSeit: '2026-01-01T00:00:00.000Z',
+    eingang: '2026-01-01T00:00:00.000Z',
+    geaendert: '2026-01-01T00:00:00.000Z',
+    kunde: { ...kunde, strasse: '', plz: '', ort: '', bemerkung: '' },
+    positionen: [{ id: 'p1', menge: 1, bezeichnung: 'Bad', detail: '', preisChf: 150 }],
+    // Der alte Fehler: ein Betrag ohne Haken. Die Montage verschwand damit
+    // von der Offerte, waehrend die Karte sie anzeigte.
+    montage: false,
+    montageChf: 30,
+    rabattChf: 20,
+    zahlung: 'uebergabe',
+    zahlungswunsch: false,
+    summeChf: 160,
+  })
+  const liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
+  const b = liste.find((x) => x.id === 'alt-posten')
+  assert.equal(b.montage, true, 'ein Betrag bedeutet eingeschaltet')
+  assert.equal(b.rabatt, true, 'ein Rabattbetrag bedeutet eingeschaltet')
+  assert.equal(b.anfahrt, false, 'die Anfahrt gab es nie – kein Posten, nicht einer mit 0')
+  // Und im Speicher steht noch das Alte: Gelesen wird abgebildet, nicht geschrieben.
+  assert.equal(gespeichert.lies('alt-posten').montage, false)
+})
+
 /* --- Ergebnis ---------------------------------------------------------------- */
 
 console.log(`\n${bestanden}/${bestanden + fehler.length} bestanden`)

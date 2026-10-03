@@ -4,6 +4,17 @@ import { montageBetrag } from '../components/admin/hilfen'
 /**
  * Was eine einzelne Bestellung eingebracht hat.
  *
+ * NIEMAND ZEIGT DAS DERZEIT AN, und das ist Absicht: Der Adminbereich ist
+ * das Verkaufs-CRM und nennt nur Verkaufspreise und Erloese. Einkauf,
+ * Fracht, Zoll und Marge gehoeren in die Buchhaltung, die als eigener
+ * Bereich daneben entsteht.
+ *
+ * Die Rechnung bleibt deshalb hier stehen, samt ihrem Testlauf
+ * (bau/einkauf-test.mjs). Sie wegzuwerfen und spaeter neu zu schreiben
+ * hiesse, dieselben Fallen ein zweites Mal zu finden – etwa die, dass der
+ * Montageerloes voller Deckungsbeitrag ist, weil ihm keine eingekaufte Ware
+ * gegenuebersteht.
+ *
  * Die Aufteilung der Runde auf ihre Bestellungen steht bewusst NICHT hier,
  * sondern in `api/_einkauf.ts`: Sie geschieht dort, wo geschrieben wird.
  * Die Oberflaeche rechnet nichts nach – sie liest, was der Server auf die

@@ -96,3 +96,12 @@ export async function erfasseBestellung(daten: Record<string, unknown>): Promise
   )
   return antw.bestellung
 }
+
+/**
+ * Setzt die Beispieldaten der Testumgebung zurueck. Gibt es nur dort; auf der
+ * echten Seite antwortet der Server mit 404, und das ist Absicht - der
+ * Einstieg soll nicht einmal existieren, wo es nichts zuruecksetzen gibt.
+ */
+export async function demoZuruecksetzen(): Promise<void> {
+  await antwort(await fetch(`${PFAD}?aktion=demo-neu`, { method: 'POST', credentials: 'same-origin' }))
+}

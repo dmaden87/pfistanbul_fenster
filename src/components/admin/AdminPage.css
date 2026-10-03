@@ -180,6 +180,7 @@
 }
 
 .admin__karte {
+  min-width: 0;
   padding: var(--space-5);
   border: 1px solid var(--border);
   border-left: 3px solid var(--accent);
@@ -841,7 +842,36 @@
   margin-right: var(--space-2);
 }
 
-/* --- Phase 4: Verkaufspreise festlegen -------------------------------------- */
+/* --- Testumgebung ----------------------------------------------------------- */
+
+/*
+ * Der Balken soll auffallen, ohne nach Fehler zu aussehen: Es ist kein
+ * Problem, in der Testumgebung zu sein - man muss es nur wissen. Deshalb die
+ * gestrichelte Umrandung und keine Warnfarbe.
+ */
+.admin__demo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+}
+
+.admin__demo strong {
+  font-size: var(--step-0);
+}
+
+.admin__demo p {
+  margin-top: var(--space-1);
+  max-width: 62ch;
+}
+
+/* --- Angebot zusammenstellen ------------------------------------------------ */
 
 /*
  * Der Block steht offen auf der Karte, nicht hinter dem Aufklappen: Er IST
@@ -853,6 +883,14 @@
   border: 1px solid var(--highlight);
   border-radius: var(--radius-sm);
   background: var(--highlight-soft);
+  /*
+   * OHNE min-width NUETZT DER ROLLRAHMEN NICHTS. Ein Element im Raster
+   * (.admin__karten) darf von sich aus nicht schmaler werden als sein
+   * Inhalt – die Tabelle schob damit die ganze Karte breiter als den
+   * Bildschirm, und der Rahmen mit overflow-x hatte nichts, woran er sich
+   * halten konnte.
+   */
+  min-width: 0;
 }
 
 .preise__kopf h4 {
@@ -863,8 +901,26 @@
   margin-top: var(--space-1);
 }
 
-.preise__tabelle {
+/*
+ * Der Rahmen, in dem die Zahlentabelle waagrecht rollt. Auf dem Telefon
+ * passen vier Spalten nicht in die Breite; ohne ihn schiebt die Tabelle die
+ * ganze Karte nach rechts, und die Summe steht ausserhalb des Bildschirms.
+ *
+ * Die negativen Aussenabstaende holen die Polsterung des Blocks zurueck: So
+ * nutzt die Tabelle die volle Breite der Karte und nicht nur den Rest
+ * dazwischen – sonst rollt sie, obwohl rechts und links Platz waere.
+ */
+.preise__rollen {
+  overflow-x: auto;
   margin-top: var(--space-3);
+  margin-inline: calc(var(--space-4) * -1);
+  padding-inline: var(--space-4);
+  /* Fuer die Tastaturbedienung sichtbar machen, dass der Bereich rollt. */
+  scrollbar-width: thin;
+}
+
+.preise__tabelle {
+  margin-top: 0;
 }
 
 .preise__zahl {
@@ -874,8 +930,48 @@
 }
 
 .preise__feld {
-  width: 6.5rem;
   text-align: right;
+}
+
+/*
+ * EINE KLASSE REICHT HIER NICHT, und das ist kein Geschmack: `.input` aus
+ * base.css setzt `width: 100%` und wird spaeter gebuendelt als diese Datei –
+ * bei gleicher Spezifitaet gewinnt die spaetere Regel. Die Breite von
+ * `.preise__feld` hat deshalb nie gewirkt: Jedes Zahlenfeld war so breit wie
+ * seine Spalte, die Spalte so breit wie das Feld, und die Tabelle schob auf
+ * dem Telefon die halbe Karte ueber den Bildschirmrand.
+ *
+ * Mit dem Elternteil davor sind es zwei Klassen, und die Zahl gewinnt. Der
+ * Browser sagt es selbst: In der Liste der zutreffenden Regeln stand
+ * `.input` zuletzt.
+ */
+.preise__tabelle .preise__feld,
+.posten__zeile .preise__feld {
+  width: 6.5rem;
+}
+
+/* Auf schmalen Schirmen zaehlt jeder Millimeter. */
+@media (max-width: 34rem) {
+  .preise__tabelle .preise__feld,
+  .posten__zeile .preise__feld {
+    width: 4.5rem;
+  }
+
+  /* Die Spaltentitel duerfen umbrechen – "Vorschlag / Stück" braucht sonst
+     allein 180 Pixel. */
+  .preise__tabelle th.preise__zahl {
+    white-space: normal;
+  }
+
+  /* Der Block gibt seine Polsterung her, damit die Tabelle mehr Platz hat. */
+  .preise {
+    padding: var(--space-3);
+  }
+
+  .preise__rollen {
+    margin-inline: calc(var(--space-3) * -1);
+    padding-inline: var(--space-3);
+  }
 }
 
 .preise__schlecht {
@@ -918,4 +1014,56 @@
 
 .preise__summen dd {
   font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Die drei Posten: Montage, Anfahrt, Rabatt. Je Zeile ein Kaestchen, ein
+ * Betrag und der Satz, der erklaert, was der Betrag bedeutet. Als <fieldset>
+ * und nicht als <div>-Haufen, damit eine Vorlesehilfe die drei als eine
+ * Gruppe ankuendigt - sie gehoeren zusammen und schliessen einander nicht aus.
+ */
+.posten {
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  /* Der Browser setzt hier eine eigene Rahmenfarbe und einen Innenabstand. */
+  min-inline-size: 0;
+}
+
+.posten__titel {
+  padding-inline: var(--space-2);
+  font-size: var(--step--2);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.posten__zeile {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding-block: var(--space-2);
+  font-size: var(--step--2);
+}
+
+.posten__zeile + .posten__zeile {
+  border-top: 1px solid var(--border);
+}
+
+/*
+ * Ein abgeschaltetes Feld soll abgeschaltet aussehen. Ohne das wirkt es
+ * beschreibbar, und wer hineintippt, wundert sich, warum nichts passiert.
+ */
+.posten__zeile .input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Das Kaestchen traegt die Zeile – es darf nicht kleiner sein als der Text. */
+.posten__zeile .admin__haken {
+  min-width: 11rem;
+  font-weight: 600;
 }

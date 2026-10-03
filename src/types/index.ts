@@ -130,11 +130,25 @@ export type SubmissionState =
  * Die PHASE einer Bestellung – der Workflow des Betreibers, in seiner
  * Reihenfolge:
  *
- *   neu → klaerung → kosten → offerte → zusage → bestellen → ausliefern
+ *   neu → klaerung → offerte → zusage → bestellen → bora → ausliefern
  *
  * "offerte" ist die Arbeit am Angebot, "zusage" das Warten auf den Kunden,
  * nachdem es raus ist – zwei Phasen, weil das eine bei uns liegt und das
  * andere nicht.
+ *
+ * ES GAB EINE PHASE "kosten" ZWISCHEN KLAERUNG UND ANGEBOT. Dort wurde Bora
+ * nach seinen Preisen gefragt, bevor wir unseren festlegten. Sie ist weg: Die
+ * Kostenstruktur ist inzwischen bekannt, der Rechner der Webseite trifft sie,
+ * und eine Phase, in der nur gewartet wird, haelt jeden Auftrag eine Woche
+ * auf. Gespeicherte "kosten" werden beim Lesen auf "offerte" abgebildet.
+ *
+ * "bestellen" UND "bora" WAREN EINE PHASE. Jetzt ist "bestellen" der Backlog:
+ * zugesagte Auftraege, die auf die naechste Sendung warten und sich dort zu
+ * einem Paket buendeln lassen. Erst wenn das Paket bei Bora liegt, geht es
+ * nach "bora" – dort steht, ob die Ware unterwegs ist und unter welcher
+ * Sendungsnummer. Die Trennung ist keine Kosmetik: Vorher stand ein Auftrag,
+ * der noch auf Gesellschaft wartet, in derselben Liste wie einer, der schon
+ * in der Tuerkei produziert wird.
  *
  * Dazu "abgesagt" als Ende ohne Auftrag. "Abgeschlossen" ist keine Phase,
  * sondern die Aussage, dass in "ausliefern" beide Haken gesetzt sind
@@ -148,9 +162,11 @@ export type SubmissionState =
  * entweder auf der Karte oder, fuer viele Bestellungen auf einmal, auf der
  * Runde (mit Kaestchen, wer mitgeht).
  *
- * Eine Bestellung aus dem Warenkorb entsteht direkt in "bestellen": Der
- * Kunde hat an der Kasse zugesagt, der Preis stand im Katalog. Die Phasen
- * 1–5 gibt es fuer sie nicht; die Karte zeigt sie als "entfaellt".
+ * Eine Bestellung aus dem Warenkorb startet wie jede andere in "neu" – auch
+ * sie soll einmal durch die Kontrolle. Von dort geht sie mit einem Klick
+ * direkt in den Backlog: Der Kunde hat an der Kasse zugesagt, der Preis stand
+ * im Katalog. Klaerung und Angebot gibt es fuer sie nicht; die Karte zeigt
+ * sie als "entfaellt".
  *
  * ALTE WERTE. Gespeicherte Bestellungen tragen "neu | offeriert | zugesagt |
  * abgesagt" (Fassung von gestern) oder noch aelter "offerte | bestellt |
@@ -158,7 +174,15 @@ export type SubmissionState =
  * Skript – siehe `vereinheitlichen` in api/bestellungen.ts. Kein bestehendes
  * Feld wird dabei geloescht.
  */
-export type BestellStatus = 'neu' | 'klaerung' | 'kosten' | 'offerte' | 'zusage' | 'bestellen' | 'ausliefern' | 'abgesagt'
+export type BestellStatus =
+  | 'neu'
+  | 'klaerung'
+  | 'offerte'
+  | 'zusage'
+  | 'bestellen'
+  | 'bora'
+  | 'ausliefern'
+  | 'abgesagt'
 
 /** Warum aus einer Bestellung nichts wurde. Erscheint im Archiv. */
 export type AbsageGrund = 'spam' | 'doppelt' | 'keineAntwort' | 'kunde' | 'zuTeuer' | 'storno'
@@ -199,6 +223,25 @@ export interface BestellPosition {
   bezeichnung: string
   detail: string
   preisChf: number
+  /**
+   * Was der RECHNER fuer dieses Netz vorgeschlagen hat, je Stueck.
+   *
+   * `preisChf` ist der Verkaufspreis und darf im Angebot von Hand
+   * ueberschrieben werden. Dann waere der urspruengliche Vorschlag weg - und
+   * mit ihm die Antwort auf "haben wir hier nachgelassen, und wie viel?". Das
+   * ist die Frage, die eine Auswertung spaeter stellt, und sie laesst sich
+   * nachtraeglich nicht mehr beantworten: Der Rechner liefert zwar dieselbe
+   * Zahl noch einmal, aber nur solange niemand die Katalogpreise anfasst, aus
+   * denen er sie ableitet.
+   *
+   * Deshalb wird er EINMAL gestempelt und danach nie wieder angetastet - der
+   * Server bewahrt ihn ueber jede Aenderung hinweg. Neu gerechnet wird er nur,
+   * wenn sich die Masse aendern: Dann ist es ein anderes Netz, und der alte
+   * Vorschlag gehoerte zu Massen, die es nicht mehr gibt.
+   *
+   * Fehlt bei allem, was vor diesem Feld entstanden ist.
+   */
+  richtpreisChf?: number
   /**
    * Was der Produzent je Stueck verlangt. Kommt aus der Lieferrunde und wird
    * dort eingetragen – hier steht die eingefrorene Kopie.
@@ -275,10 +318,30 @@ export interface Bestellung {
    */
   montageChf?: number
   /**
+   * Die Anfahrt als eigener Posten. Im Liefergebiet kostet sie nichts, und
+   * genau das soll auf der Offerte stehen - deshalb ist ein aktiver Posten
+   * mit 0.- etwas anderes als kein Posten: Das eine sagt "kostenlos", das
+   * andere sagt nichts.
+   *
+   * Vorher war die Anfahrt kein Feld, sondern ein Auswahlfeld IM Offert-
+   * Dokument. Sie stand damit nirgends im Datensatz: Wer die Offerte zweimal
+   * oeffnete, musste sich erinnern, was er beim ersten Mal gewaehlt hatte,
+   * und die Summe in der Liste wusste ohnehin nichts davon.
+   *
+   * Fehlt bei Alteintraegen - dort gab es den Posten nicht.
+   */
+  anfahrt?: boolean
+  anfahrtChf?: number
+  /**
    * Ein Rabatt auf die ganze Bestellung, in CHF, mit dem Wort dazu
    * ("Kennenlernrabatt"). Steht auf der Offerte als eigener Posten; die
    * Netzpreise bleiben, was sie sind. Geht in die Summe ein.
+   *
+   * `rabatt` ist der Schalter, `rabattChf` der Betrag - wie bei Montage und
+   * Anfahrt. Bei Alteintraegen fehlt der Schalter und wird beim Lesen aus dem
+   * Betrag abgeleitet.
    */
+  rabatt?: boolean
   rabattChf?: number
   rabattText?: string
   zahlung: PaymentMethod
@@ -327,11 +390,21 @@ export interface Bestellung {
   /** Phase 6: der vereinbarte Liefer-/Montagetermin. ISO-Datum. */
   montageTermin?: string
   /**
-   * Phase 5, drei Stempel je Auftrag: bei Bora bestellt, von Bora
-   * verschickt. Angekommen ist der Wechsel nach "ausliefern".
+   * Zwei Stempel bei Bora: bestellt, und von ihm verschickt. Angekommen ist
+   * kein Stempel, sondern der Wechsel nach "ausliefern".
    */
   bestelltAm?: string
   versandAm?: string
+  /**
+   * Die Sendungsnummer der Lieferung, als Freitext und freiwillig: Bora
+   * schickt ueber wechselnde Spediteure, und manchmal gibt es gar keine
+   * Nummer. Ein Pflichtfeld waere damit ein Pflichtfeld, das man leer
+   * laesst - also eine Luege im Datensatz.
+   *
+   * Sie gehoert zur SENDUNG, nicht zum Auftrag: Liegen mehrere Auftraege im
+   * selben Paket, tragen sie alle dieselbe Nummer.
+   */
+  sendungsnummer?: string
   /**
    * Mehrere Auftraege gehen als EIN Paket an Bora – ein gemeinsamer
    * Bestelltalon, eine Sendung. Das Paket ist nur ein Etikett auf den
@@ -402,6 +475,8 @@ export interface BestellAenderung {
   zusage?: boolean
   bestellt?: boolean
   versand?: boolean
+  /** Die Sendungsnummer; ein leerer String nimmt sie weg. */
+  sendungsnummer?: string
   /** Das Paket-Etikett; ein leerer String nimmt es weg. */
   paket?: string
   /**
@@ -415,8 +490,17 @@ export interface BestellAenderung {
   }
   absageGrund?: AbsageGrund
   positionen?: BestellPosition[]
+  /**
+   * Die drei Posten des Angebots, jeder als Schalter mit Betrag. Steht der
+   * Schalter auf false, setzt der Server den Betrag auf 0: Ein abgeschalteter
+   * Posten mit einem Betrag darin waere eine Zahl, die irgendwann wieder
+   * auftaucht.
+   */
   montage?: boolean
   montageChf?: number
+  anfahrt?: boolean
+  anfahrtChf?: number
+  rabatt?: boolean
   /** 0 oder leer nimmt den Rabatt weg. */
   rabattChf?: number
   rabattText?: string
@@ -430,4 +514,10 @@ export interface AdminStatus {
   speicher: boolean
   passwort: boolean
   angemeldet: boolean
+  /**
+   * Die Testumgebung: keine Anmeldung, eigene Tabelle, Dummy-Datensaetze.
+   * Nur auf Vorschau-Deployments von Zweigen mit der Endung "-demo" - siehe
+   * api/_demo.ts. Fehlt im Normalbetrieb.
+   */
+  demo?: boolean
 }

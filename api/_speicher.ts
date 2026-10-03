@@ -28,6 +28,17 @@ export const TABELLE_BESTELLUNGEN = 'pf:bestellungen'
 /** Die Lieferrunden. Eine Runde buendelt mehrere Bestellungen zu einem Auftrag. */
 export const TABELLE_LIEFERUNGEN = 'pf:lieferungen'
 
+/**
+ * Die Bestellungen der TESTUMGEBUNG. Eine eigene Tabelle und nicht ein
+ * Merkmal an den Datensaetzen: Ein Filter, den man vergessen kann, waere
+ * genau der Weg, auf dem Beispieldaten in der Arbeitsliste landen – oder
+ * umgekehrt eine echte Bestellung beim Zuruecksetzen geloescht wird. Zwei
+ * Tabellen koennen sich nicht vermischen.
+ *
+ * Wann sie benutzt wird, entscheidet allein api/_demo.ts.
+ */
+export const TABELLE_DEMO = 'pf:demo:bestellungen'
+
 /** True, sobald ein Speicher verbunden ist. Ohne ihn bleibt der Adminbereich leer, statt zu lügen. */
 export const speicherBereit = Boolean(url && token)
 
