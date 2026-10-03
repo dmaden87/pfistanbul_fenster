@@ -1,18 +1,15 @@
-# Logo für das Modelabel – erste Runde
+# Logo für das Modelabel – zweite Runde
 
-Sechs Vorschläge, alle vom klassischen türkischen Çay-Glas (ince belli) auf dem
-Untersetzer ausgehend. `vorschau.html` im Browser öffnen: dort stehen alle
-Zeichen gross, in 64/32/16 Pixeln, auf dunklem und teerotem Grund und neben
-einem Namen, den man live ändern kann.
+Çay-Glas (Form nach Foto: breiter runder Bauch, sanfte Taille, tiefer
+Untersetzer) mit einem minimalistischen Baum dahinter. Jeder Baum gibt es
+als «Reduziert» (Linie) und als «Siegel» (Kreis, Motiv ausgespart).
+`vorschau.html` im Browser öffnen für alle Grössen- und Grundproben.
 
-| Datei | Idee |
-|---|---|
-| `a-silhouette.svg` | Glas und Teller als volle Fläche |
-| `b-linie.svg` | durchgehende Kontur |
-| `c-tee.svg` | Kontur, mit Tee in «tavşan kanı»-Rot gefüllt |
-| `d-siegel.svg` | Kreis, Glas ausgespart (Knopf, Anhänger, Profilbild) |
-| `e-dampf.svg` | Silhouette mit einer Dampflinie |
-| `f-reduziert.svg` | nur die Glasseiten und ein Tellerstrich |
+| Baum | Linie | Siegel |
+|---|---|---|
+| Platane (çınar) | `reduziert-platane.svg` | `siegel-platane.svg` |
+| Zypresse | `reduziert-zypresse.svg` | `siegel-zypresse.svg` |
+| Teeblatt | `reduziert-teeblatt.svg` | `siegel-teeblatt.svg` |
 
-`node modelabel/logo/erzeuge.mjs` baut SVGs und Vorschau neu. Die Formen
-stehen als Pfade oben im Skript (`GLAS`, `TELLER`).
+`node modelabel/logo/erzeuge.mjs` baut SVGs und Vorschau neu. Glas, Teller
+und Bäume stehen als Pfade oben im Skript.
