@@ -35,3 +35,10 @@ bilder-original
 # Erzeugte Drucksachen (QR-Karte usw.): entstehen aus bau/, gehoeren nicht
 # ins Repository. Neu erzeugen mit `npm run bewertung -- "<Adresse>"`.
 drucksachen
+
+# Zwischenstaende und erzeugte Bilder der Medienbauplaene. Beides entsteht aus
+# medien/roh/ und dem Skript daneben in rund einer Minute neu – im Repository
+# liegen der Bauplan und das Rohmaterial, nicht das, was daraus faellt.
+medien/*/arbeit
+medien/*/text-*.png
+medien/*/abspann.png
