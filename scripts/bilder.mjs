@@ -52,6 +52,25 @@ const BILDER = [
   { datei: 'fassade-aussen.jpg', name: 'fassade-aussen' },
   { datei: 'zimmer-storen.jpg', name: 'zimmer-storen' },
   { datei: 'team.jpg', name: 'team' },
+
+  /*
+   * Diese beiden liegen nicht in bilder-original/, sondern in medien/roh/ –
+   * dort ist das Archiv, und anders als bilder-original/ ist es im
+   * Repository. Deshalb `ordner`: Wer das Skript laufen laesst, braucht die
+   * Originale dieser zwei nicht erst zu suchen.
+   */
+  {
+    datei: 'unterschiene-logo.jpg', name: 'schiene-aufkleber', ordner: 'medien/roh',
+    /*
+     * Links und unten weg. Ungeschnitten besteht die untere Haelfte des
+     * Bildes aus Parkett, und das schwarze Gewebe – das, was man hier sehen
+     * soll – bleibt ein Streifen am oberen Rand. So fuellt es die obere
+     * Haelfte, der Aufkleber sitzt frei, und vom Boden bleibt genug fuer die
+     * Waerme.
+     */
+    zuschnitt: { links: 0.25, oben: 0, breite: 0.75, hoehe: 0.8 },
+  },
+  { datei: 'fenster-aussicht-wiese.jpg', name: 'fenster-aussicht', ordner: 'medien/roh' },
 ]
 
 /**
@@ -77,13 +96,14 @@ function groesstesRechteck(w, h, grad) {
 }
 
 async function verarbeite(bild) {
-  const basis = sharp(join(QUELLE, bild.datei)).rotate()
+  const pfad = join(bild.ordner ?? QUELLE, bild.datei)
+  const basis = sharp(pfad).rotate()
 
   // metadata() liefert die Masse der Datei, nicht die der gedrehten Ansicht:
   // `.rotate()` wird erst beim Schreiben ausgefuehrt. Bei den Orientierungen
   // 5 bis 8 kippt das Bild um 90 Grad, also gehoeren Breite und Hoehe
   // getauscht - sonst rechnet der Zuschnitt unten mit den falschen Zahlen.
-  const roh = await sharp(join(QUELLE, bild.datei)).metadata()
+  const roh = await sharp(pfad).metadata()
   const gekippt = (roh.orientation ?? 1) >= 5
   const width = gekippt ? roh.height : roh.width
   const height = gekippt ? roh.width : roh.height

@@ -1,3 +1,4 @@
+import { Foto } from '../media/Foto'
 import './ClosingCta.css'
 
 interface ClosingCtaProps {
@@ -9,6 +10,20 @@ export function ClosingCta({ onRequestClick, onSiedlungenClick }: ClosingCtaProp
   return (
     <section className="closing">
       <div className="shell">
+        {/*
+          Das Bild gehoert vor den Knopf und nicht hinter den Text: Es zeigt,
+          wofuer der Knopf da ist – Wiese, Baum und Himmel durch das
+          geschlossene Netz. Die Ueberschrift daneben sagt dasselbe in Worten.
+        */}
+        <figure className="closing__band">
+          <Foto
+            name="fenster-aussicht"
+            alt="Blick aus einem Wohnungsfenster mit geschlossenem Insektenschutz-Plissee: Durch das Gewebe sind Baum, Wiese und blauer Himmel klar zu erkennen."
+            sizes="(max-width: 80rem) 92vw, 72rem"
+          />
+          <figcaption>Zugezogen, und die Aussicht bleibt.</figcaption>
+        </figure>
+
         <div className="closing__box">
           <div className="closing__mesh" aria-hidden="true" />
           <div className="closing__content">

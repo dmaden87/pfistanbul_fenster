@@ -22,6 +22,11 @@ Zuschnitts.
 Was daraus für die Webseite wird, gehört nach `public/fotos/` und entsteht
 über `npm run bilder`. Hier wird nichts gelöscht und nichts ersetzt.
 
+Zwei Bilder aus diesem Ordner stehen inzwischen auf der Webseite. Sie sind
+in `scripts/bilder.mjs` eingetragen und zeigen mit `ordner: 'medien/roh'`
+hierher – die älteren Webseiten-Fotos liegen weiterhin in `bilder-original/`,
+das nicht im Repository ist.
+
 ## Was drin ist
 
 | Datei | Motiv | Technik |
@@ -31,6 +36,7 @@ Was daraus für die Webseite wird, gehört nach `public/fotos/` und entsteht
 | `balkontuere-montiert-person.jpg` | Montierte Balkontüre, jemand öffnet sie | 1932 × 2576, 3:4 |
 | `plissees-angelehnt-falten.jpg` | Zwei Plissees angelehnt, Faltenwurf und Rahmen | 1932 × 2576, 3:4 |
 | `unterschiene-logo.jpg` | Unterschiene mit Pfistanbul-Aufkleber, Parkett | 2576 × 1932, 4:3 |
+| `fenster-aussicht-wiese.jpg` | Blick durch das geschlossene Netz auf Baum, Wiese und Himmel | 1932 × 2576, 3:4 |
 | `musterbuch-profile.jpg` | Rahmenprofile in mehreren Farben auf dem Musterbuch | 1930 × 2576, 3:4 |
 | `musterbuch-gewebe-farben.jpg` | Musterbuch aufgeschlagen: Gewebe- und Farbmuster | 2576 × 1932, 4:3 |
 | `balkontuere-bedienen.mov` | Plissee der Balkontüre wird zugezogen und wieder geöffnet | 6,6 s |
@@ -78,7 +84,12 @@ Decoder; `npm install ffmpeg-static` liefert eine brauchbare Fassung.
   über Montage erzählen will, erzählt es falsch. Als Beleg für „nach Mass,
   auch gross" ist es das beste Stück im Ordner.
 - **`unterschiene-logo.jpg`** ist das beste Markenbild: Produkt, Logo und
-  Handwerk in einem Ausschnitt, ohne Text.
+  Handwerk in einem Ausschnitt, ohne Text. Steht seit Oktober 2026 unter
+  „Unsere Versprechen" – beschnitten, siehe `scripts/bilder.mjs`.
+- **`fenster-aussicht-wiese.jpg`** ist das einzige Bild mit Licht und Weite:
+  Durch das zugezogene Netz sind Baum, Wiese und Himmel klar zu sehen. Es
+  behauptet nichts, es zeigt das Versprechen. Steht seit Oktober 2026 als
+  Band über dem Schluss-Aufruf.
 - **Die beiden Gewebebilder** gehören zusammen. Sie zeigen zwei verschiedene
   Gewebe – fein und grob –, und nebeneinander erklären sie den Unterschied
   ohne ein Wort.

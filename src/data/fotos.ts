@@ -16,6 +16,8 @@ export const fotos: Record<string, FotoMasse> = {
   'fassade-aussen': { breite: 5712, hoehe: 4284, groessen: [640, 1024, 1600] },
   'zimmer-storen': { breite: 5712, hoehe: 4284, groessen: [640, 1024, 1600] },
   'team': { breite: 2316, hoehe: 3088, groessen: [640, 1024, 1600] },
+  'schiene-aufkleber': { breite: 1932, hoehe: 1546, groessen: [640, 1024, 1600] },
+  'fenster-aussicht': { breite: 1932, hoehe: 2576, groessen: [640, 1024, 1600] },
 }
 
 export type FotoName = keyof typeof fotos

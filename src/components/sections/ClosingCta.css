@@ -2,6 +2,35 @@
   padding-block: var(--section-y) 0;
 }
 
+.closing__band {
+  margin: 0 0 clamp(2rem, 4vw, 3rem);
+}
+
+.closing__band img {
+  display: block;
+  width: 100%;
+  /* Ein breiter Streifen, kein Bild: Er soll den Blick zum Knopf darunter
+     fuehren und nicht selbst zum Halt werden. Auf dem Telefon waere 3:1 ein
+     Schlitz, dort darf er hoeher sein. */
+  aspect-ratio: 3 / 1;
+  object-fit: cover;
+  object-position: center 38%;
+  border-radius: var(--radius-lg);
+}
+
+.closing__band figcaption {
+  margin-top: var(--space-3);
+  text-align: center;
+  color: var(--text-subtle);
+  font-size: var(--step--1);
+}
+
+@media (max-width: 40rem) {
+  .closing__band img {
+    aspect-ratio: 4 / 3;
+  }
+}
+
 .closing__box {
   position: relative;
   overflow: hidden;

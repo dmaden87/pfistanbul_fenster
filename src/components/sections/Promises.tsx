@@ -1,3 +1,4 @@
+import { Foto } from '../media/Foto'
 import './Promises.css'
 
 /**
@@ -37,6 +38,17 @@ export function Promises() {
             niemand abnimmt.
           </p>
 
+          <figure className="promises__beleg">
+            <Foto
+              name="schiene-aufkleber"
+              alt="Die untere Schiene eines Insektenschutz-Plissees auf einem Eichenparkett, darüber das graue Gewebe. Auf der Schiene klebt ein Aufkleber mit dem Schriftzug Pfistanbul Fenster."
+              sizes="(max-width: 62rem) 92vw, 42vw"
+            />
+            <figcaption>
+              Ein fertiges Netz für einen Kunden, noch bei uns in der Wohnung. Auf jede Schiene kommt unser
+              Aufkleber, bevor wir sie montieren – wenn etwas ist, wissen Sie, bei wem.
+            </figcaption>
+          </figure>
         </div>
 
         <ul className="promises__list">

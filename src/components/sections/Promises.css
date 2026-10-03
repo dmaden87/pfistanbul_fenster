@@ -50,6 +50,29 @@
   box-decoration-break: clone;
 }
 
+.promises__beleg {
+  margin: var(--space-7) 0 0;
+}
+
+.promises__beleg img {
+  display: block;
+  width: 100%;
+  /* Das Seitenverhaeltnis des Zuschnitts aus scripts/bilder.mjs – so wird
+     hier nichts mehr abgeschnitten. Der Zuschnitt sitzt dort und nicht in
+     diesem Stil, weil er sonst bei jeder Breite anders ausfaellt. */
+  aspect-ratio: 1932 / 1546;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.promises__beleg figcaption {
+  margin-top: var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--step--1);
+  max-width: 46ch;
+}
+
 .promises__list {
   list-style: none;
   padding: 0;

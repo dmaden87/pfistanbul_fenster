@@ -79,8 +79,9 @@ export function Construction() {
         </div>
 
         <p className="build-photos__note">
-          Alle Fenster-Fotos auf dieser Seite stammen aus Denizʼ eigener Wohnung im Pfisterhölzli. Es sind die Netze
-          aus der Türkei, mit denen alles angefangen hat – keine Musterbilder eines Herstellers.
+          Alle Fenster-Fotos auf dieser Seite sind in Denizʼ Wohnung im Pfisterhölzli entstanden – keine Musterbilder
+          eines Herstellers. Die montierten Netze sind die aus der Türkei, mit denen alles angefangen hat; das Netz
+          mit dem Aufkleber weiter unten ist eine fertige Kundenbestellung, die noch bei uns stand.
         </p>
       </div>
     </section>
