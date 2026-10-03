@@ -1,18 +1,18 @@
-# Logo für das Modelabel – zweite Runde
+# Logo für das Modelabel – dritte Runde
 
-Çay-Glas (Form nach Foto: breiter runder Bauch, sanfte Taille, tiefer
-Untersetzer) mit einem minimalistischen Baum dahinter. Jeder Baum gibt es
-als «Reduziert» (Linie) und als «Siegel» (Kreis, Motiv ausgespart).
+Çay-Glas (Form nach Foto) vor einer Platane (çınar). Vier Kronen, jede als
+«Reduziert» (Linie) und als «Siegel» (Kreis, Motiv ausgespart).
 `vorschau.html` im Browser öffnen für alle Grössen- und Grundproben.
 
-| Baum | Linie | Siegel |
+| Krone | Linie | Siegel |
 |---|---|---|
-| Platane (çınar) | `reduziert-platane.svg` | `siegel-platane.svg` |
-| Zypresse | `reduziert-zypresse.svg` | `siegel-zypresse.svg` |
-| Teeblatt | `reduziert-teeblatt.svg` | `siegel-teeblatt.svg` |
+| Runde Krone | `reduziert-cinar-rund.svg` | `siegel-cinar-rund.svg` |
+| Wolkenkrone | `reduziert-cinar-wolke.svg` | `siegel-cinar-wolke.svg` |
+| Drei Kreise | `reduziert-cinar-drei.svg` | `siegel-cinar-drei.svg` |
+| Im Schatten | `reduziert-cinar-schatten.svg` | `siegel-cinar-schatten.svg` |
 
 `node modelabel/logo/erzeuge.mjs` baut SVGs und Vorschau neu. Glas, Teller
-und Bäume stehen als Pfade oben im Skript.
+und Kronen stehen in `formen.mjs`.
 
 ## Die Bäume als Skizze
 

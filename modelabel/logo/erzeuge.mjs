@@ -3,7 +3,7 @@
 import { writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { GLAS, TELLER, LINIEN, baeume } from './formen.mjs'
+import { GLAS, TELLER, LINIEN, kronen } from './formen.mjs'
 
 const hier = dirname(fileURLToPath(import.meta.url))
 
@@ -13,33 +13,39 @@ const VORNE = 'translate(100 182) scale(.8) translate(-100 -182)'
 const svg = (inhalt) =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="currentColor" role="img">${inhalt}</svg>`
 
-const reduziert = (b) => (p) => svg(
-  `<defs><mask id="${p}v" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200"><rect width="200" height="200" fill="#fff"/>` +
-  `<path d="${GLAS}" transform="${VORNE}" fill="#000" stroke="#000" stroke-width="18" stroke-linejoin="round"/></mask></defs>` +
-  `<g mask="url(#${p}v)" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">` +
-  [...b.flaeche, ...b.linien].map(d => `<path d="${d}"/>`).join('') + `</g>` +
-  `<g transform="${VORNE}" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round">` + LINIEN.map(d => `<path d="${d}"/>`).join('') + `</g>`)
+const kreise = (k, d, farbe) => k.kreise.map(([x, y, r]) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(r + d).toFixed(1)}" fill="${farbe}"/>`).join('')
+const glasLuecke = `<path d="${GLAS}" transform="${VORNE}" fill="#000" stroke="#000" stroke-width="18" stroke-linejoin="round"/>`
+const voll = '<rect width="200" height="200" fill="#fff"/>'
+const maske = (id, inhalt) => `<mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200">${inhalt}</mask>`
 
-const siegel = (b) => (p) => svg(
-  `<defs><mask id="${p}m" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200"><circle cx="100" cy="100" r="96" fill="#fff"/>` +
-  `<g transform="translate(100 100) scale(.76) translate(-100 -93)">` +
-  b.flaeche.map(d => `<path d="${d}" fill="#000"/>`).join('') +
-  b.linien.map(d => `<path d="${d}" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/>`).join('') +
-  `<g transform="${VORNE}" fill="#000" stroke="#fff" stroke-width="11" stroke-linejoin="round" paint-order="stroke"><path d="${GLAS}"/><path d="${TELLER}"/></g>` +
-  `</g></mask></defs><circle cx="100" cy="100" r="96" mask="url(#${p}m)"/>`)
+// Linie: Umriss der Kronen-Vereinigung (aussen +3, innen -3), Glas davor ausgespart.
+const reduziert = (k) => (p) => svg(
+  `<defs>${maske(`${p}r`, kreise(k, 3, '#fff') + kreise(k, -3, '#000') + glasLuecke)}${maske(`${p}a`, voll + glasLuecke)}</defs>` +
+  `<rect width="200" height="200" mask="url(#${p}r)"/>` +
+  `<g mask="url(#${p}a)" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round">` + [k.stamm, ...k.aeste].filter(Boolean).map(d => `<path d="${d}"/>`).join('') + `</g>` +
+  `<g transform="${VORNE}" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round">` + ['M68,66 H132', ...LINIEN].map(d => `<path d="${d}"/>`).join('') + `</g>`)
 
-const varianten = Object.entries(baeume).flatMap(([schluessel, b]) => [
-  { datei: `reduziert-${schluessel}`, stil: 'Reduziert', baum: b, svg: reduziert(b) },
-  { datei: `siegel-${schluessel}`, stil: 'Siegel', baum: b, svg: siegel(b) },
+// Siegel: Krone, Glas und Teller aus dem Kreis ausgespart, Äste bleiben stehen.
+const siegel = (k) => (p) => svg(
+  `<defs>${maske(`${p}m`, '<circle cx="100" cy="100" r="96" fill="#fff"/>' +
+    `<g transform="translate(100 100) scale(.74) translate(-100 -96)">` + kreise(k, 0, '#000') +
+    (k.stamm ? `<path d="${k.stamm}" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round"/>` : '') +
+    k.aeste.map(d => `<path d="${d}" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/>`).join('') +
+    `<g transform="${VORNE}" fill="#000" stroke="#fff" stroke-width="11" stroke-linejoin="round" paint-order="stroke"><path d="${GLAS}"/><path d="${TELLER}"/></g></g>`)}</defs>` +
+  `<circle cx="100" cy="100" r="96" mask="url(#${p}m)"/>`)
+
+const varianten = Object.entries(kronen).flatMap(([schluessel, k]) => [
+  { datei: `reduziert-cinar-${schluessel}`, stil: 'Reduziert', krone: k, svg: reduziert(k) },
+  { datei: `siegel-cinar-${schluessel}`, stil: 'Siegel', krone: k, svg: siegel(k) },
 ])
 
-for (const v of varianten) writeFileSync(join(hier, `${v.datei}.svg`), v.svg(v.datei).replaceAll('currentColor', '#111111') + '\n')
+for (const v of varianten) writeFileSync(join(hier, `${v.datei}.svg`), v.svg(v.datei).replaceAll('currentColor', '#111111').replace('<rect width="200" height="200" mask', '<rect width="200" height="200" fill="#111111" mask') + '\n')
 
-const paare = Object.entries(baeume).map(([schluessel, b], j) => {
-  const zwei = varianten.filter(v => v.baum === b)
+const paare = Object.values(kronen).map((k, j) => {
+  const zwei = varianten.filter(v => v.krone === k)
   return `
     <section class="paar">
-      <div class="paarkopf"><h2>${b.name}</h2><p>${b.text}</p></div>
+      <div class="paarkopf"><h2>${k.name}</h2><p>${k.text}</p></div>
       <div class="zwei">${zwei.map((v, i) => `
         <article class="vorschlag">
           <div class="buehne">${v.svg(`g${j}${i}`)}</div>
@@ -61,7 +67,7 @@ const seite = `<title>Çay-Glas Logo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500&family=Jost:wght@400;500&display=swap">
 <style>
-/* Layout: pro Baum ein Paar (Reduziert | Siegel) nebeneinander, darunter Grössen- und Grundprobe */
+/* Layout: pro Krone ein Paar (Reduziert | Siegel) nebeneinander, darunter Grössen- und Grundprobe */
 :root {
   --papier: #f6f5f3; --karte: #ffffff; --tinte: #141312; --leise: #6b6763; --linie: #e3e0dc; --tee: #9e2a1c;
   --anzeige: 'Bodoni Moda', 'Didot', 'Bodoni 72', Georgia, serif;
@@ -96,9 +102,9 @@ footer p { margin: 0 }
 </style>
 <div class="rahmen">
   <header>
-    <span class="zeile">Modelabel · Logo · zweite Runde</span>
-    <h1>Das Çay-Glas mit Baum</h1>
-    <p>Das Glas hat jetzt die Form aus dem Foto: Der Bauch ist fast so breit wie der Rand, die Taille sanft und der Untersetzer hat eine tiefe Mulde. Dahinter steht jeweils ein Baum, einmal als Linie und einmal als Siegel.</p>
+    <span class="zeile">Modelabel · Logo · dritte Runde</span>
+    <h1>Das Çay-Glas unter der Çınar</h1>
+    <p>Vier Wege, die Platane zu zeichnen, jeweils als Linie und als Siegel. Das Glas behält die Form aus deinem Foto.</p>
   </header>
   ${paare}
   <footer><p>Die Zeichen liegen als SVG im Ordner <code>modelabel/logo/</code> und lassen sich beliebig gross drucken, sticken oder plotten.</p></footer>
