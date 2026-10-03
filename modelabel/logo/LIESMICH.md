@@ -13,3 +13,9 @@ als «Reduziert» (Linie) und als «Siegel» (Kreis, Motiv ausgespart).
 
 `node modelabel/logo/erzeuge.mjs` baut SVGs und Vorschau neu. Glas, Teller
 und Bäume stehen als Pfade oben im Skript.
+
+## Die Bäume als Skizze
+
+`baeume.html` zeigt Platane, Zypresse und Teestrauch als Zeichnung neben
+der Form, die im Logo steckt. `node modelabel/logo/skizzen.mjs` baut sie neu.
+Glas, Teller und Logo-Bäume liegen gemeinsam in `formen.mjs`.

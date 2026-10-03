@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="de">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Baum-Skizzen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,500;1,6..96,400&family=Jost:wght@400;500&display=swap">
+<style>
+/* Layout: pro Baum eine Zeile – Text, Skizze, Pfeil, Logo-Form; auf dem Handy untereinander */
+:root {
+  --papier: #f6f5f3; --karte: #ffffff; --tinte: #1d1c1a; --leise: #6b6763; --linie: #e3e0dc; --wasch: #e6ebe0; --tee: #9e2a1c;
+  --anzeige: 'Bodoni Moda', 'Didot', 'Bodoni 72', Georgia, serif;
+  --text: 'Jost', 'Futura', 'Avenir Next', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --papier: #121110; --karte: #1b1a19; --tinte: #ece9e4; --leise: #a29d97; --linie: #2e2c2a; --wasch: #2a3027; --tee: #c2412d; color-scheme: dark } }
+:root[data-theme="dark"] { --papier: #121110; --karte: #1b1a19; --tinte: #ece9e4; --leise: #a29d97; --linie: #2e2c2a; --wasch: #2a3027; --tee: #c2412d; color-scheme: dark }
+body { background: var(--papier); color: var(--tinte); font-family: var(--text); font-size: 16px; line-height: 1.55 }
+.rahmen { max-width: 1080px; margin: 0 auto; padding-inline: 20px; padding-block: 48px 64px; display: grid; gap: 40px }
+header { display: grid; gap: 12px; max-width: 62ch }
+.zeile { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--leise) }
+h1 { font-family: var(--anzeige); font-weight: 500; font-size: clamp(34px, 6vw, 54px); line-height: 1.05; margin: 0; text-wrap: balance }
+header p { margin: 0; color: var(--leise) }
+.baum { background: var(--karte); border: 1px solid var(--linie); border-radius: 6px; padding: 28px; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) auto minmax(0, .6fr); gap: 28px; align-items: center }
+.baum.favorit { border-color: var(--tee) }
+.text { display: grid; gap: 10px; min-width: 0 }
+h2 { font-family: var(--anzeige); font-weight: 500; font-size: 30px; margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px }
+h2 em { font-weight: 400; font-size: 20px; color: var(--leise) }
+.marke { font-family: var(--text); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--tee); border: 1px solid var(--tee); border-radius: 3px; padding: 2px 6px }
+.text p { margin: 0; color: var(--leise); font-size: 15px; max-width: 60ch }
+figure { margin: 0; display: grid; gap: 8px; justify-items: center; color: var(--tinte) }
+figure svg { width: 100%; max-width: 260px; height: auto }
+figcaption { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--leise) }
+.pfeil { color: var(--leise); font-size: 28px; line-height: 1 }
+.logo svg { max-width: 130px }
+@media (max-width: 820px) {
+  .baum { grid-template-columns: 1fr 1fr; padding: 20px }
+  .text { grid-column: 1 / -1 }
+  .pfeil { display: none }
+}
+</style>
+<div class="rahmen">
+  <header>
+    <span class="zeile">Modelabel · Logo · die Bäume</span>
+    <h1>Drei Bäume, skizziert</h1>
+    <p>Links siehst du, wie der Baum in echt aussieht, rechts die vereinfachte Form, die hinter dem Çay-Glas steht.</p>
+  </header>
+  
+  <section class="baum">
+    <div class="text">
+      <h2>Platane <em>çınar</em></h2>
+      <p>Ein grosser Laubbaum mit kurzem, dickem Stamm und einer breiten, runden Krone. Er wird mehrere hundert Jahre alt.</p>
+      <p>Du kennst ihn wahrscheinlich aus Parks und Alleen: Die Rinde blättert in Flecken ab, der Stamm sieht grau, grün und beige gescheckt aus. Die Blätter ähneln Ahornblättern (unten rechts).</p>
+      <p>In der Türkei stehen alte Platanen auf Dorfplätzen und in Teegärten. Man trinkt Tee in ihrem Schatten.</p>
+    </div>
+    <figure><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 260" role="img"><path d="M221.4,100.0 A20.7,20.7 0 0 1 214.3,130.9 A22.6,22.6 0 0 1 188.5,155.5 A26.3,26.3 0 0 1 146.0,169.3 A34.2,34.2 0 0 1 99.4,166.4 A20.5,20.5 0 0 1 63.7,158.8 A27.1,27.1 0 0 1 26.6,136.2 A18.8,18.8 0 0 1 16.5,107.5 A20.6,20.6 0 0 1 19.6,77.5 A21.9,21.9 0 0 1 36.4,52.8 A23.8,23.8 0 0 1 70.1,39.1 A25.5,25.5 0 0 1 113.4,33.1 A28.9,28.9 0 0 1 159.1,36.2 A25.0,25.0 0 0 1 198.0,49.9 A18.1,18.1 0 0 1 216.0,72.7 A17.6,17.6 0 0 1 221.4,100.0 Z" fill="var(--wasch)" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"/><path d="M192.9,105.8 A19.5,19.5 0 0 1 174.1,134.6 A36.8,36.8 0 0 1 127.0,148.6 A26.9,26.9 0 0 1 82.4,140.7 A27.2,27.2 0 0 1 52.2,114.2 A15.8,15.8 0 0 1 58.1,87.5 A23.9,23.9 0 0 1 88.3,65.6 A36.0,36.0 0 0 1 142.1,63.7 A19.7,19.7 0 0 1 173.8,76.3 A25.8,25.8 0 0 1 192.9,105.8 Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.2" opacity=".55"/><path d="M106,250 C110,215 108,185 104,160 M134,250 C130,215 132,185 136,160" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"/><path d="M104,160 C98,140 80,128 62,118 M112,162 C114,140 108,120 104,96 M128,160 C134,140 150,126 170,116 M136,160 C150,150 168,146 186,140" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.4"/><ellipse cx="114" cy="214" rx="6" ry="9" fill="var(--wasch)" stroke="currentColor" stroke-width="1.2"/><ellipse cx="126" cy="194" rx="5" ry="7" fill="var(--wasch)" stroke="currentColor" stroke-width="1.2"/><ellipse cx="117" cy="178" rx="4" ry="6" fill="var(--wasch)" stroke="currentColor" stroke-width="1.2"/><ellipse cx="124" cy="232" rx="6" ry="5" fill="var(--wasch)" stroke="currentColor" stroke-width="1.2"/><path d="M70,250 H170" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"/><g transform="translate(206 246) scale(.85)"><path d="M0,0 L-6,-10 L-16,-8 L-12,-20 L-20,-30 L-8,-30 L-4,-42 L0,-34 L4,-42 L8,-30 L20,-30 L12,-20 L16,-8 L6,-10 Z" fill="var(--wasch)" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"/><path d="M0,0 V-34 M0,-10 L-14,-26 M0,-10 L14,-26" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"/></g></svg><figcaption>Skizze</figcaption></figure>
+    <span class="pfeil" aria-hidden="true">→</span>
+    <figure class="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="20 0 160 180" role="img"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="6"><path d="M100,10 A68,68 0 1 1 99.99,10 Z"/><path d="M100,100 V40"/><path d="M100,80 L72,56"/><path d="M100,62 L126,40"/></g></svg><figcaption>Im Logo</figcaption></figure>
+  </section>
+  <section class="baum">
+    <div class="text">
+      <h2>Zypresse <em>servi</em></h2>
+      <p>Ein immergrüner Nadelbaum, sehr schlank und spitz wie eine Säule oder Flamme. Bekannt aus der Toskana und dem ganzen Mittelmeer.</p>
+      <p>In Istanbul prägen Zypressen die Hügel am Bosporus.</p>
+      <p>Gut zu wissen: In der Türkei pflanzt man Zypressen traditionell auf Friedhöfen. Viele denken bei ihr deshalb an Trauer und Abschied. Für ein Modelabel ist das eine Bedeutung, die man kennen sollte.</p>
+    </div>
+    <figure><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 260" role="img"><path d="M72,96 L72.4,96.0 L75.1,101.4 L74.1,106.8 L77.0,112.2 L76.2,117.5 L79.2,122.9 L78.3,128.3 L81.3,133.7 L80.5,139.1 L83.5,144.5 L82.5,149.8 L85.4,155.2 L84.4,160.6 L87.1,166.0 L85.9,171.4 L88.4,176.8 L87.0,182.2 L89.4,187.5 L87.7,192.9 L89.8,198.3 L88.0,203.7 L89.9,209.1 L87.8,214.5 L89.4,219.8 L87.1,225.2 L88.6,230.6 L86.0,236.0 L58.0,236.0 L55.4,230.6 L56.9,225.2 L54.6,219.8 L56.2,214.5 L54.1,209.1 L56.0,203.7 L54.2,198.3 L56.3,192.9 L54.6,187.5 L57.0,182.2 L55.6,176.8 L58.1,171.4 L56.9,166.0 L59.6,160.6 L58.6,155.2 L61.5,149.8 L60.5,144.5 L63.5,139.1 L62.7,133.7 L65.7,128.3 L64.8,122.9 L67.8,117.5 L67.0,112.2 L69.9,106.8 L68.9,101.4 L71.6,96.0 Z" fill="none" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.4" opacity=".5"/><path d="M130,12 L130.7,12.0 L135.1,20.6 L133.4,29.2 L138.2,37.8 L136.8,46.5 L141.6,55.1 L140.3,63.7 L145.2,72.3 L143.8,80.9 L148.6,89.5 L147.1,98.2 L151.8,106.8 L150.1,115.4 L154.5,124.0 L152.6,132.6 L156.7,141.2 L154.4,149.8 L158.2,158.5 L155.6,167.1 L159.0,175.7 L156.0,184.3 L159.0,192.9 L155.7,201.5 L158.3,210.2 L154.6,218.8 L156.9,227.4 L152.8,236.0 L107.2,236.0 L103.1,227.4 L105.4,218.8 L101.7,210.2 L104.3,201.5 L101.0,192.9 L104.0,184.3 L101.0,175.7 L104.4,167.1 L101.8,158.5 L105.6,149.8 L103.3,141.2 L107.4,132.6 L105.5,124.0 L109.9,115.4 L108.2,106.8 L112.9,98.2 L111.4,89.5 L116.2,80.9 L114.8,72.3 L119.7,63.7 L118.4,55.1 L123.2,46.5 L121.8,37.8 L126.6,29.2 L124.9,20.6 L129.3,12.0 Z" fill="var(--wasch)" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/><path d="M130,40 C126,90 134,150 128,220 M118,120 L128,104 M140,150 L130,134 M120,180 L128,168" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.1" opacity=".55"/><path d="M125,236 V250 M135,236 V250 M44,250 H190" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg><figcaption>Skizze</figcaption></figure>
+    <span class="pfeil" aria-hidden="true">→</span>
+    <figure class="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="20 0 160 180" role="img"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="6"><path d="M134,4 C156,40 160,110 154,166 H114 C108,110 112,40 134,4 Z"/></g></svg><figcaption>Im Logo</figcaption></figure>
+  </section>
+  <section class="baum favorit">
+    <div class="text">
+      <h2>Teestrauch <em>çay</em> <span class="marke">Deine Tendenz</span></h2>
+      <p>Tee wächst eigentlich an einem Strauch und nicht an einem Baum. In der Türkei wächst er an der Schwarzmeerküste um Rize auf steilen Terrassen. Die Sträucher werden hüfthoch und flach geschnitten (hinten in der Skizze).</p>
+      <p>Die Blätter sind dunkelgrün, glänzend, länglich mit Spitze und haben einen fein gesägten Rand. Gepflückt werden nur die Triebspitzen: eine Knospe und zwei Blätter, wie auf der Zeichnung.</p>
+      <p>Der Baum im Logo ist also erfunden: Seine Krone ist ein Teeblatt. Damit ist er der einzige der drei, der direkt vom Tee erzählt.</p>
+    </div>
+    <figure><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 260" role="img"><path d="M16,250 C16,234 22,224 34,224 A12,12 0 0 1 56,220 A13,13 0 0 1 82,218 A13,13 0 0 1 108,217 A13,13 0 0 1 134,217 A13,13 0 0 1 160,218 A13,13 0 0 1 186,220 A12,12 0 0 1 208,224 C220,226 224,236 224,250 Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.3" opacity=".45"/><path d="M8,250 H232" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"/><path d="M120,214 C118,170 124,120 120,46" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"/><path d="M120,48 C112,36 114,20 121,8 C128,20 128,36 120,48 Z" fill="var(--wasch)" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/><g transform="translate(121 96) rotate(-38)"><path d="M0,0 L0.0,0.0 L3.0,-5.1 L6.0,-8.6 L9.0,-13.2 L12.0,-14.2 L15.0,-18.1 L18.0,-18.5 L21.0,-21.9 L24.0,-21.8 L27.0,-24.7 L30.0,-24.1 L33.0,-26.5 L36.0,-25.5 L39.0,-27.4 L42.0,-26.0 L45.0,-27.5 L48.0,-25.7 L51.0,-26.7 L54.0,-24.5 L57.0,-25.3 L60.0,-22.7 L63.0,-23.1 L66.0,-20.2 L69.0,-20.3 L72.0,-17.2 L75.0,-17.0 L78.0,-13.6 L81.0,-13.2 L84.0,-9.6 L87.0,-9.0 L90.0,-5.2 L93.0,-2.8 L96.0,-0.0 L96.0,0.0 L93.0,2.8 L90.0,5.2 L87.0,9.0 L84.0,9.6 L81.0,13.2 L78.0,13.6 L75.0,17.0 L72.0,17.2 L69.0,20.3 L66.0,20.2 L63.0,23.1 L60.0,22.7 L57.0,25.3 L54.0,24.5 L51.0,26.7 L48.0,25.7 L45.0,27.5 L42.0,26.0 L39.0,27.4 L36.0,25.5 L33.0,26.5 L30.0,24.1 L27.0,24.7 L24.0,21.8 L21.0,21.9 L18.0,18.5 L15.0,18.1 L12.0,14.2 L9.0,13.2 L6.0,8.6 L3.0,5.1 L0.0,0.0 Z" fill="var(--wasch)" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9"/><path d="M0,0 L93.1,0 M17.3,0 Q24.0,-9.7 29.8,-17.6 M17.3,0 Q24.0,9.7 29.8,17.6 M30.7,0 Q37.4,-11.6 43.2,-21.1 M30.7,0 Q37.4,11.6 43.2,21.1 M44.2,0 Q50.9,-11.3 56.6,-20.5 M44.2,0 Q50.9,11.3 56.6,20.5 M57.6,0 Q64.3,-8.8 70.1,-16.0 M57.6,0 Q64.3,8.8 70.1,16.0 M71.0,0 Q77.8,-4.7 83.5,-8.5 M71.0,0 Q77.8,4.7 83.5,8.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.1"/></g><g transform="translate(120 150) rotate(205)"><path d="M0,0 L0.0,0.0 L2.9,-4.6 L5.8,-7.8 L8.8,-11.5 L11.7,-12.6 L14.6,-15.6 L17.5,-15.9 L20.4,-18.3 L23.3,-18.0 L26.3,-19.8 L29.2,-18.9 L32.1,-20.1 L35.0,-18.7 L37.9,-19.4 L40.8,-17.5 L43.8,-17.7 L46.7,-15.4 L49.6,-15.2 L52.5,-12.5 L55.4,-12.0 L58.3,-9.0 L61.3,-8.2 L64.2,-4.9 L67.1,-3.8 L70.0,-0.0 L70.0,0.0 L67.1,3.8 L64.2,4.9 L61.3,8.2 L58.3,9.0 L55.4,12.0 L52.5,12.5 L49.6,15.2 L46.7,15.4 L43.8,17.7 L40.8,17.5 L37.9,19.4 L35.0,18.7 L32.1,20.1 L29.2,18.9 L26.3,19.8 L23.3,18.0 L20.4,18.3 L17.5,15.9 L14.6,15.6 L11.7,12.6 L8.8,11.5 L5.8,7.8 L2.9,4.6 L0.0,0.0 Z" fill="var(--wasch)" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9"/><path d="M0,0 L67.9,0 M12.6,0 Q17.5,-7.1 21.7,-12.9 M12.6,0 Q17.5,7.1 21.7,12.9 M22.4,0 Q27.3,-8.5 31.5,-15.4 M22.4,0 Q27.3,8.5 31.5,15.4 M32.2,0 Q37.1,-8.2 41.3,-15.0 M32.2,0 Q37.1,8.2 41.3,15.0 M42.0,0 Q46.9,-6.4 51.1,-11.7 M42.0,0 Q46.9,6.4 51.1,11.7 M51.8,0 Q56.7,-3.4 60.9,-6.2 M51.8,0 Q56.7,3.4 60.9,6.2" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.1"/></g></svg><figcaption>Skizze</figcaption></figure>
+    <span class="pfeil" aria-hidden="true">→</span>
+    <figure class="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="20 0 160 180" role="img"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="6"><path d="M100,4 C168,30 172,112 100,152 C28,112 32,30 100,4 Z"/><path d="M100,100 V30"/><path d="M100,88 L134,62"/><path d="M100,68 L68,46"/><path d="M100,50 L122,34"/></g></svg><figcaption>Im Logo</figcaption></figure>
+  </section>
+</div>
+</html>
