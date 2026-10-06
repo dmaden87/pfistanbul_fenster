@@ -65,7 +65,7 @@ function rechnen(eingabe: Eingabe): Gerechnet {
     hoehe,
     gueltig,
     flaecheM2,
-    preisChf: gueltig ? estimateNetChf(flaecheM2) : null,
+    preisChf: gueltig ? estimateNetChf(breite, hoehe) : null,
   }
 }
 

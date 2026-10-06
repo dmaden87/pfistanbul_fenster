@@ -207,7 +207,7 @@ pruefe(
 )
 raumbeispiele.forEach((beispiel, i) => {
   const karte = felder[i] ?? { text: '', werte: [] }
-  const preis = estimateNetChf((beispiel.breiteCm / 100) * (beispiel.hoeheCm / 100))
+  const preis = estimateNetChf(beispiel.breiteCm, beispiel.hoeheCm)
   /*
    * Je Karte geprueft, nicht gegen die ganze Seite: Bad und Kueche kommen
    * beide auf denselben Betrag. Eine Suche ueber das ganze Dokument wuerde

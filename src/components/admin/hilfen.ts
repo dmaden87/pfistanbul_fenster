@@ -172,7 +172,7 @@ export function zahlungsdifferenz(b: Bestellung): number | null {
 export function vorschlagFuer(p: BestellPosition): number | null {
   if (typeof p.richtpreisChf === 'number' && p.richtpreisChf > 0) return p.richtpreisChf
   if (!p.breiteCm || !p.hoeheCm) return null
-  return estimateNetChf((p.breiteCm / 100) * (p.hoeheCm / 100))
+  return estimateNetChf(p.breiteCm, p.hoeheCm)
 }
 
 /**
@@ -183,7 +183,7 @@ export function vorschlagFuer(p: BestellPosition): number | null {
  */
 export function gerechneterPreis(breiteCm: number | undefined, hoeheCm: number | undefined): number | null {
   if (!breiteCm || !hoeheCm) return null
-  return estimateNetChf((breiteCm / 100) * (hoeheCm / 100))
+  return estimateNetChf(breiteCm, hoeheCm)
 }
 
 /**

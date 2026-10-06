@@ -17,7 +17,9 @@
  */
 import assert from 'node:assert/strict'
 import { gerechneterPreis, verkaufspreisFuer, vorschlagFuer } from '../src/components/admin/hilfen.ts'
-import { estimateNetChf } from '../src/lib/estimate.ts'
+import { estimateNetChf, priceModel } from '../src/lib/estimate.ts'
+import { einfuhrsteuerChf, herstellungChf, umfangM } from '../src/lib/kosten.ts'
+import { windowTypes } from '../src/data/catalog.ts'
 
 let bestanden = 0
 const fehler = []
@@ -38,8 +40,8 @@ function pruefe(name, lauf) {
 pruefe('Der gerechnete Preis ist derselbe wie auf der Startseite', () => {
   // Keine zweite Preisliste: Was der Admin vorschlaegt, muss die Zahl sein,
   // die die Kundschaft im Rechner gesehen hat.
-  assert.equal(gerechneterPreis(120, 80), estimateNetChf(1.2 * 0.8))
-  assert.equal(gerechneterPreis(90, 210), estimateNetChf(0.9 * 2.1))
+  assert.equal(gerechneterPreis(120, 80), estimateNetChf(120, 80))
+  assert.equal(gerechneterPreis(90, 210), estimateNetChf(90, 210))
 })
 
 pruefe('Ohne beide Masse gibt es keinen gerechneten Preis', () => {
@@ -63,7 +65,7 @@ pruefe('Der gestempelte Richtpreis gewinnt gegen eine Neuberechnung', () => {
 
 pruefe('Ohne Stempel wird aus den Massen gerechnet', () => {
   const p = { menge: 1, bezeichnung: 'Bad', detail: '', preisChf: 0, breiteCm: 120, hoeheCm: 80 }
-  assert.equal(vorschlagFuer(p), estimateNetChf(1.2 * 0.8))
+  assert.equal(vorschlagFuer(p), estimateNetChf(120, 80))
 })
 
 pruefe('Ohne Masse gibt es keinen Vorschlag statt einer erfundenen Zahl', () => {
@@ -107,6 +109,100 @@ pruefe('Ohne Vorschlag und ohne alten Preis bleibt null', () => {
   assert.equal(verkaufspreisFuer(undefined, netz(0, undefined, undefined), null), 0)
   // Ein alter Preis ohne Masse bleibt dagegen stehen – Katalogware etwa.
   assert.equal(verkaufspreisFuer(netz(240, undefined, undefined), netz(0, undefined, undefined), null), 240)
+})
+
+/* --- Das Preismodell selbst -------------------------------------------------- */
+
+/*
+ * HIER HAENGT GELD DRAN, UND ZWAR IN BEIDE RICHTUNGEN. Der Rechner nennt der
+ * Kundschaft eine Zahl, bevor jemand von uns sie gesehen hat. Ist sie zu
+ * tief, haben wir sie schon versprochen; ist sie zu hoch, ruft niemand an.
+ */
+
+pruefe('Der Richtpreis folgt dem Umfang, nicht der Flaeche', () => {
+  /*
+   * DER FEHLER, DER HIER JAHRELANG STAND: Zwei Netze mit derselben Flaeche
+   * bekamen denselben Preis, obwohl das eine anderthalbmal so viel Rahmen,
+   * Schiene und Buerstendichtung braucht. 30 x 300 und 95 x 95 haben beide
+   * rund 0.9 m², aber 6.6 gegen 3.8 Meter Umfang.
+   */
+  const schmalHoch = estimateNetChf(30, 300)
+  const quadratisch = estimateNetChf(95, 95)
+  assert.ok(schmalHoch > quadratisch,
+    `gleiche Flaeche, mehr Umfang muss mehr kosten: ${schmalHoch} gegen ${quadratisch}`)
+})
+
+pruefe('Mehr Umfang kostet nie weniger', () => {
+  let vorher = 0
+  for (let seite = 20; seite <= 300; seite += 5) {
+    const preis = estimateNetChf(seite, seite)
+    assert.ok(preis >= vorher, `${seite} x ${seite} faellt auf ${preis} nach ${vorher}`)
+    vorher = preis
+  }
+})
+
+pruefe('Das Modell trifft die vier Katalogpreise auf wenige Franken', () => {
+  /*
+   * Nicht genau, und das soll es auch nicht: Der Richtpreis traegt die
+   * Sicherheitsmarge und liegt darum ueber dem Siedlungspreis. Aber die
+   * ROHE Gerade muss nahe an den Preisen liegen, aus denen sie stammt -
+   * sonst beschreibt sie etwas anderes als unser Sortiment.
+   */
+  for (const t of windowTypes) {
+    const roh = priceModel.baseChf + priceModel.proMeterChf * umfangM(t.widthCm, t.heightCm)
+    assert.ok(Math.abs(roh - t.priceChf) <= 3,
+      `${t.label}: Modell ${roh.toFixed(2)}, Katalog ${t.priceChf}`)
+  }
+})
+
+pruefe('Sondermass ist nie billiger als derselbe Siedlungspreis', () => {
+  /*
+   * Sonst lohnte es sich, das ausgemessene Format als Sondermass zu
+   * bestellen - und die Siedlungspreise, die wir nicht anfassen, waeren
+   * ausgehebelt.
+   */
+  for (const t of windowTypes) {
+    const rechner = estimateNetChf(t.widthCm, t.heightCm)
+    assert.ok(rechner >= t.priceChf, `${t.label}: Rechner ${rechner}, Siedlung ${t.priceChf}`)
+  }
+})
+
+pruefe('Gerundet wird auf fuenf Franken, und nur nach oben', () => {
+  for (const [b, h] of [[20, 20], [63, 97], [100, 100], [128, 182], [250, 250], [300, 300]]) {
+    const preis = estimateNetChf(b, h)
+    assert.equal(preis % 5, 0, `${b} x ${h} ergibt ${preis}`)
+    const roh = (priceModel.baseChf + priceModel.proMeterChf * umfangM(b, h)) * 1.05
+    assert.ok(preis >= roh - 1e-9, `${b} x ${h}: ${preis} liegt unter der Rechnung ${roh.toFixed(2)}`)
+    assert.ok(preis - roh < 5, `${b} x ${h}: ${preis} liegt mehr als eine Stufe darueber`)
+  }
+})
+
+pruefe('Die Sicherheitsmarge liegt wirklich drauf', () => {
+  /* Fuenf Prozent, bevor gerundet wird - sonst ist es keine Marge. */
+  const roh = priceModel.baseChf + priceModel.proMeterChf * umfangM(100, 100)
+  assert.ok(estimateNetChf(100, 100) >= roh * 1.05 - 1e-9)
+})
+
+pruefe('Kein Format im erlaubten Feld verkauft sich unter der Haelfte Marge', () => {
+  /*
+   * DER WAECHTER ZWISCHEN DEN ZWEI RECHNUNGEN. Preis und Kosten stehen in
+   * verschiedenen Dateien und werden verschieden gepflegt; dass sie
+   * zueinander passen, prueft sonst niemand. Heute liegt die duennste Stelle
+   * bei 67 Prozent - 50 laesst Luft und faengt trotzdem jeden Umbau ab, der
+   * die beiden auseinanderlaufen laesst.
+   */
+  let duennste = { marge: 1, format: '' }
+  for (let b = 20; b <= 300; b += 10) {
+    for (let h = 20; h <= 300; h += 10) {
+      const preis = estimateNetChf(b, h)
+      const ware = herstellungChf(b, h)
+      const kosten = ware + einfuhrsteuerChf(ware)
+      const marge = (preis - kosten) / preis
+      if (marge < duennste.marge) duennste = { marge, format: `${b} x ${h}` }
+    }
+  }
+  assert.ok(duennste.marge >= 0.5,
+    `duennste Marge ${Math.round(duennste.marge * 1000) / 10} % bei ${duennste.format}`)
 })
 
 /* --- Ergebnis ---------------------------------------------------------------- */
