@@ -158,6 +158,20 @@
   border: 1.5px solid #111111;
 }
 
+/*
+ * Der Nachtrag-Hinweis steht ueber den Regeln und muss staerker ins Auge
+ * fallen als sie: Er ist der eine Satz, dessen Uebersehen bedeutet, dass die
+ * halbe Sendung zweimal gebaut wird. Dunkler Grund, damit er auch auf einem
+ * schlecht gedruckten Blatt nicht untergeht.
+ */
+.blatt__regeln--nachtrag {
+  background: #111111;
+  color: #ffffff;
+  border-color: #111111;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
 .blatt__regeln p + p {
   margin-top: 1.5mm;
   font-size: 9pt;

@@ -128,9 +128,19 @@ await pruefe('Die Beispieldaten decken jede Phase ab und rechnen auf', async () 
   }
 
   const phasen = saat.map((b) => b.status)
-  for (const phase of ['neu', 'klaerung', 'offerte', 'bestellen']) {
+  /*
+   * JEDE PHASE, AUCH "bora". Sie fehlte lange, und damit war im Adminbereich
+   * nicht zu sehen, was zwischen Backlog und Auslieferung passiert - unter
+   * anderem, dass sich einem Paket in der Fertigung noch etwas hinzufuegen
+   * laesst.
+   */
+  for (const phase of ['neu', 'klaerung', 'offerte', 'bestellen', 'bora', 'ausliefern']) {
     assert.ok(phasen.includes(phase), `keine Beispielbestellung in "${phase}"`)
   }
+  /* Und zwar als PAKET: Ohne Etikett gaebe es kein Ziel zum Hinzufuegen. */
+  const beiBora = saat.filter((b) => b.status === 'bora' && b.paket)
+  assert.ok(beiBora.length >= 2, 'das Paket in der Fertigung braucht mindestens zwei Auftraege')
+  assert.equal(new Set(beiBora.map((b) => b.paket)).size, 1, 'sie gehoeren in dasselbe Paket')
   /*
    * Drei im Backlog, und das ist kein Zufall: Zwei braucht ein Paket
    * ueberhaupt, der dritte ist der Nachzuegler, an dem sich "einem

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { BestellAenderung, Bestellung, BestellPosition } from '../../types'
 import { shopConfig } from '../../data/shopConfig'
 import { formatChf } from '../../lib/format'
-import { montageBetrag, positionDetail, vorschlagFuer } from './hilfen'
+import { gerechneterPreis, montageBetrag, positionDetail, vorschlagFuer } from './hilfen'
 import { fuelle, useSprache } from './sprache'
 
 /**
@@ -95,6 +95,25 @@ export function Angebot({ bestellung: b, onSpeichern, onAbbrechen }: AngebotProp
   const [rabattText, setRabattText] = useState(b.rabattText ?? '')
   const [sendet, setSendet] = useState(false)
   const [fehler, setFehler] = useState<string | null>(null)
+  /*
+   * Soll der gestempelte Richtpreis beim Speichern ERSETZT werden?
+   *
+   * Nur ueber den Knopf daneben, nie nebenbei. Der Stempel ist sonst die
+   * Zahl, die die Kundschaft gesehen hat; wer ihn ueberschreibt, loescht den
+   * einzigen Beleg dafuer, dass wir nachgelassen haben.
+   */
+  const [stempelErsetzen, setStempelErsetzen] = useState(false)
+
+  /*
+   * Wo weicht der Stempel von dem ab, was der Rechner HEUTE sagt? Bei einem
+   * von Hand erfassten Auftrag steht als Stempel der getippte Preis - er
+   * vergleicht sich mit sich selbst, und die Abweichungsspalte zeigt stur
+   * null, egal was wir verlangen.
+   */
+  const abweichendeStempel = b.positionen.filter((p) => {
+    const gerechnet = gerechneterPreis(p.breiteCm, p.hoeheCm)
+    return gerechnet !== null && typeof p.richtpreisChf === 'number' && p.richtpreisChf !== gerechnet
+  }).length
 
   const verkauf = (p: BestellPosition, i: number) => zahl(preise[schluessel(p, i)] ?? '')
   const netzeChf = runde2(b.positionen.reduce((s, p, i) => s + verkauf(p, i) * p.menge, 0))
@@ -105,6 +124,26 @@ export function Angebot({ bestellung: b, onSpeichern, onAbbrechen }: AngebotProp
   const rabattSumme = rabatt ? Math.min(zahl(rabattChf), runde2(netzeChf + montageSumme + anfahrtSumme)) : 0
   const totalChf = runde2(netzeChf + montageSumme + anfahrtSumme - rabattSumme)
   const unvollstaendig = b.positionen.some((p, i) => verkauf(p, i) <= 0)
+
+  /**
+   * Den Stempel verwerfen und mit dem Rechner neu belegen.
+   *
+   * FUER AUFTRAEGE, DIE NIE EINE ZAHL GEZEIGT HABEN. Was per WhatsApp
+   * hereinkommt oder aus einer leeren Anfrage von Hand erfasst wird, bekommt
+   * bei der Geburt den getippten Preis als Richtpreis gestempelt. Danach
+   * zeigt der Vorschlag diesen Preis - und nicht, was unser Rechner sagt.
+   */
+  const neuRechnen = () => {
+    setStempelErsetzen(true)
+    setPreise(
+      Object.fromEntries(
+        b.positionen.map((p, i) => {
+          const gerechnet = gerechneterPreis(p.breiteCm, p.hoeheCm)
+          return [schluessel(p, i), gerechnet ? String(gerechnet) : (preise[schluessel(p, i)] ?? '')]
+        }),
+      ),
+    )
+  }
 
   /** Alle Felder auf den Vorschlag zuruecksetzen – der haeufige Fall. */
   const vorschlaegeUebernehmen = () => {
@@ -135,10 +174,21 @@ export function Angebot({ bestellung: b, onSpeichern, onAbbrechen }: AngebotProp
       await onSpeichern({
         positionen: b.positionen.map((p, i) => {
           const zeile: BestellPosition = { ...p, preisChf: verkauf(p, i) }
-          const vorschlag = vorschlagFuer(p)
-          if (zeile.richtpreisChf === undefined && vorschlag !== null) zeile.richtpreisChf = vorschlag
+          const gerechnet = gerechneterPreis(p.breiteCm, p.hoeheCm)
+          if (stempelErsetzen) {
+            /*
+             * Neu stempeln heisst: die Rechnung von heute, nicht der Preis,
+             * den wir gerade verlangen. Sonst waere der Vergleichswert wieder
+             * der Verkaufspreis selbst, und die Abweichung bliebe null.
+             */
+            if (gerechnet !== null) zeile.richtpreisChf = gerechnet
+          } else {
+            const vorschlag = vorschlagFuer(p)
+            if (zeile.richtpreisChf === undefined && vorschlag !== null) zeile.richtpreisChf = vorschlag
+          }
           return zeile
         }),
+        ...(stempelErsetzen ? { richtpreiseNeu: true } : {}),
         montage,
         montageChf: montageSumme,
         anfahrt,
@@ -237,7 +287,26 @@ export function Angebot({ bestellung: b, onSpeichern, onAbbrechen }: AngebotProp
         <button type="button" className="btn btn--quiet" onClick={vorschlaegeUebernehmen}>
           {t.richtpreiseUebernehmen}
         </button>
+        {/*
+          DER ZWEITE KNOPF IST NICHT DERSELBE. Der erste uebernimmt den
+          Vorschlag, wie er dasteht - also den Stempel, wenn es einen gibt.
+          Dieser verwirft den Stempel und rechnet neu. Das ist der Fall
+          "nie eine Zahl gezeigt", und er ist selten genug, um einen eigenen
+          Knopf und einen Satz daneben zu verdienen.
+        */}
+        <button type="button" className="btn btn--quiet" onClick={neuRechnen}>
+          {t.richtpreiseNeuRechnen}
+        </button>
       </div>
+      {stempelErsetzen ? (
+        <p className="admin__detail">{t.richtpreiseNeuAktiv}</p>
+      ) : (
+        abweichendeStempel > 0 && (
+          <p className="admin__detail">
+            {fuelle(t.richtpreiseAbweichendSatz, { n: abweichendeStempel })}
+          </p>
+        )
+      )}
 
       {/*
         DIE DREI POSTEN. Jeder mit Kaestchen: Das Kaestchen entscheidet, ob er

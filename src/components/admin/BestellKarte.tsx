@@ -20,9 +20,11 @@ import {
   bezahltAm,
   phaseNachWiederoeffnen,
   phasenEntfallen,
+  preisAenderbar,
   restbetragChf,
   tageSeit,
   zahlungAusstehend,
+  PREISPHASEN,
   type Abschnitt,
 } from '../../lib/phasen'
 import { NetzEditor } from './NetzEditor'
@@ -62,6 +64,7 @@ type KartenKnopf = {
   /** Warum der Knopf gerade nicht geht – steht daneben, statt dass er fehlt. */
   gesperrt?: string
 }
+
 
 interface BestellKarteProps {
   bestellung: Bestellung
@@ -308,6 +311,24 @@ export function BestellKarte({
   const [loeschFrage, setLoeschFrage] = useState(false)
   const [absageFrage, setAbsageFrage] = useState(false)
   const [preiseBearbeiten, setPreiseBearbeiten] = useState(false)
+
+  /*
+   * BIS ZUR BEZAHLUNG LAESST SICH DER PREIS AENDERN, und zwar in jeder Phase
+   * ab dem Angebot.
+   *
+   * Vorher hing dieser Block an `abschnitt === 'offerte'` allein. Das
+   * unterstellt, dass nach dem Verschicken der Offerte nichts mehr passiert -
+   * und das stimmt nicht: Ein Netz hat einen Mangel und wir erhoehen den
+   * Rabatt, es aendert sich etwas Wesentliches, wir zeigen Goodwill, es
+   * braucht Zusatzmaterial. Wer das nicht hier aendern kann, aendert es
+   * nirgends und traegt die Differenz im Kopf.
+   *
+   * Die Grenze ist die ZAHLUNG, nicht die Phase. Ist das Geld da, ist der
+   * Preis eine Tatsache; was danach kaeme, waere eine Rueckerstattung und
+   * kein neuer Preis.
+   */
+  const bezahlt = Boolean(bezahltAm(b))
+  const preisOffen = preisAenderbar(b, abschnitt)
   const [notiz, setNotiz] = useState(b.notiz ?? '')
   const [zahlungNotiz, setZahlungNotiz] = useState(b.zahlungKommentar ?? '')
   const [sendung, setSendung] = useState(b.sendungsnummer ?? '')
@@ -491,7 +512,7 @@ export function BestellKarte({
       )}
 
       {/* Das Angebot: Vorschlag des Rechners, Verkaufspreise, die drei Posten. */}
-      {abschnitt === 'offerte' && (!b.preiseFestgelegtAm || preiseBearbeiten) && (
+      {preisOffen && (!b.preiseFestgelegtAm || preiseBearbeiten) && (
         <Angebot
           bestellung={b}
           onSpeichern={speichereAngebot}
@@ -500,15 +521,21 @@ export function BestellKarte({
       )}
 
       {/* Steht es, bleibt nur der Weg zurueck hinein. */}
-      {abschnitt === 'offerte' && b.preiseFestgelegtAm && !preiseBearbeiten && (
+      {preisOffen && b.preiseFestgelegtAm && !preiseBearbeiten && (
         <div className="admin__haken-reihe">
           <span className="admin__marke admin__marke--gut">
             {t.preiseFestgelegtAm} {tag(b.preiseFestgelegtAm, ort)}
           </span>
           <button type="button" className="btn btn--quiet" onClick={() => setPreiseBearbeiten(true)}>
-            {t.knopfPreiseAendern}
+            {abschnitt === 'offerte' ? t.knopfPreiseAendern : t.knopfPreisAendern}
           </button>
+          {abschnitt !== 'offerte' && <span className="admin__detail">{t.preisAenderbarSatz}</span>}
         </div>
+      )}
+
+      {/* Bezahlt: Der Preis steht. Hier wird nichts mehr verhandelt. */}
+      {PREISPHASEN.includes(abschnitt) && b.preiseFestgelegtAm && bezahlt && (
+        <p className="admin__detail">{t.preisGesperrtSatz}</p>
       )}
 
       {/* Warten: seit wann die Offerte beim Kunden liegt. */}

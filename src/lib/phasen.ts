@@ -205,3 +205,72 @@ export function tageSeit(zeitpunkt: string | undefined, jetzt = Date.now()): num
   if (Number.isNaN(t)) return null
   return Math.floor((jetzt - t) / 86_400_000)
 }
+
+/* --- Preis aendern und Pakete erweitern -------------------------------------- */
+
+/**
+ * In welchen Abschnitten es ueberhaupt einen Verkaufspreis zu aendern gibt.
+ *
+ * NICHT IN "NEU" UND "KLAERUNG": Dort gibt es noch kein Angebot, und ein
+ * Preisblock waere die Aufforderung, einen zu erfinden, bevor die Masse
+ * stehen. Das Archiv ist draussen, weil dort nichts mehr zu verhandeln ist.
+ */
+export const PREISPHASEN: readonly Abschnitt[] = ['offerte', 'zusage', 'bestellen', 'bora', 'ausliefern']
+
+/**
+ * Laesst sich der Verkaufspreis noch aendern?
+ *
+ * DIE GRENZE IST DIE ZAHLUNG, NICHT DIE PHASE. Vorher hing der Angebot-Block
+ * an "Angebot erstellen" allein. Das unterstellt, dass nach dem Verschicken
+ * der Offerte nichts mehr passiert - und das stimmt nicht: Ein Netz hat einen
+ * Mangel und der Rabatt steigt, es aendert sich etwas Wesentliches, wir
+ * zeigen Goodwill, es braucht Zusatzmaterial. Wer das nicht im Werkzeug
+ * aendern kann, aendert es nirgends und traegt die Differenz im Kopf.
+ *
+ * Ist das Geld da, ist der Preis eine Tatsache; was danach kaeme, waere eine
+ * Rueckerstattung und kein neuer Preis.
+ */
+export function preisAenderbar(b: Bestellung, abschnitt: Abschnitt): boolean {
+  return PREISPHASEN.includes(abschnitt) && !bezahltAm(b)
+}
+
+/** Ein Paket, dem sich noch etwas hinzufuegen laesst. */
+export interface OffenesPaket {
+  etikett: string
+  /** Wie viele Auftraege schon darin sind. */
+  anzahl: number
+  /** Liegt es schon bei Bora? Dann ist der Zusatz ein Nachtrag. */
+  beiBora: boolean
+}
+
+/**
+ * Die Pakete, denen sich noch etwas hinzufuegen laesst.
+ *
+ * ZWEI SORTEN, UND DER UNTERSCHIED ZAEHLT. Ein Paket im Backlog ist noch
+ * nicht bestellt; dort kommt einfach etwas dazu. Ein Paket BEI BORA ist
+ * bestellt und in der Fertigung - da geht es auch noch, aber nur in
+ * Absprache mit ihm, und der Nachzuegler braucht einen eigenen Talon.
+ *
+ * Frueher zaehlte nur das Backlog, mit der Begruendung, ein spaeteres Netz
+ * stuende auf keinem Talon und fehlte in der Lieferung. Das stimmt fuer ein
+ * Paket, das unterwegs ist - nicht fuer eines, das Bora gerade erst
+ * zusammenbaut. Diese Wochen sind genau die, in denen eine Bestellung
+ * hereinkommt und nicht auf die naechste Sendung warten muss.
+ *
+ * AUSGELIEFERTES IST DRAUSSEN. Was zurueck ist, nimmt nichts mehr auf.
+ */
+export function erweiterbarePakete(bestellungen: Bestellung[]): OffenesPaket[] {
+  const etiketten = new Set<string>()
+  for (const b of bestellungen) {
+    if (b.paket && (b.status === 'bestellen' || b.status === 'bora')) etiketten.add(b.paket)
+  }
+  return [...etiketten].sort().map((etikett) => {
+    const drin = bestellungen.filter((b) => b.paket === etikett)
+    return {
+      etikett,
+      anzahl: drin.filter((b) => b.status === 'bestellen' || b.status === 'bora').length,
+      /* Liegt auch nur eines schon bei Bora, ist das ganze Paket dort. */
+      beiBora: drin.some((b) => b.status === 'bora'),
+    }
+  })
+}

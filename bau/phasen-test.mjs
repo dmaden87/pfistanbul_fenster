@@ -13,12 +13,14 @@ import {
   abgeschlossen,
   abschnittFuer,
   bezahltAm,
+  erweiterbarePakete,
   nachAbschnitt,
   nachPaket,
   naechstePhase,
   netzZahl,
   ohneEinkauf,
   phaseNachWiederoeffnen,
+  preisAenderbar,
   restbetragChf,
   summeVon,
   zahlungAusstehend,
@@ -325,6 +327,89 @@ pruefe('Der Kopf des Pakets zaehlt Netze und Franken zusammen', () => {
   assert.equal(summeVon(zwei), 530)
   assert.equal(netzZahl([]), 0)
   assert.equal(summeVon([]), 0)
+})
+
+/* --- Preis aendern, solange nicht bezahlt ist ------------------------------ */
+
+pruefe('Der Preis laesst sich bis zur Bezahlung aendern, in jeder Phase', () => {
+  /*
+   * DER GRUND, WARUM ES DAS GIBT: Ein Mangel am Netz, Goodwill,
+   * Zusatzmaterial - das kommt nach der Offerte. Hing die Aenderung an der
+   * Phase "Angebot erstellen", wurde sie nirgends gemacht und die Differenz
+   * im Kopf getragen.
+   */
+  for (const abschnitt of ['offerte', 'zusage', 'bestellen', 'bora', 'ausliefern']) {
+    assert.equal(preisAenderbar(best(), abschnitt), true, abschnitt)
+  }
+})
+
+pruefe('Vor dem Angebot gibt es keinen Preis zu aendern', () => {
+  // Dort stehen die Masse noch nicht; ein Preisblock waere die Aufforderung,
+  // einen zu erfinden.
+  for (const abschnitt of ['neu', 'klaerung', 'archiv']) {
+    assert.equal(preisAenderbar(best(), abschnitt), false, abschnitt)
+  }
+})
+
+pruefe('Bezahlt heisst Schluss, egal in welcher Phase', () => {
+  assert.equal(preisAenderbar(best({ bezahltAm: '2026-03-02' }), 'ausliefern'), false)
+  // Auch Stripes Meldung zaehlt, nicht nur die Uebergabe von Hand - aber nur,
+  // wenn sie die ganze Summe deckt.
+  const online = { status: 'bezahlt', betragChf: 150, zeitpunkt: '2026-03-02T00:00:00.000Z' }
+  assert.equal(preisAenderbar(best({ bezahlung: online }), 'bora'), false)
+})
+
+pruefe('Eine angezahlte Bestellung bleibt aenderbar', () => {
+  /*
+   * DER FALL IST ECHT: Online bezahlt, danach kommt ein Netz dazu. Dann steht
+   * ein Restbetrag offen - und solange der offen ist, ist der Preis nicht
+   * fertig. `bezahltAm` sagt deshalb erst Ja, wenn die Zahlung die Summe
+   * deckt, und diese Regel erbt die Preisfrage.
+   */
+  const halb = { status: 'bezahlt', betragChf: 100, zeitpunkt: '2026-03-02T00:00:00.000Z' }
+  assert.equal(preisAenderbar(best({ bezahlung: halb }), 'ausliefern'), true)
+})
+
+/* --- Welche Pakete sich erweitern lassen ----------------------------------- */
+
+pruefe('Ein Paket im Backlog nimmt etwas auf', () => {
+  const liste = [best({ id: 'a', status: 'bestellen', paket: 'P-2026-01' })]
+  assert.deepEqual(erweiterbarePakete(liste), [{ etikett: 'P-2026-01', anzahl: 1, beiBora: false }])
+})
+
+pruefe('Ein Paket bei Bora nimmt auch noch etwas auf, aber als Nachtrag', () => {
+  /*
+   * DAS WAR VORHER NICHT MOEGLICH. Die alte Regel liess nur das Backlog zu,
+   * weil ein spaeteres Netz "auf keinem Talon stuende". Das gilt fuer eine
+   * Sendung, die unterwegs ist - nicht fuer ein Paket, das Bora gerade erst
+   * zusammenbaut. Genau in diesen Wochen kommt eine Bestellung herein.
+   */
+  const liste = [
+    best({ id: 'a', status: 'bora', paket: 'P-2026-01' }),
+    best({ id: 'b', status: 'bestellen', paket: 'P-2026-01' }),
+  ]
+  assert.deepEqual(erweiterbarePakete(liste), [{ etikett: 'P-2026-01', anzahl: 2, beiBora: true }])
+})
+
+pruefe('Ein ausgeliefertes Paket nimmt nichts mehr auf', () => {
+  const liste = [best({ id: 'a', status: 'ausliefern', paket: 'P-2026-01' })]
+  assert.deepEqual(erweiterbarePakete(liste), [])
+})
+
+pruefe('Auftraege ohne Paket sind kein Ziel', () => {
+  assert.deepEqual(erweiterbarePakete([best({ status: 'bestellen' })]), [])
+})
+
+pruefe('Mehrere Pakete kommen sortiert und einzeln gezaehlt', () => {
+  const liste = [
+    best({ id: 'a', status: 'bora', paket: 'P-2026-02' }),
+    best({ id: 'b', status: 'bestellen', paket: 'P-2026-01' }),
+    best({ id: 'c', status: 'bestellen', paket: 'P-2026-01' }),
+  ]
+  assert.deepEqual(erweiterbarePakete(liste), [
+    { etikett: 'P-2026-01', anzahl: 2, beiBora: false },
+    { etikett: 'P-2026-02', anzahl: 1, beiBora: true },
+  ])
 })
 
 console.log(`\n${bestanden}/${bestanden + fehler.length} bestanden`)

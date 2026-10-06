@@ -900,6 +900,72 @@ await pruefe('Neue Masse heissen neuer Richtpreis', async () => {
   assert.equal(n.daten.bestellung.positionen[1].richtpreisChf, 170, 'das unberuehrte Netz behaelt seinen')
 })
 
+await pruefe('Mit richtpreiseNeu laesst sich der Stempel ausdruecklich ersetzen', async () => {
+  /*
+   * DER FALL: Ein Auftrag, den jemand von Hand erfasst hat - per WhatsApp,
+   * aus einer leeren Anfrage. Dort steht der GETIPPTE Preis als Richtpreis,
+   * und die Kundschaft hat nie eine Zahl des Rechners gesehen. Der Stempel
+   * vergleicht den Preis mit sich selbst.
+   */
+  const b = await anfrageMitNetzen('A-RP4')
+  const n = await ruf({
+    method: 'PATCH',
+    cookie,
+    body: {
+      id: b.id,
+      richtpreiseNeu: true,
+      positionen: b.positionen.map((p) => ({ ...p, richtpreisChf: 999 })),
+    },
+  })
+  assert.deepEqual(
+    n.daten.bestellung.positionen.map((p) => p.richtpreisChf),
+    [999, 999],
+    'mit der Flagge gewinnt der mitgeschickte Wert',
+  )
+})
+
+await pruefe('Ohne die Flagge bleibt es beim alten Stempel', async () => {
+  /*
+   * Die Gegenprobe zum Test darueber, und sie ist die wichtigere: Die Flagge
+   * darf nicht aus Versehen wirken. Dieselbe Anfrage, nur ohne sie.
+   */
+  const b = await anfrageMitNetzen('A-RP5')
+  const n = await ruf({
+    method: 'PATCH',
+    cookie,
+    body: { id: b.id, positionen: b.positionen.map((p) => ({ ...p, richtpreisChf: 999 })) },
+  })
+  assert.deepEqual(
+    n.daten.bestellung.positionen.map((p) => p.richtpreisChf),
+    [140, 170],
+  )
+})
+
+await pruefe('Neu stempeln laesst Boras Einkaufspreis in Ruhe', async () => {
+  /*
+   * Die Flagge gilt dem Richtpreis. Boras Preis hat damit nichts zu tun, und
+   * seine einzige Quelle ist die Lieferrunde - ginge er dabei verloren,
+   * muesste die naechste Runde ihn noch einmal erfragen.
+   */
+  const b = await anfrageMitNetzen('A-RP6')
+  await ruf({
+    method: 'PATCH',
+    cookie,
+    body: { id: b.id, einkauf: { jePosition: { [b.positionen[0].id]: 31 } } },
+  })
+  const n = await ruf({
+    method: 'PATCH',
+    cookie,
+    body: {
+      id: b.id,
+      richtpreiseNeu: true,
+      positionen: b.positionen.map((p) => ({ ...p, richtpreisChf: 111 })),
+    },
+  })
+  assert.equal(n.daten.bestellung.positionen[0].einkaufChf, 31, 'der Einkauf ist geblieben')
+  assert.equal(n.daten.bestellung.positionen[0].richtpreisChf, 111)
+})
+
 await pruefe('Boras Einkaufspreis bleibt bewahrt, auch ohne Anzeige im Admin', async () => {
   const b = await anfrageMitNetzen('A-EK')
   await ruf({

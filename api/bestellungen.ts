@@ -335,6 +335,17 @@ const PREISRELEVANT = ['breiteCm', 'hoeheCm', 'rahmendicke', 'rahmenfarbe', 'net
  * der Vergleich zum von Hand gesetzten Verkaufspreis, und ein Vergleichswert,
  * den man mitschicken kann, ist keiner.
  *
+ * MIT EINER AUSNAHME, und die muss ausdruecklich verlangt werden:
+ * `neuStempeln`. Ein Auftrag, den jemand von Hand erfasst hat - per WhatsApp,
+ * aus einer leeren Anfrage -, bekommt bei der Geburt den GETIPPTEN Preis als
+ * Richtpreis. Diese Kundschaft hat nie eine Zahl des Rechners gesehen, und
+ * der Stempel vergleicht den Preis mit sich selbst. Dann muss er sich
+ * ersetzen lassen.
+ *
+ * Es bleibt dabei, dass das nicht nebenbei passiert: Ohne die Flagge
+ * gewinnt der alte Wert weiter gegen jedes "Netze speichern" und jedes
+ * "Angebot speichern". Nur ein eigener Knopf setzt sie.
+ *
  * Bewahrt wird JE POSITION, nicht je Bestellung: Wer ein fuenftes Netz
  * dazunimmt, aendert die vier bepreisten nicht. Und bewahrt wird nur, wenn
  * die preisrelevanten Angaben gleich geblieben sind – ein Netz mit neuen
@@ -342,7 +353,7 @@ const PREISRELEVANT = ['breiteCm', 'hoeheCm', 'rahmendicke', 'rahmenfarbe', 'net
  * nicht mehr gibt. Fuer den Richtpreis heisst das: Er wird beim naechsten
  * Angebot neu gerechnet, und das ist richtig so.
  */
-function bewahren(alt: Position[], neu: Position[]): Position[] {
+function bewahren(alt: Position[], neu: Position[], neuStempeln = false): Position[] {
   const vorher = new Map(alt.filter((p) => p.id).map((p) => [p.id as string, p]))
   return neu.map((p) => {
     const alte = p.id ? vorher.get(p.id) : undefined
@@ -350,7 +361,12 @@ function bewahren(alt: Position[], neu: Position[]): Position[] {
     if (!PREISRELEVANT.every((feld) => alte[feld] === p[feld])) return p
     const gleich = { ...p }
     if (typeof alte.einkaufChf === 'number') gleich.einkaufChf = alte.einkaufChf
-    if (typeof alte.richtpreisChf === 'number') gleich.richtpreisChf = alte.richtpreisChf
+    /*
+     * BORAS PREIS BLEIBT AUCH DANN. Die Flagge gilt dem Richtpreis; der
+     * Einkauf hat damit nichts zu tun und seine einzige Quelle ist weiter
+     * die Lieferrunde.
+     */
+    if (!neuStempeln && typeof alte.richtpreisChf === 'number') gleich.richtpreisChf = alte.richtpreisChf
     return gleich
   })
 }
@@ -845,7 +861,13 @@ async function aendern(req: VercelRequest, res: VercelResponse) {
     // vorher wird sie sogar negativ und faellt auf 0: Die Montagepauschale
     // waere spurlos aus der Bestellung verschwunden.
     const montageVorher = montageBetrag(bestellung)
-    if (netzeNeu) bestellung.positionen = bewahren(bestellung.positionen, positionen(koerper.positionen))
+    if (netzeNeu) {
+      bestellung.positionen = bewahren(
+        bestellung.positionen,
+        positionen(koerper.positionen),
+        koerper.richtpreiseNeu === true,
+      )
+    }
 
     // Montage
     if (koerper.montage !== undefined) bestellung.montage = koerper.montage === true

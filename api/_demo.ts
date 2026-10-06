@@ -440,6 +440,72 @@ export function demoSaat(): Record<string, unknown>[] {
         { id: 'd10k3', art: 'mwst', betragChf: 2.33, traeger: 'deniz', bezahlt: true, erfasstAm: tage(330) },
       ],
     },
+
+    /*
+     * 11. und 12. BEI BORA, als Paket. Die Phase "In Produktion" fehlte in
+     * den Beispielen ganz - es gab nur Backlog und Ausgeliefertes, und damit
+     * liess sich nicht ausprobieren, was dazwischen passiert.
+     *
+     * Vor allem: An diesem Paket haengt die Frage, ob sich ein Nachzuegler
+     * noch hineinschieben laesst, solange Bora baut. Ohne ein Paket in
+     * dieser Phase stand im Auswahlfeld nie eines zur Wahl, und die Funktion
+     * war unsichtbar.
+     */
+    {
+      id: 'demo-11',
+      referenz: 'PF-D011',
+      art: 'anfrage',
+      status: 'bora',
+      eingang: tage(24),
+      geaendert: tage(6),
+      phaseSeit: tage(6),
+      ausgemessenAm: tage(18),
+      preiseFestgelegtAm: tage(14),
+      offerteAm: tage(14),
+      zusageAm: tage(9),
+      bestelltAm: tage(6),
+      paket: 'P-2026-02',
+      kunde: kunde('Martin Küng', 'm.kueng@example.ch', '079 000 00 11', 'Seestrasse 14', '8606 Greifensee'),
+      positionen: [
+        netz('d11p1', 'Zimmer', 160, 120, 160, 'mitte'),
+        netz('d11p2', 'Bad', 117, 82, 140, 'nach-links'),
+      ],
+      montage: true,
+      montageChf: 30,
+      anfahrt: true,
+      anfahrtChf: 0,
+      rabatt: false,
+      zahlung: 'uebergabe',
+      zahlungswunsch: false,
+      summeChf: 330,
+      quelle: 'web',
+    },
+    {
+      id: 'demo-12',
+      referenz: 'PF-D012',
+      art: 'anfrage',
+      status: 'bora',
+      eingang: tage(21),
+      geaendert: tage(6),
+      phaseSeit: tage(6),
+      ausgemessenAm: tage(16),
+      preiseFestgelegtAm: tage(13),
+      offerteAm: tage(13),
+      zusageAm: tage(8),
+      bestelltAm: tage(6),
+      paket: 'P-2026-02',
+      kunde: kunde('Lea Brunner', 'l.brunner@example.ch', '079 000 00 12', 'Im Städtli 9', '8606 Greifensee'),
+      positionen: [netz('d12p1', 'Balkontüre', 90, 210, 165, 'nach-rechts')],
+      montage: true,
+      montageChf: 15,
+      anfahrt: true,
+      anfahrtChf: 0,
+      rabatt: false,
+      zahlung: 'uebergabe',
+      zahlungswunsch: false,
+      summeChf: 180,
+      quelle: 'instagram',
+    },
   ]
 }
 

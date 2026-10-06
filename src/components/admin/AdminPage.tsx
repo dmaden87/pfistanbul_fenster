@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { AdminStatus, Bestellung, BestellAenderung } from '../../types'
-import { ABSCHNITTE, nachAbschnitt, nachPaket, type Abschnitt } from '../../lib/phasen'
+import { ABSCHNITTE, erweiterbarePakete, nachAbschnitt, nachPaket, type Abschnitt } from '../../lib/phasen'
 import type { AdminTexte } from './sprache'
 import {
   abmelden,
@@ -91,6 +91,8 @@ interface OffenesBlatt {
   ids: string[]
   art: 'anfrage' | 'bestellung'
   nummer: string
+  /** Folgt das Blatt einer Sendung, die schon bei Bora liegt? */
+  nachtrag?: boolean
 }
 
 /**
@@ -273,25 +275,8 @@ function AdminMaske({ onBack, onOpenZahlen }: AdminPageProps) {
   const paketVon = (b: Bestellung): Bestellung[] =>
     b.paket ? bestellungen.filter((x) => x.paket === b.paket) : [b]
 
-  /**
-   * Die Pakete, denen sich noch etwas hinzufuegen laesst: die im Backlog.
-   *
-   * Was bei Bora liegt, ist bestellt – ein Netz, das jetzt noch dazukaeme,
-   * stuende auf keinem Talon und fehlte in der Lieferung. Deshalb sind nur
-   * Pakete aus "Bereit zum Bestellen" ein Ziel.
-   */
-  const offenePakete = [
-    ...new Map(
-      bestellungen
-        .filter((b) => b.paket && b.status === 'bestellen')
-        .map((b) => [b.paket as string, 0]),
-    ).keys(),
-  ]
-    .sort()
-    .map((etikett) => ({
-      etikett,
-      anzahl: bestellungen.filter((b) => b.paket === etikett && b.status === 'bestellen').length,
-    }))
+  /* Die Regel steht in src/lib/phasen.ts, damit sie geprueft werden kann. */
+  const offenePakete = erweiterbarePakete(bestellungen)
 
   /**
    * Zusammenfuehren: Alle Gewaehlten bekommen dasselbe Etikett, dann geht
@@ -311,6 +296,8 @@ function AdminMaske({ onBack, onOpenZahlen }: AdminPageProps) {
       return
     }
     const etikett = zielPaket || naechstesPaket(bestellungen)
+    const ziel = offenePakete.find((p) => p.etikett === etikett)
+    const nachtrag = ziel?.beiBora === true
     try {
       /*
        * Nur Auftraege ohne Paket. Das Kaestchen gibt es fuer die anderen
@@ -319,18 +306,33 @@ function AdminMaske({ onBack, onOpenZahlen }: AdminPageProps) {
        * Fenster denselben Auftrag gebuendelt hat.
        */
       const frisch = gewaehlte.filter((x) => !x.paket)
-      for (const b of frisch) await handleAendern(b.id, { paket: etikett })
+      for (const b of frisch) {
+        /*
+         * DER NACHZUEGLER ZIEHT MIT. Haengt er an einem Paket, das schon bei
+         * Bora liegt, bekommt er denselben Stempel – sonst stuende er allein
+         * im Backlog und saehe aus, als waere er noch nicht bestellt, obwohl
+         * er in derselben Kiste zurueckkommt.
+         */
+        await handleAendern(b.id, nachtrag ? { paket: etikett, bestellt: true } : { paket: etikett })
+      }
       setAuswahl([])
       setZielPaket('')
       /*
-       * Auf den Talon kommt das GANZE Paket – die neuen Auftraege und die,
-       * die schon drin waren. Ein Talon mit nur den Nachzueglern waere ein
-       * zweites Blatt zur selben Kiste, und Bora haette zwei Listen fuer
-       * eine Sendung.
+       * WAS AUF DEN TALON KOMMT, haengt daran, ob Bora das Paket schon hat.
+       *
+       * Hat er es noch nicht, kommt das GANZE Paket aufs Blatt – die neuen
+       * Auftraege und die, die schon drin waren. Ein Talon mit nur den
+       * Nachzueglern waere ein zweites Blatt zur selben Kiste, und Bora
+       * haette zwei Listen fuer eine Sendung.
+       *
+       * Hat er es schon, ist es genau umgekehrt: Die erste Liste liegt bei
+       * ihm und er arbeitet sie ab. Dann darf nur das Neue aufs Blatt, als
+       * Nachtrag gekennzeichnet – ein zweites Mal das ganze Paket waere die
+       * Aufforderung, alles noch einmal zu bauen.
        */
       const schon = bestellungen.filter((b) => b.paket === etikett).map((b) => b.id)
-      const ids = [...new Set([...schon, ...frisch.map((b) => b.id)])]
-      setBlatt({ ids, art: 'bestellung', nummer: etikett })
+      const ids = nachtrag ? frisch.map((b) => b.id) : [...new Set([...schon, ...frisch.map((b) => b.id)])]
+      setBlatt({ ids, art: 'bestellung', nummer: etikett, nachtrag })
     } catch {
       // handleAendern hat den Fehler schon angezeigt und neu geladen.
     }
@@ -386,7 +388,13 @@ function AdminMaske({ onBack, onOpenZahlen }: AdminPageProps) {
     return (
       <section className="section">
         <div className="shell">
-          <Bestellauftrag bestellungen={drauf} art={blatt.art} nummer={blatt.nummer} onZurueck={() => setBlatt(null)} />
+          <Bestellauftrag
+            bestellungen={drauf}
+            art={blatt.art}
+            nummer={blatt.nummer}
+            nachtrag={blatt.nachtrag}
+            onZurueck={() => setBlatt(null)}
+          />
         </div>
       </section>
     )
@@ -494,6 +502,7 @@ function AdminMaske({ onBack, onOpenZahlen }: AdminPageProps) {
                   {offenePakete.map((p) => (
                     <option key={p.etikett} value={p.etikett}>
                       {fuelle(t.paketMitAnzahl, { paket: p.etikett, n: p.anzahl })}
+                      {p.beiBora ? ` · ${t.paketBeiBora}` : ''}
                     </option>
                   ))}
                 </select>
@@ -505,7 +514,17 @@ function AdminMaske({ onBack, onOpenZahlen }: AdminPageProps) {
             <button type="button" className="btn btn--quiet" onClick={() => setAuswahl([])}>
               {t.auswahlAufheben}
             </button>
-            <span className="admin__detail">{t.paketSatz}</span>
+            {/*
+              DER WARNSATZ STEHT NUR DA, WENN ER GILT. Ein Paket bei Bora zu
+              erweitern ist kein Fehler, aber es setzt ein Telefonat voraus -
+              und der Talon sieht anders aus. Beides gehoert hierhin, in dem
+              Moment, in dem das Ziel gewaehlt ist.
+            */}
+            <span className="admin__detail">
+              {offenePakete.find((p) => p.etikett === zielPaket)?.beiBora
+                ? t.paketNachtragSatz
+                : t.paketSatz}
+            </span>
           </div>
         )}
 

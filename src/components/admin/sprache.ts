@@ -349,9 +349,14 @@ const PAARE = {
   knopfAngekommen: ['Angekommen – ausliefern', 'Geldi – teslim et'],
   paketMarke: ['Paket', 'Paket'],
   fuerPaket: ['zum Paket', 'pakete'],
+  /*
+   * HIER STAND "das noch nicht bei Bora ist". Das galt, solange sich ein
+   * Paket in der Fertigung nicht mehr erweitern liess - seit das geht, waere
+   * es eine falsche Auskunft an der Stelle, an der entschieden wird.
+   */
   paketSatz: [
-    'Ein neues Paket, oder dazu in eines, das noch nicht bei Bora ist. Danach geht der gemeinsame Bestelltalon auf.',
-    'Yeni bir paket ya da henüz Bora’da olmayan bir pakete ekleme. Ardından ortak sipariş fişi açılır.',
+    'Ein neues Paket, oder dazu in ein bestehendes. Danach geht der gemeinsame Bestelltalon auf.',
+    'Yeni bir paket ya da mevcut bir pakete ekleme. Ardından ortak sipariş fişi açılır.',
   ],
   paketZiel: ['Wohin', 'Nereye'],
   paketNeu: ['Neues Paket', 'Yeni paket'],
@@ -411,6 +416,29 @@ const PAARE = {
     'Test ortamı – örnek veriler, giriş gerekmiyor.',
   ],
 
+  richtpreiseNeuRechnen: ['Richtpreis neu rechnen', 'Yaklaşık fiyatı yeniden hesapla'],
+  richtpreiseNeuAktiv: [
+    'Beim Speichern wird der Richtpreis durch die Rechnung von heute ersetzt. Für Aufträge, bei denen die Kundschaft nie eine Zahl gesehen hat.',
+    'Kaydederken yaklaşık fiyat bugünkü hesapla değiştirilir. Müşterinin hiç fiyat görmediği siparişler içindir.',
+  ],
+  richtpreiseAbweichendSatz: [
+    '{n} Netze tragen einen Richtpreis, der nicht dem entspricht, was der Rechner heute sagt. Bei von Hand erfassten Aufträgen ist das der getippte Preis – dann vergleicht er sich mit sich selbst.',
+    '{n} sineklikte, bugünkü hesapla örtüşmeyen bir yaklaşık fiyat var. Elle girilen siparişlerde bu, yazılan fiyatın kendisidir – yani kendisiyle karşılaştırılır.',
+  ],
+  knopfPreisAendern: ['Preis ändern', 'Fiyatı değiştir'],
+  preisAenderbarSatz: [
+    'Solange nicht bezahlt ist, lässt sich der Preis ändern – Mangel, Goodwill, Zusatzmaterial.',
+    'Ödeme yapılmadığı sürece fiyat değiştirilebilir – kusur, jest, ek malzeme.',
+  ],
+  preisGesperrtSatz: [
+    'Bezahlt – der Preis steht und lässt sich hier nicht mehr ändern.',
+    'Ödendi – fiyat kesinleşti, burada değiştirilemez.',
+  ],
+  paketBeiBora: ['in der Fertigung', 'üretimde'],
+  paketNachtragSatz: [
+    'Dieses Paket ist bei Bora. Ein Nachzügler braucht seine Zusage – und einen eigenen Talon, damit sie nicht zwei Listen für eine Sendung haben.',
+    'Bu paket Bora’da. Sonradan eklenen için onayı gerekir – ve tek sevkiyata iki liste düşmesin diye ayrı bir fiş.',
+  ],
   zTotalErloes: ['Total Erlös', 'Toplam gelir'],
   zTotalErloesSatz: [
     'alle festen Aufträge zum Verkaufspreis – ab der Zusage der Kundschaft',

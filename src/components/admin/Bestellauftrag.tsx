@@ -61,6 +61,14 @@ interface BestellauftragProps {
   art: Art
   /** Was oben rechts steht: die Referenz des Auftrags oder das Paket-Etikett. */
   nummer: string
+  /**
+   * Folgt dieses Blatt einer Sendung, die schon bestellt ist?
+   *
+   * Dann steht nur das Neue darauf, und es MUSS daraufstehen, dass das Alte
+   * nicht noch einmal gebaut werden soll. Ein zweites Blatt zur selben
+   * Sendung ohne diesen Satz ist eine Aufforderung, alles zu wiederholen.
+   */
+  nachtrag?: boolean
   onZurueck: () => void
 }
 
@@ -80,7 +88,7 @@ function netzZeile(n: AuftragsNetz, s: Sprache) {
   }
 }
 
-export function Bestellauftrag({ bestellungen, art, nummer, onZurueck }: BestellauftragProps) {
+export function Bestellauftrag({ bestellungen, art, nummer, nachtrag = false, onZurueck }: BestellauftragProps) {
   // Die Sprache des BLATTS. Sie hat mit der Sprache der Maske nichts zu tun:
   // Das Blatt geht in die Tuerkei, die Maske bedient, wer hier sitzt.
   const [sprache, setSprache] = useState<Sprache>('tuerkisch')
@@ -203,13 +211,25 @@ export function Bestellauftrag({ bestellungen, art, nummer, onZurueck }: Bestell
             <p className="blatt__zeile">
               {nummer && (
                 <strong>
-                  {w(TEXTE.sendung)} {nummer} ·{' '}
+                  {w(TEXTE.sendung)} {nummer}
+                  {/*
+                    DAS WORT GEHOERT DEM BLATT, nicht der Maske. Es stand
+                    zuerst im Etikett, das von aussen hereinkam - und damit
+                    auf Deutsch auf einem tuerkischen Blatt.
+                  */}
+                  {nachtrag ? ` · ${w(TEXTE.nachtrag)}` : ''} ·{' '}
                 </strong>
               )}
               {heute}
             </p>
           </div>
         </header>
+
+        {nachtrag && (
+          <section className="blatt__regeln blatt__regeln--nachtrag">
+            <p><strong>{w(TEXTE.nachtragSatz)}</strong></p>
+          </section>
+        )}
 
         <section className="blatt__regeln">
           <p>

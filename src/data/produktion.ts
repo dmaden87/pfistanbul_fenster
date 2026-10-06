@@ -237,6 +237,16 @@ export const TEXTE = {
    * ist.
    */
   sendung: { deutsch: 'Sendung', tuerkisch: 'Sevkiyat' },
+  /*
+   * Fuer ein Blatt, das einer Sendung FOLGT, die schon bestellt ist. Es steht
+   * in der Sprache des Blattes und nicht in der der Maske: Wer es liest,
+   * sitzt in Istanbul und hat die erste Liste schon vor sich.
+   */
+  nachtrag: { deutsch: 'Nachtrag', tuerkisch: 'Ek sipariş' },
+  nachtragSatz: {
+    deutsch: 'Nachtrag zu einer bereits bestellten Sendung. Nur die Netze auf diesem Blatt kommen dazu – die früher bestellten bitte NICHT noch einmal fertigen.',
+    tuerkisch: 'Daha önce sipariş edilmiş bir sevkiyata ektir. Yalnızca bu sayfadaki sineklikler eklenir – önceki siparişleri LÜTFEN tekrar üretmeyin.',
+  },
   /* Die interne Notiz eines Auftrags – Sonderwuensche, Fragen, Bemerkungen. */
   notizen: { deutsch: 'Bemerkungen und Sonderwünsche', tuerkisch: 'Notlar ve özel istekler' },
   terminOffen: { deutsch: 'Ungefährer Liefertermin', tuerkisch: 'Yaklaşık teslim tarihi' },

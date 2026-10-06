@@ -541,6 +541,16 @@ export interface BestellAenderung {
    * Oberflaeche hat die Liste ohnehin vollstaendig vor sich.
    */
   kosten?: KostenPosten[]
+  /**
+   * Erlaubt, den Richtpreis der Positionen zu ERSETZEN statt ihn zu bewahren.
+   *
+   * Nur zusammen mit `positionen`, und nur von einem eigenen Knopf aus. Der
+   * Richtpreis ist sonst unantastbar: Er ist die Zahl, die die Kundschaft
+   * gesehen hat. Bei einem von Hand erfassten Auftrag hat sie nie eine
+   * gesehen - dort steht der getippte Preis als sein eigener Vergleichswert,
+   * und das ist keiner.
+   */
+  richtpreiseNeu?: boolean
   /** Haelt die Bestellung aus der Erfolgsrechnung heraus. */
   ausserRechnung?: boolean
   /** true setzt den Zeitpunkt auf jetzt, false loescht ihn. */
