@@ -9,7 +9,7 @@ import {
   TABELLE_AUSLAGEN,
   TABELLE_AUSLAGEN_DEMO,
 } from './_speicher.js'
-import { demoModus } from './_demo.js'
+import { demoAuslagen, demoModus } from './_demo.js'
 import { angemeldet } from './_sitzung.js'
 
 /**
@@ -136,6 +136,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!darf(req)) return nichtAngemeldet(res)
 
     if (req.method === 'GET') {
+      /*
+       * In der Testumgebung beim ersten Aufruf die Beispiele einsetzen –
+       * gleiche Schonung wie bei den Bestellungen: Was jemand beim
+       * Durchklicken geaendert hat, bleibt stehen.
+       */
+      if (demoModus) {
+        const vorhanden = await hGetAll(TABELLE)
+        if (Object.keys(vorhanden).length === 0) {
+          for (const satz of demoAuslagen()) await hSet(TABELLE, String(satz.id), JSON.stringify(satz))
+        }
+      }
       const alle = await hGetAll(TABELLE)
       const liste: Auslage[] = []
       for (const wert of Object.values(alle)) {

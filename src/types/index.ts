@@ -535,6 +535,14 @@ export interface ZeilenHerkunft {
  */
 export interface BestellAenderung {
   status?: BestellStatus
+  /**
+   * Die Kostenposten der Buchhaltung, GANZ ODER GAR NICHT. Einzelne Posten
+   * nachzupflegen hiesse, beim Loeschen zu raten, was gemeint war - die
+   * Oberflaeche hat die Liste ohnehin vollstaendig vor sich.
+   */
+  kosten?: KostenPosten[]
+  /** Haelt die Bestellung aus der Erfolgsrechnung heraus. */
+  ausserRechnung?: boolean
   /** true setzt den Zeitpunkt auf jetzt, false loescht ihn. */
   ausgemessen?: boolean
   offerteVersendet?: boolean

@@ -29,6 +29,7 @@ const PAARE = {
   tuerkisch: ['Türkisch', 'Türkçe'],
   laedt: ['Wird geladen …', 'Yükleniyor …'],
   aktualisieren: ['Aktualisieren', 'Yenile'],
+  zahlen: ['Zahlen', 'Rakamlar'],
   abmelden: ['Abmelden', 'Çıkış'],
   zurSeite: ['Zur Seite', 'Siteye'],
   zurueckZurListe: ['Zurück zur Liste', 'Listeye dön'],

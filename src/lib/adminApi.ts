@@ -1,4 +1,4 @@
-import type { AdminStatus, Bestellung, BestellAenderung } from '../types'
+import type { AdminStatus, Auslage, Bestellung, BestellAenderung } from '../types'
 
 /**
  * Zugriff auf den Adminbereich. Alles läuft über /api/bestellungen; das
@@ -104,4 +104,55 @@ export async function erfasseBestellung(daten: Record<string, unknown>): Promise
  */
 export async function demoZuruecksetzen(): Promise<void> {
   await antwort(await fetch(`${PFAD}?aktion=demo-neu`, { method: 'POST', credentials: 'same-origin' }))
+}
+
+
+/* --- Auslagen --------------------------------------------------------------- */
+
+/**
+ * Die laufenden Betriebskosten ohne Bestellbezug. Eigener Endpunkt, gleiche
+ * Anmeldung: Wer die Bestellungen sehen darf, darf auch die Kosten sehen.
+ */
+const AUSLAGEN = '/api/auslagen'
+
+export async function ladeAuslagen(): Promise<Auslage[]> {
+  const daten = await antwort<{ auslagen?: Auslage[] }>(
+    await fetch(AUSLAGEN, { credentials: 'same-origin' }),
+  )
+  return daten.auslagen ?? []
+}
+
+export async function legeAuslageAn(auslage: Omit<Auslage, 'id' | 'erfasstAm'>): Promise<Auslage> {
+  const daten = await antwort<{ auslage: Auslage }>(
+    await fetch(AUSLAGEN, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(auslage),
+    }),
+  )
+  return daten.auslage
+}
+
+export async function aendereAuslage(id: string, aenderung: Partial<Auslage>): Promise<Auslage> {
+  const daten = await antwort<{ auslage: Auslage }>(
+    await fetch(AUSLAGEN, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ ...aenderung, id }),
+    }),
+  )
+  return daten.auslage
+}
+
+export async function entferneAuslage(id: string): Promise<void> {
+  await antwort(
+    await fetch(AUSLAGEN, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ id }),
+    }),
+  )
 }

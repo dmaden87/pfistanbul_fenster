@@ -285,5 +285,100 @@ export function demoSaat(): Record<string, unknown>[] {
       summeChf: 155,
       quelle: 'web',
     },
+
+    /*
+     * 7. und 8. ABGESCHLOSSEN – erst damit hat der Bereich "Zahlen" etwas zu
+     * rechnen. Ohne gelieferte Auftraege waere dort jede Tabelle leer, und
+     * man koennte die Erfolgsrechnung nicht ausprobieren.
+     *
+     * Die beiden unterscheiden sich in genau einem Punkt: Die eine ist
+     * bezahlt, die andere nicht. So steht links "eingenommen" und rechts
+     * "schuldet man uns", und man sieht, dass die Trennung wirkt.
+     */
+    {
+      id: 'demo-7',
+      referenz: 'PF-D007',
+      art: 'anfrage',
+      status: 'ausliefern',
+      eingang: tage(95),
+      geaendert: tage(60),
+      phaseSeit: tage(60),
+      ausgemessenAm: tage(88),
+      preiseFestgelegtAm: tage(80),
+      offerteAm: tage(80),
+      zusageAm: tage(75),
+      bestelltAm: tage(70),
+      versandAm: tage(66),
+      ausgeliefertAm: tage(62),
+      bezahltAm: tage(60),
+      kunde: kunde('Rolf Benz', 'r.benz@example.ch', '079 000 00 07', 'Seestrasse 14', '8606 Greifensee'),
+      positionen: [
+        netz('d7p1', 'Schlafzimmer', 128, 96, 150, 'mitte'),
+        netz('d7p2', 'Bad', 64, 96, 130, 'nach-oben'),
+      ],
+      montage: true,
+      montageChf: 30,
+      anfahrt: true,
+      anfahrtChf: 0,
+      rabatt: false,
+      zahlung: 'uebergabe',
+      zahlungswunsch: false,
+      summeChf: 310,
+      quelle: 'web',
+      paket: 'P-2026-01',
+      kosten: [
+        { id: 'd7k1', art: 'herstellung', betragChf: 52.9, traeger: 'bora', bezahlt: true, erfasstAm: tage(60) },
+        { id: 'd7k2', art: 'lieferung', betragChf: 24, traeger: 'bora', bezahlt: true, erfasstAm: tage(60) },
+        { id: 'd7k3', art: 'mwst', betragChf: 4.28, traeger: 'deniz', erfasstAm: tage(60) },
+      ],
+    },
+    {
+      id: 'demo-8',
+      referenz: 'PF-D008',
+      art: 'bestellung',
+      status: 'ausliefern',
+      eingang: tage(45),
+      geaendert: tage(18),
+      phaseSeit: tage(18),
+      preiseFestgelegtAm: tage(40),
+      offerteAm: tage(40),
+      zusageAm: tage(36),
+      bestelltAm: tage(32),
+      versandAm: tage(24),
+      ausgeliefertAm: tage(18),
+      kunde: kunde('Maria Keller', 'm.keller@example.ch', '079 000 00 08', 'Im Hagacker 3', '8606 Greifensee'),
+      positionen: [netz('d8p1', 'Balkontüre', 68, 203, 150, 'mitte')],
+      montage: true,
+      montageChf: 15,
+      anfahrt: true,
+      anfahrtChf: 20,
+      rabatt: true,
+      rabattChf: 10,
+      rabattText: 'Kennenlernrabatt',
+      zahlung: 'uebergabe',
+      zahlungswunsch: false,
+      summeChf: 175,
+      quelle: 'web',
+      paket: 'P-2026-01',
+    },
+  ]
+}
+
+/**
+ * Beispiele fuer die laufenden Betriebskosten.
+ *
+ * Drei Eintraege reichen: einer bezahlt, zwei offen, zwei verschiedene
+ * Traeger. Damit zeigt die Tabelle "wem wir was schulden" etwas, und man
+ * sieht, dass die Spalte nicht nur Zierat ist.
+ */
+export function demoAuslagen(): Record<string, unknown>[] {
+  const tag = (zurueck: number) => new Date(Date.now() - zurueck * 86400000).toISOString().slice(0, 10)
+  return [
+    { id: 'demo-al-1', am: tag(70), bezeichnung: 'Musterbuch drucken', kategorie: 'marketing',
+      betragChf: 148.5, traeger: 'deniz', erfasstAm: new Date(Date.now() - 70 * 86400000).toISOString() },
+    { id: 'demo-al-2', am: tag(40), bezeichnung: 'Aufkleber für die Schienen', kategorie: 'material',
+      betragChf: 62, traeger: 'ufuk', erfasstAm: new Date(Date.now() - 40 * 86400000).toISOString() },
+    { id: 'demo-al-3', am: tag(12), bezeichnung: 'Domain und Hosting', kategorie: 'infrastruktur',
+      betragChf: 38.4, traeger: 'deniz', bezahlt: true, erfasstAm: new Date(Date.now() - 12 * 86400000).toISOString() },
   ]
 }

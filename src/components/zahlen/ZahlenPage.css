@@ -1,0 +1,346 @@
+/*
+ * Der Bereich "Zahlen". Klassische Tabellen, ein paar Kennzahlen – hier wird
+ * gerechnet, nicht geworben. Farben und Masse kommen wie ueberall aus
+ * tokens.css.
+ */
+
+.zahlen {
+  background: var(--bg-alt);
+}
+
+.zahlen__kopf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.zahlen__kopfknoepfe {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.zahlen__demo {
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--highlight-soft);
+  color: var(--highlight-ink);
+  font-size: var(--step--1);
+}
+
+/* --- Kennzahlen ------------------------------------------------------------ */
+
+.kennzahlen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.kennzahl {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.kennzahl__titel {
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+
+.kennzahl__wert {
+  font-family: var(--font-display);
+  font-size: var(--step-3);
+  line-height: 1.1;
+  color: var(--accent-ink);
+  /* Zahlen sollen untereinander stehen, auch wenn die Ziffern verschieden breit sind. */
+  font-variant-numeric: tabular-nums;
+}
+
+.kennzahl__zusatz {
+  font-size: var(--step--2);
+  color: var(--text-muted);
+}
+
+/* --- Bloecke und Tabellen --------------------------------------------------- */
+
+.zahlen__block {
+  margin-top: var(--space-9);
+  /* Ohne das waechst die Rasterzelle mit der Tabelle und die Seite scrollt
+     seitlich – derselbe Fall wie im Adminbereich. */
+  min-width: 0;
+}
+
+.zahlen__blockkopf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.zahlen__schalter {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.zahlen__tabelle {
+  width: 100%;
+  margin-top: var(--space-4);
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: var(--step--1);
+  font-variant-numeric: tabular-nums;
+}
+
+.zahlen__tabelle--schmal {
+  max-width: 32rem;
+}
+
+.zahlen__tabelle th,
+.zahlen__tabelle td {
+  padding: var(--space-3);
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.zahlen__tabelle thead th {
+  font-size: var(--step--2);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+  font-weight: 600;
+}
+
+.zahlen__tabelle tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.zahlen__zahl {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/*
+ * Paketnamen wie "P-2026-01" brachen am Bindestrich auf drei Zeilen um und
+ * zogen die Zeile unnoetig in die Hoehe. Auf dem Telefon darf das wieder
+ * umbrechen - dort ist die Zelle eine eigene Zeile.
+ */
+@media (min-width: 52.01rem) {
+  .zahlen__tabelle td[data-titel='Paket'] {
+    white-space: nowrap;
+  }
+}
+
+.zahlen__klein {
+  display: block;
+  font-size: var(--step--2);
+  color: var(--text-subtle);
+}
+
+.zahlen__hinweis {
+  margin-top: var(--space-3);
+  font-size: var(--step--2);
+  color: var(--text-muted);
+  max-width: 70ch;
+}
+
+.zahlen__zweispaltig {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: var(--space-6);
+}
+
+.zahlen__aus {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-left: var(--space-2);
+  font-size: var(--step--2);
+  color: var(--text-subtle);
+}
+
+.zahlen__editor {
+  margin-top: var(--space-5);
+  padding: var(--space-5);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+}
+
+.zahlen__editor h3 {
+  font-size: var(--step-1);
+}
+
+/* --- Kosteneditor ----------------------------------------------------------- */
+
+.kosten__tabelle {
+  width: 100%;
+  margin-top: var(--space-4);
+  border-collapse: collapse;
+  font-size: var(--step--1);
+}
+
+.kosten__tabelle th,
+.kosten__tabelle td {
+  padding: var(--space-2) var(--space-3) var(--space-2) 0;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.kosten__tabelle thead th {
+  font-size: var(--step--2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-subtle);
+}
+
+/*
+ * EINE KLASSE REICHT HIER NICHT: `.input` aus base.css setzt width:100% und
+ * wird spaeter gebuendelt – bei gleicher Spezifitaet gewinnt die spaetere
+ * Regel. Derselbe Fall wie im Angebot des Adminbereichs.
+ */
+.kosten__tabelle .kosten__betrag,
+.auslage__form .auslage__betrag {
+  width: 7rem;
+}
+
+.kosten__tabelle .kosten__wer {
+  width: 8rem;
+}
+
+.kosten__tabelle .kosten__text {
+  width: 100%;
+  min-width: 8rem;
+}
+
+.kosten__marke {
+  display: inline-block;
+  margin-left: var(--space-2);
+  padding: 0.1em 0.45em;
+  border-radius: var(--radius-xs);
+  background: var(--highlight-soft);
+  color: var(--highlight-ink);
+  font-size: var(--step--2);
+  white-space: nowrap;
+}
+
+.kosten__fuss,
+.kosten__knoepfe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.kosten__summe {
+  font-size: var(--step--1);
+  color: var(--text-muted);
+}
+
+/* --- Auslagenformular -------------------------------------------------------- */
+
+.auslage__form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.auslage__form .input {
+  width: auto;
+}
+
+.auslage__form .auslage__text {
+  flex: 1 1 14rem;
+  min-width: 10rem;
+}
+
+/* --- Auf dem Telefon --------------------------------------------------------- */
+
+@media (max-width: 52rem) {
+  /*
+   * Tabellen werden zu Karten: Der Kopf verschwindet, und jede Zelle traegt
+   * ihre Beschriftung selbst (data-titel). Nur so bleibt eine neunspaltige
+   * Tabelle auf einem Telefon lesbar, ohne seitlich zu scrollen.
+   */
+  .zahlen__tabelle thead,
+  .kosten__tabelle thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .zahlen__tabelle,
+  .zahlen__tabelle tbody,
+  .zahlen__tabelle tr,
+  .zahlen__tabelle td,
+  .kosten__tabelle,
+  .kosten__tabelle tbody,
+  .kosten__tabelle tr,
+  .kosten__tabelle td {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .zahlen__tabelle tr,
+  .kosten__tabelle tr {
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .zahlen__tabelle td,
+  .kosten__tabelle td {
+    border-bottom: none;
+    padding: var(--space-1) var(--space-3);
+  }
+
+  .zahlen__tabelle td[data-titel],
+  .kosten__tabelle td[data-titel] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    text-align: right;
+  }
+
+  .zahlen__tabelle td[data-titel]::before,
+  .kosten__tabelle td[data-titel]::before {
+    content: attr(data-titel);
+    flex: 0 0 auto;
+    text-align: left;
+    font-size: var(--step--2);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-subtle);
+  }
+
+  .auslage__form .input,
+  .auslage__form .btn {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+}
+
+/* Eine Trennlinie mitten in der Abrechnung: Darueber wird gerechnet, darunter
+   steht das Ergebnis. Ohne sie liest sich die Tabelle als eine lange Liste. */
+.zahlen__tabelle tr.zahlen__strich td {
+  border-top: 2px solid var(--border-strong);
+}

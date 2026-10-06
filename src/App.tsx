@@ -19,6 +19,7 @@ import { Faq } from './components/sections/Faq'
 import { ClosingCta } from './components/sections/ClosingCta'
 import { LegalPage } from './components/sections/LegalPage'
 import { AdminPage } from './components/admin/AdminPage'
+import { ZahlenPage } from './components/zahlen/ZahlenPage'
 import { Siedlungen } from './components/sections/Siedlungen'
 import { Analytics } from '@vercel/analytics/react'
 import { pfadFuerSeite, seiteAusPfad, setzeKopfdaten } from './lib/adresse'
@@ -31,6 +32,7 @@ type View =
   | { name: 'siedlungen' }
   | { name: 'checkout' }
   | { name: 'admin' }
+  | { name: 'zahlen' }
   | { name: 'legal'; page: LegalKey }
   | { name: 'zahlung'; status: 'ok' | 'abbruch'; reference: string }
 
@@ -224,7 +226,8 @@ export default function App() {
           />
         )}
 
-        {view.name === 'admin' && <AdminPage onBack={goToShop} />}
+        {view.name === 'admin' && <AdminPage onBack={goToShop} onOpenZahlen={() => gehe({ name: 'zahlen' })} />}
+        {view.name === 'zahlen' && <ZahlenPage onBack={() => gehe({ name: 'admin' })} />}
       </main>
 
       <Footer

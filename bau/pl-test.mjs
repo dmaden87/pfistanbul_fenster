@@ -322,5 +322,33 @@ pruefe('die Anfahrt gehoert zur Arbeit, nicht zur Ware', () => {
   assert.equal(a.anteile.bora, 150 * 0.2, 'Bora bekommt nichts von der Anfahrt')
 })
 
+pruefe('ein Topf im Minus wird nicht verteilt', () => {
+  /*
+   * Ohne diese Regel stand in der Anzeige "Bora -10.02" - das sieht aus,
+   * als schuldete Bora uns Geld. In Wahrheit ist nur noch nichts zu
+   * verteilen. Der Topf bleibt negativ, die Anteile nicht.
+   */
+  const b = best({ ausgeliefertAm: '2026-03-01', bezahltAm: '2026-03-02' })
+  const a = aufteilung([b], [auslage({ betragChf: 900, traeger: 'deniz' })])
+  assert.ok(a.warengewinnChf < 0, 'der Topf zeigt die Lage')
+  assert.equal(a.anteile.bora, 0)
+  assert.equal(a.anteile.ufuk, 0)
+  assert.equal(a.anteile.deniz, 0)
+  assert.equal(a.verteilbarChf, 0)
+})
+
+pruefe('die Abrechnung weist Erloese und Kosten einzeln aus', () => {
+  const b = best({
+    ausgeliefertAm: '2026-03-01', bezahltAm: '2026-03-02', montageChf: 30, anfahrtChf: 20,
+    kosten: [{ id: 'k', art: 'herstellung', betragChf: 40, traeger: 'bora', erfasstAm: 'x' },
+             { id: 'k2', art: 'mwst', betragChf: 3.24, traeger: 'bora', erfasstAm: 'x' }],
+  })
+  const a = aufteilung([b], [])
+  assert.equal(a.warenerloesChf, 150)
+  assert.equal(a.montageerloesChf, 50)
+  assert.equal(a.warenkostenChf, 43.24)
+  assert.equal(a.einkassiertChf, 200)
+})
+
 console.log(`\n${bestanden}/${bestanden + fehler.length} bestanden`)
 if (fehler.length > 0) process.exit(1)

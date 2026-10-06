@@ -23,6 +23,11 @@ import './AdminPage.css'
 
 interface AdminPageProps {
   onBack: () => void
+  /**
+   * Weiter in den Bereich "Zahlen". Der Adminbereich ist das Verkaufs-CRM
+   * und nennt nur Erloese; Einkauf, Marge und offene Posten stehen nebenan.
+   */
+  onOpenZahlen: () => void
 }
 
 /**
@@ -99,7 +104,7 @@ export function AdminPage(props: AdminPageProps) {
   )
 }
 
-function AdminMaske({ onBack }: AdminPageProps) {
+function AdminMaske({ onBack, onOpenZahlen }: AdminPageProps) {
   const [status, setStatus] = useState<AdminStatus | null>(null)
   const [bestellungen, setBestellungen] = useState<Bestellung[]>([])
   const [passwort, setPasswort] = useState('')
@@ -420,6 +425,9 @@ function AdminMaske({ onBack }: AdminPageProps) {
                 TR
               </button>
             </div>
+            <button type="button" className="btn btn--ghost" onClick={onOpenZahlen}>
+              {t.zahlen}
+            </button>
             <button type="button" className="btn" onClick={() => setErfassen((e) => !e)}>
               {erfassen ? t.erfassenSchliessen : t.bestellungErfassen}
             </button>

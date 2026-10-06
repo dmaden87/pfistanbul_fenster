@@ -322,8 +322,16 @@ export function offeneSchulden(bestellungen: Bestellung[], auslagen: Auslage[]):
 export interface Aufteilung {
   /** Was tatsaechlich eingegangen ist – nur das laesst sich verteilen. */
   einkassiertChf: number
-  /** Offene Auslagen, die zuerst zurueckgehen. */
+  /** Davon aus der Ware, nach Rabatt. */
+  warenerloesChf: number
+  /** Davon aus Montage und Anfahrt – unsere eigene Arbeit. */
+  montageerloesChf: number
+  /** Die Kosten der bezahlten Auftraege. */
+  warenkostenChf: number
+  betriebskostenChf: number
+  /** Offene Auslagen, die zuerst an die zurueckgehen, die sie getragen haben. */
   rueckzahlungChf: number
+  /** Die zwei Toepfe. Koennen negativ sein – dann ist nichts zu verteilen. */
   warengewinnChf: number
   montagegewinnChf: number
   verteilbarChf: number
@@ -367,18 +375,35 @@ export function aufteilung(bestellungen: Bestellung[], auslagen: Auslage[]): Auf
   const warengewinnChf = runde2(warenerloesChf - warenkostenChf - (aufWare ? betriebskostenChf : 0))
   const montagegewinnChf = runde2(montageerloesChf - (aufWare ? 0 : betriebskostenChf))
 
+  /*
+   * EIN TOPF IM MINUS WIRD NICHT VERTEILT.
+   *
+   * Beim ersten Durchlauf stand hier nichts davon, und die Anzeige las sich
+   * so: "Bora −10.02". Das sieht aus, als schuldete Bora uns Geld. In
+   * Wahrheit ist nur noch nichts zu verteilen – die Betriebskosten sind
+   * groesser als der Gewinn der bisher bezahlten Auftraege. Ein Minus ist
+   * eine Lage, kein Anteil.
+   *
+   * Der Topf selbst bleibt negativ stehen: Das ist die Wahrheit, und sie
+   * gehoert angezeigt. Nur die Anteile werden bei null abgeschnitten.
+   */
   const anteile: Record<Beteiligter, number> = { bora: 0, ufuk: 0, deniz: 0 }
+  const ware = Math.max(0, warengewinnChf)
+  const montage = Math.max(0, montagegewinnChf)
   for (const wer of ['bora', 'ufuk', 'deniz'] as Beteiligter[]) {
-    anteile[wer] = runde2(
-      warengewinnChf * schluessel.ware[wer] + montagegewinnChf * schluessel.montage[wer])
+    anteile[wer] = runde2(ware * schluessel.ware[wer] + montage * schluessel.montage[wer])
   }
 
   return {
     einkassiertChf,
+    warenerloesChf,
+    montageerloesChf,
+    warenkostenChf,
+    betriebskostenChf,
     rueckzahlungChf,
     warengewinnChf,
     montagegewinnChf,
-    verteilbarChf: runde2(warengewinnChf + montagegewinnChf),
+    verteilbarChf: runde2(ware + montage),
     anteile,
   }
 }
