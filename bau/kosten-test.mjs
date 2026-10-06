@@ -15,18 +15,26 @@ function pruefe(name, bedingung, hinweis = '') {
   else { schlecht += 1; console.log(`FEHL  ${name}${hinweis ? ' – ' + hinweis : ''}`) }
 }
 
-/* Breite cm, Hoehe cm, Preis EUR – von Bora, Oktober 2026. */
+/*
+ * Breite cm, Hoehe cm, Preis EUR – von Bora, Oktober 2026.
+ *
+ * MASSE SO GENAU, WIE SIE VORLIEGEN. Das groesste Netz stand zuerst als
+ * 128 x 182 hier und ist seither auf den Millimeter nachgetragen: 128.6 x
+ * 182.5. Sechs Millimeter aendern den Preis um keinen Rappen – sie aendern
+ * aber, was dieser Test prueft, und ein gerundetes Mass neben einem echten
+ * Preis sieht aus wie eine Messung und ist eine Erinnerung.
+ */
 const MESSPUNKTE = [
-  [68, 203, 36], [128, 182, 42], [128, 96, 30], [64, 96, 22],
+  [68, 203, 36], [128.6, 182.5, 42], [128, 96, 30], [64, 96, 22],
   [160.5, 122, 37], [117, 82, 27], [72, 122, 27],
 ]
 
 /*
  * DIE TOLERANZ IST DAS EIGENTLICHE VERSPRECHEN. Eine Formel, die "ungefaehr"
  * stimmt, ist wertlos, wenn niemand sagt, wie ungefaehr. Groesste gemessene
- * Abweichung war 0.76 EUR; 1.00 laesst etwas Luft, ohne eine schlechtere
- * Formel durchzulassen. Mit dem Flaechenmodell (Abweichung bis 3.94) ginge
- * dieser Test rot – genau so soll es sein.
+ * Abweichung ist 0.76 EUR (160.5 x 122); 1.00 laesst etwas Luft, ohne eine
+ * schlechtere Formel durchzulassen. Mit dem Flaechenmodell (Abweichung bis
+ * 3.97) ginge dieser Test rot – genau so soll es sein.
  */
 const TOLERANZ_EUR = 1.0
 

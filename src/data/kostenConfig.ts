@@ -16,12 +16,20 @@ import type { Beteiligter } from '../types'
  * sprechen deutlich:
  *
  *   Modell                    R²      mittlere Abweichung   groesste
- *   nur Flaeche              -0.11          6.60 EUR         8.67 EUR
- *   Sockel + Flaeche          0.93          1.25 EUR         3.94 EUR
- *   Sockel + Umfang           0.995         0.39 EUR         0.76 EUR
+ *   nur Flaeche              -0.14          6.66 EUR         8.76 EUR
+ *   Sockel + Flaeche          0.93          1.26 EUR         3.97 EUR
+ *   Sockel + Umfang           1.00          0.36 EUR         0.69 EUR
  *
  * In der Kreuzpruefung (jedes Netz einmal weglassen und vorhersagen) liegt
- * das Umfangsmodell bei 0.57 EUR Fehler, das Flaechenmodell bei 1.72 EUR.
+ * das Umfangsmodell bei 0.54 EUR Fehler, das Flaechenmodell bei 1.72 EUR.
+ *
+ * DIE ROHE GERADE LAEUFT AUF 1.74 + 6.36, hier stehen 1.60 + 6.40. Der
+ * Unterschied betraegt auf dem schlechtesten Punkt 0.07 EUR und liegt damit
+ * weit unter dem, was Bora selbst rundet – er nennt ganze Euro. Die
+ * glatteren Zahlen nachzufuehren hiesse, jede Kostenschaetzung im ganzen
+ * Werkzeug um Rappen zu verschieben, ohne dass irgendetwas genauer wuerde.
+ * Wandert die Gerade einmal weiter, faellt es in bau/kosten-test.mjs auf:
+ * Dort ist eine Toleranz von 1.00 EUR hinterlegt.
  *
  * Das passt zur Sache: Rahmen, Schiene, Buerstendichtung und der plissierte
  * Gewebestreifen gehen nach laufendem Meter. Das Gewebe selbst ist das
@@ -32,6 +40,12 @@ import type { Beteiligter } from '../types'
  * Die sieben Messpunkte stehen in bau/kosten-test.mjs und pruefen diese
  * Formel bei jedem Durchlauf nach. Kommen neue Preise von Bora, gehoeren sie
  * dort hinein, und die Formel wird neu gerechnet.
+ *
+ * WAS DIESEN SIEBEN FEHLT, IST DIE GROESSE. Sie decken 3.20 bis 6.22 Meter
+ * Umfang ab – ein Netz von 250 x 250 cm hat zehn Meter. Alles darueber ist
+ * Hochrechnung, beim Einkauf wie beim Verkaufspreis in src/lib/estimate.ts.
+ * Ein einziger echter Preis fuer ein grosses Netz waere hier mehr wert als
+ * drei weitere mittlere.
  */
 export const kostenConfig = {
   /** Sockelbetrag je Netz in Euro, unabhaengig von der Groesse. */
