@@ -2,14 +2,17 @@ import { useState } from 'react'
 import type { Auslage, AuslagenKategorie, Beteiligter } from '../../types'
 import { beteiligte } from '../../data/kostenConfig'
 import { formatChf } from '../../lib/format'
+import type { Warenkosten } from '../../lib/pl'
 import { fuelle, useSprache } from '../admin/sprache'
 
 /**
- * Die laufenden Betriebskosten: Werbung, Server, Material, Fahrten.
+ * Die Kostenseite: zuerst die Netzkosten, dann die laufenden Auslagen.
  *
- * Was zu einer Bestellung gehoert, steht dort als Kostenposten und nicht
- * hier – sonst stuende dasselbe Geld an zwei Stellen und die Marge waere
- * zweimal belastet.
+ * DIE NETZKOSTEN STEHEN OBEN, GERECHNET. Sie gehoeren zu den Auftraegen und
+ * werden nirgends eingetippt – wer sie hier von Hand erfasste, haette
+ * dasselbe Geld an zwei Stellen und eine zweimal belastete Marge. Von Hand
+ * kommt nur, was zu keinem Auftrag gehoert: Werbung, Server, Material,
+ * Fahrten.
  */
 
 const KATEGORIEN: AuslagenKategorie[] =
@@ -21,12 +24,14 @@ const heute = () => new Date().toISOString().slice(0, 10)
 
 interface Props {
   auslagen: Auslage[]
+  /** Die gerechneten Warenkosten der festen Auftraege – nur zum Anzeigen. */
+  netzkosten: Warenkosten
   onAnlegen: (a: Omit<Auslage, 'id' | 'erfasstAm'>) => Promise<void>
   onAendern: (id: string, teil: Partial<Auslage>) => Promise<void>
   onEntfernen: (id: string) => Promise<void>
 }
 
-export function AuslagenListe({ auslagen, onAnlegen, onAendern, onEntfernen }: Props) {
+export function AuslagenListe({ auslagen, netzkosten, onAnlegen, onAendern, onEntfernen }: Props) {
   const { t } = useSprache()
   const TITEL: Record<AuslagenKategorie, string> = {
     marketing: t.zMarketing,
@@ -63,7 +68,45 @@ export function AuslagenListe({ auslagen, onAnlegen, onAendern, onEntfernen }: P
   return (
     <div className="zahlen__block">
       <h2>{t.zBetriebskostenTitel}</h2>
+
+      <div className="zahlen__rollen"><table className="zahlen__tabelle zahlen__tabelle--schmal">
+        <tbody>
+          <tr>
+            <td>{t.zHerstellung}</td>
+            <td className="zahlen__zahl">{formatChf(netzkosten.herstellungChf)}</td>
+          </tr>
+          <tr>
+            <td>{t.zLieferkosten}</td>
+            <td className="zahlen__zahl">{formatChf(netzkosten.lieferungChf)}</td>
+          </tr>
+          <tr>
+            <td>{t.zEinfuhrsteuer}</td>
+            <td className="zahlen__zahl">{formatChf(netzkosten.mwstChf)}</td>
+          </tr>
+          {netzkosten.weitereChf > 0 && (
+            <tr>
+              <td>{t.zWeitereKosten}</td>
+              <td className="zahlen__zahl">{formatChf(netzkosten.weitereChf)}</td>
+            </tr>
+          )}
+          <tr className="zahlen__strich">
+            <td><strong>{t.zNetzkosten}</strong></td>
+            <td className="zahlen__zahl"><strong>{formatChf(netzkosten.summeChf)}</strong></td>
+          </tr>
+          <tr>
+            <td>{t.zDavonOffen}</td>
+            <td className="zahlen__zahl">{formatChf(netzkosten.offenChf)}</td>
+          </tr>
+        </tbody>
+      </table></div>
       <p className="zahlen__hinweis">
+        {fuelle(t.zNetzkostenSatz, { n: netzkosten.auftraege })}
+      </p>
+
+      <h3 className="zahlen__unterkopf">{t.zWeitereKosten}</h3>
+      <p className="zahlen__hinweis">
+        {t.zManuell}
+        {' '}
         {fuelle(t.zBetriebskostenSatz, {
           n: auslagen.length, summe: formatChf(summe), offen: formatChf(offen),
         })}
@@ -105,7 +148,7 @@ export function AuslagenListe({ auslagen, onAnlegen, onAendern, onEntfernen }: P
       {fehler && <p className="form-status form-status--error">{fehler}</p>}
 
       {auslagen.length > 0 && (
-        <table className="zahlen__tabelle">
+        <div className="zahlen__rollen"><table className="zahlen__tabelle">
           <thead>
             <tr>
               <th>{t.zDatum}</th>
@@ -141,7 +184,7 @@ export function AuslagenListe({ auslagen, onAnlegen, onAendern, onEntfernen }: P
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
     </div>
   )

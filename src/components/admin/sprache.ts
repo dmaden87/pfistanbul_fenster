@@ -451,13 +451,13 @@ const PAARE = {
   zBezahltHilfe: ['Schon geflossen.', 'Çoktan ödendi.'],
   zCredit: ['Credit', 'Borç'],
   zCreditHilfe: [
-    'Erfasst und noch offen – das schulden wir Bora oder uns selbst.',
-    'Kaydedildi ve hâlâ açık – Bora’ya veya kendimize borçluyuz.',
+    'Noch offen – das schulden wir Bora oder uns selbst. Bezahlt und Credit ergeben zusammen die Total Kosten.',
+    'Henüz açık – Bora’ya veya kendimize borçluyuz. Ödendi ve borç birlikte toplam maliyeti verir.',
   ],
   zOhneBeleg: ['Ohne Beleg', 'Belgesiz'],
   zOhneBelegHilfe: [
-    'Aus der Formel gerechnet, noch kein Posten erfasst – deshalb ohne Stand.',
-    'Formülle hesaplandı, henüz kalem girilmedi – bu yüzden durumu yok.',
+    'Kein erfasster Posten dahinter, der Betrag kommt aus der Formel oder aus einer alten Lieferrunde. Steckt in Credit mit drin – keine dritte Summe.',
+    'Arkasında kayıtlı kalem yok; tutar formülden veya eski bir sevkiyattan geliyor. Borç içinde yer alır – üçüncü bir toplam değil.',
   ],
 
   zFunnel: ['Funnel', 'Funnel'],
@@ -525,29 +525,31 @@ const PAARE = {
   zPosten: ['Posten', 'Kalem'],
   zBetrag: ['Betrag', 'Tutar'],
 
-  zAbrechnung: [
-    'Abrechnung, wenn man heute abrechnen würde',
-    'Bugün hesaplaşılsa ne çıkardı',
-  ],
-  zEinkassiertWare: ['Einkassiert, aus der Ware', 'Tahsil edilen, maldan'],
+  zAbrechnung: ['Abrechnung', 'Hesaplaşma'],
+  /*
+   * NICHT MEHR "EINKASSIERT". Die Abrechnung nimmt alle festen Auftraege,
+   * nicht nur die bezahlten - sonst zeigte sie auf der echten Datenlage
+   * nichts an. Die Namen sind mitgewandert.
+   */
+  zEinkassiertWare: ['Erlös aus der Ware', 'Maldan gelen'],
   zEinkassiertMontage: [
-    'Einkassiert, aus Montage und Anfahrt',
-    'Tahsil edilen, montaj ve yoldan',
+    'Erlös aus Montage und Anfahrt',
+    'Montaj ve yoldan gelen',
   ],
   zWarenkostenDieser: ['Warenkosten dieser Aufträge', 'Bu siparişlerin mal maliyeti'],
   zTopfWare: ['Topf Ware', 'Mal havuzu'],
   zTopfMontage: ['Topf Montage und Anfahrt', 'Montaj ve yol havuzu'],
   zNichtsZuVerteilen: [
-    'Noch nichts zu verteilen. Die Kosten sind grösser als das, was bisher eingegangen ist – ein Topf im Minus wird nicht ausgeschüttet.',
-    'Dağıtılacak bir şey yok. Maliyetler şimdiye kadar gelenden büyük – eksideki havuz dağıtılmaz.',
+    'Noch nichts zu verteilen. Die offenen Kosten sind grösser als der Erlös – ein Topf im Minus wird nicht ausgeschüttet.',
+    'Dağıtılacak bir şey yok. Açık maliyetler gelirden büyük – eksideki havuz dağıtılmaz.',
   ],
   zZuerstZurueck: [
     'Zuerst gehen {betrag} an die zurück, die sie ausgelegt haben – siehe „Wem wir was schulden“.',
     'Önce {betrag} tutarı, parayı yatıranlara geri gider – bkz. „Kime ne borçluyuz“.',
   ],
   zVerteilungSatz: [
-    'Verteilt wird nur, was wirklich eingegangen ist. Die Ware geht 20 / 40 / 40 an Bora, Ufuk und Deniz, Montage und Anfahrt zur Hälfte an Ufuk und Deniz. Kurs {kurs} CHF/EUR, Einfuhrsteuer {steuer} % auf dem Warenwert.',
-    'Yalnızca gerçekten gelen para dağıtılır. Mal 20 / 40 / 40 oranında Bora, Ufuk ve Deniz’e; montaj ve yol yarı yarıya Ufuk ve Deniz’e. Kur {kurs} CHF/EUR, ithalat vergisi mal değeri üzerinden %{steuer}.',
+    'Die Ware geht 20 / 40 / 40 an Bora, Ufuk und Deniz, Montage und Anfahrt zur Hälfte an Ufuk und Deniz. Kurs {kurs} CHF/EUR, Einfuhrsteuer {steuer} % auf dem Warenwert.',
+    'Mal 20 / 40 / 40 oranında Bora, Ufuk ve Deniz’e; montaj ve yol yarı yarıya Ufuk ve Deniz’e. Kur {kurs} CHF/EUR, ithalat vergisi mal değeri üzerinden %{steuer}.',
   ],
 
   /* --- Kosteneditor und Betriebskosten ------------------------------------ */
@@ -572,6 +574,35 @@ const PAARE = {
   zEinfuhrsteuer: ['Einfuhrsteuer', 'İthalat vergisi'],
 
   zBetriebskostenTitel: ['Betriebskosten', 'İşletme giderleri'],
+  zNetzkosten: ['Netzkosten aus den festen Aufträgen', 'Kesin siparişlerin sineklik maliyeti'],
+  zNetzkostenSatz: [
+    'Automatisch gerechnet aus {n} festen Aufträgen, ab der Zusage der Kundschaft – nichts davon wird hier erfasst.',
+    'Müşteri onayından itibaren {n} kesin siparişten otomatik hesaplandı – burada hiçbiri elle girilmez.',
+  ],
+  zDavonOffen: ['davon offen', 'bunun açık kısmı'],
+  zManuell: [
+    'Von Hand erfasst wird nur, was zu keinem Auftrag gehört: Marketing, Infrastruktur, Material, Fahrten.',
+    'Elle yalnızca hiçbir siparişe ait olmayanlar girilir: pazarlama, altyapı, malzeme, yol.',
+  ],
+  zNetzeUndAuftraege: ['Netze und Aufträge', 'Sineklik ve sipariş'],
+  zNetzeUndAuftraegeSatz: [
+    'Netze aus {auftraege} Aufträgen und Anfragen zusammen',
+    'Toplam {auftraege} sipariş ve talepten gelen sineklikler',
+  ],
+  zNetzeSpalte: ['Netze', 'Sineklik'],
+  zFest: ['Fest', 'Kesin'],
+  zStueckSatz: ['{a} Aufträge · {n} Netze', '{a} sipariş · {n} sineklik'],
+  zStueckSatzFunnel: ['{a} Anfragen · {n} Netze', '{a} talep · {n} sineklik'],
+  zBezahltFrage: ['bezahlt', 'ödendi'],
+  zAusgeglichen: ['ausgeglichen', 'kapatıldı'],
+  zGerechnet: ['nicht erfasst', 'kayıtlı değil'],
+  zRueckzahlung: ['Rückzahlung', 'Geri ödeme'],
+  zAnteil: ['Anteil', 'Pay'],
+  zZusammenSpalte: ['Zusammen', 'Toplam'],
+  zAbrechnungSatz: [
+    'Stand heute: Alle festen Aufträge sind verrechnet, alle offenen Auslagen zurückbezahlt. Was jemand schon ausgeglichen hat, steht nicht mehr darin – darum die Häkchen oben.',
+    'Bugün itibarıyla: tüm kesin siparişler hesaplanmış, açık masraflar geri ödenmiş sayılır. Daha önce kapatılanlar burada görünmez – yukarıdaki işaretler bunun içindir.',
+  ],
   zBetriebskostenSatz: [
     '{n} Einträge, zusammen {summe} – davon {offen} noch nicht zurückbezahlt.',
     '{n} kayıt, toplam {summe} – bunun {offen} tutarı henüz geri ödenmedi.',

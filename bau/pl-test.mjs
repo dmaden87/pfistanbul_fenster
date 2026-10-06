@@ -9,7 +9,7 @@
 import assert from 'node:assert/strict'
 import {
   inRechnung, imFunnel, zaehltPhase, zahlenFuer, abschnitte, forecast, kennzahlen,
-  offeneForderungen, offeneSchulden, aufteilung,
+  kostenPosten, warenkosten, offeneForderungen, offeneSchulden, aufteilung,
 } from '../src/lib/pl.ts'
 import { herstellungChf } from '../src/lib/kosten.ts'
 
@@ -103,7 +103,7 @@ pruefe('ein ausgenommener Auftrag faellt aus allen Auswertungen', () => {
   assert.equal(abschnitte([b], [], 'total').length, 0, 'keine Periode')
   assert.equal(offeneForderungen([b]).length, 0)
   assert.equal(offeneSchulden([b], []).length, 0)
-  assert.equal(aufteilung([b], []).einkassiertChf, 0)
+  assert.equal(aufteilung([b], []).erloesChf, 0)
 })
 
 /* --- Der Erloes, aufgeteilt ------------------------------------------------ */
@@ -372,11 +372,15 @@ pruefe('Total Kosten zeigt, wie viel davon noch zu bezahlen ist', () => {
   assert.equal(k.ohneBelegChf, 0, 'alles ist erfasst')
 })
 
-pruefe('die drei Teile der Kosten ergeben zusammen den Gesamtbetrag', () => {
+pruefe('bezahlt und offen ergeben zusammen die Gesamtkosten', () => {
   /*
-   * DAS IST DIE EIGENTLICHE ZUSAGE DIESER KACHEL. Ohne den dritten Teil
-   * ("ohne Beleg") blieb eine Differenz stehen, die aussieht wie ein
-   * Rechenfehler - dabei ist es die Schaetzung aus der Formel.
+   * DAS IST DIE EIGENTLICHE ZUSAGE DIESER KACHEL. Wer "Total Kosten" liest
+   * und darunter zwei Teilsummen sieht, muss sie addieren koennen.
+   *
+   * Gerechnete Posten sind KEIN dritter Teil. Sie stehen beim Standardtraeger
+   * offen, also stecken sie in "Credit" mit drin; ein eigener Summand waere
+   * doppelt gezaehlt. (Bis die gerechneten Posten offen standen, war es
+   * anders - der Test hat den Umbau mitgemacht.)
    */
   const erfasst = best({ id: 'e', status: 'ausliefern', ausgeliefertAm: '2026-03-01',
     kosten: [{ id: 'k', art: 'herstellung', betragChf: 30, traeger: 'bora', bezahlt: true, erfasstAm: 'x' },
@@ -385,9 +389,10 @@ pruefe('die drei Teile der Kosten ergeben zusammen den Gesamtbetrag', () => {
   const gerechnet = best({ id: 'g', status: 'bora', zusageAm: '2026-03-01' })
   const k = kennzahlen([erfasst, gerechnet], [auslage({ betragChf: 20 }), auslage({ id: 'a2', betragChf: 15, bezahlt: true })])
 
-  assert.equal(runde(k.bezahltKostenChf + k.creditChf + k.ohneBelegChf), k.kostenChf,
-    `${k.bezahltKostenChf} + ${k.creditChf} + ${k.ohneBelegChf} ist nicht ${k.kostenChf}`)
+  assert.equal(runde(k.bezahltKostenChf + k.creditChf), k.kostenChf,
+    `${k.bezahltKostenChf} + ${k.creditChf} ist nicht ${k.kostenChf}`)
   assert.ok(k.ohneBelegChf > 0, 'der gerechnete Auftrag hat keinen Beleg')
+  assert.ok(k.ohneBelegChf <= k.creditChf, 'Gerechnetes steht offen, also steckt es in Credit')
   assert.equal(k.bezahltKostenChf, 45, '30 Ware plus 15 Auslage')
 })
 
@@ -438,13 +443,94 @@ pruefe('ein ausgenommener Auftrag steht auch nicht im Funnel', () => {
   assert.equal(forecast([best({ status: 'offerte', ausserRechnung: true })]).length, 0)
 })
 
+/* --- Die gerechneten Warenkosten ------------------------------------------- */
+
+pruefe('die Warenkosten der festen Auftraege stehen nach Art getrennt', () => {
+  /*
+   * DIESE SUMME WIRD NIE EINGETIPPT. Unter den Betriebskosten stand bisher
+   * nur, was jemand von Hand erfasst hatte - und die Netze fehlten dort,
+   * obwohl sie der groesste Posten sind.
+   */
+  const fest = best({ id: 'f', status: 'bora', zusageAm: '2026-02-01',
+    kosten: [
+      { id: 'k1', art: 'herstellung', betragChf: 60, traeger: 'bora', erfasstAm: 'x' },
+      { id: 'k2', art: 'lieferung', betragChf: 20, traeger: 'bora', erfasstAm: 'x' },
+      { id: 'k3', art: 'mwst', betragChf: 4.86, traeger: 'bora', bezahlt: true, erfasstAm: 'x' },
+      { id: 'k4', art: 'weiteres', bezeichnung: 'Dübel', betragChf: 7, traeger: 'deniz', erfasstAm: 'x' },
+    ] })
+  const w = warenkosten([fest, best({ id: 'n', status: 'offerte' })])
+  assert.equal(w.auftraege, 1, 'der Funnel gehoert nicht dazu')
+  assert.equal(w.herstellungChf, 60)
+  assert.equal(w.lieferungChf, 20)
+  assert.equal(w.mwstChf, 4.86)
+  assert.equal(w.weitereChf, 7)
+  assert.equal(w.summeChf, 91.86)
+  assert.equal(w.offenChf, 87, 'die bezahlte Einfuhrsteuer steht nicht mehr offen')
+})
+
+pruefe('die Warenkosten stimmen mit der Kennzahl ueberein', () => {
+  /*
+   * ZWEI WEGE ZUR GLEICHEN ZAHL, und sie muessen sich treffen: Die Kachel
+   * oben summiert ueber `zahlenFuer`, der Block unten ueber `kostenPosten`.
+   * Liefen sie auseinander, stuende dasselbe Geld zweimal verschieden da.
+   */
+  const liste = [
+    best({ id: 'a', status: 'bora', zusageAm: '2026-02-01' }),
+    best({ id: 'b', status: 'ausliefern', ausgeliefertAm: '2026-03-01',
+      positionen: [netz(128, 96, 180), netz(64, 96, 120)] }),
+  ]
+  assert.equal(warenkosten(liste).summeChf, kennzahlen(liste, []).warenkostenChf)
+})
+
+pruefe('Netze und Auftraege stehen in Stueck da, fest und im Funnel getrennt', () => {
+  const liste = [
+    best({ id: 'f', status: 'bora', zusageAm: '2026-02-01', positionen: [netz(100, 100, 150), netz(80, 60, 130)] }),
+    best({ id: 'n', status: 'offerte', positionen: [netz(100, 100, 150)] }),
+  ]
+  const k = kennzahlen(liste, [])
+  assert.equal(k.auftraegeAnzahl, 1)
+  assert.equal(k.auftraegeNetze, 2)
+  assert.equal(k.funnelAnzahl, 1)
+  assert.equal(k.funnelNetze, 1)
+})
+
+pruefe('ein erfasster Posten schreibt den gerechneten fest, ohne die Summe zu bewegen', () => {
+  /*
+   * DAS MACHT DAS HAEKCHEN IN DER OBERFLAECHE: Es legt den nicht erfassten
+   * Posten mit DERSELBEN KENNUNG und demselben Betrag an und setzt ihn auf
+   * bezahlt. Waere die Summe danach eine andere, verschoebe ein Haken die
+   * Erfolgsrechnung.
+   */
+  const vorher = best({ status: 'bora', zusageAm: '2026-02-01' })
+  const posten = kostenPosten(vorher)
+  const nachher = best({
+    status: 'bora', zusageAm: '2026-02-01',
+    kosten: posten.map((k) => ({
+      id: k.id, art: k.art, betragChf: k.betragChf, traeger: k.traeger,
+      bezahlt: true, erfasstAm: 'x',
+    })),
+  })
+  assert.equal(zahlenFuer(nachher).kostenChf, zahlenFuer(vorher).kostenChf, 'gleiche Summe')
+  assert.equal(offeneSchulden([vorher], []).length, 1)
+  assert.equal(offeneSchulden([nachher], []).length, 0, 'abgehakt, also nicht mehr offen')
+  assert.equal(zahlenFuer(nachher).geschaetzt, false, 'jetzt steht ein Beleg dahinter')
+})
+
 /* --- Offene Posten --------------------------------------------------------- */
 
-pruefe('wer uns was schuldet: geliefert und nicht bezahlt', () => {
+pruefe('wer uns was schuldet: jeder feste Auftrag, der nicht bezahlt ist', () => {
+  /*
+   * NICHT ERST AB DER AUSLIEFERUNG. Zuerst stand `realisiert` als Bedingung,
+   * und die Liste blieb auf der echten Datenlage leer: fest waren mehrere
+   * Auftraege, geliefert noch keiner. Ob die Ware schon steht, sagt eine
+   * Spalte - es entscheidet nicht, ob der Betrag aussteht.
+   */
   const liste = offeneForderungen([geliefert, zugesagt])
-  assert.equal(liste.length, 1, 'Zugesagtes schuldet noch niemand')
-  assert.equal(liste[0].bestellungId, 'g')
+  assert.equal(liste.length, 2, 'auch das Zugesagte steht aus')
+  assert.deepEqual(liste.map((f) => f.bestellungId), ['g', 'z'], 'nach Datum')
   assert.equal(liste[0].betragChf, 150)
+  assert.equal(liste[0].geliefert, true)
+  assert.equal(liste[1].geliefert, false, 'zugesagt, aber noch nicht geliefert')
 })
 
 pruefe('bezahlte Bestellungen stehen nicht mehr offen', () => {
@@ -462,14 +548,59 @@ pruefe('wem wir was schulden, je Traeger zusammengefasst', () => {
   const liste = offeneSchulden([b], [auslage({ betragChf: 40, traeger: 'deniz' })])
   assert.equal(liste.length, 2)
   assert.equal(liste[0].traeger, 'bora')
-  assert.equal(liste[0].betragChf, 80)
+  /* 60 Herstellung, 20 Lieferung und die gerechnete Einfuhrsteuer auf die 60. */
+  assert.equal(liste[0].betragChf, runde(80 + 60 * 0.081))
+  assert.equal(liste[0].posten.length, 3)
+  assert.deepEqual(liste[0].posten.map((p) => p.erfasst), [true, true, false])
   assert.equal(liste[1].traeger, 'deniz')
   assert.equal(liste[1].betragChf, 47)
   assert.equal(liste[1].posten.length, 2)
 })
 
+pruefe('gerechnete Kosten schulden wir auch, ohne dass sie erfasst sind', () => {
+  /*
+   * DAS WAR DER FEHLER AUF DEN ECHTEN DATEN: "Wem wir was schulden" blieb
+   * leer, obwohl Bora die Netze und die Fracht laengst ausgelegt hatte -
+   * weil niemand die Betraege eingetippt hatte. Sie ergeben sich aus dem
+   * Auftrag, und bis jemand "ausgeglichen" setzt, stehen sie offen.
+   */
+  const b = best({ status: 'bora', zusageAm: '2026-02-01', positionen: [netz(100, 100, 150)] })
+  const liste = offeneSchulden([b], [])
+  assert.equal(liste.length, 1)
+  assert.equal(liste[0].traeger, 'bora', 'Netze und Fracht legt Bora aus')
+  const ware = herstellungChf(100, 100)
+  assert.equal(liste[0].posten.find((p) => p.art === 'herstellung').betragChf, ware)
+  assert.equal(liste[0].betragChf, runde(liste[0].posten.reduce((x, p) => x + p.betragChf, 0)))
+  assert.ok(liste[0].betragChf > ware, 'die Einfuhrsteuer kommt dazu')
+  assert.ok(liste[0].posten.every((p) => !p.erfasst), 'nichts davon ist erfasst')
+  assert.ok(liste[0].posten.every((p) => p.postenId.length > 0), 'jeder Posten ist einzeln abhakbar')
+})
+
+pruefe('jeder Posten hat seine eigene Kennung, auch mehrere "Weiteres"', () => {
+  /*
+   * Wer nach der ART abhakt, setzt alle "Weiteres" eines Auftrags zugleich
+   * auf bezahlt. Darum fuehrt jeder Posten seine Kennung mit.
+   */
+  const b = best({
+    kosten: [
+      { id: 'w1', art: 'weiteres', bezeichnung: 'Dübel', betragChf: 7, traeger: 'deniz', erfasstAm: 'x' },
+      { id: 'w2', art: 'weiteres', bezeichnung: 'Fahrt', betragChf: 9, traeger: 'deniz', erfasstAm: 'x' },
+    ],
+  })
+  const [s] = offeneSchulden([b], []).filter((x) => x.traeger === 'deniz')
+  assert.deepEqual(s.posten.map((p) => p.postenId), ['w1', 'w2'])
+})
+
 pruefe('bezahlte Posten schulden wir nicht mehr', () => {
-  const b = best({ kosten: [{ id: 'k1', art: 'herstellung', betragChf: 60, traeger: 'bora', bezahlt: true, erfasstAm: 'x' }] })
+  /*
+   * Die Einfuhrsteuer muss hier MIT ERFASST sein. Sonst rechnet sie sich aus
+   * der Ware und bleibt offen stehen - richtig so, aber nicht, was dieser
+   * Test misst.
+   */
+  const b = best({ kosten: [
+    { id: 'k1', art: 'herstellung', betragChf: 60, traeger: 'bora', bezahlt: true, erfasstAm: 'x' },
+    { id: 'k2', art: 'mwst', betragChf: 4.86, traeger: 'bora', bezahlt: true, erfasstAm: 'x' },
+  ] })
   assert.equal(offeneSchulden([b], []).length, 0)
 })
 
@@ -480,19 +611,26 @@ pruefe('Kosten einer Bestellung vor der Zusage schulden wir noch nicht', () => {
 
 /* --- Abrechnung ------------------------------------------------------------ */
 
-pruefe('verteilt wird nur, was einkassiert ist', () => {
+pruefe('die Abrechnung nimmt alle festen Auftraege, nicht nur die bezahlten', () => {
+  /*
+   * ZUERST STAND HIER DAS GEGENTEIL - und auf den echten Daten zeigte die
+   * Abrechnung schlicht nichts an, weil noch kein Kunde gezahlt hatte. Die
+   * Frage lautet: Wenn heute alles beglichen waere, was bliebe und wer
+   * bekaeme was? Dass eine Zahlung noch aussteht, verschiebt den Zeitpunkt,
+   * nicht die Summe.
+   */
   const offen = best({ id: 'o', ausgeliefertAm: '2026-03-01' })
   const bezahlt = best({ id: 'p', ausgeliefertAm: '2026-03-01', bezahltAm: '2026-03-02' })
   const a = aufteilung([offen, bezahlt], [])
-  assert.equal(a.einkassiertChf, 150, 'die offene Bestellung bleibt draussen')
+  assert.equal(a.erloesChf, 300, 'beide zaehlen')
 })
 
 pruefe('zwei Toepfe: Bora an der Ware, die Montage unter Ufuk und Deniz', () => {
   const b = best({
     ausgeliefertAm: '2026-03-01', bezahltAm: '2026-03-02',
     positionen: [netz(100, 100, 200)], montageChf: 100,
-    kosten: [{ id: 'k', art: 'herstellung', betragChf: 100, traeger: 'bora', bezahlt: true, erfasstAm: 'x' },
-             { id: 'k2', art: 'mwst', betragChf: 0, traeger: 'bora', bezahlt: true, erfasstAm: 'x' }],
+    kosten: [{ id: 'k', art: 'herstellung', betragChf: 100, traeger: 'bora', erfasstAm: 'x' },
+             { id: 'k2', art: 'mwst', betragChf: 0, traeger: 'bora', erfasstAm: 'x' }],
   })
   const a = aufteilung([b], [])
   assert.equal(a.warengewinnChf, 100, '200 Warenerloes minus 100 Kosten')
@@ -501,12 +639,40 @@ pruefe('zwei Toepfe: Bora an der Ware, die Montage unter Ufuk und Deniz', () => 
   assert.equal(a.anteile.ufuk, 40 + 50)
   assert.equal(a.anteile.deniz, 40 + 50)
   assert.equal(a.anteile.bora + a.anteile.ufuk + a.anteile.deniz, a.verteilbarChf)
+  /* Die ausgelegten 100 gehen zuerst an Bora zurueck, erst dann der Anteil. */
+  assert.equal(a.rueckzahlung.bora, 100)
+  assert.equal(a.summe.bora, 120)
+  assert.equal(a.summe.ufuk, 90, 'Ufuk hat nichts ausgelegt')
+})
+
+pruefe('ausgeglichene Kosten fallen aus der Abrechnung heraus', () => {
+  /*
+   * DIE LOGIK DER GANZEN SICHT: Kosten hat Bora, Ufuk oder Deniz. Sobald sie
+   * beglichen sind, gehen sie weder noch einmal zurueck noch druecken sie
+   * den Topf ein zweites Mal.
+   */
+  const posten = (bezahlt) => [
+    { id: 'k', art: 'herstellung', betragChf: 100, traeger: 'bora', erfasstAm: 'x', ...(bezahlt ? { bezahlt } : {}) },
+    { id: 'k2', art: 'mwst', betragChf: 0, traeger: 'bora', erfasstAm: 'x', ...(bezahlt ? { bezahlt } : {}) },
+  ]
+  const grund = { ausgeliefertAm: '2026-03-01', positionen: [netz(100, 100, 200)] }
+  const offen = aufteilung([best({ ...grund, kosten: posten(false) })], [])
+  const quitt = aufteilung([best({ ...grund, kosten: posten(true) })], [])
+  assert.equal(offen.warenkostenChf, 100)
+  assert.equal(quitt.warenkostenChf, 0, 'beglichen, also nicht mehr hier')
+  assert.equal(quitt.rueckzahlung.bora, 0)
+  assert.equal(quitt.warengewinnChf, 200, 'der ganze Warenerloes ist verteilbar')
+  assert.equal(quitt.anteile.bora, 40)
 })
 
 pruefe('offene Auslagen gehen vor der Verteilung zurueck', () => {
   const b = best({ ausgeliefertAm: '2026-03-01', bezahltAm: '2026-03-02' })
   const a = aufteilung([b], [auslage({ betragChf: 40, traeger: 'deniz' })])
-  assert.equal(a.rueckzahlungChf, 40)
+  assert.equal(a.betriebskostenChf, 40)
+  assert.equal(a.rueckzahlung.deniz, 40)
+  /* Dazu die gerechneten Netzkosten, die bei Bora offen stehen. */
+  assert.ok(a.rueckzahlung.bora > 0, 'Boras Auslage zaehlt mit')
+  assert.equal(a.rueckzahlungChf, runde(a.warenkostenChf + 40))
 })
 
 pruefe('die Anfahrt gehoert zur Arbeit, nicht zur Ware', () => {
@@ -545,7 +711,7 @@ pruefe('die Abrechnung weist Erloese und Kosten einzeln aus', () => {
   assert.equal(a.warenerloesChf, 150)
   assert.equal(a.montageerloesChf, 50)
   assert.equal(a.warenkostenChf, 43.24)
-  assert.equal(a.einkassiertChf, 200)
+  assert.equal(a.erloesChf, 200)
 })
 
 console.log(`\n${bestanden}/${bestanden + fehler.length} bestanden`)

@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
-import type { AdminStatus, Auslage, Bestellung, KostenPosten } from '../../types'
+import { Fragment, useCallback, useEffect, useState } from 'react'
+import type {
+  AdminStatus, Auslage, Bestellung, Beteiligter, KostenArt, KostenPosten,
+} from '../../types'
 import {
   adminStatus, aendereAuslage, aendereBestellung, anmelden,
   entferneAuslage, ladeAuslagen, ladeBestellungen, legeAuslageAn,
@@ -8,7 +10,7 @@ import { beteiligte, kostenConfig } from '../../data/kostenConfig'
 import { formatChf } from '../../lib/format'
 import {
   abschnitte, aufteilung, forecast, kennzahlen, offeneForderungen, offeneSchulden,
-  zaehltPhase, zahlenFuer, type Periode,
+  warenkosten, zaehltPhase, zahlenFuer, type Periode, type SchuldPosten,
 } from '../../lib/pl'
 import { KostenEditor } from './KostenEditor'
 import { AuslagenListe } from './AuslagenListe'
@@ -63,6 +65,18 @@ function ZahlenMaske({ onBack }: Props) {
   const [sendet, setSendet] = useState(false)
   const [periode, setPeriode] = useState<Periode>('ytd')
   const [offenerEditor, setOffenerEditor] = useState<string | null>(null)
+
+  /*
+   * Die festen Kostenarten heissen hier, nicht in src/lib/pl.ts: Dort stuende
+   * deutscher Text, der auch in der tuerkischen Ansicht deutsch bliebe.
+   */
+  const KOSTENTITEL: Record<KostenArt | 'auslage', string> = {
+    herstellung: t.zHerstellung,
+    lieferung: t.zLieferkosten,
+    mwst: t.zEinfuhrsteuer,
+    weiteres: t.zWeitereKosten,
+    auslage: t.zBetriebskosten,
+  }
 
   const laden = useCallback(async () => {
     setLaedt(true)
@@ -146,6 +160,7 @@ function ZahlenMaske({ onBack }: Props) {
   const forderungen = offeneForderungen(bestellungen)
   const schulden = offeneSchulden(bestellungen, auslagen)
   const teilung = aufteilung(bestellungen, auslagen)
+  const netzkosten = warenkosten(bestellungen)
 
   /* Sendungen: die Pakete, wie sie zu Bora gegangen sind. */
   const pakete = new Map<string, {
@@ -166,6 +181,47 @@ function ZahlenMaske({ onBack }: Props) {
   const kostenSpeichern = async (id: string, kosten: KostenPosten[]) => {
     const neu = await aendereBestellung(id, { kosten })
     setBestellungen((liste) => liste.map((b) => (b.id === id ? neu : b)))
+  }
+
+  /* Ein Haekchen bei "Wer uns was schuldet": Das Geld ist eingegangen. */
+  const einkassiert = async (id: string, ja: boolean) => {
+    const neu = await aendereBestellung(id, { bezahlt: ja })
+    setBestellungen((liste) => liste.map((b) => (b.id === id ? neu : b)))
+  }
+
+  /*
+   * Ein Haekchen bei "Wem wir was schulden": Der Posten ist ausgeglichen.
+   *
+   * NICHT ERFASSTE POSTEN WERDEN DABEI FESTGESCHRIEBEN. Was aus der Formel
+   * oder aus einem alten Feld kommt, steht in keiner Liste, also gibt es daran
+   * auch nichts abzuhaken - das Haekchen legt den Posten mit demselben Betrag
+   * und derselben Kennung an und setzt ihn auf bezahlt. So bleibt die Summe
+   * gleich und der Stand haelt.
+   */
+  const ausgleichen = async (traeger: Beteiligter, posten: SchuldPosten, ja: boolean) => {
+    if (posten.auslageId) {
+      const neu = await aendereAuslage(posten.auslageId, { bezahlt: ja })
+      setAuslagen((l) => l.map((x) => (x.id === posten.auslageId ? neu : x)))
+      return
+    }
+    const b = bestellungen.find((x) => x.id === posten.bestellungId)
+    if (!b || posten.art === 'auslage') return
+    const vorhanden = (b.kosten ?? []).some((k) => k.id === posten.postenId)
+    const kosten: KostenPosten[] = vorhanden
+      ? (b.kosten ?? []).map((k) => (k.id === posten.postenId ? { ...k, bezahlt: ja } : k))
+      : [
+          ...(b.kosten ?? []),
+          {
+            id: posten.postenId,
+            art: posten.art,
+            betragChf: posten.betragChf,
+            traeger,
+            bezahlt: ja,
+            am: posten.am.slice(0, 10),
+            erfasstAm: new Date().toISOString(),
+          },
+        ]
+    await kostenSpeichern(b.id, kosten)
   }
 
   return (
@@ -255,6 +311,28 @@ function ZahlenMaske({ onBack }: Props) {
             <dl className="kennzahl__teile">
               <div><dt>{t.zKosten}</dt><dd>{formatChf(k.funnelKostenChf)}</dd></div>
               <div><dt>{t.zMarge}</dt><dd>{formatChf(k.funnelMargeChf)}</dd></div>
+            </dl>
+          </div>
+
+          {/*
+            STUECK, NICHT FRANKEN. Alle anderen Kacheln zeigen Geld; wie viele
+            Netze dahinterstehen, stand bisher nur in den Tabellen verstreut.
+          */}
+          <div className="kennzahl">
+            <span className="kennzahl__titel">{t.zNetzeUndAuftraege}</span>
+            <strong className="kennzahl__wert">{k.auftraegeNetze + k.funnelNetze}</strong>
+            <span className="kennzahl__zusatz">
+              {fuelle(t.zNetzeUndAuftraegeSatz, { auftraege: k.auftraegeAnzahl + k.funnelAnzahl })}
+            </span>
+            <dl className="kennzahl__teile">
+              <div>
+                <dt>{t.zFest}</dt>
+                <dd>{fuelle(t.zStueckSatz, { a: k.auftraegeAnzahl, n: k.auftraegeNetze })}</dd>
+              </div>
+              <div>
+                <dt>{t.zFunnel}</dt>
+                <dd>{fuelle(t.zStueckSatzFunnel, { a: k.funnelAnzahl, n: k.funnelNetze })}</dd>
+              </div>
             </dl>
           </div>
         </div>
@@ -505,6 +583,7 @@ function ZahlenMaske({ onBack }: Props) {
         {/* --- Betriebskosten ------------------------------------------------ */}
         <AuslagenListe
           auslagen={auslagen}
+          netzkosten={netzkosten}
           onAnlegen={async (a) => { const neu = await legeAuslageAn(a); setAuslagen((l) => [neu, ...l]) }}
           onAendern={async (id, teil) => {
             const neu = await aendereAuslage(id, teil)
@@ -514,20 +593,48 @@ function ZahlenMaske({ onBack }: Props) {
         />
 
         {/* --- Offene Posten ------------------------------------------------- */}
+        {/*
+          HIER WIRD AUSGEGLICHEN, und nur hier. Die Haekchen sind keine
+          Anzeigeschalter: Ein Haken heisst "das Geld ist geflossen". Dadurch
+          faellt die Zeile aus dieser Liste UND aus der Abrechnung unten
+          heraus - das ist genau die Steuerung, die gewuenscht war. Was
+          gerechnet ist und noch nie erfasst wurde, wird beim Haken
+          festgeschrieben; siehe `ausgleichen` weiter oben.
+        */}
         <div className="zahlen__block zahlen__zweispaltig">
           <div>
             <h2>{t.zSchuldetUns}</h2>
             {forderungen.length === 0 ? <p className="zahlen__hinweis">{t.zNichtsOffen}</p> : (
               <div className="zahlen__rollen"><table className="zahlen__tabelle">
-                <thead><tr><th>{t.zAuftrag}</th><th>{t.zGeliefert}</th><th className="zahlen__zahl">{t.zBetrag}</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>{t.zAuftrag}</th>
+                    <th>{t.zDatum}</th>
+                    <th>{t.zGeliefert}</th>
+                    <th className="zahlen__zahl">{t.zBetrag}</th>
+                    <th>{t.zBezahltFrage}</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {forderungen.map((f) => (
                     <tr key={f.bestellungId}>
                       <td data-titel={t.zAuftrag}>{f.kunde}</td>
-                      <td data-titel={t.zGeliefert}>{f.seit.slice(0, 10)}</td>
+                      <td data-titel={t.zDatum}>{f.seit.slice(0, 10)}</td>
+                      <td data-titel={t.zGeliefert}>{f.geliefert ? '✓' : '–'}</td>
                       <td data-titel={t.zBetrag} className="zahlen__zahl">{formatChf(f.betragChf)}</td>
+                      <td data-titel={t.zBezahltFrage}>
+                        <input type="checkbox" checked={false} aria-label={t.zBezahltFrage}
+                          onChange={() => void einkassiert(f.bestellungId, true)} />
+                      </td>
                     </tr>
                   ))}
+                  <tr className="zahlen__strich">
+                    <td colSpan={3}><strong>{t.zZusammen}</strong></td>
+                    <td className="zahlen__zahl">
+                      <strong>{formatChf(forderungen.reduce((x, f) => x + f.betragChf, 0))}</strong>
+                    </td>
+                    <td />
+                  </tr>
                 </tbody>
               </table></div>
             )}
@@ -536,14 +643,43 @@ function ZahlenMaske({ onBack }: Props) {
             <h2>{t.zSchuldenWir}</h2>
             {schulden.length === 0 ? <p className="zahlen__hinweis">{t.zNichtsOffen}</p> : (
               <div className="zahlen__rollen"><table className="zahlen__tabelle">
-                <thead><tr><th>{t.zWer}</th><th className="zahlen__zahl">{t.zPosten}</th><th className="zahlen__zahl">{t.zBetrag}</th></tr></thead>
+                <thead>
+                  <tr>
+                    {/*
+                      KEINE DATUMSSPALTE. Daneben muss das Kaestchen stehen,
+                      und in der halben Seitenbreite ging es sonst rechts
+                      hinaus - sichtbar erst im Messbild, nicht im Kopf.
+                    */}
+                    <th>{t.zPosten}</th>
+                    <th className="zahlen__zahl">{t.zBetrag}</th>
+                    <th>{t.zAusgeglichen}</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  {schulden.map((s) => (
-                    <tr key={s.traeger}>
-                      <td data-titel={t.zWer}>{beteiligte[s.traeger]}</td>
-                      <td data-titel={t.zPosten} className="zahlen__zahl">{s.posten.length}</td>
-                      <td data-titel={t.zBetrag} className="zahlen__zahl">{formatChf(s.betragChf)}</td>
-                    </tr>
+                  {schulden.map((sch) => (
+                    <Fragment key={sch.traeger}>
+                      <tr className="zahlen__strich">
+                        <td><strong>{beteiligte[sch.traeger]}</strong></td>
+                        <td className="zahlen__zahl"><strong>{formatChf(sch.betragChf)}</strong></td>
+                        <td />
+                      </tr>
+                      {sch.posten.map((p) => (
+                        <tr key={p.postenId}>
+                          <td data-titel={t.zPosten}>
+                            {p.bezeichnung ?? KOSTENTITEL[p.art]}
+                            {!p.erfasst && <span className="kosten__marke">{t.zGerechnet}</span>}
+                            <span className="zahlen__klein">
+                              {p.kunde ? `${p.kunde} · ${p.am.slice(0, 10)}` : p.am.slice(0, 10)}
+                            </span>
+                          </td>
+                          <td data-titel={t.zBetrag} className="zahlen__zahl">{formatChf(p.betragChf)}</td>
+                          <td data-titel={t.zAusgeglichen}>
+                            <input type="checkbox" checked={false} aria-label={t.zAusgeglichen}
+                              onChange={() => void ausgleichen(sch.traeger, p, true)} />
+                          </td>
+                        </tr>
+                      ))}
+                    </Fragment>
                   ))}
                 </tbody>
               </table></div>
@@ -554,6 +690,7 @@ function ZahlenMaske({ onBack }: Props) {
         {/* --- Abrechnung ---------------------------------------------------- */}
         <div className="zahlen__block">
           <h2>{t.zAbrechnung}</h2>
+          <p className="zahlen__hinweis">{t.zAbrechnungSatz}</p>
           <div className="zahlen__rollen"><table className="zahlen__tabelle zahlen__tabelle--schmal">
             <tbody>
               <tr>
@@ -580,14 +717,49 @@ function ZahlenMaske({ onBack }: Props) {
                 <td>{t.zTopfMontage}</td>
                 <td className="zahlen__zahl">{formatChf(teilung.montagegewinnChf)}</td>
               </tr>
-              {(['bora', 'ufuk', 'deniz'] as const).map((wer) => (
-                <tr key={wer} className={wer === 'bora' ? 'zahlen__strich' : undefined}>
-                  <td><strong>{beteiligte[wer]}</strong></td>
-                  <td className="zahlen__zahl"><strong>{formatChf(teilung.anteile[wer])}</strong></td>
-                </tr>
-              ))}
             </tbody>
           </table></div>
+
+          {/*
+            DREI SPALTEN, NICHT EINE. Wer etwas ausgelegt hat, bekommt es
+            zuerst zurueck; erst was danach bleibt, wird verteilt. Stand nur
+            der Anteil da, las sich die Zeile als sei das alles, was fliesst.
+          */}
+          <div className="zahlen__rollen"><table className="zahlen__tabelle zahlen__tabelle--schmal">
+            <thead>
+              <tr>
+                <th>{t.zWer}</th>
+                <th className="zahlen__zahl">{t.zRueckzahlung}</th>
+                <th className="zahlen__zahl">{t.zAnteil}</th>
+                <th className="zahlen__zahl">{t.zZusammenSpalte}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(['bora', 'ufuk', 'deniz'] as const).map((wer) => (
+                <tr key={wer}>
+                  <td data-titel={t.zWer}>{beteiligte[wer]}</td>
+                  <td data-titel={t.zRueckzahlung} className="zahlen__zahl">
+                    {formatChf(teilung.rueckzahlung[wer])}
+                  </td>
+                  <td data-titel={t.zAnteil} className="zahlen__zahl">
+                    {formatChf(teilung.anteile[wer])}
+                  </td>
+                  <td data-titel={t.zZusammenSpalte} className="zahlen__zahl">
+                    <strong>{formatChf(teilung.summe[wer])}</strong>
+                  </td>
+                </tr>
+              ))}
+              <tr className="zahlen__strich">
+                <td><strong>{t.zZusammen}</strong></td>
+                <td className="zahlen__zahl"><strong>{formatChf(teilung.rueckzahlungChf)}</strong></td>
+                <td className="zahlen__zahl"><strong>{formatChf(teilung.verteilbarChf)}</strong></td>
+                <td className="zahlen__zahl">
+                  <strong>{formatChf(teilung.rueckzahlungChf + teilung.verteilbarChf)}</strong>
+                </td>
+              </tr>
+            </tbody>
+          </table></div>
+
           {teilung.verteilbarChf === 0 && (
             <p className="zahlen__hinweis">
               {t.zNichtsZuVerteilen}

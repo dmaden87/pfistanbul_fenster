@@ -1,7 +1,7 @@
 import type { Auslage, Beteiligter, Bestellung, KostenArt, KostenPosten } from '../types'
 import { einfuhrsteuerChf, herstellungFuer } from './kosten'
 import { montageBetrag } from '../components/admin/hilfen'
-import { verteilung as schluessel } from '../data/kostenConfig'
+import { standardTraeger, verteilung as schluessel } from '../data/kostenConfig'
 
 /**
  * Die Erfolgsrechnung: was hereinkommt, was hinausgeht, was bleibt.
@@ -115,12 +115,97 @@ export interface BestellZahlen {
   netzZahl: number
 }
 
-/** Summe der erfassten Posten einer Art. `undefined`, wenn es keine gibt. */
-function erfasst(kosten: KostenPosten[] | undefined, art: KostenArt): number | undefined {
-  if (!kosten) return undefined
-  const treffer = kosten.filter((k) => k.art === art)
-  if (treffer.length === 0) return undefined
-  return runde2(treffer.reduce((s, k) => s + k.betragChf, 0))
+/**
+ * Ein Kostenposten, wie die Auswertung ihn sieht – erfasst oder nicht.
+ *
+ * ZWEI FLAGGEN, DIE NICHT DASSELBE SAGEN, auch wenn sie meist zusammen
+ * auftreten:
+ *
+ * `erfasst` heisst, dass ein Kostenposten dahintersteht, den jemand
+ * eingetragen hat. Nur daran laesst sich "bezahlt" ablesen; was nicht
+ * erfasst ist, steht beim Standardtraeger offen, denn bestaetigt hat es
+ * niemand.
+ *
+ * `geschaetzt` heisst, dass der BETRAG aus einer Formel kommt. Ein alter
+ * Einkaufspreis aus einer Lieferrunde ist nicht erfasst und trotzdem
+ * gemessen – Bora hat ihn genannt. Diese Unterscheidung ist einmal
+ * verlorengegangen, und damit galten gemessene Preise als Schaetzung.
+ */
+export interface EffektiverPosten {
+  id: string
+  art: KostenArt
+  bezeichnung?: string
+  betragChf: number
+  traeger: Beteiligter
+  bezahlt: boolean
+  erfasst: boolean
+  geschaetzt: boolean
+}
+
+/**
+ * Die Kosten eines Auftrags, vollstaendig – ERFASSTES UND GERECHNETES.
+ *
+ * DAS IST DER KERN DER GANZEN SICHT. Niemand soll die Netzkosten von Hand
+ * eintippen muessen: Sobald die Kundschaft zugesagt hat, stehen Herstellung,
+ * Fracht und Einfuhrsteuer fest genug, um sie zu rechnen – und sie stehen
+ * bei dem offen, der sie auslegt. Von Hand erfasst wird nur, was davon
+ * abweicht, und was gar nichts mit einem Auftrag zu tun hat.
+ */
+export function kostenPosten(b: Bestellung): EffektiverPosten[] {
+  const raus: EffektiverPosten[] = []
+  const vorhanden = (art: KostenArt) => (b.kosten ?? []).filter((k) => k.art === art)
+
+  const uebernehmen = (k: KostenPosten) => raus.push({
+    id: k.id,
+    art: k.art,
+    ...(k.bezeichnung ? { bezeichnung: k.bezeichnung } : {}),
+    betragChf: k.betragChf,
+    traeger: k.traeger,
+    bezahlt: k.bezahlt === true,
+    erfasst: true,
+    geschaetzt: false,
+  })
+
+  /* Herstellung: erfasst, sonst die alten Einkaufspreise, sonst die Formel. */
+  const herstellung = vorhanden('herstellung')
+  let herstellungChf: number
+  if (herstellung.length > 0) {
+    herstellung.forEach(uebernehmen)
+    herstellungChf = runde2(herstellung.reduce((s, k) => s + k.betragChf, 0))
+  } else {
+    const alleAusRunde = b.positionen.length > 0 && b.positionen.every((p) => typeof p.einkaufChf === 'number')
+    herstellungChf = alleAusRunde
+      ? runde2(b.positionen.reduce((s, p) => s + (p.einkaufChf ?? 0) * p.menge, 0))
+      : herstellungFuer(b.positionen)
+    if (herstellungChf > 0) {
+      raus.push({ id: `${b.id}-herstellung`, art: 'herstellung', betragChf: herstellungChf,
+        traeger: standardTraeger.herstellung, bezahlt: false, erfasst: false,
+        geschaetzt: !alleAusRunde })
+    }
+  }
+
+  /* Lieferung wird NICHT gerechnet – nur was erfasst oder alt vermerkt ist. */
+  const lieferung = vorhanden('lieferung')
+  if (lieferung.length > 0) lieferung.forEach(uebernehmen)
+  else if ((b.lieferkostenChf ?? 0) > 0) {
+    raus.push({ id: `${b.id}-lieferung`, art: 'lieferung', betragChf: b.lieferkostenChf as number,
+      traeger: standardTraeger.lieferung, bezahlt: false, erfasst: false, geschaetzt: false })
+  }
+
+  /* Einfuhrsteuer: erfasst, sonst der alte Zollbetrag, sonst auf die Ware gerechnet. */
+  const mwst = vorhanden('mwst')
+  if (mwst.length > 0) mwst.forEach(uebernehmen)
+  else {
+    const betrag = b.zollChf ?? einfuhrsteuerChf(herstellungChf)
+    if (betrag > 0) {
+      raus.push({ id: `${b.id}-mwst`, art: 'mwst', betragChf: betrag,
+        traeger: standardTraeger.mwst, bezahlt: false, erfasst: false,
+        geschaetzt: b.zollChf === undefined })
+    }
+  }
+
+  vorhanden('weiteres').forEach(uebernehmen)
+  return raus
 }
 
 export function zahlenFuer(b: Bestellung): BestellZahlen {
@@ -130,35 +215,20 @@ export function zahlenFuer(b: Bestellung): BestellZahlen {
   const netzeChf = runde2(b.summeChf - montageChf - anfahrtChf + rabattChf)
 
   /*
-   * HERSTELLUNG: erfasster Posten zuerst, dann die alten Einkaufspreise je
-   * Position, erst zuletzt die Formel. Die mittlere Stufe gibt es, weil in
-   * aelteren Datensaetzen `einkaufChf` aus den Lieferrunden steht – das sind
-   * gemessene Zahlen und besser als jede Schaetzung.
+   * EINE QUELLE FUER DIE KOSTEN: `kostenPosten` oben. Frueher rechnete diese
+   * Funktion dieselben Faelle ein zweites Mal durch, und die zwei Fassungen
+   * liefen beim ersten Umbau auseinander – die Auswertung zeigte eine Marge,
+   * die in der offenen-Posten-Liste nicht vorkam.
    */
-  let geschaetzt = false
-  let herstellungChf = erfasst(b.kosten, 'herstellung')
-  if (herstellungChf === undefined) {
-    const ausRunde = b.positionen.reduce(
-      (s, p) => s + (typeof p.einkaufChf === 'number' ? p.einkaufChf * p.menge : 0), 0)
-    const alleAusRunde = b.positionen.length > 0 && b.positionen.every((p) => typeof p.einkaufChf === 'number')
-    if (alleAusRunde) herstellungChf = runde2(ausRunde)
-    else { herstellungChf = herstellungFuer(b.positionen); geschaetzt = true }
-  }
+  const posten = kostenPosten(b)
+  const summeVon = (art: KostenArt) =>
+    runde2(posten.filter((k) => k.art === art).reduce((s, k) => s + k.betragChf, 0))
 
-  /*
-   * LIEFERUNG wird NICHT geschaetzt. Was die Fracht kostet, haengt an der
-   * Sendung und nicht am Netz; eine Zahl dafuer zu erfinden hiesse, eine
-   * Groessenordnung zu erfinden. Fehlt sie, steht sie auf null und die
-   * Marge ist zu gut – das sieht man am Fehlbetrag, nicht an einer Zahl,
-   * die plausibel aussieht.
-   */
-  const lieferungChf = erfasst(b.kosten, 'lieferung') ?? b.lieferkostenChf ?? 0
-
-  /* MWST: erfasst, sonst der alte Zollbetrag, sonst gerechnet auf die Ware. */
-  let mwstChf = erfasst(b.kosten, 'mwst') ?? b.zollChf
-  if (mwstChf === undefined) { mwstChf = einfuhrsteuerChf(herstellungChf); geschaetzt = true }
-
-  const weitereChf = erfasst(b.kosten, 'weiteres') ?? 0
+  const herstellungChf = summeVon('herstellung')
+  const lieferungChf = summeVon('lieferung')
+  const mwstChf = summeVon('mwst')
+  const weitereChf = summeVon('weiteres')
+  const geschaetzt = posten.some((k) => k.geschaetzt)
 
   const erloesChf = runde2(b.summeChf)
   const kostenChf = runde2(herstellungChf + lieferungChf + mwstChf + weitereChf)
@@ -346,13 +416,14 @@ export interface Kennzahlen {
   /** Davon noch zu bezahlen – die Kreditoren. */
   creditChf: number
   /**
-   * Davon ohne Beleg: gerechnet aus der Formel oder aus alten Feldern
-   * uebernommen, also ohne Angabe, ob schon bezahlt.
+   * Davon ohne Beleg: kein erfasster Kostenposten dahinter, der Betrag kommt
+   * aus der Formel oder aus einem alten Feld.
    *
-   * DIESE ZEILE MUSS DASTEHEN. Ohne sie ergaeben bezahlt und offen nicht
-   * den Gesamtbetrag, und niemand saehe warum – die Differenz waere ein
-   * Rechenfehler, der keiner ist. Mit ihr geht die Rechnung auf, und man
-   * sieht zugleich, wie viel noch zu erfassen ist.
+   * KEIN DRITTER TEIL DER SUMME, SONDERN EIN HINWEIS. Bezahlt und Credit
+   * ergeben zusammen die Gesamtkosten; was ohne Beleg dasteht, steckt in
+   * Credit mit drin. (Zuerst war es ein dritter Teil – solange nicht
+   * erfasste Posten gar nicht offen standen. Seit sie es tun, waere es
+   * doppelt gezaehlt.)
    */
   ohneBelegChf: number
 
@@ -366,6 +437,10 @@ export interface Kennzahlen {
    * Geld gegen bezahlte Rechnungen. Das ist, was auf dem Konto passiert ist.
    */
   realErgebnisChf: number
+
+  /** Feste Auftraege in Stueck. */
+  auftraegeAnzahl: number
+  auftraegeNetze: number
 
   /** Der Funnel in Stueck und Geld. */
   funnelAnzahl: number
@@ -383,7 +458,8 @@ export interface Kennzahlen {
  */
 export function kennzahlen(bestellungen: Bestellung[], auslagen: Auslage[]): Kennzahlen {
   let erloesChf = 0, cashedChf = 0, debitChf = 0, inArbeitChf = 0, warenkostenChf = 0
-  let realErloesChf = 0, realWarenkostenChf = 0, erfassteWarenkostenChf = 0
+  let auftraegeAnzahl = 0, auftraegeNetze = 0
+  let realErloesChf = 0, realWarenkostenChf = 0, ohneBelegChf = 0
   let funnelChf = 0, funnelAnzahl = 0, funnelNetze = 0, funnelKostenChf = 0, funnelMargeChf = 0
 
   /* Der Funnel steht vor der Zusage und wird getrennt gezaehlt. */
@@ -402,6 +478,8 @@ export function kennzahlen(bestellungen: Bestellung[], auslagen: Auslage[]): Ken
     const z = zahlenFuer(b)
     erloesChf = runde2(erloesChf + z.erloesChf)
     warenkostenChf = runde2(warenkostenChf + z.kostenChf)
+    auftraegeAnzahl += 1
+    auftraegeNetze += z.netzZahl
 
     if (!z.realisiert) {
       inArbeitChf = runde2(inArbeitChf + z.erloesChf)
@@ -414,12 +492,13 @@ export function kennzahlen(bestellungen: Bestellung[], auslagen: Auslage[]): Ken
 
     /*
      * Fuer die reale Rechnung zaehlt nur, was auch bezahlt ist. Nebenbei
-     * faellt ab, wie viel ueberhaupt als Posten erfasst ist – der Rest der
-     * Warenkosten steht ohne Beleg da.
+     * faellt ab, wie viel ueberhaupt ohne Beleg dasteht – ueber
+     * `kostenPosten`, nicht ueber `b.kosten`: Sonst fehlten genau die
+     * nicht erfassten Posten, um die es dabei geht.
      */
-    for (const k of b.kosten ?? []) {
-      erfassteWarenkostenChf = runde2(erfassteWarenkostenChf + k.betragChf)
+    for (const k of kostenPosten(b)) {
       if (k.bezahlt) realWarenkostenChf = runde2(realWarenkostenChf + k.betragChf)
+      if (!k.erfasst) ohneBelegChf = runde2(ohneBelegChf + k.betragChf)
     }
   }
 
@@ -434,14 +513,12 @@ export function kennzahlen(bestellungen: Bestellung[], auslagen: Auslage[]): Ken
   const betriebsergebnisChf = runde2(erloesChf - kostenChf)
 
   /*
-   * Die drei Teile der Kosten ergeben zusammen wieder den Gesamtbetrag:
-   * bezahlt, offen, ohne Beleg. Der dritte wird NICHT als Rest gerechnet,
-   * sondern aus dem, was tatsaechlich erfasst ist – ein Rest verschluckt
-   * jeden Fehler, statt ihn zu zeigen. Dass die Summe aufgeht, prueft
-   * bau/pl-test.mjs.
+   * ZWEI TEILE, DIE AUFGEHEN: bezahlt und offen ergeben zusammen die
+   * Gesamtkosten. Keiner der beiden wird als Rest des anderen gerechnet –
+   * ein Rest verschluckt jeden Fehler, statt ihn zu zeigen. Dass die Summe
+   * stimmt, prueft bau/pl-test.mjs.
    */
   const bezahltKostenChf = runde2(realWarenkostenChf + realBetriebskostenChf)
-  const ohneBelegChf = runde2(warenkostenChf - erfassteWarenkostenChf)
 
   return {
     erloesChf,
@@ -458,10 +535,60 @@ export function kennzahlen(bestellungen: Bestellung[], auslagen: Auslage[]): Ken
     betriebsergebnisChf,
     rentabilitaet: erloesChf > 0 ? Math.round((betriebsergebnisChf / erloesChf) * 1000) / 10 : null,
     realErgebnisChf: runde2(realErloesChf - realWarenkostenChf - realBetriebskostenChf),
+    auftraegeAnzahl,
+    auftraegeNetze,
     funnelAnzahl,
     funnelNetze,
     funnelKostenChf,
     funnelMargeChf,
+  }
+}
+
+/* --- Warenkosten der festen Auftraege -------------------------------------- */
+
+export interface Warenkosten {
+  /** Wie viele feste Auftraege dahinterstehen. */
+  auftraege: number
+  herstellungChf: number
+  lieferungChf: number
+  mwstChf: number
+  weitereChf: number
+  summeChf: number
+  /** Davon noch nicht an den Traeger zurueckgeflossen. */
+  offenChf: number
+}
+
+/**
+ * Die Warenkosten aller festen Auftraege, nach Art aufgeteilt.
+ *
+ * DAMIT SIE NIEMAND VON HAND ERFASST. Unter den Betriebskosten stand bisher
+ * nur, was jemand eingetippt hatte – die Netze fehlten dort, obwohl sie der
+ * groesste Posten sind. Sie ergeben sich aus den Auftraegen ab der Zusage
+ * und werden hier gerechnet, nicht gepflegt. Von Hand erfasst wird nur, was
+ * zu keinem Auftrag gehoert: Werbung, Server, Material, Fahrten.
+ */
+export function warenkosten(bestellungen: Bestellung[]): Warenkosten {
+  let auftraege = 0
+  let herstellungChf = 0, lieferungChf = 0, mwstChf = 0, weitereChf = 0, offenChf = 0
+  for (const b of bestellungen) {
+    if (!inRechnung(b)) continue
+    auftraege += 1
+    for (const k of kostenPosten(b)) {
+      if (k.art === 'herstellung') herstellungChf = runde2(herstellungChf + k.betragChf)
+      else if (k.art === 'lieferung') lieferungChf = runde2(lieferungChf + k.betragChf)
+      else if (k.art === 'mwst') mwstChf = runde2(mwstChf + k.betragChf)
+      else weitereChf = runde2(weitereChf + k.betragChf)
+      if (!k.bezahlt) offenChf = runde2(offenChf + k.betragChf)
+    }
+  }
+  return {
+    auftraege,
+    herstellungChf,
+    lieferungChf,
+    mwstChf,
+    weitereChf,
+    summeChf: runde2(herstellungChf + lieferungChf + mwstChf + weitereChf),
+    offenChf,
   }
 }
 
@@ -517,26 +644,64 @@ export interface Forderung {
   bestellungId: string
   kunde: string
   betragChf: number
-  /** Seit wann geliefert und noch nicht bezahlt. */
+  /** Massgebliches Datum: Auslieferung, sonst Zusage. */
   seit: string
+  /** Steht die Ware schon beim Kunden? */
+  geliefert: boolean
 }
 
-/** Wer uns was schuldet: geliefert, aber nicht einkassiert. */
+/**
+ * Wer uns was schuldet: jeder feste Auftrag, der nicht bezahlt ist.
+ *
+ * NICHT ERST AB DER AUSLIEFERUNG. Zuerst stand hier `realisiert` als
+ * Bedingung, und die Liste blieb leer, obwohl mehrere Auftraege fest waren –
+ * geliefert war nur noch keiner. Wer wissen will, was noch hereinkommt, will
+ * genau diese Auftraege sehen; ob die Ware schon steht, sagt eine Spalte.
+ */
 export function offeneForderungen(bestellungen: Bestellung[]): Forderung[] {
   const raus: Forderung[] = []
   for (const b of bestellungen) {
     if (!inRechnung(b)) continue
     const z = zahlenFuer(b)
-    if (!z.realisiert || z.einkassiert) continue
-    raus.push({ bestellungId: b.id, kunde: b.kunde.name, betragChf: z.erloesChf, seit: z.datum })
+    if (z.einkassiert) continue
+    raus.push({ bestellungId: b.id, kunde: b.kunde.name, betragChf: z.erloesChf,
+      seit: z.datum, geliefert: z.realisiert })
   }
   return raus.sort((x, y) => (x.seit < y.seit ? -1 : 1))
+}
+
+export interface SchuldPosten {
+  /** Woher der Posten kommt – fuer das Haekchen in der Oberflaeche. */
+  bestellungId?: string
+  auslageId?: string
+  /**
+   * Die Kennung des Postens innerhalb seines Auftrags.
+   *
+   * NICHT NUR DIE ART. Von "Weiteres" kann es mehrere geben; wer nach der
+   * Art abhakt, setzt sie alle zugleich auf bezahlt.
+   */
+  postenId: string
+  art: KostenArt | 'auslage'
+  /**
+   * Der eigene Name des Postens, wo es einen gibt: bei "Weiteres" und bei
+   * den Auslagen. Die festen Arten beschriftet die OBERFLAECHE aus `art` –
+   * hier darf kein deutscher Text stehen, sonst bleibt er auf Tuerkisch
+   * stehen. (Genau das ist passiert: "Herstellung Netze" stand in der
+   * tuerkischen Ansicht, weil es aus dieser Datei kam.)
+   */
+  bezeichnung?: string
+  /** Zu welchem Auftrag der Posten gehoert. Bei Auslagen steht nichts. */
+  kunde?: string
+  betragChf: number
+  am: string
+  /** Kein erfasster Kostenposten dahinter – das Haekchen schreibt ihn fest. */
+  erfasst: boolean
 }
 
 export interface Schuld {
   traeger: Beteiligter
   betragChf: number
-  posten: { bezeichnung: string; betragChf: number; am: string }[]
+  posten: SchuldPosten[]
 }
 
 /**
@@ -550,23 +715,28 @@ export function offeneSchulden(bestellungen: Bestellung[], auslagen: Auslage[]):
     if (!s) { s = { traeger: t, betragChf: 0, posten: [] }; karte.set(t, s) }
     return s
   }
-  const BEZEICHNUNG: Record<KostenArt, string> = {
-    herstellung: 'Herstellung Netze',
-    lieferung: 'Lieferkosten',
-    mwst: 'Einfuhrsteuer',
-    weiteres: 'Weiteres',
-  }
-
   for (const b of bestellungen) {
     if (!inRechnung(b)) continue
-    for (const k of b.kosten ?? []) {
+    /*
+     * NICHT ERFASSTE POSTEN ZAEHLEN MIT. Zuerst standen hier nur die von Hand
+     * erfassten – und die Liste blieb leer, obwohl Bora die Netze und die
+     * Fracht laengst ausgelegt hatte. Niemand tippt diese Betraege ein; sie
+     * ergeben sich aus dem Auftrag, und bis jemand "bezahlt" setzt, stehen
+     * sie offen.
+     */
+    for (const k of kostenPosten(b)) {
       if (k.bezahlt) continue
       const s = hole(k.traeger)
       s.betragChf = runde2(s.betragChf + k.betragChf)
       s.posten.push({
-        bezeichnung: `${k.bezeichnung ?? BEZEICHNUNG[k.art]} · ${b.kunde.name}`,
+        bestellungId: b.id,
+        postenId: k.id,
+        art: k.art,
+        ...(k.bezeichnung ? { bezeichnung: k.bezeichnung } : {}),
+        kunde: b.kunde.name,
         betragChf: k.betragChf,
-        am: k.am ?? k.erfasstAm,
+        am: b.zusageAm ?? b.eingang,
+        erfasst: k.erfasst,
       })
     }
   }
@@ -574,7 +744,15 @@ export function offeneSchulden(bestellungen: Bestellung[], auslagen: Auslage[]):
     if (l.bezahlt) continue
     const s = hole(l.traeger)
     s.betragChf = runde2(s.betragChf + l.betragChf)
-    s.posten.push({ bezeichnung: l.bezeichnung, betragChf: l.betragChf, am: l.am })
+    s.posten.push({
+      auslageId: l.id,
+      postenId: l.id,
+      art: 'auslage',
+      bezeichnung: l.bezeichnung,
+      betragChf: l.betragChf,
+      am: l.am,
+      erfasst: true,
+    })
   }
 
   for (const s of karte.values()) s.posten.sort((x, y) => (x.am < y.am ? -1 : 1))
@@ -584,29 +762,41 @@ export function offeneSchulden(bestellungen: Bestellung[], auslagen: Auslage[]):
 /* --- Abrechnung ------------------------------------------------------------ */
 
 export interface Aufteilung {
-  /** Was tatsaechlich eingegangen ist – nur das laesst sich verteilen. */
-  einkassiertChf: number
+  /** Erloes aller festen Auftraege, ob schon bezahlt oder nicht. */
+  erloesChf: number
   /** Davon aus der Ware, nach Rabatt. */
   warenerloesChf: number
   /** Davon aus Montage und Anfahrt – unsere eigene Arbeit. */
   montageerloesChf: number
-  /** Die Kosten der bezahlten Auftraege. */
+  /** Noch nicht ausgeglichene Warenkosten. */
   warenkostenChf: number
+  /** Noch nicht ausgeglichene Betriebskosten. */
   betriebskostenChf: number
-  /** Offene Auslagen, die zuerst an die zurueckgehen, die sie getragen haben. */
+  /** Beides zusammen – das, was noch zurueckgeht. */
   rueckzahlungChf: number
+  /** Was jede und jeder zurueckbekommt, bevor verteilt wird. */
+  rueckzahlung: Record<Beteiligter, number>
   /** Die zwei Toepfe. Koennen negativ sein – dann ist nichts zu verteilen. */
   warengewinnChf: number
   montagegewinnChf: number
   verteilbarChf: number
   anteile: Record<Beteiligter, number>
+  /** Anteil plus Rueckzahlung – was unter dem Strich zu jedem fliesst. */
+  summe: Record<Beteiligter, number>
 }
 
 /**
- * Was eine Abrechnung ergaebe, wenn man sie heute machen wuerde.
+ * Was eine Abrechnung heute ergaebe.
  *
- * NUR EINKASSIERTES WIRD VERTEILT. Buchhalterischer Gewinn liegt zum Teil
- * noch beim Kunden; wer ihn ausschuettet, zahlt aus der eigenen Tasche.
+ * ALLE FESTEN AUFTRAEGE, NICHT NUR DIE BEZAHLTEN. Die Frage lautet: Wenn
+ * heute alles beglichen waere – was bliebe, und wer bekaeme was? Dass ein
+ * Kunde noch nicht gezahlt hat, verschiebt den Zeitpunkt, nicht die Summe.
+ * (Zuerst stand hier nur Einkassiertes; dann zeigte die Abrechnung bei
+ * lauter offenen Auftraegen schlicht nichts an.)
+ *
+ * UND NUR DAS NOCH NICHT VERRECHNETE AUF DER KOSTENSEITE. Was jemand schon
+ * zurueckbekommen hat, ist erledigt und faellt heraus – sonst zoege es den
+ * Gewinn ein zweites Mal herunter.
  *
  * ZWEI TOEPFE, wie abgemacht: Die Ware kauft Bora ein, daran ist er
  * beteiligt. Montage und Anfahrt sind die Arbeit von Ufuk und Deniz und
@@ -615,59 +805,64 @@ export interface Aufteilung {
  * bezahlt werden.
  */
 export function aufteilung(bestellungen: Bestellung[], auslagen: Auslage[]): Aufteilung {
-  let einkassiertChf = 0
+  let erloesChf = 0
   let warenerloesChf = 0
   let montageerloesChf = 0
-  let warenkostenChf = 0
 
   for (const b of bestellungen) {
     if (!inRechnung(b)) continue
     const z = zahlenFuer(b)
-    if (!z.einkassiert) continue
-    einkassiertChf = runde2(einkassiertChf + z.erloesChf)
+    erloesChf = runde2(erloesChf + z.erloesChf)
     /* Der Rabatt mindert die Ware – nachgelassen wird auf den Netzpreis. */
     warenerloesChf = runde2(warenerloesChf + z.netzeChf - z.rabattChf)
     montageerloesChf = runde2(montageerloesChf + z.montageChf + z.anfahrtChf)
-    warenkostenChf = runde2(warenkostenChf + z.kostenChf)
   }
 
+  /* Die Kostenseite kommt aus den OFFENEN Posten – Ausgeglichenes faellt weg. */
   const schulden = offeneSchulden(bestellungen, auslagen)
-  const rueckzahlungChf = runde2(schulden.reduce((s, x) => s + x.betragChf, 0))
+  const rueckzahlung: Record<Beteiligter, number> = { bora: 0, ufuk: 0, deniz: 0 }
+  let warenkostenChf = 0
+  let betriebskostenChf = 0
+  for (const s of schulden) {
+    rueckzahlung[s.traeger] = s.betragChf
+    for (const posten of s.posten) {
+      if (posten.art === 'auslage') betriebskostenChf = runde2(betriebskostenChf + posten.betragChf)
+      else warenkostenChf = runde2(warenkostenChf + posten.betragChf)
+    }
+  }
+  const rueckzahlungChf = runde2(warenkostenChf + betriebskostenChf)
 
-  const betriebskostenChf = runde2(auslagen.reduce((s, l) => s + l.betragChf, 0))
   const aufWare = schluessel.betriebskosten === 'ware'
   const warengewinnChf = runde2(warenerloesChf - warenkostenChf - (aufWare ? betriebskostenChf : 0))
   const montagegewinnChf = runde2(montageerloesChf - (aufWare ? 0 : betriebskostenChf))
 
   /*
-   * EIN TOPF IM MINUS WIRD NICHT VERTEILT.
-   *
-   * Beim ersten Durchlauf stand hier nichts davon, und die Anzeige las sich
-   * so: "Bora −10.02". Das sieht aus, als schuldete Bora uns Geld. In
-   * Wahrheit ist nur noch nichts zu verteilen – die Betriebskosten sind
-   * groesser als der Gewinn der bisher bezahlten Auftraege. Ein Minus ist
-   * eine Lage, kein Anteil.
-   *
-   * Der Topf selbst bleibt negativ stehen: Das ist die Wahrheit, und sie
-   * gehoert angezeigt. Nur die Anteile werden bei null abgeschnitten.
+   * EIN TOPF IM MINUS WIRD NICHT VERTEILT. Die Anzeige las sonst "Bora
+   * -10.02", und das sieht aus, als schuldete Bora uns Geld. In Wahrheit ist
+   * nur noch nichts zu verteilen. Der Topf bleibt negativ stehen, denn das
+   * ist die Lage; die Anteile werden bei null abgeschnitten.
    */
   const anteile: Record<Beteiligter, number> = { bora: 0, ufuk: 0, deniz: 0 }
+  const summe: Record<Beteiligter, number> = { bora: 0, ufuk: 0, deniz: 0 }
   const ware = Math.max(0, warengewinnChf)
   const montage = Math.max(0, montagegewinnChf)
   for (const wer of ['bora', 'ufuk', 'deniz'] as Beteiligter[]) {
     anteile[wer] = runde2(ware * schluessel.ware[wer] + montage * schluessel.montage[wer])
+    summe[wer] = runde2(anteile[wer] + rueckzahlung[wer])
   }
 
   return {
-    einkassiertChf,
+    erloesChf,
     warenerloesChf,
     montageerloesChf,
     warenkostenChf,
     betriebskostenChf,
     rueckzahlungChf,
+    rueckzahlung,
     warengewinnChf,
     montagegewinnChf,
     verteilbarChf: runde2(ware + montage),
     anteile,
+    summe,
   }
 }

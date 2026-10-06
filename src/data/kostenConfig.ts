@@ -68,6 +68,19 @@ export const beteiligte: Record<Beteiligter, string> = {
 }
 
 /**
+ * WER DIE KOSTEN EINES AUFTRAGS AUSLEGT, solange nichts anderes erfasst ist.
+ *
+ * Bora kauft die Netze ein, bezahlt die Fracht und streckt beim Zoll vor –
+ * also stehen diese drei Posten zunaechst bei ihm offen. Erfasst jemand
+ * einen Posten von Hand, gilt, was dort steht.
+ */
+export const standardTraeger = {
+  herstellung: 'bora',
+  lieferung: 'bora',
+  mwst: 'bora',
+} as const
+
+/**
  * Wie der Gewinn verteilt wird – ZWEI TOEPFE.
  *
  * Die Ware kauft Bora ein, also ist er daran beteiligt. Montage und Anfahrt

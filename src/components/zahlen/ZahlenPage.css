@@ -115,6 +115,12 @@
   max-width: 32rem;
 }
 
+/* Die zweite Haelfte eines Blocks: gerechnet oben, von Hand erfasst darunter. */
+.zahlen__unterkopf {
+  margin-top: var(--space-6);
+  margin-bottom: 0;
+}
+
 .zahlen__tabelle th,
 .zahlen__tabelle td {
   padding: var(--space-3);
