@@ -34,7 +34,9 @@
 
 .kennzahlen {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  /* 13.75rem, damit die fuenf Kacheln auf dem Rechner in EINE Zeile passen:
+     Bei 14.5 blieb die fuenfte allein auf einer zweiten stehen. */
+  grid-template-columns: repeat(auto-fit, minmax(13.75rem, 1fr));
   gap: var(--space-4);
   margin-top: var(--space-6);
 }
@@ -58,8 +60,14 @@
 
 .kennzahl__wert {
   font-family: var(--font-display);
-  font-size: var(--step-3);
-  line-height: 1.1;
+  /*
+   * NICHT --step-3. Bei fuenf Kacheln nebeneinander ist eine Karte rund 240
+   * Pixel breit, und "CHF 1'825.00" lief dort rechts aus der Karte heraus -
+   * abgeschnitten, nicht umgebrochen. Die Schaetzung nach Augenmass hat
+   * nicht gereicht; gemessen passt es ab dieser Groesse.
+   */
+  font-size: clamp(1.35rem, 2.1vw, 1.75rem);
+  line-height: 1.15;
   color: var(--accent-ink);
   /* Zahlen sollen untereinander stehen, auch wenn die Ziffern verschieden breit sind. */
   font-variant-numeric: tabular-nums;
@@ -387,4 +395,52 @@
   .zahlen__rollen .zahlen__tabelle {
     min-width: 0;
   }
+}
+
+/* Die Unterteilung einer Kennzahl: Cashed/Debit/Funnel, Credit, Rentabilitaet. */
+.kennzahl__teile {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: var(--space-2) 0 0;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border);
+  font-size: var(--step--2);
+}
+
+.kennzahl__teile > div {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.kennzahl__teile dt {
+  color: var(--text-subtle);
+}
+
+.kennzahl__teile dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+/* Siehe die Begruendung in AdminPage.css – dasselbe fuer diesen Bereich. */
+.zahlen h1 {
+  font-size: var(--step-2);
+}
+
+.zahlen h2 {
+  font-size: var(--step-1);
+}
+
+.zahlen h3 {
+  font-size: var(--step-0);
+}
+
+.section.zahlen {
+  padding-block: var(--space-7) var(--section-y);
+}
+
+/* Die Bloecke duerfen danach ebenfalls enger stehen. */
+.zahlen__block {
+  margin-top: var(--space-7);
 }

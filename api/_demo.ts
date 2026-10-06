@@ -361,6 +361,85 @@ export function demoSaat(): Record<string, unknown>[] {
       quelle: 'web',
       paket: 'P-2026-01',
     },
+
+    /*
+     * 9. und 10. WEIT ZURUECK, damit die Jahresansicht etwas zu zeigen hat.
+     *
+     * Ohne sie lagen alle Beispiele in drei Monaten: Das Jahr bestand aus
+     * einer einzigen Zeile, das Quartal aus zwei, und ob die Gruppierung
+     * ueberhaupt stimmt, liess sich nicht sehen. Nummer 10 liegt bewusst im
+     * Vorjahr - nur so faellt auf, wenn ein abgelaufenes Jahr faelschlich
+     * "bis heute" heisst.
+     */
+    {
+      id: 'demo-9',
+      referenz: 'PF-D009',
+      art: 'bestellung',
+      status: 'ausliefern',
+      eingang: tage(215),
+      geaendert: tage(196),
+      phaseSeit: tage(196),
+      preiseFestgelegtAm: tage(210),
+      offerteAm: tage(210),
+      zusageAm: tage(206),
+      bestelltAm: tage(204),
+      versandAm: tage(199),
+      ausgeliefertAm: tage(196),
+      bezahltAm: tage(195),
+      kunde: kunde('Peter Vogel', 'p.vogel@example.ch', '079 000 00 09', 'Mattenweg 7', '8606 Greifensee'),
+      positionen: [
+        netz('d9p1', 'Wohnzimmer', 160, 122, 170, 'mitte'),
+        netz('d9p2', 'Schlafzimmer', 117, 82, 140, 'nach-oben'),
+        netz('d9p3', 'Bad', 64, 96, 130, 'nach-oben'),
+      ],
+      montage: true,
+      montageChf: 45,
+      anfahrt: true,
+      anfahrtChf: 0,
+      rabatt: false,
+      zahlung: 'uebergabe',
+      zahlungswunsch: false,
+      summeChf: 485,
+      quelle: 'persoenlich',
+      paket: 'P-2025-04',
+      kosten: [
+        { id: 'd9k1', art: 'herstellung', betragChf: 85.6, traeger: 'bora', bezahlt: true, erfasstAm: tage(196) },
+        { id: 'd9k2', art: 'lieferung', betragChf: 31, traeger: 'bora', bezahlt: true, erfasstAm: tage(196) },
+        { id: 'd9k3', art: 'mwst', betragChf: 6.93, traeger: 'deniz', bezahlt: true, erfasstAm: tage(196) },
+      ],
+    },
+    {
+      id: 'demo-10',
+      referenz: 'PF-D010',
+      art: 'anfrage',
+      status: 'ausliefern',
+      eingang: tage(345),
+      geaendert: tage(330),
+      phaseSeit: tage(330),
+      ausgemessenAm: tage(340),
+      preiseFestgelegtAm: tage(338),
+      offerteAm: tage(338),
+      zusageAm: tage(336),
+      bestelltAm: tage(335),
+      versandAm: tage(332),
+      ausgeliefertAm: tage(330),
+      bezahltAm: tage(329),
+      kunde: kunde('Erika Stutz', 'e.stutz@example.ch', '079 000 00 10', 'Rebbergstrasse 2', '8606 Greifensee'),
+      positionen: [netz('d10p1', 'Küche', 128, 96, 150, 'mitte')],
+      montage: false,
+      anfahrt: true,
+      anfahrtChf: 20,
+      rabatt: false,
+      zahlung: 'uebergabe',
+      zahlungswunsch: false,
+      summeChf: 170,
+      quelle: 'web',
+      kosten: [
+        { id: 'd10k1', art: 'herstellung', betragChf: 28.8, traeger: 'bora', bezahlt: true, erfasstAm: tage(330) },
+        { id: 'd10k2', art: 'lieferung', betragChf: 14, traeger: 'bora', bezahlt: true, erfasstAm: tage(330) },
+        { id: 'd10k3', art: 'mwst', betragChf: 2.33, traeger: 'deniz', bezahlt: true, erfasstAm: tage(330) },
+      ],
+    },
   ]
 }
 
@@ -378,6 +457,8 @@ export function demoAuslagen(): Record<string, unknown>[] {
       betragChf: 148.5, traeger: 'deniz', erfasstAm: new Date(Date.now() - 70 * 86400000).toISOString() },
     { id: 'demo-al-2', am: tag(40), bezeichnung: 'Aufkleber für die Schienen', kategorie: 'material',
       betragChf: 62, traeger: 'ufuk', erfasstAm: new Date(Date.now() - 40 * 86400000).toISOString() },
+    { id: 'demo-al-4', am: tag(333), bezeichnung: 'Visitenkarten und Flyer', kategorie: 'marketing',
+      betragChf: 95, traeger: 'ufuk', bezahlt: true, erfasstAm: new Date(Date.now() - 333 * 86400000).toISOString() },
     { id: 'demo-al-3', am: tag(12), bezeichnung: 'Domain und Hosting', kategorie: 'infrastruktur',
       betragChf: 38.4, traeger: 'deniz', bezahlt: true, erfasstAm: new Date(Date.now() - 12 * 86400000).toISOString() },
   ]

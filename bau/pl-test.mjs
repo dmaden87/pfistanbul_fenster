@@ -8,7 +8,7 @@
  */
 import assert from 'node:assert/strict'
 import {
-  inRechnung, zaehltPhase, zahlenFuer, abschnitte, forecast,
+  inRechnung, imFunnel, zaehltPhase, zahlenFuer, abschnitte, forecast, kennzahlen,
   offeneForderungen, offeneSchulden, aufteilung,
 } from '../src/lib/pl.ts'
 import { herstellungChf } from '../src/lib/kosten.ts'
@@ -49,16 +49,29 @@ const auslage = (extra = {}) => ({
 
 /* --- Wer zaehlt ------------------------------------------------------------ */
 
-pruefe('vor der Zusage zaehlt nichts', () => {
-  for (const status of ['neu', 'klaerung', 'offerte']) {
+pruefe('alles vor der Zusage ist Funnel, nicht Rechnung', () => {
+  /*
+   * "Warten auf Zusage" HEISST SO, WEIL DAS JA FEHLT. Der Zusage-Stempel
+   * schiebt den Auftrag erst in "Bereit zum Bestellen". Hier stand zuerst
+   * 'zusage' auf der Rechnungsseite - damit zaehlten Angebote als Ertrag,
+   * die noch niemand angenommen hatte.
+   */
+  for (const status of ['neu', 'klaerung', 'offerte', 'zusage']) {
     assert.equal(inRechnung(best({ status })), false, status)
+    assert.equal(imFunnel(best({ status })), true, status)
   }
 })
 
-pruefe('ab der Zusage zaehlt alles bis zur Auslieferung', () => {
-  for (const status of ['zusage', 'bestellen', 'bora', 'ausliefern']) {
+pruefe('ab der Zusage des Kunden zaehlt alles bis zur Auslieferung', () => {
+  for (const status of ['bestellen', 'bora', 'ausliefern']) {
     assert.equal(inRechnung(best({ status })), true, status)
+    assert.equal(imFunnel(best({ status })), false, status)
   }
+})
+
+pruefe('Abgesagtes ist weder Rechnung noch Funnel', () => {
+  assert.equal(inRechnung(best({ status: 'abgesagt' })), false)
+  assert.equal(imFunnel(best({ status: 'abgesagt' })), false)
 })
 
 pruefe('abgesagt faellt wieder heraus', () => {
@@ -79,6 +92,7 @@ pruefe('die Phase allein kennt den Schalter nicht', () => {
   assert.equal(zaehltPhase(b), true, 'die Phase zaehlt weiter')
   assert.equal(inRechnung(b), false, 'gerechnet wird trotzdem nicht')
   assert.equal(zaehltPhase(best({ status: 'neu' })), false)
+  assert.equal(zaehltPhase(best({ status: 'zusage' })), false, 'Warten auf Zusage ist noch nicht fest')
   assert.equal(zaehltPhase(best({ status: 'abgesagt' })), false)
 })
 
@@ -193,14 +207,21 @@ pruefe('die Marge ist Erloes minus allen Kosten', () => {
 /* --- Realisiert gegen erwartet --------------------------------------------- */
 
 const geliefert = best({ id: 'g', status: 'ausliefern', ausgeliefertAm: '2026-03-10T00:00:00.000Z', zusageAm: '2026-02-01T00:00:00.000Z' })
-const zugesagt = best({ id: 'z', status: 'zusage', zusageAm: '2026-03-20T00:00:00.000Z' })
+const zugesagt = best({ id: 'z', status: 'bestellen', zusageAm: '2026-03-20T00:00:00.000Z' })
 
-pruefe('Geliefertes ist Ertrag, Zugesagtes ist Aussicht', () => {
+pruefe('jeder feste Auftrag zaehlt, der Stand steht daneben', () => {
+  /*
+   * FRUEHER STAND HIER DAS GEGENTEIL: Zugesagtes sei kein Ertrag. Das ist
+   * buchhalterisch richtig und zum Steuern unbrauchbar - ein zugesagter
+   * Auftrag hat einen festen Verkaufspreis. Die drei Stand-Spalten
+   * zusammen ergeben wieder den Erloes.
+   */
   const [a] = abschnitte([geliefert, zugesagt], [], 'monat')
   assert.equal(a.schluessel, '2026-03')
-  assert.equal(a.erloesChf, 150, 'nur das Gelieferte')
-  assert.equal(a.erwartetChf, 150, 'das Zugesagte steht daneben')
-  assert.equal(a.anzahl, 1)
+  assert.equal(a.erloesChf, 300, 'beide zaehlen')
+  assert.equal(a.erwartetChf, 150, 'davon noch nicht geliefert')
+  assert.equal(a.anzahl, 2)
+  assert.equal(a.einkassiertChf + a.offenChf + a.erwartetChf, a.erloesChf)
 })
 
 pruefe('das Lieferdatum bestimmt die Periode, nicht die Zusage', () => {
@@ -233,6 +254,7 @@ pruefe('die Debitoren stecken im Erloes und stehen zusaetzlich einzeln da', () =
   assert.equal(a.erloesChf, 300)
   assert.equal(a.einkassiertChf, 150)
   assert.equal(a.offenChf, 150)
+  assert.equal(a.erwartetChf, 0)
   assert.equal(a.einkassiertChf + a.offenChf, a.erloesChf)
 })
 
@@ -240,6 +262,7 @@ pruefe('Zugesagtes ist kein Debitor', () => {
   const [a] = abschnitte([zugesagt], [], 'monat')
   assert.equal(a.offenChf, 0, 'es ist nichts geliefert, also schuldet niemand etwas')
   assert.equal(a.erwartetChf, 150)
+  assert.equal(a.erloesChf, 150, 'im Erloes steht es trotzdem')
 })
 
 pruefe('Stripes Meldung gilt auch als einkassiert', () => {
@@ -268,6 +291,21 @@ pruefe('YTD fasst das Jahr zusammen', () => {
   assert.equal(liste[0].erloesChf, 300)
 })
 
+pruefe('nur das laufende Jahr heisst "bis heute"', () => {
+  /*
+   * Ein abgelaufenes Jahr ist vollstaendig. "2025 bis heute" waere im
+   * Januar 2026 schlicht falsch - und faellt niemandem auf, solange alle
+   * Daten aus einem Jahr stammen. Genau das war in den Demodaten der Fall.
+   */
+  const heuer = new Date().getFullYear()
+  const jetzt = best({ id: 'a', ausgeliefertAm: `${heuer}-02-10T00:00:00.000Z` })
+  const frueher = best({ id: 'b', ausgeliefertAm: `${heuer - 1}-02-10T00:00:00.000Z` })
+  const liste = abschnitte([jetzt, frueher], [], 'ytd')
+  assert.equal(liste.length, 2)
+  assert.equal(liste[0].etikett, `${heuer} bis heute`)
+  assert.equal(liste[1].etikett, String(heuer - 1), 'das alte Jahr ist fertig')
+})
+
 pruefe('Abschnitte kommen neueste zuerst', () => {
   const jan = best({ id: 'j', ausgeliefertAm: '2026-01-10T00:00:00.000Z' })
   const mar = best({ id: 'm', ausgeliefertAm: '2026-03-10T00:00:00.000Z' })
@@ -284,39 +322,115 @@ pruefe('Betriebskosten mindern das Ergebnis, nicht die Warenkosten', () => {
   assert.equal(a.ergebnisChf, 150 - 32.43 - 40)
 })
 
-/* --- Forecast -------------------------------------------------------------- */
+/* --- Die Kennzahlen oben --------------------------------------------------- */
 
-pruefe('der Forecast ordnet nach Phase, nicht nach Monat', () => {
-  const zu = best({ id: 'z', status: 'zusage', zusageAm: '2026-03-01' })
-  const bei = best({ id: 'b', status: 'bora', zusageAm: '2026-02-01' })
-  const f = forecast([zu, bei])
-  assert.deepEqual(f.map((x) => x.phase), ['zusage', 'bora'], 'in der Reihenfolge der Naehe')
-  assert.equal(f[0].erloesChf, 150)
+pruefe('Total Erloes teilt sich in Cashed, Debit und In Arbeit', () => {
+  const bezahlt = best({ id: 'c', ausgeliefertAm: '2026-03-01', bezahltAm: '2026-03-02' })
+  const offen = best({ id: 'd', ausgeliefertAm: '2026-03-01' })
+  const arbeit = best({ id: 'f', status: 'bora', zusageAm: '2026-03-01' })
+  const k = kennzahlen([bezahlt, offen, arbeit], [])
+  assert.equal(k.erloesChf, 450)
+  assert.equal(k.cashedChf, 150)
+  assert.equal(k.debitChf, 150)
+  assert.equal(k.inArbeitChf, 150)
+  assert.equal(k.cashedChf + k.debitChf + k.inArbeitChf, k.erloesChf)
 })
 
-pruefe('Geliefertes gehoert nicht in den Forecast', () => {
-  const f = forecast([best({ status: 'ausliefern', ausgeliefertAm: '2026-03-01' })])
-  assert.equal(f.length, 0, 'das ist Ist, keine Aussicht')
+pruefe('der Funnel steht NEBEN dem Total Erloes, nicht darin', () => {
+  const fest = best({ id: 'a', status: 'bora', zusageAm: '2026-03-01' })
+  const anfrage = best({ id: 'b', status: 'offerte' })
+  const k = kennzahlen([fest, anfrage], [])
+  assert.equal(k.erloesChf, 150, 'nur der feste Auftrag')
+  assert.equal(k.funnelChf, 150, 'die Anfrage steht im Funnel')
+  assert.equal(k.warenkostenChf > 0, true)
+})
+
+pruefe('das Betriebsergebnis ist Erloes minus Waren- und Betriebskosten', () => {
+  const b = best({ ausgeliefertAm: '2026-03-01',
+    kosten: [{ id: 'k', art: 'herstellung', betragChf: 30, traeger: 'bora', erfasstAm: 'x' },
+             { id: 'k2', art: 'mwst', betragChf: 2.43, traeger: 'bora', erfasstAm: 'x' }] })
+  const k = kennzahlen([b], [auslage({ betragChf: 20 })])
+  assert.equal(k.warenkostenChf, 32.43)
+  assert.equal(k.betriebskostenChf, 20)
+  assert.equal(k.kostenChf, 52.43)
+  assert.equal(k.betriebsergebnisChf, 97.57)
+  assert.equal(k.rentabilitaet, 65)
+})
+
+pruefe('das REALE Ergebnis rechnet nur mit geflossenem Geld', () => {
+  /*
+   * Einkassiert 150, davon bezahlt: 30 Ware. Die Einfuhrsteuer steht offen
+   * und die Auslage auch - beide duerfen das reale Ergebnis nicht mindern,
+   * sie sind noch nicht geflossen.
+   */
+  const b = best({ ausgeliefertAm: '2026-03-01', bezahltAm: '2026-03-02',
+    kosten: [{ id: 'k', art: 'herstellung', betragChf: 30, traeger: 'bora', bezahlt: true, erfasstAm: 'x' },
+             { id: 'k2', art: 'mwst', betragChf: 2.43, traeger: 'bora', erfasstAm: 'x' }] })
+  const k = kennzahlen([b], [auslage({ betragChf: 20 })])
+  assert.equal(k.realErgebnisChf, 120)
+  assert.ok(k.realErgebnisChf !== k.betriebsergebnisChf, 'die zwei Sichten unterscheiden sich')
+})
+
+pruefe('ein nicht einkassierter Auftrag traegt nichts zum realen Ergebnis bei', () => {
+  const b = best({ ausgeliefertAm: '2026-03-01' })
+  assert.equal(kennzahlen([b], []).realErgebnisChf, 0)
+})
+
+pruefe('Total Kosten zeigt, wie viel davon noch zu bezahlen ist', () => {
+  const b = best({ ausgeliefertAm: '2026-03-01',
+    kosten: [{ id: 'k', art: 'herstellung', betragChf: 30, traeger: 'bora', erfasstAm: 'x' },
+             { id: 'k2', art: 'lieferung', betragChf: 10, traeger: 'bora', bezahlt: true, erfasstAm: 'x' },
+             { id: 'k3', art: 'mwst', betragChf: 0, traeger: 'bora', erfasstAm: 'x' }] })
+  const k = kennzahlen([b], [auslage({ betragChf: 20, traeger: 'deniz' })])
+  assert.equal(k.kostenChf, 60, '40 Ware plus 20 Betrieb')
+  assert.equal(k.creditChf, 50, '30 Ware offen plus 20 Auslage offen')
+})
+
+pruefe('der Funnel steht in Stueck und Geld in den Kennzahlen', () => {
+  const kommt = best({ status: 'zusage', positionen: [netz(100, 100, 150), netz(80, 60, 130)] })
+  const k = kennzahlen([kommt], [])
+  assert.equal(k.funnelAnzahl, 1)
+  assert.equal(k.funnelNetze, 2)
+  assert.equal(k.funnelChf, 280)
+  assert.ok(k.funnelKostenChf > 0, 'die Kosten sind gerechnet')
+  assert.equal(k.funnelMargeChf, runde(k.funnelChf - k.funnelKostenChf))
+})
+
+function runde(x) { return Math.round(x * 100) / 100 }
+
+/* --- Forecast -------------------------------------------------------------- */
+
+pruefe('der Funnel reicht von neu bis Warten auf Zusage', () => {
+  const liste = ['neu', 'klaerung', 'offerte', 'zusage'].map((status, i) => best({ id: 's' + i, status }))
+  const f = forecast(liste)
+  assert.deepEqual(f.map((x) => x.phase), ['neu', 'klaerung', 'offerte', 'zusage'],
+    'in der Reihenfolge der Naehe')
+  assert.equal(f.reduce((s, x) => s + x.erloesChf, 0), 600)
+})
+
+pruefe('feste Auftraege gehoeren nicht in den Funnel', () => {
+  for (const status of ['bestellen', 'bora', 'ausliefern']) {
+    assert.equal(forecast([best({ status })]).length, 0, status)
+  }
 })
 
 pruefe('leere Phasen fallen weg', () => {
-  const f = forecast([best({ status: 'zusage', zusageAm: '2026-03-01' })])
+  const f = forecast([best({ status: 'zusage' })])
   assert.equal(f.length, 1)
 })
 
-pruefe('der Forecast rechnet die erwartete Marge mit', () => {
-  const b = best({ status: 'bora', zusageAm: '2026-03-01', positionen: [netz(128, 96, 150)],
+pruefe('der Funnel rechnet die erwartete Marge mit', () => {
+  const b = best({ status: 'offerte', positionen: [netz(128, 96, 150)],
     kosten: [{ id: 'k', art: 'herstellung', betragChf: 30, traeger: 'bora', erfasstAm: 'x' },
              { id: 'k2', art: 'mwst', betragChf: 2.43, traeger: 'bora', erfasstAm: 'x' }] })
   const [f] = forecast([b])
   assert.equal(f.erloesChf, 150)
   assert.equal(f.kostenChf, 32.43)
   assert.equal(f.margeChf, 117.57)
-  assert.equal(f.geschaetzt, false)
 })
 
-pruefe('ein ausgenommener Auftrag steht auch nicht im Forecast', () => {
-  assert.equal(forecast([best({ status: 'zusage', zusageAm: '2026-03-01', ausserRechnung: true })]).length, 0)
+pruefe('ein ausgenommener Auftrag steht auch nicht im Funnel', () => {
+  assert.equal(forecast([best({ status: 'offerte', ausserRechnung: true })]).length, 0)
 })
 
 /* --- Offene Posten --------------------------------------------------------- */
@@ -355,7 +469,7 @@ pruefe('bezahlte Posten schulden wir nicht mehr', () => {
 })
 
 pruefe('Kosten einer Bestellung vor der Zusage schulden wir noch nicht', () => {
-  const b = best({ status: 'offerte', kosten: [{ id: 'k1', art: 'herstellung', betragChf: 60, traeger: 'bora', erfasstAm: 'x' }] })
+  const b = best({ status: 'klaerung', kosten: [{ id: 'k1', art: 'herstellung', betragChf: 60, traeger: 'bora', erfasstAm: 'x' }] })
   assert.equal(offeneSchulden([b], []).length, 0)
 })
 

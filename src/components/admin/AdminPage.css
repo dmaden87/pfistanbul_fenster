@@ -1308,3 +1308,31 @@
     width: 100%;
   }
 }
+
+/*
+ * ÜBERSCHRIFTEN IM WERKZEUG SIND KLEINER ALS AUF DER WEBSEITE.
+ *
+ * Draussen soll eine Zeile Eindruck machen, hier soll sie gliedern. Mit
+ * --step-5 war die Hauptueberschrift 65 Pixel hoch und schob die Arbeit nach
+ * unten aus dem Bild. Dasselbe steht in ZahlenPage.css fuer den Bereich
+ * nebenan; getrennt, weil die zwei Bereiche getrennt geladen werden.
+ *
+ * Die Druckblaetter sind NICHT betroffen: Offerte und Bestelltalon stehen
+ * ausserhalb von .admin, siehe den Kommentar in AdminPage.tsx.
+ */
+.admin h1 {
+  font-size: var(--step-2);
+}
+
+.admin h2 {
+  font-size: var(--step-1);
+}
+
+.admin h3 {
+  font-size: var(--step-0);
+}
+
+/* Auch der Rand oben: Im Werkzeug zaehlt, was man ohne Scrollen sieht. */
+.section.admin {
+  padding-block: var(--space-7) var(--section-y);
+}

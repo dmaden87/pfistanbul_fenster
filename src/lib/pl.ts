@@ -32,13 +32,32 @@ function runde2(x: number): number {
 /* --- Welche Bestellungen ueberhaupt zaehlen -------------------------------- */
 
 /**
- * Ab "Warten auf Zusage" ist eine Bestellung Teil der Rechnung.
+ * FEST IST EIN AUFTRAG, SOBALD DIE KUNDSCHAFT ZUGESAGT HAT.
  *
- * Davor ist sie eine Anfrage: Preise koennen sich noch aendern, und die
- * meisten Anfragen werden nie ein Auftrag. Abgesagtes faellt wieder heraus,
- * und was von Hand ausgenommen wurde, zaehlt nie.
+ * Die Phase "Warten auf Zusage" gehoert noch NICHT dazu – sie heisst so,
+ * weil wir auf das Ja warten. Der Zusage-Stempel schiebt den Auftrag in
+ * "Bereit zum Bestellen" (siehe `phaseNachWiederoeffnen` in phasen.ts), und
+ * erst ab dort steht ein Verkaufspreis, auf den man sich verlassen kann.
+ *
+ * HIER STAND ZUERST 'zusage' DABEI. Der Unterschied ist eine Phase und
+ * damit die halbe Aussage: Mit ihr zaehlten Angebote als Ertrag, die noch
+ * niemand angenommen hat. Alles davor ist Funnel, nicht Rechnung.
  */
-const AB_PHASE: ReadonlyArray<string> = ['zusage', 'bestellen', 'bora', 'ausliefern']
+const FESTE_PHASEN: ReadonlyArray<string> = ['bestellen', 'bora', 'ausliefern']
+
+/**
+ * Der Funnel: von der frischen Anfrage bis zum Warten auf die Zusage.
+ *
+ * Hier sind Preise Vorschlaege, Masse manchmal geschaetzt, und die meisten
+ * Anfragen werden nie ein Auftrag. Deshalb steht das getrennt und geht nie
+ * in eine Summe mit dem Ist ein.
+ */
+const FUNNEL_PHASEN: { phase: string; etikett: string }[] = [
+  { phase: 'neu', etikett: 'Neu, unbearbeitet' },
+  { phase: 'klaerung', etikett: 'Auftrag klären' },
+  { phase: 'offerte', etikett: 'Angebot erstellen' },
+  { phase: 'zusage', etikett: 'Warten auf Zusage' },
+]
 
 export function inRechnung(b: Bestellung): boolean {
   if (b.ausserRechnung) return false
@@ -54,7 +73,13 @@ export function inRechnung(b: Bestellung): boolean {
  * Genau so war die erste Fassung: eine Einbahnstrasse.
  */
 export function zaehltPhase(b: Bestellung): boolean {
-  return AB_PHASE.includes(b.status)
+  return FESTE_PHASEN.includes(b.status)
+}
+
+/** Steht der Auftrag im Funnel – also vor der Zusage? */
+export function imFunnel(b: Bestellung): boolean {
+  if (b.ausserRechnung) return false
+  return FUNNEL_PHASEN.some((f) => f.phase === b.status)
 }
 
 /* --- Eine Bestellung, auf Geld reduziert ---------------------------------- */
@@ -187,9 +212,14 @@ export interface Abschnitt {
    */
   offenChf: number
   /**
-   * Zugesagt, aber noch nicht geliefert. KEIN ERTRAG, sondern
-   * Auftragsbestand: Es ist nichts erbracht, und niemand schuldet uns etwas.
-   * Steht neben der Rechnung und nie darin.
+   * Davon noch nicht geliefert – der Teil, der im Funnel steht.
+   *
+   * ER ZAEHLT MIT. Frueher stand er neben der Rechnung: Ein zugesagter
+   * Auftrag sei kein Ertrag, weil nichts erbracht ist. Buchhalterisch
+   * stimmt das; zum Steuern eines Betriebs mit sechs Auftraegen taugt es
+   * nicht. Ein zugesagter Auftrag hat einen festen Verkaufspreis und
+   * gerechnete Kosten – das ist die Zahl, auf die man schaut. Wie weit er
+   * ist, steht in den drei Spalten daneben.
    */
   erwartetChf: number
   anzahl: number
@@ -215,16 +245,24 @@ function schluesselFuer(iso: string, periode: Periode): { schluessel: string; et
     const q = Math.floor((monat - 1) / 3) + 1
     return { schluessel: `${jahr}-Q${q}`, etikett: `${q}. Quartal ${jahr}` }
   }
-  return { schluessel: jahr, etikett: `${jahr} bis heute` }
+  /*
+   * "BIS HEUTE" NUR FUERS LAUFENDE JAHR. Bei mehreren Jahren in der Liste
+   * stuende sonst "2025 bis heute" - und das Jahr ist seit Silvester
+   * vollstaendig. Ein abgelaufenes Jahr heisst einfach so.
+   */
+  const heuer = new Date().getFullYear()
+  return { schluessel: jahr, etikett: Number(jahr) === heuer ? `${jahr} bis heute` : jahr }
 }
 
 /**
  * Die Erfolgsrechnung je Abschnitt.
  *
- * ERWARTETES BEKOMMT KEINE PERIODE. Eine zugesagte Bestellung wird irgendwann
- * geliefert – wann, weiss heute niemand. Sie in den Monat der Zusage zu
- * legen hiesse, einen Ertrag zu buchen, der dort nie anfaellt. Deshalb
- * laeuft sie neben der Tabelle mit, als eine Zahl.
+ * NOCH NICHT GELIEFERTES FAELLT IN DEN MONAT DER ZUSAGE. Das ist nicht das
+ * Datum, an dem geliefert wird – das kennt heute niemand. Es ist das Datum,
+ * an dem der Auftrag fest wurde, und darum geht es hier: Die Rechnung zeigt,
+ * was an festen Auftraegen da ist, nicht was die Post schon gebracht hat.
+ * Wie weit jeder ist, sagen die Spalten "einkassiert", "offen" und "noch
+ * nicht geliefert".
  */
 export function abschnitte(
   bestellungen: Bestellung[],
@@ -248,17 +286,19 @@ export function abschnitte(
     if (!inRechnung(b)) continue
     const z = zahlenFuer(b)
     const a = hole(z.datum)
-    if (z.realisiert) {
-      a.erloesChf = runde2(a.erloesChf + z.erloesChf)
-      a.kostenChf = runde2(a.kostenChf + z.kostenChf)
-      a.anzahl += 1
-      a.netzZahl += z.netzZahl
-      if (z.geschaetzt) a.geschaetzt = true
-      if (z.einkassiert) a.einkassiertChf = runde2(a.einkassiertChf + z.erloesChf)
-      else a.offenChf = runde2(a.offenChf + z.erloesChf)
-    } else {
-      a.erwartetChf = runde2(a.erwartetChf + z.erloesChf)
-    }
+    /*
+     * JEDER FESTE AUFTRAG ZAEHLT, ab der Zusage. Die drei Spalten darunter
+     * sagen, wie weit er ist: einkassiert, geliefert und noch offen, oder
+     * noch nicht geliefert. Zusammen ergeben sie wieder den Erloes.
+     */
+    a.erloesChf = runde2(a.erloesChf + z.erloesChf)
+    a.kostenChf = runde2(a.kostenChf + z.kostenChf)
+    a.anzahl += 1
+    a.netzZahl += z.netzZahl
+    if (z.geschaetzt) a.geschaetzt = true
+    if (!z.realisiert) a.erwartetChf = runde2(a.erwartetChf + z.erloesChf)
+    else if (z.einkassiert) a.einkassiertChf = runde2(a.einkassiertChf + z.erloesChf)
+    else a.offenChf = runde2(a.offenChf + z.erloesChf)
   }
 
   for (const l of auslagen) {
@@ -271,6 +311,121 @@ export function abschnitte(
   }
 
   return [...karte.values()].sort((x, y) => (x.schluessel < y.schluessel ? 1 : -1))
+}
+
+/* --- Die Kennzahlen oben ---------------------------------------------------- */
+
+export interface Kennzahlen {
+  /** Alle festen Auftraege zum Verkaufspreis. */
+  erloesChf: number
+  /** Davon schon auf dem Konto. */
+  cashedChf: number
+  /** Davon geliefert und noch nicht bezahlt – die Debitoren. */
+  debitChf: number
+  /** Davon fest, aber noch nicht geliefert – in Arbeit. */
+  inArbeitChf: number
+
+  /** Der Funnel: alles VOR der Zusage. Steht nie in einer Summe mit dem Ist. */
+  funnelChf: number
+
+  /** Warenkosten aller festen Auftraege. */
+  warenkostenChf: number
+  betriebskostenChf: number
+  /** Beides zusammen. */
+  kostenChf: number
+  /** Davon noch zu bezahlen – die Kreditoren. */
+  creditChf: number
+
+  /** Erloes minus alle Kosten. Die Rechnung, wie sie in der Tabelle steht. */
+  betriebsergebnisChf: number
+  /** Betriebsergebnis in Prozent vom Erloes. */
+  rentabilitaet: number | null
+
+  /**
+   * Dasselbe, aber nur mit dem, was wirklich geflossen ist: einkassiertes
+   * Geld gegen bezahlte Rechnungen. Das ist, was auf dem Konto passiert ist.
+   */
+  realErgebnisChf: number
+
+  /** Der Funnel in Stueck und Geld. */
+  funnelAnzahl: number
+  funnelNetze: number
+  funnelKostenChf: number
+  funnelMargeChf: number
+}
+
+/**
+ * Die Zahlen fuer den Kopf der Seite.
+ *
+ * HIER UND NICHT IN DER OBERFLAECHE, damit sie geprueft werden koennen. Eine
+ * Kennzahl, die nur in einer Komponente entsteht, faellt bei jedem Umbau der
+ * Komponente mit – und niemand merkt, dass sie seither etwas anderes misst.
+ */
+export function kennzahlen(bestellungen: Bestellung[], auslagen: Auslage[]): Kennzahlen {
+  let erloesChf = 0, cashedChf = 0, debitChf = 0, inArbeitChf = 0, warenkostenChf = 0
+  let realErloesChf = 0, realWarenkostenChf = 0
+  let funnelChf = 0, funnelAnzahl = 0, funnelNetze = 0, funnelKostenChf = 0, funnelMargeChf = 0
+
+  /* Der Funnel steht vor der Zusage und wird getrennt gezaehlt. */
+  for (const b of bestellungen) {
+    if (!imFunnel(b)) continue
+    const z = zahlenFuer(b)
+    funnelChf = runde2(funnelChf + z.erloesChf)
+    funnelAnzahl += 1
+    funnelNetze += z.netzZahl
+    funnelKostenChf = runde2(funnelKostenChf + z.kostenChf)
+    funnelMargeChf = runde2(funnelMargeChf + z.margeChf)
+  }
+
+  for (const b of bestellungen) {
+    if (!inRechnung(b)) continue
+    const z = zahlenFuer(b)
+    erloesChf = runde2(erloesChf + z.erloesChf)
+    warenkostenChf = runde2(warenkostenChf + z.kostenChf)
+
+    if (!z.realisiert) {
+      inArbeitChf = runde2(inArbeitChf + z.erloesChf)
+    } else if (z.einkassiert) {
+      cashedChf = runde2(cashedChf + z.erloesChf)
+      realErloesChf = runde2(realErloesChf + z.erloesChf)
+    } else {
+      debitChf = runde2(debitChf + z.erloesChf)
+    }
+
+    /* Fuer die reale Rechnung zaehlt nur, was auch bezahlt ist. */
+    for (const k of b.kosten ?? []) {
+      if (k.bezahlt) realWarenkostenChf = runde2(realWarenkostenChf + k.betragChf)
+    }
+  }
+
+  const betriebskostenChf = runde2(auslagen.reduce((s, l) => s + l.betragChf, 0))
+  const realBetriebskostenChf = runde2(
+    auslagen.filter((l) => l.bezahlt).reduce((s, l) => s + l.betragChf, 0))
+
+  const schulden = offeneSchulden(bestellungen, auslagen)
+  const creditChf = runde2(schulden.reduce((s, x) => s + x.betragChf, 0))
+
+  const kostenChf = runde2(warenkostenChf + betriebskostenChf)
+  const betriebsergebnisChf = runde2(erloesChf - kostenChf)
+
+  return {
+    erloesChf,
+    cashedChf,
+    debitChf,
+    inArbeitChf,
+    funnelChf,
+    warenkostenChf,
+    betriebskostenChf,
+    kostenChf,
+    creditChf,
+    betriebsergebnisChf,
+    rentabilitaet: erloesChf > 0 ? Math.round((betriebsergebnisChf / erloesChf) * 1000) / 10 : null,
+    realErgebnisChf: runde2(realErloesChf - realWarenkostenChf - realBetriebskostenChf),
+    funnelAnzahl,
+    funnelNetze,
+    funnelKostenChf,
+    funnelMargeChf,
+  }
 }
 
 /* --- Forecast: was noch kommt ---------------------------------------------- */
@@ -287,31 +442,26 @@ export interface ForecastZeile {
   geschaetzt: boolean
 }
 
-const FORECAST_PHASEN: { phase: string; etikett: string }[] = [
-  { phase: 'zusage', etikett: 'Zugesagt, noch nicht bestellt' },
-  { phase: 'bestellen', etikett: 'Bereit zum Bestellen' },
-  { phase: 'bora', etikett: 'Bei Bora' },
-]
-
 /**
- * Was noch kommt, nach Naehe geordnet.
+ * Der Funnel, nach Naehe geordnet.
  *
- * NICHT NACH MONAT. Ein zugesagter Auftrag hat kein Lieferdatum – wann er
- * faellt, weiss heute niemand. Ihn in den Monat der Zusage zu legen hiesse,
- * einen Zeitpunkt zu erfinden. Die Phase sagt dafuer etwas Echtes: Was bei
- * Bora liegt, kommt eher als das, was gestern zugesagt wurde.
+ * NICHT NACH MONAT. Eine Anfrage hat kein Lieferdatum – wann daraus etwas
+ * wird, und ob ueberhaupt, weiss heute niemand. Die Phase sagt dafuer etwas
+ * Echtes: Was auf die Zusage wartet, kommt eher als das, was gestern
+ * hereingeschneit ist.
  *
- * Ausgeliefertes steht nicht darin – das ist Ist und keine Aussicht.
+ * NICHTS DAVON IST ERTRAG. Die Preise sind Vorschlaege, die Kosten
+ * gerechnet, und die meisten Anfragen werden nie ein Auftrag. Darum geht
+ * diese Tabelle nie in eine Summe mit der Erfolgsrechnung ein.
  */
 export function forecast(bestellungen: Bestellung[]): ForecastZeile[] {
   const karte = new Map<string, ForecastZeile>()
-  for (const { phase, etikett } of FORECAST_PHASEN) {
+  for (const { phase, etikett } of FUNNEL_PHASEN) {
     karte.set(phase, { phase, etikett, anzahl: 0, netzZahl: 0, erloesChf: 0, kostenChf: 0, margeChf: 0, geschaetzt: false })
   }
   for (const b of bestellungen) {
-    if (!inRechnung(b)) continue
+    if (!imFunnel(b)) continue
     const z = zahlenFuer(b)
-    if (z.realisiert) continue
     const zeile = karte.get(b.status)
     if (!zeile) continue
     zeile.anzahl += 1

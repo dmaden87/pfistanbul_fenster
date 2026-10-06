@@ -7,8 +7,8 @@ import {
 import { beteiligte, kostenConfig } from '../../data/kostenConfig'
 import { formatChf } from '../../lib/format'
 import {
-  abschnitte, aufteilung, forecast, offeneForderungen, offeneSchulden, zaehltPhase, zahlenFuer,
-  type Periode,
+  abschnitte, aufteilung, forecast, kennzahlen, offeneForderungen, offeneSchulden,
+  zaehltPhase, zahlenFuer, type Periode,
 } from '../../lib/pl'
 import { KostenEditor } from './KostenEditor'
 import { AuslagenListe } from './AuslagenListe'
@@ -119,16 +119,11 @@ export function ZahlenPage({ onBack }: Props) {
   const zeilen = bestellungen.filter(zaehltPhase).map((b) => ({ b, z: zahlenFuer(b) }))
   const gerechnet = zeilen.filter((x) => !x.b.ausserRechnung)
   const perioden = abschnitte(bestellungen, auslagen, periode)
+  const k = kennzahlen(bestellungen, auslagen)
   const aussicht = forecast(bestellungen)
   const forderungen = offeneForderungen(bestellungen)
   const schulden = offeneSchulden(bestellungen, auslagen)
   const teilung = aufteilung(bestellungen, auslagen)
-
-  const einkassiert = gerechnet.filter((x) => x.z.einkassiert).reduce((s, x) => s + x.z.erloesChf, 0)
-  const erwartet = gerechnet.filter((x) => !x.z.realisiert).reduce((s, x) => s + x.z.erloesChf, 0)
-  const forderungSumme = forderungen.reduce((s, f) => s + f.betragChf, 0)
-  const schuldSumme = schulden.reduce((s, f) => s + f.betragChf, 0)
-  const jahr = abschnitte(bestellungen, auslagen, 'ytd')[0]
 
   /* Sendungen: die Pakete, wie sie zu Bora gegangen sind. */
   const pakete = new Map<string, { anzahl: number; netze: number; erloes: number; kosten: number }>()
@@ -173,36 +168,56 @@ export function ZahlenPage({ onBack }: Props) {
         {/* --- Kennzahlen ---------------------------------------------------- */}
         <div className="kennzahlen">
           <div className="kennzahl">
-            <span className="kennzahl__titel">Eingenommen</span>
-            <strong className="kennzahl__wert">{formatChf(einkassiert)}</strong>
-            <span className="kennzahl__zusatz">einkassiert, alle Zeiten</span>
-          </div>
-          <div className="kennzahl">
-            <span className="kennzahl__titel">Kommt noch</span>
-            <strong className="kennzahl__wert">{formatChf(erwartet)}</strong>
-            <span className="kennzahl__zusatz">zugesagt, nicht geliefert</span>
-          </div>
-          <div className="kennzahl">
-            <span className="kennzahl__titel">Schuldet man uns</span>
-            <strong className="kennzahl__wert">{formatChf(forderungSumme)}</strong>
-            <span className="kennzahl__zusatz">{forderungen.length} geliefert, nicht bezahlt</span>
-          </div>
-          <div className="kennzahl">
-            <span className="kennzahl__titel">Schulden wir</span>
-            <strong className="kennzahl__wert">{formatChf(schuldSumme)}</strong>
-            <span className="kennzahl__zusatz">ausgelegt, nicht zurückbezahlt</span>
-          </div>
-          <div className="kennzahl">
-            <span className="kennzahl__titel">Ergebnis {new Date().getFullYear()}</span>
-            <strong className="kennzahl__wert">{formatChf(jahr?.ergebnisChf ?? 0)}</strong>
+            <span className="kennzahl__titel">Total Erlös</span>
+            <strong className="kennzahl__wert">{formatChf(k.erloesChf)}</strong>
             <span className="kennzahl__zusatz">
-              nach Waren- und Betriebskosten{jahr?.geschaetzt ? ' · teils geschätzt' : ''}
+              alle festen Aufträge zum Verkaufspreis – ab der Zusage der Kundschaft
+            </span>
+            <dl className="kennzahl__teile">
+              <div><dt>Cashed</dt><dd>{formatChf(k.cashedChf)}</dd></div>
+              <div><dt>Debit</dt><dd>{formatChf(k.debitChf)}</dd></div>
+              <div><dt>In Arbeit</dt><dd>{formatChf(k.inArbeitChf)}</dd></div>
+            </dl>
+          </div>
+
+          <div className="kennzahl">
+            <span className="kennzahl__titel">Betriebsergebnis</span>
+            <strong className="kennzahl__wert">{formatChf(k.betriebsergebnisChf)}</strong>
+            <span className="kennzahl__zusatz">
+              Erlöse aller festen Aufträge minus Waren- und Betriebskosten
+            </span>
+            <dl className="kennzahl__teile">
+              <div><dt>Rentabilität</dt><dd>{k.rentabilitaet === null ? '–' : `${k.rentabilitaet} %`}</dd></div>
+            </dl>
+          </div>
+
+          <div className="kennzahl">
+            <span className="kennzahl__titel">Betriebsergebnis real</span>
+            <strong className="kennzahl__wert">{formatChf(k.realErgebnisChf)}</strong>
+            <span className="kennzahl__zusatz">
+              nur was geflossen ist: einkassiert gegen bezahlte Rechnungen
             </span>
           </div>
+
           <div className="kennzahl">
-            <span className="kennzahl__titel">Betriebskosten {new Date().getFullYear()}</span>
-            <strong className="kennzahl__wert">{formatChf(jahr?.betriebskostenChf ?? 0)}</strong>
-            <span className="kennzahl__zusatz">ohne Bestellbezug</span>
+            <span className="kennzahl__titel">Total Kosten</span>
+            <strong className="kennzahl__wert">{formatChf(k.kostenChf)}</strong>
+            <span className="kennzahl__zusatz">Ware und Betrieb, bezahlt wie offen</span>
+            <dl className="kennzahl__teile">
+              <div><dt>Credit</dt><dd>{formatChf(k.creditChf)}</dd></div>
+            </dl>
+          </div>
+
+          <div className="kennzahl">
+            <span className="kennzahl__titel">Funnel</span>
+            <strong className="kennzahl__wert">{formatChf(k.funnelChf)}</strong>
+            <span className="kennzahl__zusatz">
+              {k.funnelAnzahl} Anfragen · {k.funnelNetze} Netze, noch nicht zugesagt
+            </span>
+            <dl className="kennzahl__teile">
+              <div><dt>Kosten</dt><dd>{formatChf(k.funnelKostenChf)}</dd></div>
+              <div><dt>Marge</dt><dd>{formatChf(k.funnelMargeChf)}</dd></div>
+            </dl>
           </div>
         </div>
 
@@ -229,6 +244,7 @@ export function ZahlenPage({ onBack }: Props) {
                 <th className="zahlen__zahl">Erlös</th>
                 <th className="zahlen__zahl">davon einkassiert</th>
                 <th className="zahlen__zahl">davon offen</th>
+                <th className="zahlen__zahl">davon in Arbeit</th>
                 <th className="zahlen__zahl">Warenkosten</th>
                 <th className="zahlen__zahl">Betriebskosten</th>
                 <th className="zahlen__zahl">Ergebnis</th>
@@ -246,6 +262,7 @@ export function ZahlenPage({ onBack }: Props) {
                   <td data-titel="Erlös" className="zahlen__zahl">{formatChf(a.erloesChf)}</td>
                   <td data-titel="davon einkassiert" className="zahlen__zahl">{formatChf(a.einkassiertChf)}</td>
                   <td data-titel="davon offen" className="zahlen__zahl">{formatChf(a.offenChf)}</td>
+                  <td data-titel="davon in Arbeit" className="zahlen__zahl">{formatChf(a.erwartetChf)}</td>
                   <td data-titel="Warenkosten" className="zahlen__zahl">{formatChf(a.kostenChf)}</td>
                   <td data-titel="Betriebskosten" className="zahlen__zahl">{formatChf(a.betriebskostenChf)}</td>
                   <td data-titel="Ergebnis" className="zahlen__zahl">
@@ -254,27 +271,28 @@ export function ZahlenPage({ onBack }: Props) {
                 </tr>
               ))}
               {perioden.length === 0 && (
-                <tr><td colSpan={9}>Noch nichts geliefert.</td></tr>
+                <tr><td colSpan={10}>Noch keine festen Aufträge.</td></tr>
               )}
             </tbody>
           </table></div>
           <p className="zahlen__hinweis">
-            Hier steht nur, was <strong>geliefert</strong> ist. Der Erlös zählt im Monat der
-            Auslieferung, ob bezahlt oder nicht – „davon offen“ sind die Debitoren: verdient,
-            aber noch nicht auf dem Konto. Sie stecken im Erlös und stehen nur zusätzlich
-            einzeln da. Was zugesagt, aber noch nicht geliefert ist, steht im Forecast
-            darunter.
+            Hier stehen <strong>alle festen Aufträge</strong> – ab dem Moment, in dem die
+            Kundschaft zugesagt hat. Der Erlös zählt im Monat der Auslieferung, bei noch nicht
+            Geliefertem im Monat der Zusage. Die drei Spalten danach sagen, wie weit jeder ist,
+            und ergeben zusammen wieder den Erlös: <strong>einkassiert</strong> ist auf dem
+            Konto, <strong>offen</strong> sind die Debitoren (geliefert, noch nicht bezahlt),
+            <strong>in Arbeit</strong> ist zugesagt und noch nicht geliefert.
           </p>
         </div>
 
         {/* --- Forecast ------------------------------------------------------ */}
         <div className="zahlen__block">
-          <h2>Forecast · was noch kommt</h2>
+          <h2>Forecast · der Funnel</h2>
           <div className="zahlen__rollen"><table className="zahlen__tabelle">
             <thead>
               <tr>
                 <th>Stand</th>
-                <th className="zahlen__zahl">Aufträge</th>
+                <th className="zahlen__zahl">Anfragen</th>
                 <th className="zahlen__zahl">Netze</th>
                 <th className="zahlen__zahl">Erlös erwartet</th>
                 <th className="zahlen__zahl">Kosten erwartet</th>
@@ -288,7 +306,7 @@ export function ZahlenPage({ onBack }: Props) {
                     {f.etikett}
                     {f.geschaetzt && <span className="kosten__marke">Kosten geschätzt</span>}
                   </td>
-                  <td data-titel="Aufträge" className="zahlen__zahl">{f.anzahl}</td>
+                  <td data-titel="Anfragen" className="zahlen__zahl">{f.anzahl}</td>
                   <td data-titel="Netze" className="zahlen__zahl">{f.netzZahl}</td>
                   <td data-titel="Erlös erwartet" className="zahlen__zahl">{formatChf(f.erloesChf)}</td>
                   <td data-titel="Kosten erwartet" className="zahlen__zahl">{formatChf(f.kostenChf)}</td>
@@ -298,11 +316,11 @@ export function ZahlenPage({ onBack }: Props) {
                 </tr>
               ))}
               {aussicht.length === 0
-                ? <tr><td colSpan={6}>Nichts offen – alles Zugesagte ist geliefert.</td></tr>
+                ? <tr><td colSpan={6}>Keine offenen Anfragen.</td></tr>
                 : (
                   <tr className="zahlen__strich">
                     <td data-titel="Stand"><strong>Zusammen</strong></td>
-                    <td data-titel="Aufträge" className="zahlen__zahl">
+                    <td data-titel="Anfragen" className="zahlen__zahl">
                       <strong>{aussicht.reduce((s, f) => s + f.anzahl, 0)}</strong>
                     </td>
                     <td data-titel="Netze" className="zahlen__zahl">
@@ -322,10 +340,11 @@ export function ZahlenPage({ onBack }: Props) {
             </tbody>
           </table></div>
           <p className="zahlen__hinweis">
-            Geordnet nach Nähe, nicht nach Monat: Ein zugesagter Auftrag hat noch kein
-            Lieferdatum, und eines zu erfinden wäre schlimmer als keines. Was bei Bora liegt,
-            kommt eher als das, was gestern zugesagt wurde. Nichts davon ist Ertrag, und
-            niemand schuldet uns etwas – es ist ein Ausblick.
+            Alles <strong>vor</strong> der Zusage: von der frischen Anfrage bis zum Warten auf
+            das Ja. Geordnet nach Nähe und nicht nach Monat – wann daraus etwas wird, und ob
+            überhaupt, weiss heute niemand. Die Preise sind Vorschläge, die Kosten gerechnet.
+            Nichts davon ist Ertrag, und deshalb geht diese Tabelle nie in eine Summe mit der
+            Erfolgsrechnung ein.
           </p>
         </div>
 
@@ -444,6 +463,11 @@ export function ZahlenPage({ onBack }: Props) {
                     <td data-titel="Kosten" className="zahlen__zahl">{formatChf(p.kosten)}</td>
                     <td data-titel="Marge" className="zahlen__zahl">
                       <strong>{formatChf(p.erloes - p.kosten)}</strong>
+                      {p.erloes > 0 && (
+                        <span className="zahlen__klein">
+                          {Math.round(((p.erloes - p.kosten) / p.erloes) * 1000) / 10} %
+                        </span>
+                      )}
                     </td>
                     <td data-titel="je Netz" className="zahlen__zahl">
                       {p.netze > 0 ? formatChf((p.erloes - p.kosten) / p.netze) : '–'}
