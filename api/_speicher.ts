@@ -39,6 +39,16 @@ export const TABELLE_LIEFERUNGEN = 'pf:lieferungen'
  */
 export const TABELLE_DEMO = 'pf:demo:bestellungen'
 
+/**
+ * Die Auslagen: laufende Betriebskosten ohne Bestellbezug.
+ *
+ * Eine eigene Tabelle, weil sie zu keiner Bestellung gehoeren – Werbung,
+ * Server, Klebeband, Benzin. Die Testumgebung bekommt wie ueberall ihre
+ * eigene, damit sich Beispiel und Ernstfall nicht vermischen koennen.
+ */
+export const TABELLE_AUSLAGEN = 'pf:auslagen'
+export const TABELLE_AUSLAGEN_DEMO = 'pf:demo:auslagen'
+
 /** True, sobald ein Speicher verbunden ist. Ohne ihn bleibt der Adminbereich leer, statt zu lügen. */
 export const speicherBereit = Boolean(url && token)
 

@@ -968,6 +968,88 @@ await pruefe('Alteintraege bekommen beim Lesen ehrliche Schalter', async () => {
   assert.equal(gespeichert.lies('alt-posten').montage, false)
 })
 
+/* --- Buchhaltung: Kostenposten und "ausser Rechnung" ------------------------- */
+
+/*
+ * HIER HAENGT GELD DRAN, DAS JEMANDEM ZURUECKGEZAHLT WIRD. Ein Posten, der
+ * beim Speichern seinen Traeger verliert, taucht in "wem schulden wir was"
+ * nicht mehr auf - und niemand merkt es, weil die Summe trotzdem stimmt.
+ */
+
+await pruefe('Kostenposten anlegen', async () => {
+  await ruf({ method: 'POST', aktion: 'erfassen', cookie, body: {
+    art: 'bestellung', kunde, positionen: [{ bezeichnung: 'Netz', menge: 1, preisChf: 150, breiteCm: 100, hoeheCm: 100 }],
+  } })
+  const liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
+  const id = liste[liste.length - 1].id
+  const a = await ruf({ method: 'PATCH', cookie, body: { id, kosten: [
+    { art: 'herstellung', betragChf: 38.4, traeger: 'bora' },
+    { art: 'weiteres', bezeichnung: 'Dübel', betragChf: 7.2, traeger: 'deniz', bezahlt: true, am: '2026-02-03' },
+  ] } })
+  assert.equal(a.code, 200)
+  const k = a.daten.bestellung.kosten
+  assert.equal(k.length, 2)
+  assert.equal(k[0].traeger, 'bora')
+  assert.ok(k[0].id, 'jeder Posten braucht eine Kennung')
+  assert.ok(k[0].erfasstAm, 'und einen Erfassungszeitpunkt')
+  assert.equal(k[0].bezeichnung, undefined, 'die festen Arten beschriften sich selbst')
+  assert.equal(k[1].bezeichnung, 'Dübel')
+  assert.equal(k[1].bezahlt, true)
+  assert.equal(k[1].am, '2026-02-03')
+  return id
+})
+
+await pruefe('erfundene Arten und Traeger fallen weg, der Rest bleibt', async () => {
+  const liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
+  const id = liste[liste.length - 1].id
+  const a = await ruf({ method: 'PATCH', cookie, body: { id, kosten: [
+    { art: 'schnaps', betragChf: 99, traeger: 'bora' },
+    { art: 'lieferung', betragChf: 20, traeger: 'der Nachbar' },
+    { art: 'lieferung', betragChf: 20, traeger: 'ufuk' },
+  ] } })
+  assert.equal(a.daten.bestellung.kosten.length, 1, 'nur der gueltige Posten')
+  assert.equal(a.daten.bestellung.kosten[0].traeger, 'ufuk')
+})
+
+await pruefe('Betraege werden auf Rappen gerundet', async () => {
+  const liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
+  const id = liste[liste.length - 1].id
+  const a = await ruf({ method: 'PATCH', cookie, body: { id, kosten: [
+    { art: 'herstellung', betragChf: 38.4567, traeger: 'bora' },
+  ] } })
+  assert.equal(a.daten.bestellung.kosten[0].betragChf, 38.46)
+})
+
+await pruefe('eine leere Liste raeumt die Kosten weg', async () => {
+  const liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
+  const id = liste[liste.length - 1].id
+  const a = await ruf({ method: 'PATCH', cookie, body: { id, kosten: [] } })
+  assert.equal(a.daten.bestellung.kosten, undefined)
+})
+
+await pruefe('keine Liste, sondern etwas anderes: 400', async () => {
+  const liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
+  const id = liste[liste.length - 1].id
+  const a = await ruf({ method: 'PATCH', cookie, body: { id, kosten: 'viel' } })
+  assert.equal(a.code, 400)
+})
+
+await pruefe('"ausser Rechnung" laesst sich setzen und wieder loeschen', async () => {
+  const liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
+  const id = liste[liste.length - 1].id
+  const an = await ruf({ method: 'PATCH', cookie, body: { id, ausserRechnung: true } })
+  assert.equal(an.daten.bestellung.ausserRechnung, true)
+  const aus = await ruf({ method: 'PATCH', cookie, body: { id, ausserRechnung: false } })
+  assert.equal(aus.daten.bestellung.ausserRechnung, undefined, 'false heisst weg, nicht false')
+})
+
+await pruefe('ohne Anmeldung keine Kosten', async () => {
+  const liste = (await ruf({ method: 'GET', cookie })).daten.bestellungen
+  const id = liste[liste.length - 1].id
+  const a = await ruf({ method: 'PATCH', body: { id, kosten: [{ art: 'herstellung', betragChf: 1, traeger: 'bora' }] } })
+  assert.equal(a.code, 401)
+})
+
 /* --- Ergebnis ---------------------------------------------------------------- */
 
 console.log(`\n${bestanden}/${bestanden + fehler.length} bestanden`)

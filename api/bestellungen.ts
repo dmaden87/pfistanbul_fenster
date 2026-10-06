@@ -201,6 +201,29 @@ interface Bestellung {
    * als bezahlt, wenn es jemand bestaetigt, der es wissen kann.
    */
   bezahlung?: { status: 'bezahlt' | 'abgebrochen'; betragChf: number; zeitpunkt: string; sitzung: string }
+
+  /*
+   * Buchhaltung. Die Begruendung zu beiden Feldern steht bei den Typen im
+   * Browser (src/types/index.ts); hier stehen sie noch einmal, weil api/
+   * nicht aus src/ importieren darf – dieselbe Regel wie fuer alles andere
+   * in dieser Datei.
+   */
+  kosten?: KostenPosten[]
+  ausserRechnung?: boolean
+}
+
+export type KostenArt = 'herstellung' | 'lieferung' | 'mwst' | 'weiteres'
+export type Beteiligter = 'bora' | 'ufuk' | 'deniz'
+
+export interface KostenPosten {
+  id: string
+  art: KostenArt
+  bezeichnung?: string
+  betragChf: number
+  traeger: Beteiligter
+  bezahlt?: boolean
+  am?: string
+  erfasstAm: string
 }
 
 /* --- Eingaben zurechtstutzen ------------------------------------------------ */
@@ -223,6 +246,14 @@ function datum(wert: unknown): string | undefined {
 function text(wert: unknown, max: number): string {
   return typeof wert === 'string' ? wert.trim().slice(0, max) : ''
 }
+
+/*
+ * Die erlaubten Werte der Buchhaltung, als Liste statt als Typ: Zur Laufzeit
+ * ist von einem TypeScript-Typ nichts mehr uebrig, und was aus dem Browser
+ * kommt, muss gegen etwas geprueft werden, das es noch gibt.
+ */
+const KOSTEN_ARTEN: ReadonlyArray<KostenArt> = ['herstellung', 'lieferung', 'mwst', 'weiteres']
+const BETEILIGTE: ReadonlyArray<Beteiligter> = ['bora', 'ufuk', 'deniz']
 
 function zahl(wert: unknown): number {
   const n = typeof wert === 'number' ? wert : Number(wert)
@@ -845,6 +876,46 @@ async function aendern(req: VercelRequest, res: VercelResponse) {
     if (!bestellung.rabattChf) delete bestellung.rabattText
 
     bestellung.summeChf = summeVon(bestellung)
+    geaendert = true
+  }
+
+  /* --- Buchhaltung: Kostenposten und der Schalter "ausser Rechnung" ------- */
+
+  if (koerper.ausserRechnung !== undefined) {
+    bestellung.ausserRechnung = koerper.ausserRechnung === true || undefined
+    geaendert = true
+  }
+
+  /*
+   * DIE LISTE KOMMT GANZ ODER GAR NICHT. Einzelne Posten nachzupflegen hiesse,
+   * eine zweite Kennung je Posten zu fuehren und beim Loeschen zu raten, was
+   * gemeint war. Die Oberflaeche hat die Liste ohnehin vollstaendig vor sich;
+   * sie schickt sie zurueck, wie sie sie haben will.
+   *
+   * Betraege werden gerundet, Fremdes faellt weg: Was hier hereinkommt,
+   * stammt aus einem Browser und ist erst einmal nichts als ein Vorschlag.
+   */
+  if (koerper.kosten !== undefined) {
+    if (!Array.isArray(koerper.kosten)) return res.status(400).json({ error: 'Kosten müssen eine Liste sein.' })
+    const raus: KostenPosten[] = []
+    for (const roh of koerper.kosten as unknown[]) {
+      if (typeof roh !== 'object' || roh === null) continue
+      const k = roh as Record<string, unknown>
+      const art = KOSTEN_ARTEN.includes(k.art as KostenArt) ? (k.art as KostenArt) : undefined
+      const traeger = BETEILIGTE.includes(k.traeger as Beteiligter) ? (k.traeger as Beteiligter) : undefined
+      if (!art || !traeger) continue
+      raus.push({
+        id: text(k.id, 40) || `k${raus.length + 1}-${Date.now().toString(36)}`,
+        art,
+        ...(art === 'weiteres' ? { bezeichnung: text(k.bezeichnung, 80) || 'Weiteres' } : {}),
+        betragChf: zahl(k.betragChf),
+        traeger,
+        ...(k.bezahlt === true ? { bezahlt: true } : {}),
+        ...(text(k.am, 30) ? { am: text(k.am, 30) } : {}),
+        erfasstAm: text(k.erfasstAm, 30) || jetzt,
+      })
+    }
+    bestellung.kosten = raus.length > 0 ? raus : undefined
     geaendert = true
   }
 

@@ -436,6 +436,85 @@ export interface Bestellung {
   einkaufAm?: string
   /** Interne Notiz aus dem Adminbereich. Sieht die Kundschaft nie. */
   notiz?: string
+
+  /* --- Buchhaltung ------------------------------------------------------ */
+
+  /**
+   * Was diese Bestellung gekostet hat, Posten fuer Posten.
+   *
+   * EINE LISTE UND NICHT DREI FELDER, weil jeder Posten seinen eigenen
+   * Traeger und seinen eigenen Stand hat: Die Netze zahlt meist Bora, das
+   * Verbrauchsmaterial einer von uns, und bezahlt ist das eine lange vor
+   * dem anderen. Drei feste Felder koennten das nicht tragen.
+   *
+   * Die aelteren Felder `lieferkostenChf`, `zollChf` und `einkaufChf` je
+   * Position bleiben stehen und werden weiter gelesen: Sie sind die
+   * Vorgeschichte dieser Liste, und geloescht wird hier nichts.
+   */
+  kosten?: KostenPosten[]
+  /**
+   * Haelt die Bestellung aus der Erfolgsrechnung heraus, ohne sie zu
+   * loeschen. Fuer Datensaetze aus der Bauzeit und fuer Versehen: Sie
+   * sollen die Zahlen nicht verfaelschen, aber auch nicht verschwinden.
+   */
+  ausserRechnung?: boolean
+}
+
+/** Wer am Geschaeft beteiligt ist und etwas auslegen kann. */
+export type Beteiligter = 'bora' | 'ufuk' | 'deniz'
+
+/**
+ * Welche Art Kosten. Die ersten drei sind die festen Zeilen jeder
+ * Bestellung, `weiteres` ist alles, was sonst noch anfaellt.
+ */
+export type KostenArt = 'herstellung' | 'lieferung' | 'mwst' | 'weiteres'
+
+/**
+ * Ein Kostenposten – an einer Bestellung oder, als Auslage, ohne sie.
+ *
+ * `traeger` ist nicht, wer die Kosten verursacht hat, sondern WER SIE
+ * AUSGELEGT HAT. Daraus faellt die Frage "wem schulden wir was" von selbst
+ * ab: Alles, was nicht `bezahlt` ist, steht beim Traeger offen.
+ */
+export interface KostenPosten {
+  id: string
+  art: KostenArt
+  /** Nur bei `weiteres` noetig; die festen Arten beschriften sich selbst. */
+  bezeichnung?: string
+  betragChf: number
+  traeger: Beteiligter
+  /** Ausgeglichen, also an den Traeger zurueckgeflossen. */
+  bezahlt?: boolean
+  /** Wann die Auslage anfiel. Ohne Angabe zaehlt sie beim Erfassungstag. */
+  am?: string
+  erfasstAm: string
+}
+
+/** Wofuer eine Auslage ohne Bestellbezug angefallen ist. */
+export type AuslagenKategorie =
+  | 'marketing'
+  | 'infrastruktur'
+  | 'material'
+  | 'werkzeug'
+  | 'fahrten'
+  | 'sonstiges'
+
+/**
+ * Laufende Betriebskosten ohne Bestellbezug: Werbung, Server, Klebeband,
+ * Benzin. Alles, was keiner einzelnen Bestellung zuzurechnen ist und
+ * trotzdem bezahlt werden muss.
+ */
+export interface Auslage {
+  id: string
+  /** Tag der Ausgabe, ISO. Bestimmt, in welchen Monat sie faellt. */
+  am: string
+  bezeichnung: string
+  kategorie: AuslagenKategorie
+  betragChf: number
+  traeger: Beteiligter
+  bezahlt?: boolean
+  notiz?: string
+  erfasstAm: string
 }
 
 /** Woher eine Auftragszeile stammt – oder dass sie nur zur Runde gehoert. */
