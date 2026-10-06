@@ -17,7 +17,7 @@
  */
 import assert from 'node:assert/strict'
 import { gerechneterPreis, verkaufspreisFuer, vorschlagFuer } from '../src/components/admin/hilfen.ts'
-import { estimateNetChf, priceModel } from '../src/lib/estimate.ts'
+import { estimateNetChf, margenGrenze, priceModel } from '../src/lib/estimate.ts'
 import { einfuhrsteuerChf, herstellungChf, umfangM } from '../src/lib/kosten.ts'
 import { windowTypes } from '../src/data/catalog.ts'
 
@@ -171,7 +171,15 @@ pruefe('Gerundet wird auf fuenf Franken, und nur nach oben', () => {
   for (const [b, h] of [[20, 20], [63, 97], [100, 100], [128, 182], [250, 250], [300, 300]]) {
     const preis = estimateNetChf(b, h)
     assert.equal(preis % 5, 0, `${b} x ${h} ergibt ${preis}`)
-    const roh = (priceModel.baseChf + priceModel.proMeterChf * umfangM(b, h)) * 1.05
+    /*
+     * Die Rechnung dahinter ist das Hoehere aus Katalogformel und
+     * Margengrenze - NICHT nur die Formel. Stuende hier nur sie, liesse der
+     * Test bei grossen Netzen eine Stufe von achtzig Franken durchgehen und
+     * pruefte in Wahrheit nichts mehr.
+     */
+    const roh = Math.max(
+      (priceModel.baseChf + priceModel.proMeterChf * umfangM(b, h)) * 1.05,
+      margenGrenze(b, h))
     assert.ok(preis >= roh - 1e-9, `${b} x ${h}: ${preis} liegt unter der Rechnung ${roh.toFixed(2)}`)
     assert.ok(preis - roh < 5, `${b} x ${h}: ${preis} liegt mehr als eine Stufe darueber`)
   }
@@ -183,17 +191,25 @@ pruefe('Die Sicherheitsmarge liegt wirklich drauf', () => {
   assert.ok(estimateNetChf(100, 100) >= roh * 1.05 - 1e-9)
 })
 
-pruefe('Kein Format im erlaubten Feld verkauft sich unter der Haelfte Marge', () => {
+pruefe('Kein Format im erlaubten Feld faellt unter 75 Prozent Marge', () => {
   /*
-   * DER WAECHTER ZWISCHEN DEN ZWEI RECHNUNGEN. Preis und Kosten stehen in
-   * verschiedenen Dateien und werden verschieden gepflegt; dass sie
-   * zueinander passen, prueft sonst niemand. Heute liegt die duennste Stelle
-   * bei 67 Prozent - 50 laesst Luft und faengt trotzdem jeden Umbau ab, der
-   * die beiden auseinanderlaufen laesst.
+   * DAS IST DIE ZUSAGE, DIE DER RECHNER EINHALTEN MUSS - und der Waechter
+   * zwischen den zwei Rechnungen. Preis und Kosten stehen in verschiedenen
+   * Dateien und werden verschieden gepflegt; dass sie zueinander passen,
+   * prueft sonst niemand.
+   *
+   * Ohne die Margengrenze in estimateNetChf duennte die Marge nach oben aus
+   * - bei 300 x 300 cm auf 67 Prozent -, weil der Sockel im Verkaufspreis
+   * bei grossen Netzen fast nichts mehr wiegt, die Kosten aber weiterlaufen.
+   * Dieser Test geht ohne sie rot.
+   *
+   * In Fuenferschritten durch das ganze erlaubte Feld, nicht in Zehnern: Die
+   * duennste Stelle liegt bei 220 x 300, und die faende ein grobes Raster
+   * nicht.
    */
   let duennste = { marge: 1, format: '' }
-  for (let b = 20; b <= 300; b += 10) {
-    for (let h = 20; h <= 300; h += 10) {
+  for (let b = 20; b <= 300; b += 5) {
+    for (let h = 20; h <= 300; h += 5) {
       const preis = estimateNetChf(b, h)
       const ware = herstellungChf(b, h)
       const kosten = ware + einfuhrsteuerChf(ware)
@@ -201,8 +217,21 @@ pruefe('Kein Format im erlaubten Feld verkauft sich unter der Haelfte Marge', ()
       if (marge < duennste.marge) duennste = { marge, format: `${b} x ${h}` }
     }
   }
-  assert.ok(duennste.marge >= 0.5,
+  assert.ok(duennste.marge >= 0.75,
     `duennste Marge ${Math.round(duennste.marge * 1000) / 10} % bei ${duennste.format}`)
+})
+
+pruefe('Unterhalb der Grenze rechnet weiter die Katalogformel', () => {
+  /*
+   * Die Marge ist eine UNTERGRENZE, kein zweiter Preis. Wo die Formel von
+   * allein ueber 75 Prozent liegt - alles unter rund sechs Metern Umfang,
+   * also das Alltagsgeschaeft -, darf sie sich nicht einmischen.
+   */
+  for (const [b, h] of [[60, 60], [120, 80], [70, 120], [100, 100], [160, 120]]) {
+    const ausFormel = (priceModel.baseChf + priceModel.proMeterChf * umfangM(b, h)) * 1.05
+    assert.ok(ausFormel > margenGrenze(b, h),
+      `${b} x ${h}: die Grenze ${margenGrenze(b, h).toFixed(2)} draengt die Formel ${ausFormel.toFixed(2)} weg`)
+  }
 })
 
 /* --- Ergebnis ---------------------------------------------------------------- */

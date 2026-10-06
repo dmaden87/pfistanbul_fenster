@@ -1,6 +1,6 @@
 import type { CustomRequestLine } from '../types'
 import { windowTypes } from '../data/catalog'
-import { umfangM } from './kosten'
+import { einfuhrsteuerChf, herstellungChf, umfangM } from './kosten'
 
 /**
  * Richtpreis für Sondermasse.
@@ -45,6 +45,34 @@ import { umfangM } from './kosten'
 
 /** Aufschlag für die Unsicherheit einer Einzelanfertigung. */
 const UNCERTAINTY = 0.05
+
+/**
+ * Die Marge, die ein Richtpreis mindestens tragen muss.
+ *
+ * WARUM ES SIE BRAUCHT, obwohl die Katalogformel vernünftige Preise liefert:
+ * Die Formel folgt dem Umfang, die Kosten auch – aber nicht im gleichen
+ * Verhältnis. Der Sockel im Verkaufspreis (rund 80 Franken für Ausmessen,
+ * Fahren, Beraten, Garantie) wiegt bei einem kleinen Netz schwer und bei
+ * einem grossen fast nichts, während die Kosten stur weiterlaufen. Darum
+ * dünnt die Marge nach oben aus: Bei 300 × 300 cm waren es noch 67 Prozent.
+ *
+ * Also eine zweite Linie: Der Richtpreis ist das HÖHERE aus Katalogformel
+ * und dem, was diese Marge verlangt. Unterhalb von rund sechs Metern Umfang
+ * trägt die Formel von allein, dort ändert sich nichts; darüber übernimmt
+ * die Marge.
+ *
+ * DAMIT HÄNGT DER VERKAUFSPREIS AN BORAS EINKAUFSPREIS, und das ist
+ * beabsichtigt: Wird der Einkauf teurer, zieht der Richtpreis für grosse
+ * Netze von selbst nach, statt still Marge zu verlieren. Wer
+ * src/data/kostenConfig.ts anfasst, bewegt damit auch das, was auf der
+ * Startseite steht.
+ *
+ * Gerechnet wird gegen Herstellung und Einfuhrsteuer. Die Fracht steckt
+ * nicht darin – sie fällt je Sendung an, nicht je Netz, und liesse sich nur
+ * raten. Die wahre Marge liegt also etwas unter diesem Wert; was wirklich
+ * herauskommt, steht im Bereich "Zahlen" pro Auftrag und pro Sendung.
+ */
+const MIN_MARGE = 0.75
 
 /**
  * Auf diesen Betrag wird aufgerundet – nie ab, damit die Offerte nicht
@@ -126,8 +154,20 @@ function roundUpTo(value: number, step: number): number {
  * damit verschiedene Preise, so wie sie auch verschieden viel kosten.
  */
 export function estimateNetChf(breiteCm: number, hoeheCm: number): number {
-  const raw = priceModel.baseChf + priceModel.proMeterChf * umfangM(breiteCm, hoeheCm)
-  return roundUpTo(raw * (1 + UNCERTAINTY), ROUND_TO_CHF)
+  const ausKatalog =
+    (priceModel.baseChf + priceModel.proMeterChf * umfangM(breiteCm, hoeheCm)) * (1 + UNCERTAINTY)
+  return roundUpTo(Math.max(ausKatalog, margenGrenze(breiteCm, hoeheCm)), ROUND_TO_CHF)
+}
+
+/**
+ * Der tiefste Preis, der MIN_MARGE noch trägt.
+ *
+ * Marge heisst hier Marge vom Verkaufspreis, nicht Aufschlag auf die Kosten:
+ * 75 Prozent Marge sind das Vierfache der Kosten, nicht das 1.75-fache.
+ */
+export function margenGrenze(breiteCm: number, hoeheCm: number): number {
+  const ware = herstellungChf(breiteCm, hoeheCm)
+  return (ware + einfuhrsteuerChf(ware)) / (1 - MIN_MARGE)
 }
 
 export interface EstimateLine {

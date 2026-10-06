@@ -41,6 +41,13 @@ import type { Beteiligter } from '../types'
  * Formel bei jedem Durchlauf nach. Kommen neue Preise von Bora, gehoeren sie
  * dort hinein, und die Formel wird neu gerechnet.
  *
+ * DIESE ZAHLEN BEWEGEN AUCH DEN VERKAUFSPREIS. Seit der Richtpreis in
+ * src/lib/estimate.ts eine Mindestmarge von 75 Prozent tragen muss, zieht er
+ * bei grossen Netzen an diesen Kosten. Wird der Einkauf teurer, steigt der
+ * Richtpreis fuer grosse Netze von selbst mit, statt still Marge zu
+ * verlieren – und wer hier etwas aendert, aendert mit, was auf der
+ * Startseite steht.
+ *
  * WAS DIESEN SIEBEN FEHLT, IST DIE GROESSE. Sie decken 3.20 bis 6.22 Meter
  * Umfang ab – ein Netz von 250 x 250 cm hat zehn Meter. Alles darueber ist
  * Hochrechnung, beim Einkauf wie beim Verkaufspreis in src/lib/estimate.ts.
