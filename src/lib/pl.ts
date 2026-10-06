@@ -42,6 +42,18 @@ const AB_PHASE: ReadonlyArray<string> = ['zusage', 'bestellen', 'bora', 'auslief
 
 export function inRechnung(b: Bestellung): boolean {
   if (b.ausserRechnung) return false
+  return zaehltPhase(b)
+}
+
+/**
+ * Nur die Phase, ohne den Schalter.
+ *
+ * DIE OBERFLAECHE BRAUCHT BEIDES GETRENNT. Zeigte sie nur, was `inRechnung`
+ * durchlaesst, waere ein von Hand ausgenommener Auftrag samt seinem
+ * Kaestchen verschwunden – und niemand koennte ihn je wieder hereinholen.
+ * Genau so war die erste Fassung: eine Einbahnstrasse.
+ */
+export function zaehltPhase(b: Bestellung): boolean {
   return AB_PHASE.includes(b.status)
 }
 
@@ -166,7 +178,19 @@ export interface Abschnitt {
   ergebnisChf: number
   /** Davon schon einkassiert. */
   einkassiertChf: number
-  /** Zugesagt, aber noch nicht geliefert – faellt in keine Periode, hier nur gezaehlt. */
+  /**
+   * Davon noch nicht bezahlt – die Debitoren dieser Periode.
+   *
+   * SIE STECKEN BEREITS IM ERLOES. Geliefert ist geliefert; ob das Geld
+   * schon da ist, aendert nichts daran, dass der Ertrag verdient wurde.
+   * Diese Spalte sagt nur, wie viel davon noch aussteht.
+   */
+  offenChf: number
+  /**
+   * Zugesagt, aber noch nicht geliefert. KEIN ERTRAG, sondern
+   * Auftragsbestand: Es ist nichts erbracht, und niemand schuldet uns etwas.
+   * Steht neben der Rechnung und nie darin.
+   */
   erwartetChf: number
   anzahl: number
   netzZahl: number
@@ -213,7 +237,8 @@ export function abschnitte(
     let a = karte.get(schluessel)
     if (!a) {
       a = { schluessel, etikett, erloesChf: 0, kostenChf: 0, betriebskostenChf: 0,
-        ergebnisChf: 0, einkassiertChf: 0, erwartetChf: 0, anzahl: 0, netzZahl: 0, geschaetzt: false }
+        ergebnisChf: 0, einkassiertChf: 0, offenChf: 0, erwartetChf: 0,
+        anzahl: 0, netzZahl: 0, geschaetzt: false }
       karte.set(schluessel, a)
     }
     return a
@@ -230,6 +255,7 @@ export function abschnitte(
       a.netzZahl += z.netzZahl
       if (z.geschaetzt) a.geschaetzt = true
       if (z.einkassiert) a.einkassiertChf = runde2(a.einkassiertChf + z.erloesChf)
+      else a.offenChf = runde2(a.offenChf + z.erloesChf)
     } else {
       a.erwartetChf = runde2(a.erwartetChf + z.erloesChf)
     }
@@ -245,6 +271,57 @@ export function abschnitte(
   }
 
   return [...karte.values()].sort((x, y) => (x.schluessel < y.schluessel ? 1 : -1))
+}
+
+/* --- Forecast: was noch kommt ---------------------------------------------- */
+
+export interface ForecastZeile {
+  /** Die Phase, in der die Auftraege stehen. */
+  phase: string
+  etikett: string
+  anzahl: number
+  netzZahl: number
+  erloesChf: number
+  kostenChf: number
+  margeChf: number
+  geschaetzt: boolean
+}
+
+const FORECAST_PHASEN: { phase: string; etikett: string }[] = [
+  { phase: 'zusage', etikett: 'Zugesagt, noch nicht bestellt' },
+  { phase: 'bestellen', etikett: 'Bereit zum Bestellen' },
+  { phase: 'bora', etikett: 'Bei Bora' },
+]
+
+/**
+ * Was noch kommt, nach Naehe geordnet.
+ *
+ * NICHT NACH MONAT. Ein zugesagter Auftrag hat kein Lieferdatum – wann er
+ * faellt, weiss heute niemand. Ihn in den Monat der Zusage zu legen hiesse,
+ * einen Zeitpunkt zu erfinden. Die Phase sagt dafuer etwas Echtes: Was bei
+ * Bora liegt, kommt eher als das, was gestern zugesagt wurde.
+ *
+ * Ausgeliefertes steht nicht darin – das ist Ist und keine Aussicht.
+ */
+export function forecast(bestellungen: Bestellung[]): ForecastZeile[] {
+  const karte = new Map<string, ForecastZeile>()
+  for (const { phase, etikett } of FORECAST_PHASEN) {
+    karte.set(phase, { phase, etikett, anzahl: 0, netzZahl: 0, erloesChf: 0, kostenChf: 0, margeChf: 0, geschaetzt: false })
+  }
+  for (const b of bestellungen) {
+    if (!inRechnung(b)) continue
+    const z = zahlenFuer(b)
+    if (z.realisiert) continue
+    const zeile = karte.get(b.status)
+    if (!zeile) continue
+    zeile.anzahl += 1
+    zeile.netzZahl += z.netzZahl
+    zeile.erloesChf = runde2(zeile.erloesChf + z.erloesChf)
+    zeile.kostenChf = runde2(zeile.kostenChf + z.kostenChf)
+    zeile.margeChf = runde2(zeile.margeChf + z.margeChf)
+    if (z.geschaetzt) zeile.geschaetzt = true
+  }
+  return [...karte.values()].filter((z) => z.anzahl > 0)
 }
 
 /* --- Offene Posten in beide Richtungen ------------------------------------- */

@@ -7,7 +7,7 @@ import {
 import { beteiligte, kostenConfig } from '../../data/kostenConfig'
 import { formatChf } from '../../lib/format'
 import {
-  abschnitte, aufteilung, inRechnung, offeneForderungen, offeneSchulden, zahlenFuer,
+  abschnitte, aufteilung, forecast, offeneForderungen, offeneSchulden, zaehltPhase, zahlenFuer,
   type Periode,
 } from '../../lib/pl'
 import { KostenEditor } from './KostenEditor'
@@ -109,22 +109,30 @@ export function ZahlenPage({ onBack }: Props) {
 
   /* --- Gerechnet wird hier, bei jedem Laden neu ---------------------------- */
 
-  const inDerRechnung = bestellungen.filter(inRechnung)
-  const zeilen = inDerRechnung.map((b) => ({ b, z: zahlenFuer(b) }))
+  /*
+   * ALLES AB DER ZUSAGE, auch das von Hand Ausgenommene. Sonst verschwaende
+   * ein Auftrag beim Anklicken von "zaehlt mit" samt seinem Kaestchen, und
+   * er liesse sich nie wieder hereinholen. Gerechnet wird trotzdem nur mit
+   * den eingerechneten – das entscheidet `inRechnung` in der Auswertung,
+   * nicht diese Liste.
+   */
+  const zeilen = bestellungen.filter(zaehltPhase).map((b) => ({ b, z: zahlenFuer(b) }))
+  const gerechnet = zeilen.filter((x) => !x.b.ausserRechnung)
   const perioden = abschnitte(bestellungen, auslagen, periode)
+  const aussicht = forecast(bestellungen)
   const forderungen = offeneForderungen(bestellungen)
   const schulden = offeneSchulden(bestellungen, auslagen)
   const teilung = aufteilung(bestellungen, auslagen)
 
-  const einkassiert = zeilen.filter((x) => x.z.einkassiert).reduce((s, x) => s + x.z.erloesChf, 0)
-  const erwartet = zeilen.filter((x) => !x.z.realisiert).reduce((s, x) => s + x.z.erloesChf, 0)
+  const einkassiert = gerechnet.filter((x) => x.z.einkassiert).reduce((s, x) => s + x.z.erloesChf, 0)
+  const erwartet = gerechnet.filter((x) => !x.z.realisiert).reduce((s, x) => s + x.z.erloesChf, 0)
   const forderungSumme = forderungen.reduce((s, f) => s + f.betragChf, 0)
   const schuldSumme = schulden.reduce((s, f) => s + f.betragChf, 0)
   const jahr = abschnitte(bestellungen, auslagen, 'ytd')[0]
 
   /* Sendungen: die Pakete, wie sie zu Bora gegangen sind. */
   const pakete = new Map<string, { anzahl: number; netze: number; erloes: number; kosten: number }>()
-  for (const { b, z } of zeilen) {
+  for (const { b, z } of gerechnet) {
     if (!b.paket) continue
     const p = pakete.get(b.paket) ?? { anzahl: 0, netze: 0, erloes: 0, kosten: 0 }
     p.anzahl += 1
@@ -201,7 +209,7 @@ export function ZahlenPage({ onBack }: Props) {
         {/* --- Perioden ------------------------------------------------------ */}
         <div className="zahlen__block">
           <div className="zahlen__blockkopf">
-            <h2>Erfolgsrechnung</h2>
+            <h2>Erfolgsrechnung · Ist</h2>
             <div className="zahlen__schalter">
               {PERIODEN.map((p) => (
                 <button key={p.wert} type="button"
@@ -212,18 +220,18 @@ export function ZahlenPage({ onBack }: Props) {
               ))}
             </div>
           </div>
-          <table className="zahlen__tabelle">
+          <div className="zahlen__rollen"><table className="zahlen__tabelle">
             <thead>
               <tr>
                 <th>Abschnitt</th>
                 <th className="zahlen__zahl">Aufträge</th>
                 <th className="zahlen__zahl">Netze</th>
                 <th className="zahlen__zahl">Erlös</th>
+                <th className="zahlen__zahl">davon einkassiert</th>
+                <th className="zahlen__zahl">davon offen</th>
                 <th className="zahlen__zahl">Warenkosten</th>
                 <th className="zahlen__zahl">Betriebskosten</th>
                 <th className="zahlen__zahl">Ergebnis</th>
-                <th className="zahlen__zahl">davon einkassiert</th>
-                <th className="zahlen__zahl">erwartet</th>
               </tr>
             </thead>
             <tbody>
@@ -236,30 +244,95 @@ export function ZahlenPage({ onBack }: Props) {
                   <td data-titel="Aufträge" className="zahlen__zahl">{a.anzahl}</td>
                   <td data-titel="Netze" className="zahlen__zahl">{a.netzZahl}</td>
                   <td data-titel="Erlös" className="zahlen__zahl">{formatChf(a.erloesChf)}</td>
+                  <td data-titel="davon einkassiert" className="zahlen__zahl">{formatChf(a.einkassiertChf)}</td>
+                  <td data-titel="davon offen" className="zahlen__zahl">{formatChf(a.offenChf)}</td>
                   <td data-titel="Warenkosten" className="zahlen__zahl">{formatChf(a.kostenChf)}</td>
                   <td data-titel="Betriebskosten" className="zahlen__zahl">{formatChf(a.betriebskostenChf)}</td>
                   <td data-titel="Ergebnis" className="zahlen__zahl">
                     <strong>{formatChf(a.ergebnisChf)}</strong>
                   </td>
-                  <td data-titel="davon einkassiert" className="zahlen__zahl">{formatChf(a.einkassiertChf)}</td>
-                  <td data-titel="erwartet" className="zahlen__zahl">{formatChf(a.erwartetChf)}</td>
                 </tr>
               ))}
               {perioden.length === 0 && (
-                <tr><td colSpan={9}>Noch nichts ab „Warten auf Zusage“.</td></tr>
+                <tr><td colSpan={9}>Noch nichts geliefert.</td></tr>
               )}
             </tbody>
-          </table>
+          </table></div>
           <p className="zahlen__hinweis">
-            Gezählt wird ab „Warten auf Zusage“. Geliefertes zählt im Monat der Auslieferung;
-            Zugesagtes steht als „erwartet“ daneben und nicht in der Summe.
+            Hier steht nur, was <strong>geliefert</strong> ist. Der Erlös zählt im Monat der
+            Auslieferung, ob bezahlt oder nicht – „davon offen“ sind die Debitoren: verdient,
+            aber noch nicht auf dem Konto. Sie stecken im Erlös und stehen nur zusätzlich
+            einzeln da. Was zugesagt, aber noch nicht geliefert ist, steht im Forecast
+            darunter.
+          </p>
+        </div>
+
+        {/* --- Forecast ------------------------------------------------------ */}
+        <div className="zahlen__block">
+          <h2>Forecast · was noch kommt</h2>
+          <div className="zahlen__rollen"><table className="zahlen__tabelle">
+            <thead>
+              <tr>
+                <th>Stand</th>
+                <th className="zahlen__zahl">Aufträge</th>
+                <th className="zahlen__zahl">Netze</th>
+                <th className="zahlen__zahl">Erlös erwartet</th>
+                <th className="zahlen__zahl">Kosten erwartet</th>
+                <th className="zahlen__zahl">Marge erwartet</th>
+              </tr>
+            </thead>
+            <tbody>
+              {aussicht.map((f) => (
+                <tr key={f.phase}>
+                  <td data-titel="Stand">
+                    {f.etikett}
+                    {f.geschaetzt && <span className="kosten__marke">Kosten geschätzt</span>}
+                  </td>
+                  <td data-titel="Aufträge" className="zahlen__zahl">{f.anzahl}</td>
+                  <td data-titel="Netze" className="zahlen__zahl">{f.netzZahl}</td>
+                  <td data-titel="Erlös erwartet" className="zahlen__zahl">{formatChf(f.erloesChf)}</td>
+                  <td data-titel="Kosten erwartet" className="zahlen__zahl">{formatChf(f.kostenChf)}</td>
+                  <td data-titel="Marge erwartet" className="zahlen__zahl">
+                    <strong>{formatChf(f.margeChf)}</strong>
+                  </td>
+                </tr>
+              ))}
+              {aussicht.length === 0
+                ? <tr><td colSpan={6}>Nichts offen – alles Zugesagte ist geliefert.</td></tr>
+                : (
+                  <tr className="zahlen__strich">
+                    <td data-titel="Stand"><strong>Zusammen</strong></td>
+                    <td data-titel="Aufträge" className="zahlen__zahl">
+                      <strong>{aussicht.reduce((s, f) => s + f.anzahl, 0)}</strong>
+                    </td>
+                    <td data-titel="Netze" className="zahlen__zahl">
+                      <strong>{aussicht.reduce((s, f) => s + f.netzZahl, 0)}</strong>
+                    </td>
+                    <td data-titel="Erlös erwartet" className="zahlen__zahl">
+                      <strong>{formatChf(aussicht.reduce((s, f) => s + f.erloesChf, 0))}</strong>
+                    </td>
+                    <td data-titel="Kosten erwartet" className="zahlen__zahl">
+                      <strong>{formatChf(aussicht.reduce((s, f) => s + f.kostenChf, 0))}</strong>
+                    </td>
+                    <td data-titel="Marge erwartet" className="zahlen__zahl">
+                      <strong>{formatChf(aussicht.reduce((s, f) => s + f.margeChf, 0))}</strong>
+                    </td>
+                  </tr>
+                )}
+            </tbody>
+          </table></div>
+          <p className="zahlen__hinweis">
+            Geordnet nach Nähe, nicht nach Monat: Ein zugesagter Auftrag hat noch kein
+            Lieferdatum, und eines zu erfinden wäre schlimmer als keines. Was bei Bora liegt,
+            kommt eher als das, was gestern zugesagt wurde. Nichts davon ist Ertrag, und
+            niemand schuldet uns etwas – es ist ein Ausblick.
           </p>
         </div>
 
         {/* --- Pro Bestellung ------------------------------------------------ */}
         <div className="zahlen__block">
           <h2>Pro Auftrag</h2>
-          <table className="zahlen__tabelle">
+          <div className="zahlen__rollen"><table className="zahlen__tabelle">
             <thead>
               <tr>
                 <th>Auftrag</th>
@@ -272,12 +345,13 @@ export function ZahlenPage({ onBack }: Props) {
                 <th className="zahlen__zahl">Kosten</th>
                 <th className="zahlen__zahl">Marge</th>
                 <th>Stand</th>
-                <th />
+                <th>Kosten</th>
+                <th>Rechnung</th>
               </tr>
             </thead>
             <tbody>
               {zeilen.map(({ b, z }) => (
-                <tr key={b.id}>
+                <tr key={b.id} className={b.ausserRechnung ? 'zahlen__ausgenommen' : undefined}>
                   <td data-titel="Auftrag">
                     {b.kunde.name}
                     <span className="zahlen__klein">{b.referenz}</span>
@@ -299,24 +373,34 @@ export function ZahlenPage({ onBack }: Props) {
                     {z.margeProzent !== null && <span className="zahlen__klein">{z.margeProzent} %</span>}
                   </td>
                   <td data-titel="Stand">
-                    {z.einkassiert ? 'einkassiert' : z.realisiert ? 'offen' : 'erwartet'}
+                    {b.ausserRechnung
+                      ? 'nicht gerechnet'
+                      : z.einkassiert ? 'einkassiert' : z.realisiert ? 'offen' : 'erwartet'}
                   </td>
-                  <td>
+                  <td data-titel="Kosten">
                     <button type="button" className="btn btn--quiet btn--sm"
                       onClick={() => setOffenerEditor(offenerEditor === b.id ? null : b.id)}>
-                      {offenerEditor === b.id ? 'zu' : 'Kosten'}
+                      {offenerEditor === b.id ? 'schliessen' : 'bearbeiten'}
                     </button>
-                    <label className="zahlen__aus">
-                      <input type="checkbox" checked={b.ausserRechnung === true}
-                        onChange={(e) => void ausserRechnung(b.id, e.target.checked)} />
-                      <span>raus</span>
+                  </td>
+                  {/*
+                    Das Kaestchen ist umgedreht: Angehakt heisst "zaehlt mit".
+                    Gespeichert wird das Gegenteil (`ausserRechnung`), aber
+                    niemand liest eine Verneinung gern - "raus" neben "Kosten"
+                    las sich ausserdem wie "Kosten raus".
+                  */}
+                  <td data-titel="Rechnung">
+                    <label className="zahlen__aus" title="Nimmt den Auftrag aus allen Zahlen – gelöscht wird nichts.">
+                      <input type="checkbox" checked={b.ausserRechnung !== true}
+                        onChange={(e) => void ausserRechnung(b.id, !e.target.checked)} />
+                      <span>zählt mit</span>
                     </label>
                   </td>
                 </tr>
               ))}
               {zeilen.length === 0 && <tr><td colSpan={11}>Noch keine Aufträge in der Rechnung.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
 
           {offenerEditor && (() => {
             const b = bestellungen.find((x) => x.id === offenerEditor)
@@ -338,7 +422,7 @@ export function ZahlenPage({ onBack }: Props) {
         {pakete.size > 0 && (
           <div className="zahlen__block">
             <h2>Pro Sendung</h2>
-            <table className="zahlen__tabelle">
+            <div className="zahlen__rollen"><table className="zahlen__tabelle">
               <thead>
                 <tr>
                   <th>Paket</th>
@@ -367,7 +451,7 @@ export function ZahlenPage({ onBack }: Props) {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </div>
         )}
 
@@ -387,7 +471,7 @@ export function ZahlenPage({ onBack }: Props) {
           <div>
             <h2>Wer uns was schuldet</h2>
             {forderungen.length === 0 ? <p className="zahlen__hinweis">Nichts offen.</p> : (
-              <table className="zahlen__tabelle">
+              <div className="zahlen__rollen"><table className="zahlen__tabelle">
                 <thead><tr><th>Auftrag</th><th>Geliefert</th><th className="zahlen__zahl">Betrag</th></tr></thead>
                 <tbody>
                   {forderungen.map((f) => (
@@ -398,13 +482,13 @@ export function ZahlenPage({ onBack }: Props) {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             )}
           </div>
           <div>
             <h2>Wem wir was schulden</h2>
             {schulden.length === 0 ? <p className="zahlen__hinweis">Nichts offen.</p> : (
-              <table className="zahlen__tabelle">
+              <div className="zahlen__rollen"><table className="zahlen__tabelle">
                 <thead><tr><th>Wer</th><th className="zahlen__zahl">Posten</th><th className="zahlen__zahl">Betrag</th></tr></thead>
                 <tbody>
                   {schulden.map((s) => (
@@ -415,7 +499,7 @@ export function ZahlenPage({ onBack }: Props) {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             )}
           </div>
         </div>
@@ -423,7 +507,7 @@ export function ZahlenPage({ onBack }: Props) {
         {/* --- Abrechnung ---------------------------------------------------- */}
         <div className="zahlen__block">
           <h2>Abrechnung, wenn man heute abrechnen würde</h2>
-          <table className="zahlen__tabelle zahlen__tabelle--schmal">
+          <div className="zahlen__rollen"><table className="zahlen__tabelle zahlen__tabelle--schmal">
             <tbody>
               <tr>
                 <td>Einkassiert, aus der Ware</td>
@@ -456,7 +540,7 @@ export function ZahlenPage({ onBack }: Props) {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
           {teilung.verteilbarChf === 0 && (
             <p className="zahlen__hinweis">
               <strong>Noch nichts zu verteilen.</strong> Die Kosten sind grösser als das, was

@@ -8,7 +8,8 @@
  */
 import assert from 'node:assert/strict'
 import {
-  inRechnung, zahlenFuer, abschnitte, offeneForderungen, offeneSchulden, aufteilung,
+  inRechnung, zaehltPhase, zahlenFuer, abschnitte, forecast,
+  offeneForderungen, offeneSchulden, aufteilung,
 } from '../src/lib/pl.ts'
 import { herstellungChf } from '../src/lib/kosten.ts'
 
@@ -66,6 +67,29 @@ pruefe('abgesagt faellt wieder heraus', () => {
 
 pruefe('von Hand ausgenommen zaehlt nie', () => {
   assert.equal(inRechnung(best({ status: 'ausliefern', ausserRechnung: true })), false)
+})
+
+pruefe('die Phase allein kennt den Schalter nicht', () => {
+  /*
+   * Die Oberflaeche braucht beides getrennt: Zeigte sie nur, was
+   * `inRechnung` durchlaesst, waere ein ausgenommener Auftrag samt seinem
+   * Kaestchen verschwunden - und niemand koennte ihn wieder hereinholen.
+   */
+  const b = best({ status: 'ausliefern', ausserRechnung: true })
+  assert.equal(zaehltPhase(b), true, 'die Phase zaehlt weiter')
+  assert.equal(inRechnung(b), false, 'gerechnet wird trotzdem nicht')
+  assert.equal(zaehltPhase(best({ status: 'neu' })), false)
+  assert.equal(zaehltPhase(best({ status: 'abgesagt' })), false)
+})
+
+pruefe('ein ausgenommener Auftrag faellt aus allen Auswertungen', () => {
+  const b = best({ status: 'ausliefern', ausgeliefertAm: '2026-03-01', bezahltAm: '2026-03-02',
+    ausserRechnung: true,
+    kosten: [{ id: 'k', art: 'herstellung', betragChf: 30, traeger: 'bora', erfasstAm: 'x' }] })
+  assert.equal(abschnitte([b], [], 'monat').length, 0, 'keine Periode')
+  assert.equal(offeneForderungen([b]).length, 0)
+  assert.equal(offeneSchulden([b], []).length, 0)
+  assert.equal(aufteilung([b], []).einkassiertChf, 0)
 })
 
 /* --- Der Erloes, aufgeteilt ------------------------------------------------ */
@@ -198,6 +222,26 @@ pruefe('einkassiert wird getrennt gezaehlt', () => {
   assert.equal(b.einkassiertChf, 0, 'geliefert heisst nicht bezahlt')
 })
 
+pruefe('die Debitoren stecken im Erloes und stehen zusaetzlich einzeln da', () => {
+  /*
+   * GELIEFERT IST VERDIENT. Dass das Geld noch nicht da ist, aendert nichts
+   * am Ertrag - es sagt nur, dass er noch aussteht. Erloes = einkassiert
+   * plus offen, immer.
+   */
+  const bezahlt = best({ ...geliefert, id: 'p', bezahltAm: '2026-03-15T00:00:00.000Z' })
+  const [a] = abschnitte([bezahlt, geliefert], [], 'monat')
+  assert.equal(a.erloesChf, 300)
+  assert.equal(a.einkassiertChf, 150)
+  assert.equal(a.offenChf, 150)
+  assert.equal(a.einkassiertChf + a.offenChf, a.erloesChf)
+})
+
+pruefe('Zugesagtes ist kein Debitor', () => {
+  const [a] = abschnitte([zugesagt], [], 'monat')
+  assert.equal(a.offenChf, 0, 'es ist nichts geliefert, also schuldet niemand etwas')
+  assert.equal(a.erwartetChf, 150)
+})
+
 pruefe('Stripes Meldung gilt auch als einkassiert', () => {
   const bezahlt = best({ ...geliefert, bezahlung: { status: 'bezahlt', am: '2026-03-12', sitzung: 'cs_1' } })
   const [a] = abschnitte([bezahlt], [], 'monat')
@@ -238,6 +282,41 @@ pruefe('Betriebskosten mindern das Ergebnis, nicht die Warenkosten', () => {
   assert.equal(a.kostenChf, 30 + 0 + 2.43, 'Herstellung plus gerechnete Einfuhrsteuer')
   assert.equal(a.betriebskostenChf, 40)
   assert.equal(a.ergebnisChf, 150 - 32.43 - 40)
+})
+
+/* --- Forecast -------------------------------------------------------------- */
+
+pruefe('der Forecast ordnet nach Phase, nicht nach Monat', () => {
+  const zu = best({ id: 'z', status: 'zusage', zusageAm: '2026-03-01' })
+  const bei = best({ id: 'b', status: 'bora', zusageAm: '2026-02-01' })
+  const f = forecast([zu, bei])
+  assert.deepEqual(f.map((x) => x.phase), ['zusage', 'bora'], 'in der Reihenfolge der Naehe')
+  assert.equal(f[0].erloesChf, 150)
+})
+
+pruefe('Geliefertes gehoert nicht in den Forecast', () => {
+  const f = forecast([best({ status: 'ausliefern', ausgeliefertAm: '2026-03-01' })])
+  assert.equal(f.length, 0, 'das ist Ist, keine Aussicht')
+})
+
+pruefe('leere Phasen fallen weg', () => {
+  const f = forecast([best({ status: 'zusage', zusageAm: '2026-03-01' })])
+  assert.equal(f.length, 1)
+})
+
+pruefe('der Forecast rechnet die erwartete Marge mit', () => {
+  const b = best({ status: 'bora', zusageAm: '2026-03-01', positionen: [netz(128, 96, 150)],
+    kosten: [{ id: 'k', art: 'herstellung', betragChf: 30, traeger: 'bora', erfasstAm: 'x' },
+             { id: 'k2', art: 'mwst', betragChf: 2.43, traeger: 'bora', erfasstAm: 'x' }] })
+  const [f] = forecast([b])
+  assert.equal(f.erloesChf, 150)
+  assert.equal(f.kostenChf, 32.43)
+  assert.equal(f.margeChf, 117.57)
+  assert.equal(f.geschaetzt, false)
+})
+
+pruefe('ein ausgenommener Auftrag steht auch nicht im Forecast', () => {
+  assert.equal(forecast([best({ status: 'zusage', zusageAm: '2026-03-01', ausserRechnung: true })]).length, 0)
 })
 
 /* --- Offene Posten --------------------------------------------------------- */

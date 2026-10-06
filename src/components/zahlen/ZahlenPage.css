@@ -344,3 +344,47 @@
 .zahlen__tabelle tr.zahlen__strich td {
   border-top: 2px solid var(--border-strong);
 }
+
+/* Ausgenommene Auftraege bleiben sichtbar, damit man sie zurueckholen kann –
+   aber gedaempft, damit niemand ihre Zahlen fuer mitgerechnet haelt. */
+.zahlen__tabelle tr.zahlen__ausgenommen td {
+  color: var(--text-subtle);
+}
+
+.zahlen__tabelle tr.zahlen__ausgenommen strong {
+  font-weight: 400;
+}
+
+/* Der Auftragsbestand gehoert nicht in die Rechnung. Eine Linie und etwas
+   Abstand sagen das, bevor jemand die Spalte mit dem Erloes verrechnet. */
+.zahlen__tabelle .zahlen__nebenan {
+  border-left: 2px solid var(--border-strong);
+  color: var(--text-muted);
+}
+
+/*
+ * WARUM JEDE TABELLE IHREN EIGENEN ROLLBEREICH BEKOMMT: Die Ist-Rechnung hat
+ * neun Spalten, "Pro Auftrag" elf. Auf einem 1280 Pixel breiten Fenster lief
+ * dadurch die GANZE SEITE seitlich - gemessen 1388 statt 1280. Jetzt rollt
+ * nur die Tabelle, und alles andere steht.
+ */
+.zahlen__rollen {
+  overflow-x: auto;
+  /* Haelt den Rollbereich in seiner Rasterzelle, statt sie aufzublaehen. */
+  max-width: 100%;
+}
+
+.zahlen__rollen .zahlen__tabelle {
+  min-width: max-content;
+}
+
+@media (max-width: 52rem) {
+  /* Als Karten gestapelt braucht nichts mehr zu rollen. */
+  .zahlen__rollen {
+    overflow-x: visible;
+  }
+
+  .zahlen__rollen .zahlen__tabelle {
+    min-width: 0;
+  }
+}
