@@ -100,7 +100,7 @@ pruefe('ein ausgenommener Auftrag faellt aus allen Auswertungen', () => {
   const b = best({ status: 'ausliefern', ausgeliefertAm: '2026-03-01', bezahltAm: '2026-03-02',
     ausserRechnung: true,
     kosten: [{ id: 'k', art: 'herstellung', betragChf: 30, traeger: 'bora', erfasstAm: 'x' }] })
-  assert.equal(abschnitte([b], [], 'monat').length, 0, 'keine Periode')
+  assert.equal(abschnitte([b], [], 'total').length, 0, 'keine Periode')
   assert.equal(offeneForderungen([b]).length, 0)
   assert.equal(offeneSchulden([b], []).length, 0)
   assert.equal(aufteilung([b], []).einkassiertChf, 0)
@@ -216,30 +216,19 @@ pruefe('jeder feste Auftrag zaehlt, der Stand steht daneben', () => {
    * Auftrag hat einen festen Verkaufspreis. Die drei Stand-Spalten
    * zusammen ergeben wieder den Erloes.
    */
-  const [a] = abschnitte([geliefert, zugesagt], [], 'monat')
-  assert.equal(a.schluessel, '2026-03')
+  const [a] = abschnitte([geliefert, zugesagt], [], 'total')
   assert.equal(a.erloesChf, 300, 'beide zaehlen')
   assert.equal(a.erwartetChf, 150, 'davon noch nicht geliefert')
   assert.equal(a.anzahl, 2)
   assert.equal(a.einkassiertChf + a.offenChf + a.erwartetChf, a.erloesChf)
 })
 
-pruefe('das Lieferdatum bestimmt die Periode, nicht die Zusage', () => {
-  const [a] = abschnitte([geliefert], [], 'monat')
-  assert.equal(a.schluessel, '2026-03', 'Zusage war im Februar')
-})
-
-pruefe('ohne Lieferdatum zaehlt die Zusage', () => {
-  const [a] = abschnitte([zugesagt], [], 'monat')
-  assert.equal(a.schluessel, '2026-03')
-})
-
 pruefe('einkassiert wird getrennt gezaehlt', () => {
   const bezahlt = best({ ...geliefert, bezahltAm: '2026-03-15T00:00:00.000Z' })
-  const [a] = abschnitte([bezahlt], [], 'monat')
+  const [a] = abschnitte([bezahlt], [], 'total')
   assert.equal(a.erloesChf, 150)
   assert.equal(a.einkassiertChf, 150)
-  const [b] = abschnitte([geliefert], [], 'monat')
+  const [b] = abschnitte([geliefert], [], 'total')
   assert.equal(b.einkassiertChf, 0, 'geliefert heisst nicht bezahlt')
 })
 
@@ -250,7 +239,7 @@ pruefe('die Debitoren stecken im Erloes und stehen zusaetzlich einzeln da', () =
    * plus offen, immer.
    */
   const bezahlt = best({ ...geliefert, id: 'p', bezahltAm: '2026-03-15T00:00:00.000Z' })
-  const [a] = abschnitte([bezahlt, geliefert], [], 'monat')
+  const [a] = abschnitte([bezahlt, geliefert], [], 'total')
   assert.equal(a.erloesChf, 300)
   assert.equal(a.einkassiertChf, 150)
   assert.equal(a.offenChf, 150)
@@ -259,7 +248,7 @@ pruefe('die Debitoren stecken im Erloes und stehen zusaetzlich einzeln da', () =
 })
 
 pruefe('Zugesagtes ist kein Debitor', () => {
-  const [a] = abschnitte([zugesagt], [], 'monat')
+  const [a] = abschnitte([zugesagt], [], 'total')
   assert.equal(a.offenChf, 0, 'es ist nichts geliefert, also schuldet niemand etwas')
   assert.equal(a.erwartetChf, 150)
   assert.equal(a.erloesChf, 150, 'im Erloes steht es trotzdem')
@@ -267,56 +256,51 @@ pruefe('Zugesagtes ist kein Debitor', () => {
 
 pruefe('Stripes Meldung gilt auch als einkassiert', () => {
   const bezahlt = best({ ...geliefert, bezahlung: { status: 'bezahlt', am: '2026-03-12', sitzung: 'cs_1' } })
-  const [a] = abschnitte([bezahlt], [], 'monat')
+  const [a] = abschnitte([bezahlt], [], 'total')
   assert.equal(a.einkassiertChf, 150)
 })
 
 /* --- Perioden -------------------------------------------------------------- */
 
-pruefe('Quartal fasst drei Monate zusammen', () => {
-  const jan = best({ id: 'j', ausgeliefertAm: '2026-01-10T00:00:00.000Z' })
-  const mar = best({ id: 'm', ausgeliefertAm: '2026-03-10T00:00:00.000Z' })
-  const [a] = abschnitte([jan, mar], [], 'quartal')
-  assert.equal(a.schluessel, '2026-Q1')
-  assert.equal(a.anzahl, 2)
-  assert.equal(a.erloesChf, 300)
-})
-
-pruefe('YTD fasst das Jahr zusammen', () => {
-  const jan = best({ id: 'j', ausgeliefertAm: '2026-01-10T00:00:00.000Z' })
-  const nov = best({ id: 'n', ausgeliefertAm: '2026-11-10T00:00:00.000Z' })
-  const liste = abschnitte([jan, nov], [], 'ytd')
-  assert.equal(liste.length, 1)
-  assert.equal(liste[0].schluessel, '2026')
-  assert.equal(liste[0].erloesChf, 300)
-})
-
-pruefe('nur das laufende Jahr heisst "bis heute"', () => {
+pruefe('YTD nimmt das laufende Jahr und sonst nichts', () => {
   /*
-   * Ein abgelaufenes Jahr ist vollstaendig. "2025 bis heute" waere im
-   * Januar 2026 schlicht falsch - und faellt niemandem auf, solange alle
-   * Daten aus einem Jahr stammen. Genau das war in den Demodaten der Fall.
+   * Aelteres gehoert ins Total, nicht ins laufende Jahr. Frueher kam je
+   * Jahr eine Zeile heraus, und die aelteste hiess "2025 bis heute" -
+   * falsch, denn das Jahr ist seit Silvester vollstaendig.
    */
   const heuer = new Date().getFullYear()
   const jetzt = best({ id: 'a', ausgeliefertAm: `${heuer}-02-10T00:00:00.000Z` })
   const frueher = best({ id: 'b', ausgeliefertAm: `${heuer - 1}-02-10T00:00:00.000Z` })
   const liste = abschnitte([jetzt, frueher], [], 'ytd')
-  assert.equal(liste.length, 2)
+  assert.equal(liste.length, 1)
   assert.equal(liste[0].etikett, `${heuer} bis heute`)
-  assert.equal(liste[1].etikett, String(heuer - 1), 'das alte Jahr ist fertig')
+  assert.equal(liste[0].erloesChf, 150, 'nur der Auftrag aus diesem Jahr')
 })
 
-pruefe('Abschnitte kommen neueste zuerst', () => {
-  const jan = best({ id: 'j', ausgeliefertAm: '2026-01-10T00:00:00.000Z' })
-  const mar = best({ id: 'm', ausgeliefertAm: '2026-03-10T00:00:00.000Z' })
-  const liste = abschnitte([jan, mar], [], 'monat')
-  assert.deepEqual(liste.map((a) => a.schluessel), ['2026-03', '2026-01'])
+pruefe('Total nimmt alles, egal aus welchem Jahr', () => {
+  const heuer = new Date().getFullYear()
+  const jetzt = best({ id: 'a', ausgeliefertAm: `${heuer}-02-10T00:00:00.000Z` })
+  const frueher = best({ id: 'b', ausgeliefertAm: `${heuer - 1}-02-10T00:00:00.000Z` })
+  const liste = abschnitte([jetzt, frueher], [], 'total')
+  assert.equal(liste.length, 1)
+  assert.equal(liste[0].etikett, 'Total, alles bisher')
+  assert.equal(liste[0].erloesChf, 300)
+  assert.equal(liste[0].anzahl, 2)
+})
+
+pruefe('auch die Auslagen folgen der Periode', () => {
+  const heuer = new Date().getFullYear()
+  const b = best({ ausgeliefertAm: `${heuer}-02-10T00:00:00.000Z` })
+  const alt = auslage({ id: 'alt', am: `${heuer - 1}-05-01`, betragChf: 90 })
+  const neu = auslage({ id: 'neu', am: `${heuer}-05-01`, betragChf: 10 })
+  assert.equal(abschnitte([b], [alt, neu], 'ytd')[0].betriebskostenChf, 10)
+  assert.equal(abschnitte([b], [alt, neu], 'total')[0].betriebskostenChf, 100)
 })
 
 pruefe('Betriebskosten mindern das Ergebnis, nicht die Warenkosten', () => {
   const [a] = abschnitte([best({ ausgeliefertAm: '2026-01-10T00:00:00.000Z',
     kosten: [{ id: 'k', art: 'herstellung', betragChf: 30, traeger: 'bora', erfasstAm: 'x' }] })],
-    [auslage({ am: '2026-01-20', betragChf: 40 })], 'monat')
+    [auslage({ am: '2026-01-20', betragChf: 40 })], 'total')
   assert.equal(a.kostenChf, 30 + 0 + 2.43, 'Herstellung plus gerechnete Einfuhrsteuer')
   assert.equal(a.betriebskostenChf, 40)
   assert.equal(a.ergebnisChf, 150 - 32.43 - 40)
@@ -377,13 +361,34 @@ pruefe('ein nicht einkassierter Auftrag traegt nichts zum realen Ergebnis bei', 
 })
 
 pruefe('Total Kosten zeigt, wie viel davon noch zu bezahlen ist', () => {
-  const b = best({ ausgeliefertAm: '2026-03-01',
+  const b = best({ status: 'ausliefern', ausgeliefertAm: '2026-03-01',
     kosten: [{ id: 'k', art: 'herstellung', betragChf: 30, traeger: 'bora', erfasstAm: 'x' },
              { id: 'k2', art: 'lieferung', betragChf: 10, traeger: 'bora', bezahlt: true, erfasstAm: 'x' },
              { id: 'k3', art: 'mwst', betragChf: 0, traeger: 'bora', erfasstAm: 'x' }] })
   const k = kennzahlen([b], [auslage({ betragChf: 20, traeger: 'deniz' })])
   assert.equal(k.kostenChf, 60, '40 Ware plus 20 Betrieb')
   assert.equal(k.creditChf, 50, '30 Ware offen plus 20 Auslage offen')
+  assert.equal(k.bezahltKostenChf, 10)
+  assert.equal(k.ohneBelegChf, 0, 'alles ist erfasst')
+})
+
+pruefe('die drei Teile der Kosten ergeben zusammen den Gesamtbetrag', () => {
+  /*
+   * DAS IST DIE EIGENTLICHE ZUSAGE DIESER KACHEL. Ohne den dritten Teil
+   * ("ohne Beleg") blieb eine Differenz stehen, die aussieht wie ein
+   * Rechenfehler - dabei ist es die Schaetzung aus der Formel.
+   */
+  const erfasst = best({ id: 'e', status: 'ausliefern', ausgeliefertAm: '2026-03-01',
+    kosten: [{ id: 'k', art: 'herstellung', betragChf: 30, traeger: 'bora', bezahlt: true, erfasstAm: 'x' },
+             { id: 'k2', art: 'mwst', betragChf: 2.43, traeger: 'bora', erfasstAm: 'x' }] })
+  /* Dieser hat gar keine Posten – seine Kosten kommen aus der Formel. */
+  const gerechnet = best({ id: 'g', status: 'bora', zusageAm: '2026-03-01' })
+  const k = kennzahlen([erfasst, gerechnet], [auslage({ betragChf: 20 }), auslage({ id: 'a2', betragChf: 15, bezahlt: true })])
+
+  assert.equal(runde(k.bezahltKostenChf + k.creditChf + k.ohneBelegChf), k.kostenChf,
+    `${k.bezahltKostenChf} + ${k.creditChf} + ${k.ohneBelegChf} ist nicht ${k.kostenChf}`)
+  assert.ok(k.ohneBelegChf > 0, 'der gerechnete Auftrag hat keinen Beleg')
+  assert.equal(k.bezahltKostenChf, 45, '30 Ware plus 15 Auslage')
 })
 
 pruefe('der Funnel steht in Stueck und Geld in den Kennzahlen', () => {

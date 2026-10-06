@@ -12,6 +12,9 @@ import {
 } from '../../lib/pl'
 import { KostenEditor } from './KostenEditor'
 import { AuslagenListe } from './AuslagenListe'
+import { SprachRahmen } from '../admin/SprachRahmen'
+import { SprachSchalter } from '../admin/SprachSchalter'
+import { fuelle, useSprache } from '../admin/sprache'
 import './ZahlenPage.css'
 
 /**
@@ -26,17 +29,31 @@ import './ZahlenPage.css'
  * zweiten Datenbestand, der veralten koennte.
  */
 
-const PERIODEN: { wert: Periode; titel: string }[] = [
-  { wert: 'monat', titel: 'Monat' },
-  { wert: 'quartal', titel: 'Quartal' },
-  { wert: 'ytd', titel: 'Jahr bis heute' },
-]
+
 
 interface Props {
   onBack: () => void
 }
 
-export function ZahlenPage({ onBack }: Props) {
+/**
+ * Die aeussere Huelle setzt nur den Sprachrahmen – dieselbe Wahl wie im
+ * Adminbereich, gespeichert an derselben Stelle. Die Maske steckt darin,
+ * damit sie den Rahmen benutzen kann.
+ */
+export function ZahlenPage(props: Props) {
+  return (
+    <SprachRahmen>
+      <ZahlenMaske {...props} />
+    </SprachRahmen>
+  )
+}
+
+function ZahlenMaske({ onBack }: Props) {
+  const { t } = useSprache()
+  const PERIODEN: { wert: Periode; titel: string }[] = [
+    { wert: 'ytd', titel: t.zJahrBisHeute },
+    { wert: 'total', titel: t.zTotal },
+  ]
   const [status, setStatus] = useState<AdminStatus | null>(null)
   const [bestellungen, setBestellungen] = useState<Bestellung[]>([])
   const [auslagen, setAuslagen] = useState<Auslage[]>([])
@@ -44,7 +61,7 @@ export function ZahlenPage({ onBack }: Props) {
   const [fehler, setFehler] = useState<string | null>(null)
   const [laedt, setLaedt] = useState(true)
   const [sendet, setSendet] = useState(false)
-  const [periode, setPeriode] = useState<Periode>('monat')
+  const [periode, setPeriode] = useState<Periode>('ytd')
   const [offenerEditor, setOffenerEditor] = useState<string | null>(null)
 
   const laden = useCallback(async () => {
@@ -59,7 +76,12 @@ export function ZahlenPage({ onBack }: Props) {
       }
       setFehler(null)
     } catch (f) {
-      setFehler(f instanceof Error ? f.message : 'Die Daten liessen sich nicht laden.')
+      /*
+       * Den eigenen Satz setzt die Anzeige, nicht diese Funktion: Sonst
+       * haengt `laden` an den Texten und wird bei jedem Sprachwechsel neu
+       * gebaut – und mit ihr der useEffect, der sie aufruft.
+       */
+      setFehler(f instanceof Error ? f.message : 'laden')
     }
     setLaedt(false)
   }, [])
@@ -75,33 +97,33 @@ export function ZahlenPage({ onBack }: Props) {
       setPasswort('')
       await laden()
     } catch (f) {
-      setFehler(f instanceof Error ? f.message : 'Die Anmeldung ging schief.')
+      setFehler(f instanceof Error ? f.message : t.zAnmeldungFehler)
     }
     setSendet(false)
   }
 
   if (laedt && !status) {
-    return <section className="section zahlen"><div className="shell"><p>Wird geladen …</p></div></section>
+    return <section className="section zahlen"><div className="shell"><p>{t.laedt}</p></div></section>
   }
 
   if (!status?.angemeldet) {
     return (
       <section className="section zahlen">
         <div className="shell admin__schmal">
-          <h1>Zahlen</h1>
+          <h1>{t.zahlenTitel}</h1>
           <form className="admin__anmeldung" onSubmit={handleAnmelden}>
             <div className="field">
-              <label className="field__label" htmlFor="zahlen-passwort">Passwort</label>
+              <label className="field__label" htmlFor="zahlen-passwort">{t.passwort}</label>
               <input id="zahlen-passwort" className="input" type="password"
                 autoComplete="current-password" value={passwort}
                 onChange={(e) => setPasswort(e.target.value)} />
             </div>
-            {fehler && <p className="form-status form-status--error">{fehler}</p>}
+            {fehler && <p className="form-status form-status--error">{fehler === 'laden' ? t.zDatenFehler : fehler}</p>}
             <button type="submit" className="btn" disabled={sendet || passwort.length === 0}>
-              {sendet ? 'Wird geprüft …' : 'Anmelden'}
+              {sendet ? t.wirdGeprueft : t.anmelden}
             </button>
           </form>
-          <button type="button" className="btn btn--quiet" onClick={onBack}>Zurück zur Seite</button>
+          <button type="button" className="btn btn--quiet" onClick={onBack}>{t.zurueckZurSeite}</button>
         </div>
       </section>
     )
@@ -126,14 +148,18 @@ export function ZahlenPage({ onBack }: Props) {
   const teilung = aufteilung(bestellungen, auslagen)
 
   /* Sendungen: die Pakete, wie sie zu Bora gegangen sind. */
-  const pakete = new Map<string, { anzahl: number; netze: number; erloes: number; kosten: number }>()
+  const pakete = new Map<string, {
+    anzahl: number; netze: number; erloes: number; kosten: number; geschaetzt: boolean
+  }>()
   for (const { b, z } of gerechnet) {
     if (!b.paket) continue
-    const p = pakete.get(b.paket) ?? { anzahl: 0, netze: 0, erloes: 0, kosten: 0 }
+    const p = pakete.get(b.paket) ?? { anzahl: 0, netze: 0, erloes: 0, kosten: 0, geschaetzt: false }
     p.anzahl += 1
     p.netze += z.netzZahl
     p.erloes += z.erloesChf
     p.kosten += z.kostenChf
+    /* Ein einziger Auftrag ohne erfasste Kosten macht die ganze Sendung zur Schaetzung. */
+    if (z.geschaetzt) p.geschaetzt = true
     pakete.set(b.paket, p)
   }
 
@@ -142,81 +168,93 @@ export function ZahlenPage({ onBack }: Props) {
     setBestellungen((liste) => liste.map((b) => (b.id === id ? neu : b)))
   }
 
-  const ausserRechnung = async (id: string, an: boolean) => {
-    const neu = await aendereBestellung(id, { ausserRechnung: an })
-    setBestellungen((liste) => liste.map((b) => (b.id === id ? neu : b)))
-  }
-
   return (
     <section className="section zahlen">
       <div className="shell">
         <div className="zahlen__kopf">
-          <h1>Zahlen</h1>
+          <h1>{t.zahlenTitel}</h1>
           <div className="zahlen__kopfknoepfe">
+            <SprachSchalter />
             <button type="button" className="btn btn--quiet btn--sm" onClick={() => void laden()}>
-              Neu laden
+              {t.aktualisieren}
             </button>
-            <button type="button" className="btn btn--quiet btn--sm" onClick={onBack}>Zurück</button>
+            <button type="button" className="btn btn--quiet btn--sm" onClick={onBack}>{t.zurueck}</button>
           </div>
         </div>
 
         {status.demo === true && (
-          <p className="zahlen__demo">Testumgebung – Beispieldaten, keine Anmeldung nötig.</p>
+          <p className="zahlen__demo">{t.zahlenDemo}</p>
         )}
-        {fehler && <p className="form-status form-status--error">{fehler}</p>}
+        {fehler && <p className="form-status form-status--error">{fehler === 'laden' ? t.zDatenFehler : fehler}</p>}
 
         {/* --- Kennzahlen ---------------------------------------------------- */}
         <div className="kennzahlen">
           <div className="kennzahl">
-            <span className="kennzahl__titel">Total Erlös</span>
+            <span className="kennzahl__titel">{t.zTotalErloes}</span>
             <strong className="kennzahl__wert">{formatChf(k.erloesChf)}</strong>
             <span className="kennzahl__zusatz">
-              alle festen Aufträge zum Verkaufspreis – ab der Zusage der Kundschaft
+              {t.zTotalErloesSatz}
             </span>
             <dl className="kennzahl__teile">
-              <div><dt>Cashed</dt><dd>{formatChf(k.cashedChf)}</dd></div>
-              <div><dt>Debit</dt><dd>{formatChf(k.debitChf)}</dd></div>
-              <div><dt>In Arbeit</dt><dd>{formatChf(k.inArbeitChf)}</dd></div>
+              <div title={t.zCashedHilfe}>
+                <dt>{t.zCashed}</dt><dd>{formatChf(k.cashedChf)}</dd>
+              </div>
+              <div title={t.zDebitHilfe}>
+                <dt>{t.zDebit}</dt><dd>{formatChf(k.debitChf)}</dd>
+              </div>
+              <div title={t.zInArbeitHilfe}>
+                <dt>{t.zInArbeit}</dt><dd>{formatChf(k.inArbeitChf)}</dd>
+              </div>
             </dl>
           </div>
 
           <div className="kennzahl">
-            <span className="kennzahl__titel">Betriebsergebnis</span>
+            <span className="kennzahl__titel">{t.zBetriebsergebnis}</span>
             <strong className="kennzahl__wert">{formatChf(k.betriebsergebnisChf)}</strong>
             <span className="kennzahl__zusatz">
-              Erlöse aller festen Aufträge minus Waren- und Betriebskosten
+              {t.zBetriebsergebnisSatz}
             </span>
             <dl className="kennzahl__teile">
-              <div><dt>Rentabilität</dt><dd>{k.rentabilitaet === null ? '–' : `${k.rentabilitaet} %`}</dd></div>
+              <div><dt>{t.zRentabilitaet}</dt><dd>{k.rentabilitaet === null ? '–' : `${k.rentabilitaet} %`}</dd></div>
             </dl>
           </div>
 
           <div className="kennzahl">
-            <span className="kennzahl__titel">Betriebsergebnis real</span>
+            <span className="kennzahl__titel">{t.zErgebnisReal}</span>
             <strong className="kennzahl__wert">{formatChf(k.realErgebnisChf)}</strong>
             <span className="kennzahl__zusatz">
-              nur was geflossen ist: einkassiert gegen bezahlte Rechnungen
+              {t.zErgebnisRealSatz}
             </span>
           </div>
 
           <div className="kennzahl">
-            <span className="kennzahl__titel">Total Kosten</span>
+            <span className="kennzahl__titel">{t.zTotalKosten}</span>
             <strong className="kennzahl__wert">{formatChf(k.kostenChf)}</strong>
-            <span className="kennzahl__zusatz">Ware und Betrieb, bezahlt wie offen</span>
+            <span className="kennzahl__zusatz">
+              {t.zWare} {formatChf(k.warenkostenChf)} · {t.zBetrieb} {formatChf(k.betriebskostenChf)}
+            </span>
             <dl className="kennzahl__teile">
-              <div><dt>Credit</dt><dd>{formatChf(k.creditChf)}</dd></div>
+              <div title={t.zBezahltHilfe}>
+                <dt>{t.zBezahlt}</dt><dd>{formatChf(k.bezahltKostenChf)}</dd>
+              </div>
+              <div title={t.zCreditHilfe}>
+                <dt>{t.zCredit}</dt><dd>{formatChf(k.creditChf)}</dd>
+              </div>
+              <div title={t.zOhneBelegHilfe}>
+                <dt>{t.zOhneBeleg}</dt><dd>{formatChf(k.ohneBelegChf)}</dd>
+              </div>
             </dl>
           </div>
 
           <div className="kennzahl">
-            <span className="kennzahl__titel">Funnel</span>
+            <span className="kennzahl__titel">{t.zFunnel}</span>
             <strong className="kennzahl__wert">{formatChf(k.funnelChf)}</strong>
             <span className="kennzahl__zusatz">
-              {k.funnelAnzahl} Anfragen · {k.funnelNetze} Netze, noch nicht zugesagt
+              {fuelle(t.zFunnelSatz, { n: k.funnelAnzahl, m: k.funnelNetze })}
             </span>
             <dl className="kennzahl__teile">
-              <div><dt>Kosten</dt><dd>{formatChf(k.funnelKostenChf)}</dd></div>
-              <div><dt>Marge</dt><dd>{formatChf(k.funnelMargeChf)}</dd></div>
+              <div><dt>{t.zKosten}</dt><dd>{formatChf(k.funnelKostenChf)}</dd></div>
+              <div><dt>{t.zMarge}</dt><dd>{formatChf(k.funnelMargeChf)}</dd></div>
             </dl>
           </div>
         </div>
@@ -224,7 +262,7 @@ export function ZahlenPage({ onBack }: Props) {
         {/* --- Perioden ------------------------------------------------------ */}
         <div className="zahlen__block">
           <div className="zahlen__blockkopf">
-            <h2>Erfolgsrechnung · Ist</h2>
+            <h2>{t.zAuftraegeIst}</h2>
             <div className="zahlen__schalter">
               {PERIODEN.map((p) => (
                 <button key={p.wert} type="button"
@@ -238,186 +276,168 @@ export function ZahlenPage({ onBack }: Props) {
           <div className="zahlen__rollen"><table className="zahlen__tabelle">
             <thead>
               <tr>
-                <th>Abschnitt</th>
-                <th className="zahlen__zahl">Aufträge</th>
-                <th className="zahlen__zahl">Netze</th>
-                <th className="zahlen__zahl">Erlös</th>
-                <th className="zahlen__zahl">davon einkassiert</th>
-                <th className="zahlen__zahl">davon offen</th>
-                <th className="zahlen__zahl">davon in Arbeit</th>
-                <th className="zahlen__zahl">Warenkosten</th>
-                <th className="zahlen__zahl">Betriebskosten</th>
-                <th className="zahlen__zahl">Ergebnis</th>
+                <th>{t.zAbschnitt}</th>
+                <th className="zahlen__zahl">{t.zAuftraege}</th>
+                <th className="zahlen__zahl">{t.netzeMehrzahl}</th>
+                <th className="zahlen__zahl">{t.zErloes}</th>
+                <th className="zahlen__zahl">{t.zEinkassiert}</th>
+                <th className="zahlen__zahl">{t.zOffen}</th>
+                <th className="zahlen__zahl">{t.zInArbeit}</th>
+                <th className="zahlen__zahl">{t.zWarenkosten}</th>
+                <th className="zahlen__zahl">{t.zBetriebskosten}</th>
+                <th className="zahlen__zahl">{t.zErgebnis}</th>
               </tr>
             </thead>
             <tbody>
               {perioden.map((a) => (
                 <tr key={a.schluessel}>
-                  <td data-titel="Abschnitt">
-                    {a.etikett}
-                    {a.geschaetzt && <span className="kosten__marke">teils geschätzt</span>}
+                  <td data-titel={t.zAbschnitt}>
+                    {periode === 'total'
+                      ? t.zAbschnittTotal
+                      : fuelle(t.zAbschnittJahr, { jahr: a.schluessel })}
                   </td>
-                  <td data-titel="Aufträge" className="zahlen__zahl">{a.anzahl}</td>
-                  <td data-titel="Netze" className="zahlen__zahl">{a.netzZahl}</td>
-                  <td data-titel="Erlös" className="zahlen__zahl">{formatChf(a.erloesChf)}</td>
-                  <td data-titel="davon einkassiert" className="zahlen__zahl">{formatChf(a.einkassiertChf)}</td>
-                  <td data-titel="davon offen" className="zahlen__zahl">{formatChf(a.offenChf)}</td>
-                  <td data-titel="davon in Arbeit" className="zahlen__zahl">{formatChf(a.erwartetChf)}</td>
-                  <td data-titel="Warenkosten" className="zahlen__zahl">{formatChf(a.kostenChf)}</td>
-                  <td data-titel="Betriebskosten" className="zahlen__zahl">{formatChf(a.betriebskostenChf)}</td>
-                  <td data-titel="Ergebnis" className="zahlen__zahl">
+                  <td data-titel={t.zAuftraege} className="zahlen__zahl">{a.anzahl}</td>
+                  <td data-titel={t.netzeMehrzahl} className="zahlen__zahl">{a.netzZahl}</td>
+                  <td data-titel={t.zErloes} className="zahlen__zahl">{formatChf(a.erloesChf)}</td>
+                  <td data-titel={t.zEinkassiert} className="zahlen__zahl">{formatChf(a.einkassiertChf)}</td>
+                  <td data-titel={t.zOffen} className="zahlen__zahl">{formatChf(a.offenChf)}</td>
+                  <td data-titel={t.zInArbeit} className="zahlen__zahl">{formatChf(a.erwartetChf)}</td>
+                  <td data-titel={t.zWarenkosten} className="zahlen__zahl">{formatChf(a.kostenChf)}</td>
+                  <td data-titel={t.zBetriebskosten} className="zahlen__zahl">{formatChf(a.betriebskostenChf)}</td>
+                  <td data-titel={t.zErgebnis} className="zahlen__zahl">
                     <strong>{formatChf(a.ergebnisChf)}</strong>
                   </td>
                 </tr>
               ))}
               {perioden.length === 0 && (
-                <tr><td colSpan={10}>Noch keine festen Aufträge.</td></tr>
+                <tr><td colSpan={10}>{t.zKeineAuftraege}</td></tr>
               )}
             </tbody>
           </table></div>
-          <p className="zahlen__hinweis">
-            Hier stehen <strong>alle festen Aufträge</strong> – ab dem Moment, in dem die
-            Kundschaft zugesagt hat. Der Erlös zählt im Monat der Auslieferung, bei noch nicht
-            Geliefertem im Monat der Zusage. Die drei Spalten danach sagen, wie weit jeder ist,
-            und ergeben zusammen wieder den Erlös: <strong>einkassiert</strong> ist auf dem
-            Konto, <strong>offen</strong> sind die Debitoren (geliefert, noch nicht bezahlt),
-            <strong>in Arbeit</strong> ist zugesagt und noch nicht geliefert.
-          </p>
+          <p className="zahlen__hinweis">{t.zIstSatz}</p>
         </div>
 
         {/* --- Forecast ------------------------------------------------------ */}
         <div className="zahlen__block">
-          <h2>Forecast · der Funnel</h2>
+          <h2>{t.zFunnelTitel}</h2>
           <div className="zahlen__rollen"><table className="zahlen__tabelle">
             <thead>
               <tr>
-                <th>Stand</th>
-                <th className="zahlen__zahl">Anfragen</th>
-                <th className="zahlen__zahl">Netze</th>
-                <th className="zahlen__zahl">Erlös erwartet</th>
-                <th className="zahlen__zahl">Kosten erwartet</th>
-                <th className="zahlen__zahl">Marge erwartet</th>
+                <th>{t.zStand}</th>
+                <th className="zahlen__zahl">{t.zAnfragen}</th>
+                <th className="zahlen__zahl">{t.netzeMehrzahl}</th>
+                <th className="zahlen__zahl">{t.zErloesErwartet}</th>
+                <th className="zahlen__zahl">{t.zKostenErwartet}</th>
+                <th className="zahlen__zahl">{t.zMargeErwartet}</th>
               </tr>
             </thead>
             <tbody>
               {aussicht.map((f) => (
                 <tr key={f.phase}>
-                  <td data-titel="Stand">
-                    {f.etikett}
-                    {f.geschaetzt && <span className="kosten__marke">Kosten geschätzt</span>}
-                  </td>
-                  <td data-titel="Anfragen" className="zahlen__zahl">{f.anzahl}</td>
-                  <td data-titel="Netze" className="zahlen__zahl">{f.netzZahl}</td>
-                  <td data-titel="Erlös erwartet" className="zahlen__zahl">{formatChf(f.erloesChf)}</td>
-                  <td data-titel="Kosten erwartet" className="zahlen__zahl">{formatChf(f.kostenChf)}</td>
-                  <td data-titel="Marge erwartet" className="zahlen__zahl">
+                  <td data-titel={t.zStand}>{f.etikett}</td>
+                  <td data-titel={t.zAnfragen} className="zahlen__zahl">{f.anzahl}</td>
+                  <td data-titel={t.netzeMehrzahl} className="zahlen__zahl">{f.netzZahl}</td>
+                  <td data-titel={t.zErloesErwartet} className="zahlen__zahl">{formatChf(f.erloesChf)}</td>
+                  <td data-titel={t.zKostenErwartet} className="zahlen__zahl">{formatChf(f.kostenChf)}</td>
+                  <td data-titel={t.zMargeErwartet} className="zahlen__zahl">
                     <strong>{formatChf(f.margeChf)}</strong>
                   </td>
                 </tr>
               ))}
               {aussicht.length === 0
-                ? <tr><td colSpan={6}>Keine offenen Anfragen.</td></tr>
+                ? <tr><td colSpan={6}>{t.zKeineAnfragen}</td></tr>
                 : (
                   <tr className="zahlen__strich">
-                    <td data-titel="Stand"><strong>Zusammen</strong></td>
-                    <td data-titel="Anfragen" className="zahlen__zahl">
+                    <td data-titel={t.zStand}><strong>{t.zZusammen}</strong></td>
+                    <td data-titel={t.zAnfragen} className="zahlen__zahl">
                       <strong>{aussicht.reduce((s, f) => s + f.anzahl, 0)}</strong>
                     </td>
-                    <td data-titel="Netze" className="zahlen__zahl">
+                    <td data-titel={t.netzeMehrzahl} className="zahlen__zahl">
                       <strong>{aussicht.reduce((s, f) => s + f.netzZahl, 0)}</strong>
                     </td>
-                    <td data-titel="Erlös erwartet" className="zahlen__zahl">
+                    <td data-titel={t.zErloesErwartet} className="zahlen__zahl">
                       <strong>{formatChf(aussicht.reduce((s, f) => s + f.erloesChf, 0))}</strong>
                     </td>
-                    <td data-titel="Kosten erwartet" className="zahlen__zahl">
+                    <td data-titel={t.zKostenErwartet} className="zahlen__zahl">
                       <strong>{formatChf(aussicht.reduce((s, f) => s + f.kostenChf, 0))}</strong>
                     </td>
-                    <td data-titel="Marge erwartet" className="zahlen__zahl">
+                    <td data-titel={t.zMargeErwartet} className="zahlen__zahl">
                       <strong>{formatChf(aussicht.reduce((s, f) => s + f.margeChf, 0))}</strong>
                     </td>
                   </tr>
                 )}
             </tbody>
           </table></div>
-          <p className="zahlen__hinweis">
-            Alles <strong>vor</strong> der Zusage: von der frischen Anfrage bis zum Warten auf
-            das Ja. Geordnet nach Nähe und nicht nach Monat – wann daraus etwas wird, und ob
-            überhaupt, weiss heute niemand. Die Preise sind Vorschläge, die Kosten gerechnet.
-            Nichts davon ist Ertrag, und deshalb geht diese Tabelle nie in eine Summe mit der
-            Erfolgsrechnung ein.
-          </p>
+          <p className="zahlen__hinweis">{t.zFunnelHinweis}</p>
         </div>
 
         {/* --- Pro Bestellung ------------------------------------------------ */}
         <div className="zahlen__block">
-          <h2>Pro Auftrag</h2>
+          <h2>{t.zProAuftrag}</h2>
+          <p className="zahlen__hinweis">
+            {/*
+              HIER WIRD NICHTS VERWALTET. Es gab einmal ein Kaestchen "zaehlt
+              mit", das einen Auftrag aus den Zahlen nahm - damit liessen sich
+              Auftraege an zwei Orten steuern, im Adminbereich und hier. Ein
+              Auftrag, der nicht zaehlen soll, wird im Adminbereich abgesagt;
+              dann faellt er hier von selbst heraus.
+            */}
+            {t.zProAuftragSatz}
+          </p>
           <div className="zahlen__rollen"><table className="zahlen__tabelle">
             <thead>
               <tr>
-                <th>Auftrag</th>
-                <th>Paket</th>
-                <th className="zahlen__zahl">Netze</th>
-                <th className="zahlen__zahl">Montage</th>
-                <th className="zahlen__zahl">Anfahrt</th>
-                <th className="zahlen__zahl">Rabatt</th>
-                <th className="zahlen__zahl">Erlös</th>
-                <th className="zahlen__zahl">Kosten</th>
-                <th className="zahlen__zahl">Marge</th>
-                <th>Stand</th>
-                <th>Kosten</th>
-                <th>Rechnung</th>
+                <th>{t.zAuftrag}</th>
+                <th>{t.paketMarke}</th>
+                <th className="zahlen__zahl">{t.netzeMehrzahl}</th>
+                <th className="zahlen__zahl">{t.montageSumme}</th>
+                <th className="zahlen__zahl">{t.anfahrtSumme}</th>
+                <th className="zahlen__zahl">{t.rabattSumme}</th>
+                <th className="zahlen__zahl">{t.zErloes}</th>
+                <th className="zahlen__zahl">{t.zKosten}</th>
+                <th className="zahlen__zahl">{t.zMarge}</th>
+                <th>{t.zStand}</th>
+                <th>{t.zKosten}</th>
               </tr>
             </thead>
             <tbody>
               {zeilen.map(({ b, z }) => (
                 <tr key={b.id} className={b.ausserRechnung ? 'zahlen__ausgenommen' : undefined}>
-                  <td data-titel="Auftrag">
+                  <td data-titel={t.zAuftrag}>
                     {b.kunde.name}
                     <span className="zahlen__klein">{b.referenz}</span>
                   </td>
-                  <td data-titel="Paket">{b.paket ?? '–'}</td>
-                  <td data-titel="Netze" className="zahlen__zahl">{formatChf(z.netzeChf)}</td>
-                  <td data-titel="Montage" className="zahlen__zahl">{formatChf(z.montageChf)}</td>
-                  <td data-titel="Anfahrt" className="zahlen__zahl">{formatChf(z.anfahrtChf)}</td>
-                  <td data-titel="Rabatt" className="zahlen__zahl">
+                  <td data-titel={t.paketMarke}>{b.paket ?? '–'}</td>
+                  <td data-titel={t.netzeMehrzahl} className="zahlen__zahl">{formatChf(z.netzeChf)}</td>
+                  <td data-titel={t.montageSumme} className="zahlen__zahl">{formatChf(z.montageChf)}</td>
+                  <td data-titel={t.anfahrtSumme} className="zahlen__zahl">{formatChf(z.anfahrtChf)}</td>
+                  <td data-titel={t.rabattSumme} className="zahlen__zahl">
                     {z.rabattChf > 0 ? `− ${formatChf(z.rabattChf)}` : '–'}
                   </td>
-                  <td data-titel="Erlös" className="zahlen__zahl">{formatChf(z.erloesChf)}</td>
-                  <td data-titel="Kosten" className="zahlen__zahl">
+                  <td data-titel={t.zErloes} className="zahlen__zahl">{formatChf(z.erloesChf)}</td>
+                  <td data-titel={t.zKosten} className="zahlen__zahl">
                     {formatChf(z.kostenChf)}
-                    {z.geschaetzt && <span className="kosten__marke">geschätzt</span>}
+                    {z.geschaetzt && <span className="kosten__marke">{t.zGeschaetzt}</span>}
                   </td>
-                  <td data-titel="Marge" className="zahlen__zahl">
+                  <td data-titel={t.zMarge} className="zahlen__zahl">
                     <strong>{formatChf(z.margeChf)}</strong>
                     {z.margeProzent !== null && <span className="zahlen__klein">{z.margeProzent} %</span>}
                   </td>
-                  <td data-titel="Stand">
+                  <td data-titel={t.zStand}>
                     {b.ausserRechnung
-                      ? 'nicht gerechnet'
-                      : z.einkassiert ? 'einkassiert' : z.realisiert ? 'offen' : 'erwartet'}
+                      ? t.zStandNichtGerechnet
+                      : z.einkassiert ? t.zStandEinkassiert
+                      : z.realisiert ? t.zStandOffen : t.zStandErwartet}
                   </td>
-                  <td data-titel="Kosten">
+                  <td data-titel={t.zKosten}>
                     <button type="button" className="btn btn--quiet btn--sm"
                       onClick={() => setOffenerEditor(offenerEditor === b.id ? null : b.id)}>
-                      {offenerEditor === b.id ? 'schliessen' : 'bearbeiten'}
+                      {offenerEditor === b.id ? t.zSchliessen : t.zBearbeiten}
                     </button>
-                  </td>
-                  {/*
-                    Das Kaestchen ist umgedreht: Angehakt heisst "zaehlt mit".
-                    Gespeichert wird das Gegenteil (`ausserRechnung`), aber
-                    niemand liest eine Verneinung gern - "raus" neben "Kosten"
-                    las sich ausserdem wie "Kosten raus".
-                  */}
-                  <td data-titel="Rechnung">
-                    <label className="zahlen__aus" title="Nimmt den Auftrag aus allen Zahlen – gelöscht wird nichts.">
-                      <input type="checkbox" checked={b.ausserRechnung !== true}
-                        onChange={(e) => void ausserRechnung(b.id, !e.target.checked)} />
-                      <span>zählt mit</span>
-                    </label>
                   </td>
                 </tr>
               ))}
-              {zeilen.length === 0 && <tr><td colSpan={11}>Noch keine Aufträge in der Rechnung.</td></tr>}
+              {zeilen.length === 0 && <tr><td colSpan={10}>{t.zKeineAuftraege}</td></tr>}
             </tbody>
           </table></div>
 
@@ -426,7 +446,7 @@ export function ZahlenPage({ onBack }: Props) {
             if (!b) return null
             return (
               <div className="zahlen__editor">
-                <h3>Kosten · {b.kunde.name} · {b.referenz}</h3>
+                <h3>{t.zKosten} · {b.kunde.name} · {b.referenz}</h3>
                 <KostenEditor
                   bestellung={b}
                   onSpeichern={(kosten) => kostenSpeichern(b.id, kosten)}
@@ -440,28 +460,31 @@ export function ZahlenPage({ onBack }: Props) {
         {/* --- Pro Sendung --------------------------------------------------- */}
         {pakete.size > 0 && (
           <div className="zahlen__block">
-            <h2>Pro Sendung</h2>
+            <h2>{t.zProSendung}</h2>
             <div className="zahlen__rollen"><table className="zahlen__tabelle">
               <thead>
                 <tr>
-                  <th>Paket</th>
-                  <th className="zahlen__zahl">Aufträge</th>
-                  <th className="zahlen__zahl">Netze</th>
-                  <th className="zahlen__zahl">Erlös</th>
-                  <th className="zahlen__zahl">Kosten</th>
-                  <th className="zahlen__zahl">Marge</th>
-                  <th className="zahlen__zahl">je Netz</th>
+                  <th>{t.paketMarke}</th>
+                  <th className="zahlen__zahl">{t.zAuftraege}</th>
+                  <th className="zahlen__zahl">{t.netzeMehrzahl}</th>
+                  <th className="zahlen__zahl">{t.zErloes}</th>
+                  <th className="zahlen__zahl">{t.zKosten}</th>
+                  <th className="zahlen__zahl">{t.zMarge}</th>
+                  <th className="zahlen__zahl">{t.zJeNetz}</th>
                 </tr>
               </thead>
               <tbody>
                 {[...pakete.entries()].map(([name, p]) => (
                   <tr key={name}>
-                    <td data-titel="Paket">{name}</td>
-                    <td data-titel="Aufträge" className="zahlen__zahl">{p.anzahl}</td>
-                    <td data-titel="Netze" className="zahlen__zahl">{p.netze}</td>
-                    <td data-titel="Erlös" className="zahlen__zahl">{formatChf(p.erloes)}</td>
-                    <td data-titel="Kosten" className="zahlen__zahl">{formatChf(p.kosten)}</td>
-                    <td data-titel="Marge" className="zahlen__zahl">
+                    <td data-titel={t.paketMarke}>{name}</td>
+                    <td data-titel={t.zAuftraege} className="zahlen__zahl">{p.anzahl}</td>
+                    <td data-titel={t.netzeMehrzahl} className="zahlen__zahl">{p.netze}</td>
+                    <td data-titel={t.zErloes} className="zahlen__zahl">{formatChf(p.erloes)}</td>
+                    <td data-titel={t.zKosten} className="zahlen__zahl">
+                      {formatChf(p.kosten)}
+                      {p.geschaetzt && <span className="kosten__marke">{t.zGeschaetzt}</span>}
+                    </td>
+                    <td data-titel={t.zMarge} className="zahlen__zahl">
                       <strong>{formatChf(p.erloes - p.kosten)}</strong>
                       {p.erloes > 0 && (
                         <span className="zahlen__klein">
@@ -469,7 +492,7 @@ export function ZahlenPage({ onBack }: Props) {
                         </span>
                       )}
                     </td>
-                    <td data-titel="je Netz" className="zahlen__zahl">
+                    <td data-titel={t.zJeNetz} className="zahlen__zahl">
                       {p.netze > 0 ? formatChf((p.erloes - p.kosten) / p.netze) : '–'}
                     </td>
                   </tr>
@@ -493,16 +516,16 @@ export function ZahlenPage({ onBack }: Props) {
         {/* --- Offene Posten ------------------------------------------------- */}
         <div className="zahlen__block zahlen__zweispaltig">
           <div>
-            <h2>Wer uns was schuldet</h2>
-            {forderungen.length === 0 ? <p className="zahlen__hinweis">Nichts offen.</p> : (
+            <h2>{t.zSchuldetUns}</h2>
+            {forderungen.length === 0 ? <p className="zahlen__hinweis">{t.zNichtsOffen}</p> : (
               <div className="zahlen__rollen"><table className="zahlen__tabelle">
-                <thead><tr><th>Auftrag</th><th>Geliefert</th><th className="zahlen__zahl">Betrag</th></tr></thead>
+                <thead><tr><th>{t.zAuftrag}</th><th>{t.zGeliefert}</th><th className="zahlen__zahl">{t.zBetrag}</th></tr></thead>
                 <tbody>
                   {forderungen.map((f) => (
                     <tr key={f.bestellungId}>
-                      <td data-titel="Auftrag">{f.kunde}</td>
-                      <td data-titel="Geliefert">{f.seit.slice(0, 10)}</td>
-                      <td data-titel="Betrag" className="zahlen__zahl">{formatChf(f.betragChf)}</td>
+                      <td data-titel={t.zAuftrag}>{f.kunde}</td>
+                      <td data-titel={t.zGeliefert}>{f.seit.slice(0, 10)}</td>
+                      <td data-titel={t.zBetrag} className="zahlen__zahl">{formatChf(f.betragChf)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -510,16 +533,16 @@ export function ZahlenPage({ onBack }: Props) {
             )}
           </div>
           <div>
-            <h2>Wem wir was schulden</h2>
-            {schulden.length === 0 ? <p className="zahlen__hinweis">Nichts offen.</p> : (
+            <h2>{t.zSchuldenWir}</h2>
+            {schulden.length === 0 ? <p className="zahlen__hinweis">{t.zNichtsOffen}</p> : (
               <div className="zahlen__rollen"><table className="zahlen__tabelle">
-                <thead><tr><th>Wer</th><th className="zahlen__zahl">Posten</th><th className="zahlen__zahl">Betrag</th></tr></thead>
+                <thead><tr><th>{t.zWer}</th><th className="zahlen__zahl">{t.zPosten}</th><th className="zahlen__zahl">{t.zBetrag}</th></tr></thead>
                 <tbody>
                   {schulden.map((s) => (
                     <tr key={s.traeger}>
-                      <td data-titel="Wer">{beteiligte[s.traeger]}</td>
-                      <td data-titel="Posten" className="zahlen__zahl">{s.posten.length}</td>
-                      <td data-titel="Betrag" className="zahlen__zahl">{formatChf(s.betragChf)}</td>
+                      <td data-titel={t.zWer}>{beteiligte[s.traeger]}</td>
+                      <td data-titel={t.zPosten} className="zahlen__zahl">{s.posten.length}</td>
+                      <td data-titel={t.zBetrag} className="zahlen__zahl">{formatChf(s.betragChf)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -530,31 +553,31 @@ export function ZahlenPage({ onBack }: Props) {
 
         {/* --- Abrechnung ---------------------------------------------------- */}
         <div className="zahlen__block">
-          <h2>Abrechnung, wenn man heute abrechnen würde</h2>
+          <h2>{t.zAbrechnung}</h2>
           <div className="zahlen__rollen"><table className="zahlen__tabelle zahlen__tabelle--schmal">
             <tbody>
               <tr>
-                <td>Einkassiert, aus der Ware</td>
+                <td>{t.zEinkassiertWare}</td>
                 <td className="zahlen__zahl">{formatChf(teilung.warenerloesChf)}</td>
               </tr>
               <tr>
-                <td>Einkassiert, aus Montage und Anfahrt</td>
+                <td>{t.zEinkassiertMontage}</td>
                 <td className="zahlen__zahl">{formatChf(teilung.montageerloesChf)}</td>
               </tr>
               <tr>
-                <td>Warenkosten dieser Aufträge</td>
+                <td>{t.zWarenkostenDieser}</td>
                 <td className="zahlen__zahl">− {formatChf(teilung.warenkostenChf)}</td>
               </tr>
               <tr>
-                <td>Betriebskosten</td>
+                <td>{t.zBetriebskosten}</td>
                 <td className="zahlen__zahl">− {formatChf(teilung.betriebskostenChf)}</td>
               </tr>
               <tr className="zahlen__strich">
-                <td>Topf Ware</td>
+                <td>{t.zTopfWare}</td>
                 <td className="zahlen__zahl">{formatChf(teilung.warengewinnChf)}</td>
               </tr>
               <tr>
-                <td>Topf Montage und Anfahrt</td>
+                <td>{t.zTopfMontage}</td>
                 <td className="zahlen__zahl">{formatChf(teilung.montagegewinnChf)}</td>
               </tr>
               {(['bora', 'ufuk', 'deniz'] as const).map((wer) => (
@@ -567,21 +590,19 @@ export function ZahlenPage({ onBack }: Props) {
           </table></div>
           {teilung.verteilbarChf === 0 && (
             <p className="zahlen__hinweis">
-              <strong>Noch nichts zu verteilen.</strong> Die Kosten sind grösser als das, was
-              bisher eingegangen ist – ein Topf im Minus wird nicht ausgeschüttet.
+              {t.zNichtsZuVerteilen}
             </p>
           )}
           {teilung.rueckzahlungChf > 0 && (
             <p className="zahlen__hinweis">
-              Zuerst gehen {formatChf(teilung.rueckzahlungChf)} an die zurück, die sie ausgelegt
-              haben – siehe „Wem wir was schulden“.
+              {fuelle(t.zZuerstZurueck, { betrag: formatChf(teilung.rueckzahlungChf) })}
             </p>
           )}
           <p className="zahlen__hinweis">
-            Verteilt wird nur, was wirklich eingegangen ist. Die Ware geht 20 / 40 / 40 an Bora,
-            Ufuk und Deniz, Montage und Anfahrt zur Hälfte an Ufuk und Deniz. Kurs{' '}
-            {kostenConfig.eurChf} CHF/EUR, Einfuhrsteuer{' '}
-            {(kostenConfig.einfuhrsteuer * 100).toFixed(1)} % auf dem Warenwert.
+            {fuelle(t.zVerteilungSatz, {
+              kurs: kostenConfig.eurChf,
+              steuer: (kostenConfig.einfuhrsteuer * 100).toFixed(1),
+            })}
           </p>
         </div>
       </div>

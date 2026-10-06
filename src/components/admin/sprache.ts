@@ -394,6 +394,203 @@ const PAARE = {
     'Denemek için örnek veriler. Giriş yok, gerçek sipariş yok – canlı veriler başka bir tabloda ve buradan hiç dokunulmuyor.',
   ],
   demoZuruecksetzen: ['Beispieldaten zurücksetzen', 'Örnek verileri sıfırla'],
+
+  /* --- Bereich "Zahlen" --------------------------------------------------- */
+  /*
+   * EIN SCHALTER FUER BEIDE BEREICHE. Die Wahl steht im Adminbereich und
+   * gilt hier mit: Wer dort auf TR stellt, bekommt auch die Zahlen auf
+   * Tuerkisch. Ein zweiter Schalter waere eine zweite Stelle, an der die
+   * beiden Bereiche auseinanderlaufen koennen.
+   *
+   * Betraege bleiben in Schweizer Schreibweise – siehe oben.
+   */
+  zahlenTitel: ['Zahlen', 'Rakamlar'],
+  zurueck: ['Zurück', 'Geri'],
+  zahlenDemo: [
+    'Testumgebung – Beispieldaten, keine Anmeldung nötig.',
+    'Test ortamı – örnek veriler, giriş gerekmiyor.',
+  ],
+
+  zTotalErloes: ['Total Erlös', 'Toplam gelir'],
+  zTotalErloesSatz: [
+    'alle festen Aufträge zum Verkaufspreis – ab der Zusage der Kundschaft',
+    'müşteri onayından itibaren tüm kesin siparişler, satış fiyatıyla',
+  ],
+  zCashed: ['Cashed', 'Tahsil edildi'],
+  zCashedHilfe: [
+    'Geliefert und bezahlt – das Geld ist auf dem Konto.',
+    'Teslim edildi ve ödendi – para hesapta.',
+  ],
+  zDebit: ['Debit', 'Alacak'],
+  zDebitHilfe: [
+    'Geliefert, aber noch nicht bezahlt – die Debitoren.',
+    'Teslim edildi ama henüz ödenmedi – alacaklar.',
+  ],
+  zInArbeit: ['In Arbeit', 'İşlemde'],
+  zInArbeitHilfe: [
+    'Zugesagt und noch nicht ausgeliefert: bereit zum Bestellen oder bei Bora.',
+    'Onaylandı ama henüz teslim edilmedi: siparişe hazır veya Bora’da.',
+  ],
+
+  zBetriebsergebnis: ['Betriebsergebnis', 'Faaliyet sonucu'],
+  zBetriebsergebnisSatz: [
+    'Erlöse aller festen Aufträge minus Waren- und Betriebskosten',
+    'tüm kesin siparişlerin geliri eksi mal ve işletme giderleri',
+  ],
+  zRentabilitaet: ['Rentabilität', 'Kârlılık'],
+  zErgebnisReal: ['Betriebsergebnis real', 'Faaliyet sonucu, gerçek'],
+  zErgebnisRealSatz: [
+    'nur was geflossen ist: einkassiert gegen bezahlte Rechnungen',
+    'yalnızca gerçekleşen akış: tahsil edilen karşısında ödenen faturalar',
+  ],
+
+  zTotalKosten: ['Total Kosten', 'Toplam maliyet'],
+  zWare: ['Ware', 'Mal'],
+  zBetrieb: ['Betrieb', 'İşletme'],
+  zBezahlt: ['Bezahlt', 'Ödendi'],
+  zBezahltHilfe: ['Schon geflossen.', 'Çoktan ödendi.'],
+  zCredit: ['Credit', 'Borç'],
+  zCreditHilfe: [
+    'Erfasst und noch offen – das schulden wir Bora oder uns selbst.',
+    'Kaydedildi ve hâlâ açık – Bora’ya veya kendimize borçluyuz.',
+  ],
+  zOhneBeleg: ['Ohne Beleg', 'Belgesiz'],
+  zOhneBelegHilfe: [
+    'Aus der Formel gerechnet, noch kein Posten erfasst – deshalb ohne Stand.',
+    'Formülle hesaplandı, henüz kalem girilmedi – bu yüzden durumu yok.',
+  ],
+
+  zFunnel: ['Funnel', 'Funnel'],
+  zFunnelSatz: [
+    '{n} Anfragen · {m} Netze, noch nicht zugesagt',
+    '{n} talep · {m} sineklik, henüz onaylanmadı',
+  ],
+
+  zAuftraegeIst: ['Aufträge – IST', 'Siparişler – GERÇEK'],
+  zJahrBisHeute: ['Jahr bis heute', 'Yıl başından bugüne'],
+  zTotal: ['Total', 'Toplam'],
+  zAbschnitt: ['Abschnitt', 'Dönem'],
+  zAbschnittJahr: ['{jahr} bis heute', '{jahr} başından bugüne'],
+  zAbschnittTotal: ['Total, alles bisher', 'Toplam, şimdiye kadar hepsi'],
+  zAuftraege: ['Aufträge', 'Siparişler'],
+  zErloes: ['Erlös', 'Gelir'],
+  zEinkassiert: ['einkassiert', 'tahsil edildi'],
+  zOffen: ['offen', 'açık'],
+  zWarenkosten: ['Warenkosten', 'Mal maliyeti'],
+  zBetriebskosten: ['Betriebskosten', 'İşletme giderleri'],
+  zErgebnis: ['Ergebnis', 'Sonuç'],
+  zKeineAuftraege: ['Noch keine festen Aufträge.', 'Henüz kesin sipariş yok.'],
+  zIstSatz: [
+    'Hier stehen alle festen Aufträge – ab dem Moment, in dem die Kundschaft zugesagt hat. Der Erlös zählt im Monat der Auslieferung, bei noch nicht Geliefertem im Monat der Zusage. Die drei Spalten danach sagen, wie weit jeder ist, und ergeben zusammen wieder den Erlös: einkassiert ist auf dem Konto, offen sind die Debitoren (geliefert, noch nicht bezahlt), in Arbeit ist zugesagt und noch nicht geliefert. Wo noch keine Kosten erfasst sind, rechnet die Formel – welche Aufträge das sind, steht weiter unten bei „Pro Auftrag“.',
+    'Burada tüm kesin siparişler var – müşterinin onay verdiği andan itibaren. Gelir teslim ayında sayılır, henüz teslim edilmemişse onay ayında. Sonraki üç sütun her birinin nerede olduğunu söyler ve toplamları yine geliri verir: tahsil edilen hesapta, açık olanlar alacaklar (teslim edildi, ödenmedi), işlemde olan onaylandı ama teslim edilmedi. Maliyet henüz girilmemişse formül hesaplar – hangi siparişler olduğu aşağıda „Sipariş başına“ bölümünde görülür.',
+  ],
+
+  zFunnelTitel: ['Funnel – Forecast', 'Funnel – Forecast'],
+  zStand: ['Stand', 'Durum'],
+  zAnfragen: ['Anfragen', 'Talepler'],
+  zErloesErwartet: ['Erlös erwartet', 'Beklenen gelir'],
+  zKostenErwartet: ['Kosten erwartet', 'Beklenen maliyet'],
+  zMargeErwartet: ['Marge erwartet', 'Beklenen marj'],
+  zZusammen: ['Zusammen', 'Toplam'],
+  zKeineAnfragen: ['Keine offenen Anfragen.', 'Açık talep yok.'],
+  zFunnelHinweis: [
+    'Alles vor der Zusage: von der frischen Anfrage bis zum Warten auf das Ja. Geordnet nach Nähe und nicht nach Monat – wann daraus etwas wird, und ob überhaupt, weiss heute niemand. Die Preise sind Vorschläge, die Kosten durchwegs aus der Formel gerechnet. Nichts davon ist Ertrag, und deshalb geht diese Tabelle nie in eine Summe mit den Aufträgen ein.',
+    'Onaydan önceki her şey: yeni talepten „evet“i beklemeye kadar. Aya göre değil, yakınlığa göre sıralı – ne zaman ve hiç olup olmayacağını bugün kimse bilmiyor. Fiyatlar öneri, maliyetler tamamen formülle hesaplanmış. Hiçbiri gelir değildir, bu yüzden bu tablo siparişlerle asla toplanmaz.',
+  ],
+
+  zProAuftrag: ['Pro Auftrag', 'Sipariş başına'],
+  zProAuftragSatz: [
+    'Diese Sicht rechnet, sie verwaltet nicht. Soll ein Auftrag nicht mitzählen, gehört er im Adminbereich abgesagt – dann fällt er hier von selbst heraus.',
+    'Bu görünüm hesaplar, yönetmez. Bir sipariş sayılmasın isteniyorsa yönetim bölümünde iptal edilir – o zaman burada kendiliğinden düşer.',
+  ],
+  zAuftrag: ['Auftrag', 'Sipariş'],
+  zKosten: ['Kosten', 'Maliyet'],
+  zMarge: ['Marge', 'Marj'],
+  zGeschaetzt: ['geschätzt', 'tahmini'],
+  zBearbeiten: ['bearbeiten', 'düzenle'],
+  zSchliessen: ['schliessen', 'kapat'],
+  zStandEinkassiert: ['einkassiert', 'tahsil edildi'],
+  zStandOffen: ['offen', 'açık'],
+  zStandErwartet: ['erwartet', 'bekleniyor'],
+  zStandNichtGerechnet: ['nicht gerechnet', 'hesaba katılmadı'],
+
+  zProSendung: ['Pro Sendung', 'Sevkiyat başına'],
+  zJeNetz: ['je Netz', 'sineklik başına'],
+
+  zSchuldetUns: ['Wer uns was schuldet', 'Bize kim ne borçlu'],
+  zSchuldenWir: ['Wem wir was schulden', 'Kime ne borçluyuz'],
+  zNichtsOffen: ['Nichts offen.', 'Açık bir şey yok.'],
+  zGeliefert: ['Geliefert', 'Teslim'],
+  zWer: ['Wer', 'Kim'],
+  zPosten: ['Posten', 'Kalem'],
+  zBetrag: ['Betrag', 'Tutar'],
+
+  zAbrechnung: [
+    'Abrechnung, wenn man heute abrechnen würde',
+    'Bugün hesaplaşılsa ne çıkardı',
+  ],
+  zEinkassiertWare: ['Einkassiert, aus der Ware', 'Tahsil edilen, maldan'],
+  zEinkassiertMontage: [
+    'Einkassiert, aus Montage und Anfahrt',
+    'Tahsil edilen, montaj ve yoldan',
+  ],
+  zWarenkostenDieser: ['Warenkosten dieser Aufträge', 'Bu siparişlerin mal maliyeti'],
+  zTopfWare: ['Topf Ware', 'Mal havuzu'],
+  zTopfMontage: ['Topf Montage und Anfahrt', 'Montaj ve yol havuzu'],
+  zNichtsZuVerteilen: [
+    'Noch nichts zu verteilen. Die Kosten sind grösser als das, was bisher eingegangen ist – ein Topf im Minus wird nicht ausgeschüttet.',
+    'Dağıtılacak bir şey yok. Maliyetler şimdiye kadar gelenden büyük – eksideki havuz dağıtılmaz.',
+  ],
+  zZuerstZurueck: [
+    'Zuerst gehen {betrag} an die zurück, die sie ausgelegt haben – siehe „Wem wir was schulden“.',
+    'Önce {betrag} tutarı, parayı yatıranlara geri gider – bkz. „Kime ne borçluyuz“.',
+  ],
+  zVerteilungSatz: [
+    'Verteilt wird nur, was wirklich eingegangen ist. Die Ware geht 20 / 40 / 40 an Bora, Ufuk und Deniz, Montage und Anfahrt zur Hälfte an Ufuk und Deniz. Kurs {kurs} CHF/EUR, Einfuhrsteuer {steuer} % auf dem Warenwert.',
+    'Yalnızca gerçekten gelen para dağıtılır. Mal 20 / 40 / 40 oranında Bora, Ufuk ve Deniz’e; montaj ve yol yarı yarıya Ufuk ve Deniz’e. Kur {kurs} CHF/EUR, ithalat vergisi mal değeri üzerinden %{steuer}.',
+  ],
+
+  /* --- Kosteneditor und Betriebskosten ------------------------------------ */
+  zPostenSpalte: ['Posten', 'Kalem'],
+  zAusgelegtVon: ['Ausgelegt von', 'Ödeyen'],
+  zZurueckbezahlt: ['Zurückbezahlt', 'Geri ödendi'],
+  zWofuer: ['Wofür?', 'Ne için?'],
+  zWeg: ['weg', 'sil'],
+  zWeitereKosten: ['Weitere Kosten', 'Başka maliyet'],
+  zKostenSpeichern: ['Kosten speichern', 'Maliyeti kaydet'],
+  zWirdGespeichert: ['Wird gespeichert …', 'Kaydediliyor …'],
+  zSpeichernSchiefgelaufen: [
+    'Das Speichern ging schief.',
+    'Kaydetme başarısız oldu.',
+  ],
+  zKostenZusammenzug: [
+    'Kosten {kosten} · Erlös {erloes} · Marge {marge}',
+    'Maliyet {kosten} · Gelir {erloes} · Marj {marge}',
+  ],
+  zHerstellung: ['Herstellung Netze', 'Sineklik üretimi'],
+  zLieferkosten: ['Lieferkosten', 'Nakliye'],
+  zEinfuhrsteuer: ['Einfuhrsteuer', 'İthalat vergisi'],
+
+  zBetriebskostenTitel: ['Betriebskosten', 'İşletme giderleri'],
+  zBetriebskostenSatz: [
+    '{n} Einträge, zusammen {summe} – davon {offen} noch nicht zurückbezahlt.',
+    '{n} kayıt, toplam {summe} – bunun {offen} tutarı henüz geri ödenmedi.',
+  ],
+  zDatum: ['Datum', 'Tarih'],
+  zKategorie: ['Kategorie', 'Kategori'],
+  zEintragen: ['Eintragen', 'Kaydet'],
+  zLoeschen: ['löschen', 'sil'],
+  zMarketing: ['Marketing', 'Pazarlama'],
+  zInfrastruktur: ['Infrastruktur', 'Altyapı'],
+  zMaterial: ['Material', 'Malzeme'],
+  zWerkzeug: ['Werkzeug', 'Alet'],
+  zFahrten: ['Fahrten', 'Yol'],
+  zSonstiges: ['Sonstiges', 'Diğer'],
+  zDatenFehler: [
+    'Die Daten liessen sich nicht laden.',
+    'Veriler yüklenemedi.',
+  ],
+  zAnmeldungFehler: ['Die Anmeldung ging schief.', 'Giriş başarısız oldu.'],
 } as const satisfies Record<string, Paar>
 
 export type AdminTexte = { [K in keyof typeof PAARE]: string }

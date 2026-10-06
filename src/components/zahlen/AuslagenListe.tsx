@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Auslage, AuslagenKategorie, Beteiligter } from '../../types'
 import { beteiligte } from '../../data/kostenConfig'
 import { formatChf } from '../../lib/format'
+import { fuelle, useSprache } from '../admin/sprache'
 
 /**
  * Die laufenden Betriebskosten: Werbung, Server, Material, Fahrten.
@@ -11,14 +12,8 @@ import { formatChf } from '../../lib/format'
  * zweimal belastet.
  */
 
-const KATEGORIEN: { wert: AuslagenKategorie; titel: string }[] = [
-  { wert: 'marketing', titel: 'Marketing' },
-  { wert: 'infrastruktur', titel: 'Infrastruktur' },
-  { wert: 'material', titel: 'Material' },
-  { wert: 'werkzeug', titel: 'Werkzeug' },
-  { wert: 'fahrten', titel: 'Fahrten' },
-  { wert: 'sonstiges', titel: 'Sonstiges' },
-]
+const KATEGORIEN: AuslagenKategorie[] =
+  ['marketing', 'infrastruktur', 'material', 'werkzeug', 'fahrten', 'sonstiges']
 
 const TRAEGER: Beteiligter[] = ['bora', 'ufuk', 'deniz']
 
@@ -32,6 +27,15 @@ interface Props {
 }
 
 export function AuslagenListe({ auslagen, onAnlegen, onAendern, onEntfernen }: Props) {
+  const { t } = useSprache()
+  const TITEL: Record<AuslagenKategorie, string> = {
+    marketing: t.zMarketing,
+    infrastruktur: t.zInfrastruktur,
+    material: t.zMaterial,
+    werkzeug: t.zWerkzeug,
+    fahrten: t.zFahrten,
+    sonstiges: t.zSonstiges,
+  }
   const [am, setAm] = useState(heute())
   const [bezeichnung, setBezeichnung] = useState('')
   const [kategorie, setKategorie] = useState<AuslagenKategorie>('material')
@@ -48,7 +52,7 @@ export function AuslagenListe({ auslagen, onAnlegen, onAendern, onEntfernen }: P
       setBezeichnung('')
       setBetrag('')
     } catch (f) {
-      setFehler(f instanceof Error ? f.message : 'Das Speichern ging schief.')
+      setFehler(f instanceof Error ? f.message : t.zSpeichernSchiefgelaufen)
     }
     setSendet(false)
   }
@@ -58,43 +62,44 @@ export function AuslagenListe({ auslagen, onAnlegen, onAendern, onEntfernen }: P
 
   return (
     <div className="zahlen__block">
-      <h2>Betriebskosten</h2>
+      <h2>{t.zBetriebskostenTitel}</h2>
       <p className="zahlen__hinweis">
-        {auslagen.length} Einträge, zusammen {formatChf(summe)} – davon {formatChf(offen)} noch
-        nicht zurückbezahlt.
+        {fuelle(t.zBetriebskostenSatz, {
+          n: auslagen.length, summe: formatChf(summe), offen: formatChf(offen),
+        })}
       </p>
 
       <form
         className="auslage__form"
         onSubmit={(e) => { e.preventDefault(); void anlegen() }}
       >
-        <input className="input" type="date" value={am} onChange={(e) => setAm(e.target.value)} aria-label="Datum" />
+        <input className="input" type="date" value={am} onChange={(e) => setAm(e.target.value)} aria-label={t.zDatum} />
         <input
           className="input auslage__text"
           value={bezeichnung}
-          placeholder="Wofür?"
-          aria-label="Bezeichnung"
+          placeholder={t.zWofuer}
+          aria-label={t.zWofuer}
           onChange={(e) => setBezeichnung(e.target.value)}
         />
-        <select className="input" value={kategorie} aria-label="Kategorie"
+        <select className="input" value={kategorie} aria-label={t.zKategorie}
           onChange={(e) => setKategorie(e.target.value as AuslagenKategorie)}>
-          {KATEGORIEN.map((k) => <option key={k.wert} value={k.wert}>{k.titel}</option>)}
+          {KATEGORIEN.map((k) => <option key={k} value={k}>{TITEL[k]}</option>)}
         </select>
         <input
           className="input auslage__betrag"
           type="number" step="0.05" min="0"
           value={betragChf}
           placeholder="CHF"
-          aria-label="Betrag"
+          aria-label={t.zBetrag}
           onChange={(e) => setBetrag(e.target.value)}
         />
-        <select className="input" value={traeger} aria-label="Ausgelegt von"
+        <select className="input" value={traeger} aria-label={t.zAusgelegtVon}
           onChange={(e) => setTraeger(e.target.value as Beteiligter)}>
           {TRAEGER.map((t) => <option key={t} value={t}>{beteiligte[t]}</option>)}
         </select>
         <button type="submit" className="btn btn--sm"
           disabled={sendet || !bezeichnung.trim() || !(Number(betragChf) > 0)}>
-          Eintragen
+          {t.zEintragen}
         </button>
       </form>
       {fehler && <p className="form-status form-status--error">{fehler}</p>}
@@ -103,24 +108,24 @@ export function AuslagenListe({ auslagen, onAnlegen, onAendern, onEntfernen }: P
         <table className="zahlen__tabelle">
           <thead>
             <tr>
-              <th>Datum</th>
-              <th>Wofür</th>
-              <th>Kategorie</th>
-              <th className="zahlen__zahl">Betrag</th>
-              <th>Ausgelegt von</th>
-              <th>Zurückbezahlt</th>
+              <th>{t.zDatum}</th>
+              <th>{t.zWofuer}</th>
+              <th>{t.zKategorie}</th>
+              <th className="zahlen__zahl">{t.zBetrag}</th>
+              <th>{t.zAusgelegtVon}</th>
+              <th>{t.zZurueckbezahlt}</th>
               <th />
             </tr>
           </thead>
           <tbody>
             {auslagen.map((a) => (
               <tr key={a.id}>
-                <td data-titel="Datum">{a.am}</td>
-                <td data-titel="Wofür">{a.bezeichnung}</td>
-                <td data-titel="Kategorie">{KATEGORIEN.find((k) => k.wert === a.kategorie)?.titel}</td>
-                <td data-titel="Betrag" className="zahlen__zahl">{formatChf(a.betragChf)}</td>
-                <td data-titel="Ausgelegt von">{beteiligte[a.traeger]}</td>
-                <td data-titel="Zurückbezahlt">
+                <td data-titel={t.zDatum}>{a.am}</td>
+                <td data-titel={t.zWofuer}>{a.bezeichnung}</td>
+                <td data-titel={t.zKategorie}>{TITEL[a.kategorie]}</td>
+                <td data-titel={t.zBetrag} className="zahlen__zahl">{formatChf(a.betragChf)}</td>
+                <td data-titel={t.zAusgelegtVon}>{beteiligte[a.traeger]}</td>
+                <td data-titel={t.zZurueckbezahlt}>
                   <input
                     type="checkbox"
                     checked={a.bezahlt === true}
@@ -130,7 +135,7 @@ export function AuslagenListe({ auslagen, onAnlegen, onAendern, onEntfernen }: P
                 <td>
                   <button type="button" className="btn btn--quiet btn--sm"
                     onClick={() => void onEntfernen(a.id)}>
-                    löschen
+                    {t.zLoeschen}
                   </button>
                 </td>
               </tr>

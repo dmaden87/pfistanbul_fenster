@@ -190,10 +190,26 @@ export function zahlenFuer(b: Bestellung): BestellZahlen {
 
 /* --- Perioden -------------------------------------------------------------- */
 
-export type Periode = 'monat' | 'quartal' | 'ytd'
+/**
+ * ZWEI ABSCHNITTE, NICHT FUENF.
+ *
+ * Monat und Quartal sind draussen, solange es ein paar Dutzend Auftraege
+ * sind: Eine Tabelle mit sechs Zeilen zu je einem oder zwei Auftraegen sagt
+ * weniger als eine Zeile mit allen. Die Gruppierung selbst steht weiter hier
+ * und ist geprueft – sie zurueckzuholen ist eine Zeile in dieser Liste und
+ * eine im Schalter der Oberflaeche.
+ */
+export type Periode = 'ytd' | 'total'
 
 export interface Abschnitt {
-  /** Schluessel zum Sortieren, z. B. "2026-03" oder "2026-Q1". */
+  /**
+   * Schluessel des Abschnitts: die Jahreszahl oder 'alles'.
+   *
+   * DIE BESCHRIFTUNG BAUT DIE OBERFLAECHE daraus, nicht diese Datei: Sie
+   * haengt an der gewaehlten Sprache, und die kennt die Rechnung nicht.
+   * `etikett` bleibt als deutsche Fassung stehen, damit die Tests etwas
+   * Lesbares vergleichen koennen.
+   */
   schluessel: string
   etikett: string
   /** Geliefert: verdienter Ertrag und die Kosten dazu. */
@@ -228,30 +244,18 @@ export interface Abschnitt {
   geschaetzt: boolean
 }
 
-function monatsSchluessel(iso: string): string {
-  return iso.slice(0, 7)
-}
-
-const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
-  'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
-
-function schluesselFuer(iso: string, periode: Periode): { schluessel: string; etikett: string } {
+function schluesselFuer(iso: string, periode: Periode): { schluessel: string; etikett: string } | null {
   const jahr = iso.slice(0, 4)
-  const monat = Number(iso.slice(5, 7))
-  if (periode === 'monat') {
-    return { schluessel: monatsSchluessel(iso), etikett: `${MONATE[monat - 1]} ${jahr}` }
-  }
-  if (periode === 'quartal') {
-    const q = Math.floor((monat - 1) / 3) + 1
-    return { schluessel: `${jahr}-Q${q}`, etikett: `${q}. Quartal ${jahr}` }
-  }
+  if (periode === 'total') return { schluessel: 'alles', etikett: 'Total, alles bisher' }
   /*
-   * "BIS HEUTE" NUR FUERS LAUFENDE JAHR. Bei mehreren Jahren in der Liste
-   * stuende sonst "2025 bis heute" - und das Jahr ist seit Silvester
-   * vollstaendig. Ein abgelaufenes Jahr heisst einfach so.
+   * YTD IST DAS LAUFENDE JAHR UND SONST NICHTS. Aelteres faellt hier heraus
+   * – es gehoert ins Total. Frueher kam je Jahr eine Zeile heraus, und die
+   * aelteste hiess dann "2025 bis heute": falsch, denn das Jahr ist seit
+   * Silvester vollstaendig.
    */
-  const heuer = new Date().getFullYear()
-  return { schluessel: jahr, etikett: Number(jahr) === heuer ? `${jahr} bis heute` : jahr }
+  const heuer = String(new Date().getFullYear())
+  if (jahr !== heuer) return null
+  return { schluessel: jahr, etikett: `${jahr} bis heute` }
 }
 
 /**
@@ -270,8 +274,10 @@ export function abschnitte(
   periode: Periode,
 ): Abschnitt[] {
   const karte = new Map<string, Abschnitt>()
-  const hole = (iso: string): Abschnitt => {
-    const { schluessel, etikett } = schluesselFuer(iso, periode)
+  const hole = (iso: string): Abschnitt | null => {
+    const treffer = schluesselFuer(iso, periode)
+    if (!treffer) return null
+    const { schluessel, etikett } = treffer
     let a = karte.get(schluessel)
     if (!a) {
       a = { schluessel, etikett, erloesChf: 0, kostenChf: 0, betriebskostenChf: 0,
@@ -286,6 +292,7 @@ export function abschnitte(
     if (!inRechnung(b)) continue
     const z = zahlenFuer(b)
     const a = hole(z.datum)
+    if (!a) continue
     /*
      * JEDER FESTE AUFTRAG ZAEHLT, ab der Zusage. Die drei Spalten darunter
      * sagen, wie weit er ist: einkassiert, geliefert und noch offen, oder
@@ -303,6 +310,7 @@ export function abschnitte(
 
   for (const l of auslagen) {
     const a = hole(l.am)
+    if (!a) continue
     a.betriebskostenChf = runde2(a.betriebskostenChf + l.betragChf)
   }
 
@@ -333,8 +341,20 @@ export interface Kennzahlen {
   betriebskostenChf: number
   /** Beides zusammen. */
   kostenChf: number
+  /** Davon schon bezahlt. */
+  bezahltKostenChf: number
   /** Davon noch zu bezahlen – die Kreditoren. */
   creditChf: number
+  /**
+   * Davon ohne Beleg: gerechnet aus der Formel oder aus alten Feldern
+   * uebernommen, also ohne Angabe, ob schon bezahlt.
+   *
+   * DIESE ZEILE MUSS DASTEHEN. Ohne sie ergaeben bezahlt und offen nicht
+   * den Gesamtbetrag, und niemand saehe warum – die Differenz waere ein
+   * Rechenfehler, der keiner ist. Mit ihr geht die Rechnung auf, und man
+   * sieht zugleich, wie viel noch zu erfassen ist.
+   */
+  ohneBelegChf: number
 
   /** Erloes minus alle Kosten. Die Rechnung, wie sie in der Tabelle steht. */
   betriebsergebnisChf: number
@@ -363,7 +383,7 @@ export interface Kennzahlen {
  */
 export function kennzahlen(bestellungen: Bestellung[], auslagen: Auslage[]): Kennzahlen {
   let erloesChf = 0, cashedChf = 0, debitChf = 0, inArbeitChf = 0, warenkostenChf = 0
-  let realErloesChf = 0, realWarenkostenChf = 0
+  let realErloesChf = 0, realWarenkostenChf = 0, erfassteWarenkostenChf = 0
   let funnelChf = 0, funnelAnzahl = 0, funnelNetze = 0, funnelKostenChf = 0, funnelMargeChf = 0
 
   /* Der Funnel steht vor der Zusage und wird getrennt gezaehlt. */
@@ -392,8 +412,13 @@ export function kennzahlen(bestellungen: Bestellung[], auslagen: Auslage[]): Ken
       debitChf = runde2(debitChf + z.erloesChf)
     }
 
-    /* Fuer die reale Rechnung zaehlt nur, was auch bezahlt ist. */
+    /*
+     * Fuer die reale Rechnung zaehlt nur, was auch bezahlt ist. Nebenbei
+     * faellt ab, wie viel ueberhaupt als Posten erfasst ist – der Rest der
+     * Warenkosten steht ohne Beleg da.
+     */
     for (const k of b.kosten ?? []) {
+      erfassteWarenkostenChf = runde2(erfassteWarenkostenChf + k.betragChf)
       if (k.bezahlt) realWarenkostenChf = runde2(realWarenkostenChf + k.betragChf)
     }
   }
@@ -408,6 +433,16 @@ export function kennzahlen(bestellungen: Bestellung[], auslagen: Auslage[]): Ken
   const kostenChf = runde2(warenkostenChf + betriebskostenChf)
   const betriebsergebnisChf = runde2(erloesChf - kostenChf)
 
+  /*
+   * Die drei Teile der Kosten ergeben zusammen wieder den Gesamtbetrag:
+   * bezahlt, offen, ohne Beleg. Der dritte wird NICHT als Rest gerechnet,
+   * sondern aus dem, was tatsaechlich erfasst ist – ein Rest verschluckt
+   * jeden Fehler, statt ihn zu zeigen. Dass die Summe aufgeht, prueft
+   * bau/pl-test.mjs.
+   */
+  const bezahltKostenChf = runde2(realWarenkostenChf + realBetriebskostenChf)
+  const ohneBelegChf = runde2(warenkostenChf - erfassteWarenkostenChf)
+
   return {
     erloesChf,
     cashedChf,
@@ -417,7 +452,9 @@ export function kennzahlen(bestellungen: Bestellung[], auslagen: Auslage[]): Ken
     warenkostenChf,
     betriebskostenChf,
     kostenChf,
+    bezahltKostenChf,
     creditChf,
+    ohneBelegChf,
     betriebsergebnisChf,
     rentabilitaet: erloesChf > 0 ? Math.round((betriebsergebnisChf / erloesChf) * 1000) / 10 : null,
     realErgebnisChf: runde2(realErloesChf - realWarenkostenChf - realBetriebskostenChf),

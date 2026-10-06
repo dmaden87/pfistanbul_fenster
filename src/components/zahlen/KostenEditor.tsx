@@ -4,6 +4,7 @@ import { beteiligte } from '../../data/kostenConfig'
 import { einfuhrsteuerChf, herstellungFuer } from '../../lib/kosten'
 import { formatChf } from '../../lib/format'
 import { zahlenFuer } from '../../lib/pl'
+import { fuelle, useSprache } from '../admin/sprache'
 
 /**
  * Die Kosten einer Bestellung erfassen.
@@ -16,11 +17,7 @@ import { zahlenFuer } from '../../lib/pl'
  * geschaetzt – und das soll man sehen koennen.
  */
 
-const ARTEN: { art: KostenArt; titel: string }[] = [
-  { art: 'herstellung', titel: 'Herstellung Netze' },
-  { art: 'lieferung', titel: 'Lieferkosten' },
-  { art: 'mwst', titel: 'Einfuhrsteuer' },
-]
+const ARTEN: KostenArt[] = ['herstellung', 'lieferung', 'mwst']
 
 const TRAEGER: Beteiligter[] = ['bora', 'ufuk', 'deniz']
 
@@ -35,6 +32,13 @@ function neueId(): string {
 }
 
 export function KostenEditor({ bestellung, onSpeichern, onSchliessen }: Props) {
+  const { t } = useSprache()
+  const TITEL: Record<KostenArt, string> = {
+    herstellung: t.zHerstellung,
+    lieferung: t.zLieferkosten,
+    mwst: t.zEinfuhrsteuer,
+    weiteres: t.zWeitereKosten,
+  }
   const geschaetzteHerstellung = herstellungFuer(bestellung.positionen)
   const vorhanden = bestellung.kosten ?? []
 
@@ -44,7 +48,7 @@ export function KostenEditor({ bestellung, onSpeichern, onSchliessen }: Props) {
    * niemand eine Zahl fuer gemessen haelt, die nur gerechnet ist.
    */
   const start: (KostenPosten & { neu?: boolean })[] = []
-  for (const { art } of ARTEN) {
+  for (const art of ARTEN) {
     const treffer = vorhanden.filter((k) => k.art === art)
     if (treffer.length > 0) { start.push(...treffer); continue }
     const betrag = art === 'herstellung' ? geschaetzteHerstellung
@@ -90,7 +94,7 @@ export function KostenEditor({ bestellung, onSpeichern, onSchliessen }: Props) {
         })))
       onSchliessen()
     } catch (f) {
-      setFehler(f instanceof Error ? f.message : 'Das Speichern ging schief.')
+      setFehler(f instanceof Error ? f.message : t.zSpeichernSchiefgelaufen)
       setSendet(false)
     }
   }
@@ -100,32 +104,32 @@ export function KostenEditor({ bestellung, onSpeichern, onSchliessen }: Props) {
       <table className="kosten__tabelle">
         <thead>
           <tr>
-            <th>Posten</th>
-            <th>Betrag</th>
-            <th>Ausgelegt von</th>
-            <th>Zurückbezahlt</th>
+            <th>{t.zPostenSpalte}</th>
+            <th>{t.zBetrag}</th>
+            <th>{t.zAusgelegtVon}</th>
+            <th>{t.zZurueckbezahlt}</th>
             <th />
           </tr>
         </thead>
         <tbody>
           {posten.map((k) => (
             <tr key={k.id}>
-              <td data-titel="Posten">
+              <td data-titel={t.zPostenSpalte}>
                 {k.art === 'weiteres' ? (
                   <input
                     className="input kosten__text"
                     value={k.bezeichnung ?? ''}
-                    placeholder="Wofür?"
+                    placeholder={t.zWofuer}
                     onChange={(e) => aendere(k.id, { bezeichnung: e.target.value })}
                   />
                 ) : (
                   <>
-                    {ARTEN.find((a) => a.art === k.art)?.titel}
-                    {k.neu && <span className="kosten__marke">geschätzt</span>}
+                    {TITEL[k.art]}
+                    {k.neu && <span className="kosten__marke">{t.zGeschaetzt}</span>}
                   </>
                 )}
               </td>
-              <td data-titel="Betrag">
+              <td data-titel={t.zBetrag}>
                 <input
                   className="input kosten__betrag"
                   type="number"
@@ -135,7 +139,7 @@ export function KostenEditor({ bestellung, onSpeichern, onSchliessen }: Props) {
                   onChange={(e) => aendere(k.id, { betragChf: Number(e.target.value) })}
                 />
               </td>
-              <td data-titel="Ausgelegt von">
+              <td data-titel={t.zAusgelegtVon}>
                 <select
                   className="input kosten__wer"
                   value={k.traeger}
@@ -144,7 +148,7 @@ export function KostenEditor({ bestellung, onSpeichern, onSchliessen }: Props) {
                   {TRAEGER.map((t) => <option key={t} value={t}>{beteiligte[t]}</option>)}
                 </select>
               </td>
-              <td data-titel="Zurückbezahlt">
+              <td data-titel={t.zZurueckbezahlt}>
                 <input
                   type="checkbox"
                   checked={k.bezahlt === true}
@@ -155,7 +159,7 @@ export function KostenEditor({ bestellung, onSpeichern, onSchliessen }: Props) {
                 {k.art === 'weiteres' && (
                   <button type="button" className="btn btn--quiet btn--sm"
                     onClick={() => setPosten((l) => l.filter((x) => x.id !== k.id))}>
-                    weg
+                    {t.zWeg}
                   </button>
                 )}
               </td>
@@ -168,11 +172,14 @@ export function KostenEditor({ bestellung, onSpeichern, onSchliessen }: Props) {
         <button type="button" className="btn btn--ghost btn--sm"
           onClick={() => setPosten((l) => [...l,
             { id: neueId(), art: 'weiteres', bezeichnung: '', betragChf: 0, traeger: 'deniz', erfasstAm: '' }])}>
-          Weitere Kosten
+          {t.zWeitereKosten}
         </button>
         <p className="kosten__summe">
-          Kosten {formatChf(summe)} · Erlös {formatChf(z.erloesChf)} ·{' '}
-          <strong>Marge {formatChf(z.erloesChf - summe)}</strong>
+          {fuelle(t.zKostenZusammenzug, {
+            kosten: formatChf(summe),
+            erloes: formatChf(z.erloesChf),
+            marge: formatChf(z.erloesChf - summe),
+          })}
         </p>
       </div>
 
@@ -180,10 +187,10 @@ export function KostenEditor({ bestellung, onSpeichern, onSchliessen }: Props) {
 
       <div className="kosten__knoepfe">
         <button type="button" className="btn btn--sm" disabled={sendet} onClick={speichern}>
-          {sendet ? 'Wird gespeichert …' : 'Kosten speichern'}
+          {sendet ? t.zWirdGespeichert : t.zKostenSpeichern}
         </button>
         <button type="button" className="btn btn--quiet btn--sm" onClick={onSchliessen}>
-          Abbrechen
+          {t.abbrechen}
         </button>
       </div>
     </div>

@@ -18,6 +18,7 @@ import { Bestellauftrag } from './Bestellauftrag'
 import { Offerte } from './Offerte'
 import { NeueBestellung } from './NeueBestellung'
 import { SprachRahmen } from './SprachRahmen'
+import { SprachSchalter } from './SprachSchalter'
 import { fuelle, useSprache } from './sprache'
 import './AdminPage.css'
 
@@ -122,7 +123,7 @@ function AdminMaske({ onBack, onOpenZahlen }: AdminPageProps) {
   const [offeneOfferte, setOffeneOfferte] = useState<string | null>(null)
   /* Nur das Archiv startet zugeklappt: Die Phasen sind die Arbeit. */
   const [zugeklappt, setZugeklappt] = useState<Abschnitt[]>(['archiv'])
-  const { sprache, setzeSprache, t } = useSprache()
+  const { t } = useSprache()
 
   const laden = useCallback(async () => {
     setFehler(null)
@@ -405,26 +406,10 @@ function AdminMaske({ onBack, onOpenZahlen }: AdminPageProps) {
             {/*
               Der Sprachschalter steht ganz vorn und nicht in einem Menue:
               Ufuk soll ihn beim ersten Blick finden, nicht suchen. Die Wahl
-              bleibt ueber Besuche hinweg gespeichert.
+              bleibt ueber Besuche hinweg gespeichert – und gilt auch fuer
+              den Bereich "Zahlen" nebenan.
             */}
-            <div className="admin__sprache" role="group" aria-label={t.sprache}>
-              <button
-                type="button"
-                className={sprache === 'deutsch' ? 'admin__sprache-knopf admin__sprache-knopf--an' : 'admin__sprache-knopf'}
-                aria-pressed={sprache === 'deutsch'}
-                onClick={() => setzeSprache('deutsch')}
-              >
-                DE
-              </button>
-              <button
-                type="button"
-                className={sprache === 'tuerkisch' ? 'admin__sprache-knopf admin__sprache-knopf--an' : 'admin__sprache-knopf'}
-                aria-pressed={sprache === 'tuerkisch'}
-                onClick={() => setzeSprache('tuerkisch')}
-              >
-                TR
-              </button>
-            </div>
+            <SprachSchalter />
             <button type="button" className="btn btn--ghost" onClick={onOpenZahlen}>
               {t.zahlen}
             </button>
