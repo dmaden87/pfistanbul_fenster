@@ -6,7 +6,7 @@ import { PreLaunchNotice } from './PreLaunchNotice'
 import { emptyCustomer, hasErrors, validateCustomLines, validateCustomer, type Errors } from '../../lib/validate'
 import { isDemoMode, makeReference, submitToOperator } from '../../lib/submitOrder'
 import { estimateCustomRequest } from '../../lib/estimate'
-import { preisHinweis } from '../../data/shopConfig'
+import { preisHinweis, richtpreisHinweis } from '../../data/shopConfig'
 import { formatChf, formatSize } from '../../lib/format'
 import './forms.css'
 
@@ -307,11 +307,21 @@ export function CustomRequestForm({ vorgabe }: CustomRequestFormProps = {}) {
               </ul>
             )}
 
+            {/*
+              DIE ZUSAGE ZUERST, DIE RECHNUNG DANACH. Hier stand die Methode
+              voran und die Zusage als letzter Nebensatz - wer nach der Zahl
+              zwei Zeilen Herleitung liest, hoert vor dem Teil auf, der ihm
+              die Entscheidung erleichtert.
+
+              Und die Herleitung stimmte nicht mehr: "Sockelbetrag plus
+              Gewebefläche" war der Stand, bevor der Rechner auf den Umfang
+              umgestellt wurde. Ein Satz ueber unsere Preise, der auf unserer
+              Seite steht und falsch ist, ist schlimmer als keiner.
+            */}
             <p className="estimate__note">
-              <strong>Das ist eine Schätzung, keine Offerte.</strong> Wir rechnen sie aus den Preisen unseres
-              ausgemessenen Sortiments hoch – Sockelbetrag pro Netz plus Gewebefläche, mit einem Zuschlag für
-              Unsicherheit. Den verbindlichen Preis nennen wir Ihnen, nachdem wir Ihre Masse angeschaut haben; er liegt
-              erfahrungsgemäss eher darunter. {preisHinweis}
+              <strong>Keine Offerte, sondern eine Schätzung.</strong>{' '}
+              {richtpreisHinweis} Hochgerechnet aus den Preisen unseres ausgemessenen Sortiments: ein Sockelbetrag
+              pro Netz plus ein Betrag pro Meter Rahmen. {preisHinweis}
             </p>
 
             {estimate.pendingCount > 0 && (

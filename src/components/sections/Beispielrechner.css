@@ -214,6 +214,17 @@
   line-height: 1;
 }
 
+/*
+ * Der Satz unter der Zahl steht ruhiger als die Flaechenangabe: Er ist
+ * laenger, und in derselben Farbe bekaeme er mehr Gewicht als der Preis.
+ */
+.rechner__richtpreis {
+  color: var(--text-muted);
+  font-size: var(--step--2);
+  max-width: 34ch;
+  text-wrap: pretty;
+}
+
 .rechner__flaeche,
 .rechner__fehler {
   color: var(--text-subtle);

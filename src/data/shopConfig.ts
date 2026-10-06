@@ -142,6 +142,34 @@ export const preisHinweis =
   `die Anfahrt im ${shopConfig.serviceArea} nichts – ausserhalb ${formatChf(shopConfig.anfahrtspauschaleChf)} pauschal. ` +
   `Das Ausmessen ist immer gratis.`
 
+/**
+ * WAS EIN RICHTPREIS VERSPRICHT - und warum wir es sagen duerfen.
+ *
+ * Der Rechner rundet auf, legt einen Zuschlag fuer die Unsicherheit darauf
+ * und haelt eine Mindestmarge ein (src/lib/estimate.ts). Alle drei schieben
+ * die Zahl nach OBEN. Darum liegt der feste Preis erfahrungsgemaess
+ * darunter, und darum koennen wir das hinschreiben, statt es zu hoffen: Der
+ * Spielraum fuer einen Nachlass steckt in der Marge, nicht in einem
+ * Versprechen auf gut Glueck.
+ *
+ * "Erfahrungsgemaess", nicht "immer": Wer die Masse anschaut, findet
+ * manchmal einen Grund dagegen - eine Fuehrung, die gebohrt werden muss,
+ * ein Mass, das nicht passt. Ein absolutes Versprechen waere eines, das wir
+ * irgendwann brechen.
+ *
+ * AN EINER STELLE, aus demselben Grund wie der Preishinweis oben: Dieser
+ * Satz steht an drei Orten auf der Seite, und drei Fassungen davon waeren
+ * irgendwann drei verschiedene Zusagen.
+ */
+export const richtpreisHinweis =
+  'Der angezeigte Betrag ist ein Richtpreis: aufgerundet und mit einem Zuschlag für die Unsicherheit. ' +
+  'Den festen Preis nennen wir in der Offerte, wenn wir Ihre Masse angeschaut haben – ' +
+  'er liegt erfahrungsgemäss darunter, nicht darüber.'
+
+/** Kurzform, wo neben der Zahl nur eine Zeile Platz hat. */
+export const richtpreisHinweisKurz =
+  'Richtpreis – der feste Preis liegt erfahrungsgemäss darunter.'
+
 /** Kurzform fuer Fusszeilen, wo kein ganzer Satz Platz hat. */
 export const preisHinweisKurz =
   `Montage ${formatChf(shopConfig.montageChf)} pro Netz · Anfahrt im ${shopConfig.serviceArea} gratis · Ausmessen gratis`

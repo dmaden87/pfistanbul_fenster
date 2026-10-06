@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { raumbeispiele } from '../../data/beispiele'
 import { estimateNetChf } from '../../lib/estimate'
 import { formatChf } from '../../lib/format'
-import { preisHinweis } from '../../data/shopConfig'
+import { preisHinweis, richtpreisHinweisKurz } from '../../data/shopConfig'
 import { MAX_CM, MIN_CM } from '../../lib/validate'
 import { PlisseeVisual } from './PlisseeVisual'
 import './Beispielrechner.css'
@@ -274,6 +274,14 @@ export function Beispielrechner({ onUebernehmen }: BeispielrechnerProps) {
                         soll. Die Zahl steht ohnehin als Richtpreis da.
                       */}
                       <p className="rechner__flaeche">{zahlen.flaecheM2.toFixed(2).replace('.', ',')} m²</p>
+                      {/*
+                        DIREKT UNTER DER ZAHL, nicht erst im Kleingedruckten
+                        unten. Wer die Zahl liest, entscheidet in dem Moment,
+                        ob sie ihm zu hoch ist - und genau dann gehoert hin,
+                        dass sie eher sinkt als steigt. Eine Seite weiter
+                        unten liest er es, wenn er schon weg ist.
+                      */}
+                      <p className="rechner__richtpreis">{richtpreisHinweisKurz}</p>
                     </>
                   )}
                   {/*
@@ -317,9 +325,16 @@ export function Beispielrechner({ onUebernehmen }: BeispielrechnerProps) {
 
       {/* Woraus sich der Preis zusammensetzt, steht in shopConfig und hier
           nicht im Wortlaut - siehe die Begruendung dort. */}
+      {/*
+        DIE ZUSAGE STEHT OBEN AN DER ZAHL, nicht noch einmal hier. Sie beide
+        auszuschreiben las sich wie eine Beteuerung: viermal "Richtpreis",
+        dreimal "Offerte" in einem Absatz. Hier bleibt, was dort keinen Platz
+        hat - woraus die Zahl entsteht.
+      */}
       <p className="rechner__hinweis">
-        Die Richtpreise entstehen aus denselben Zahlen wie unsere ausgemessenen Fenster. Den festen Preis nennen wir
-        in der Offerte, und erst die unterschreiben Sie. {preisHinweis}
+        Die Richtpreise entstehen aus denselben Zahlen wie unsere ausgemessenen Fenster – ein Sockelbetrag pro Netz
+        und ein Betrag pro Meter Rahmen, darum zählt bei uns der Umfang und nicht die Fläche. Den festen Preis nennen
+        wir in der Offerte, und erst die unterschreiben Sie. {preisHinweis}
       </p>
     </div>
   )

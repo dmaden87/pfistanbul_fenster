@@ -5,7 +5,7 @@ import { raumbeispiele } from '../src/data/beispiele.ts'
 import { estimateNetChf } from '../src/lib/estimate.ts'
 import { absolut, seiten, site, startseite, unterseiten } from '../src/data/site.ts'
 import { operator } from '../src/data/operator.ts'
-import { preisHinweis, preisHinweisKurz, shopConfig } from '../src/data/shopConfig.ts'
+import { preisHinweis, preisHinweisKurz, richtpreisHinweisKurz, shopConfig } from '../src/data/shopConfig.ts'
 
 const html = readFileSync('dist/index.html', 'utf8')
 const pruefungen = []
@@ -448,6 +448,25 @@ for (const satz of ['über unserem Erfahrungsbereich', 'Dort ist die Schätzung 
     .map(([pfad]) => pfad)
   pruefe(`kein Bauteil zeigt wieder "${satz}"`, treffer.length === 0, treffer.join(', '))
 }
+
+/*
+ * DIE ZUSAGE STEHT NEBEN DER ZAHL, nicht nur im Kleingedruckten.
+ *
+ * Wer einen Richtpreis liest, entscheidet in dem Moment, ob er ihm zu hoch
+ * ist. Dass der feste Preis erfahrungsgemaess darunter liegt, gehoert darum
+ * dorthin - und nicht einen Bildschirm weiter unten, wo es liest, wer schon
+ * geblieben ist. Beim naechsten Aufraeumen faellt so ein Satz leicht weg,
+ * weil er nach Fuellung aussieht; er ist aber das, was den Spielraum fuer
+ * einen Nachlass offenhaelt.
+ *
+ * Gesucht wird im ausgelieferten HTML der Startseite: Der Rechner steht
+ * vorgerendert darin, mit Zahl und Satz.
+ */
+pruefe(
+  'der Rechner sagt bei der Zahl, dass der feste Preis darunter liegt',
+  html.includes(richtpreisHinweisKurz),
+  richtpreisHinweisKurz,
+)
 
 /*
  * JEDE LISTE OHNE PUNKTE SAGT, WIE WEIT SIE EINRUECKT.
