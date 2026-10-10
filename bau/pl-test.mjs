@@ -694,6 +694,147 @@ pruefe('Eine leere Abrechnung ergibt lauter Nullen', () => {
   assert.equal(a.summe.bora, 0)
 })
 
+/* --- Die Montage als Schuld an uns selbst ----------------------------------- */
+
+pruefe('Montage und Anfahrt stehen bei Ufuk und Deniz offen, haelftig', () => {
+  /*
+   * WARUM ES DAS GIBT: In "Wem wir was schulden" standen Boras Auslagen -
+   * und nicht die eigene Arbeit. Das Geld fuer die Montage tauchte erst
+   * ganz am Schluss auf, als Anteil am Topf. Jetzt steht es dort, wo man es
+   * sucht.
+   */
+  const b = best({ status: 'ausliefern', ausgeliefertAm: '2026-03-01', montageChf: 30, anfahrtChf: 20 })
+  const liste = offeneSchulden([b], [])
+  const ufuk = liste.find((s) => s.traeger === 'ufuk')
+  const deniz = liste.find((s) => s.traeger === 'deniz')
+  const m = (s) => s.posten.filter((p) => p.art === 'montage')
+  assert.equal(m(ufuk).length, 1)
+  assert.equal(m(ufuk)[0].betragChf, 25, 'die Haelfte von 30 Montage plus 20 Anfahrt')
+  assert.equal(m(deniz)[0].betragChf, 25)
+})
+
+pruefe('Ohne Montage und ohne Anfahrt steht nichts da', () => {
+  const b = best({ status: 'ausliefern', ausgeliefertAm: '2026-03-01' })
+  const alle = offeneSchulden([b], []).flatMap((s) => s.posten)
+  assert.equal(alle.filter((p) => p.art === 'montage').length, 0)
+})
+
+pruefe('Eine abgeschaltete Anfahrt zaehlt nicht, auch mit Betrag', () => {
+  const b = best({ status: 'ausliefern', ausgeliefertAm: '2026-03-01',
+    montageChf: 30, anfahrt: false, anfahrtChf: 20 })
+  const ufuk = offeneSchulden([b], []).find((s) => s.traeger === 'ufuk')
+  assert.equal(ufuk.posten.find((p) => p.art === 'montage').betragChf, 15, 'nur die Montage')
+})
+
+pruefe('Die Montage ist KEINE Koste des Auftrags', () => {
+  /*
+   * DER KERN DER SACHE. Wer sich selbst fuer die eigene Arbeit bezahlt, hat
+   * keine Ausgabe, sondern verteilt Erloes. Stuende die Montage in
+   * `kostenPosten`, saenke die Marge jedes Auftrags um genau den Betrag,
+   * den wir selbst verdienen - und die Netzkosten enthielten Montage.
+   */
+  const ohne = best({ status: 'ausliefern', ausgeliefertAm: '2026-03-01' })
+  const mit = best({ status: 'ausliefern', ausgeliefertAm: '2026-03-01', montageChf: 30, anfahrtChf: 20 })
+  assert.equal(zahlenFuer(mit).kostenChf, zahlenFuer(ohne).kostenChf, 'die Kosten sind dieselben')
+  assert.equal(warenkosten([mit]).summeChf, warenkosten([ohne]).summeChf)
+  assert.ok(kostenPosten(mit).every((k) => k.art !== 'montage'))
+})
+
+pruefe('Credit unter "Total Kosten" zaehlt die Montage nicht mit', () => {
+  /*
+   * Sonst gaeben bezahlt und offen zusammen mehr als die Gesamtkosten - die
+   * Kachel ginge nicht mehr auf, und niemand saehe warum.
+   */
+  const b = best({ status: 'ausliefern', ausgeliefertAm: '2026-03-01', montageChf: 30, anfahrtChf: 20 })
+  const k = kennzahlen([b], [])
+  assert.equal(runde(k.bezahltKostenChf + k.creditChf), k.kostenChf)
+})
+
+pruefe('Die Montage mindert den Montage-Topf, nicht den Waren-Topf', () => {
+  /*
+   * Sonst waere es so, als haette Bora unsere Montage bezahlt: Sein Anteil
+   * stiege, weil wir uns selbst auszahlen.
+   */
+  const montage = [
+    { bestellungId: 'b', postenId: 'm1', art: 'montage', betragChf: 25, traeger: 'ufuk' },
+    { bestellungId: 'b', postenId: 'm2', art: 'montage', betragChf: 25, traeger: 'deniz' },
+  ]
+  const a = abrechnungZahlen([einnahme('b', 200, 150, 50)], montage)
+  assert.equal(a.montagekostenChf, 50)
+  assert.equal(a.warenkostenChf, 0, 'die Ware bleibt unberuehrt')
+  assert.equal(a.warengewinnChf, 150)
+  assert.equal(a.montagegewinnChf, 0, 'der Montage-Topf ist aufgebraucht')
+  assert.equal(a.anteile.bora, 30, '20 Prozent der Ware, wie ohne Montage-Schuld')
+})
+
+pruefe('Mit und ohne Montage-Schuld bekommt jeder dasselbe', () => {
+  /*
+   * DIE PROBE AUF DEN UMBAU. Es sollte sich nur die Darstellung aendern:
+   * frueher kam das Montagegeld als Anteil am Topf, jetzt als Rueckzahlung.
+   * Unter dem Strich muss bei jedem dasselbe herauskommen.
+   */
+  const ohne = abrechnungZahlen([einnahme('b', 200, 150, 50)], [])
+  const mit = abrechnungZahlen([einnahme('b', 200, 150, 50)], [
+    { bestellungId: 'b', postenId: 'm1', art: 'montage', betragChf: 25, traeger: 'ufuk' },
+    { bestellungId: 'b', postenId: 'm2', art: 'montage', betragChf: 25, traeger: 'deniz' },
+  ])
+  for (const wer of ['bora', 'ufuk', 'deniz']) {
+    assert.equal(mit.summe[wer], ohne.summe[wer], wer)
+  }
+})
+
+pruefe('Eine abgerechnete Montage steht nicht noch einmal offen', () => {
+  const b = best({ id: 'b1', status: 'ausliefern', ausgeliefertAm: '2026-03-01', montageChf: 30 })
+  const fertig = {
+    erledigtAm: '2026-03-05',
+    auftraege: [],
+    posten: [{ bestellungId: 'b1', postenId: 'b1-montage-ufuk', art: 'montage', betragChf: 15, traeger: 'ufuk' }],
+  }
+  const liste = offeneSchulden([b], [], [fertig])
+  const alle = liste.flatMap((s) => s.posten).filter((p) => p.art === 'montage')
+  assert.deepEqual(alle.map((p) => p.postenId), ['b1-montage-deniz'], 'nur die noch offene Haelfte')
+})
+
+pruefe('Ein abgerechneter Auftrag schuldet keine Montage mehr', () => {
+  /*
+   * DER FEHLER, DEN DAS BILD GEZEIGT HAT. Bei einem Auftrag, dessen Erloes
+   * laengst verteilt war, stand die Montage weiter offen - sie waere ein
+   * zweites Mal ausbezahlt worden, und es gaebe nichts mehr, woraus.
+   *
+   * Ob das Montagegeld damals als Rueckzahlung oder als Anteil am
+   * Montage-Topf hinausging, spielt keine Rolle: Beides kommt auf dasselbe
+   * heraus, und beides ist weg.
+   */
+  const b = best({ id: 'b1', status: 'ausliefern', ausgeliefertAm: '2026-03-01',
+    bezahltAm: '2026-03-02', montageChf: 30 })
+  const offen = offeneSchulden([b], [], [])
+  assert.equal(offen.flatMap((s) => s.posten).filter((p) => p.art === 'montage').length, 2)
+
+  const fertig = { erledigtAm: '2026-03-05', auftraege: [{ bestellungId: 'b1' }], posten: [] }
+  const nachher = offeneSchulden([b], [], [fertig])
+  assert.equal(nachher.flatMap((s) => s.posten).filter((p) => p.art === 'montage').length, 0)
+})
+
+pruefe('Mehr hinaus als herein ist moeglich und laesst sich erkennen', () => {
+  /*
+   * DER FALL IST ECHT: Boras Netzkosten und die eigene Montage stehen offen,
+   * sobald ein Auftrag fest ist - auch wenn die Kundschaft noch nicht
+   * bezahlt hat. Wer sie dann abrechnet, schuettet Geld aus, das noch nicht
+   * da ist. Gesperrt wird es nicht (es kann gewollt sein, jemanden
+   * vorzustrecken), aber die Oberflaeche muss es sagen koennen - und dafuer
+   * muessen die Zahlen es hergeben.
+   */
+  const a = abrechnungZahlen([einnahme('b', 100, 100, 0)], [
+    { bestellungId: 'x', postenId: 'k', art: 'herstellung', betragChf: 40, traeger: 'bora' },
+    { bestellungId: 'y', postenId: 'm', art: 'montage', betragChf: 60, traeger: 'ufuk' },
+  ])
+  const hinaus = runde(a.rueckzahlungChf + a.verteilbarChf)
+  assert.equal(hinaus, 160, '100 Auslagen zurueck plus 60 aus dem Waren-Topf')
+  assert.ok(hinaus > a.erloesChf, 'mehr als hereingekommen ist')
+  assert.equal(a.montagegewinnChf, -60, 'der Montage-Topf steht im Minus')
+  assert.equal(runde(a.summe.bora + a.summe.ufuk + a.summe.deniz), hinaus)
+})
+
 /* --- Was sich abrechnen laesst --------------------------------------------- */
 
 pruefe('Nur bezahlte Auftraege stehen zum Abrechnen bereit', () => {

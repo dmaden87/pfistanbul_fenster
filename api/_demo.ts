@@ -576,6 +576,7 @@ export function demoAbrechnungen(): Record<string, unknown>[] {
       warenerloesChf: 150,
       montageerloesChf: 20,
       warenkostenChf: 45.13,
+      montagekostenChf: 0,
       betriebskostenChf: 95,
       rueckzahlungChf: 140.13,
       rueckzahlung: { bora: 42.8, ufuk: 95, deniz: 2.33 },

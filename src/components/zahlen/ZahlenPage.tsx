@@ -83,12 +83,13 @@ function ZahlenMaske({ onBack }: Props) {
    * Die festen Kostenarten heissen hier, nicht in src/lib/pl.ts: Dort stuende
    * deutscher Text, der auch in der tuerkischen Ansicht deutsch bliebe.
    */
-  const KOSTENTITEL: Record<KostenArt | 'auslage', string> = {
+  const KOSTENTITEL: Record<KostenArt | 'auslage' | 'montage', string> = {
     herstellung: t.zHerstellung,
     lieferung: t.zLieferkosten,
     mwst: t.zEinfuhrsteuer,
     weiteres: t.zWeitereKosten,
     auslage: t.zBetriebskosten,
+    montage: t.zMontageSchuld,
   }
 
   const laden = useCallback(async () => {
@@ -172,7 +173,7 @@ function ZahlenMaske({ onBack }: Props) {
   const k = kennzahlen(bestellungen, auslagen)
   const aussicht = forecast(bestellungen)
   const forderungen = offeneForderungen(bestellungen)
-  const schulden = offeneSchulden(bestellungen, auslagen)
+  const schulden = offeneSchulden(bestellungen, auslagen, abrechnungen)
   const netzkosten = warenkosten(bestellungen)
   const entwurf = abrechnungen.find((a) => !a.erledigtAm)
   const erledigte = abrechnungen.filter((a) => a.erledigtAm)
@@ -276,8 +277,15 @@ function ZahlenMaske({ onBack }: Props) {
           setAuslagen((l) => l.map((x) => (x.id === p.auslageId ? neu : x)))
           continue
         }
+        /*
+         * DIE MONTAGE-SCHULD WIRD NICHT GESCHRIEBEN. Sie hat keinen
+         * Kostenposten und soll keinen bekommen: Als `kosten` am Auftrag
+         * saenke sie die Marge um genau das, was wir selbst verdienen.
+         * Erledigt ist sie dadurch, dass sie in dieser Abrechnung steht -
+         * `offeneSchulden` sieht dort nach.
+         */
         const b = bestellungen.find((x) => x.id === p.bestellungId)
-        if (!b || p.art === 'auslage') continue
+        if (!b || p.art === 'auslage' || p.art === 'montage') continue
         const vorhanden = (b.kosten ?? []).some((k) => k.id === p.postenId)
         const kosten: KostenPosten[] = vorhanden
           ? (b.kosten ?? []).map((k) => (k.id === p.postenId ? { ...k, bezahlt: true } : k))
@@ -749,6 +757,7 @@ function ZahlenMaske({ onBack }: Props) {
           </div>
           <div>
             <h2>{t.zSchuldenWir}</h2>
+            <p className="zahlen__hinweis">{t.zMontageSchuldSatz}</p>
             {schulden.length === 0 ? <p className="zahlen__hinweis">{t.zNichtsOffen}</p> : (
               <div className="zahlen__rollen"><table className="zahlen__tabelle">
                 <thead>
@@ -770,7 +779,15 @@ function ZahlenMaske({ onBack }: Props) {
                         <tr key={p.postenId}>
                           <td data-titel={t.zPosten}>
                             {p.bezeichnung ?? KOSTENTITEL[p.art]}
-                            {!p.erfasst && <span className="kosten__marke">{t.zGerechnet}</span>}
+                            {/*
+                              KEINE MARKE AN DER MONTAGE. "nicht erfasst"
+                              heisst "da fehlt noch ein Beleg" - bei der
+                              Montage fehlt nichts: Sie ergibt sich aus dem
+                              Auftrag und soll nirgends eingetippt werden.
+                            */}
+                            {!p.erfasst && p.art !== 'montage' && (
+                              <span className="kosten__marke">{t.zGerechnet}</span>
+                            )}
                             <span className="zahlen__klein">
                               {p.kunde ? `${p.kunde} · ${p.am.slice(0, 10)}` : p.am.slice(0, 10)}
                             </span>

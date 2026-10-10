@@ -32,7 +32,7 @@ const TABELLE = demoModus ? TABELLE_ABRECHNUNGEN_DEMO : TABELLE_ABRECHNUNGEN
 const BETEILIGTE = ['bora', 'ufuk', 'deniz'] as const
 type Beteiligter = (typeof BETEILIGTE)[number]
 
-const ARTEN = ['herstellung', 'lieferung', 'mwst', 'weiteres', 'auslage'] as const
+const ARTEN = ['herstellung', 'lieferung', 'mwst', 'weiteres', 'auslage', 'montage'] as const
 type Art = (typeof ARTEN)[number]
 
 interface AbrechnungAuftrag {
@@ -69,6 +69,7 @@ interface Abrechnung {
   warenerloesChf: number
   montageerloesChf: number
   warenkostenChf: number
+  montagekostenChf: number
   betriebskostenChf: number
   rueckzahlungChf: number
   rueckzahlung: Betraege
@@ -171,6 +172,7 @@ function ausKoerper(k: Record<string, unknown>): Abrechnung | string {
     warenerloesChf: zahl(k.warenerloesChf),
     montageerloesChf: zahl(k.montageerloesChf),
     warenkostenChf: zahl(k.warenkostenChf),
+    montagekostenChf: zahl(k.montagekostenChf),
     betriebskostenChf: zahl(k.betriebskostenChf),
     rueckzahlungChf: zahl(k.rueckzahlungChf),
     rueckzahlung: betraege(k.rueckzahlung),

@@ -168,7 +168,8 @@ await pruefe('Die Beispiel-Abrechnung rechnet mit derselben Formel auf', async (
   for (const a of liste) {
     const gerechnet = abrechnungZahlen(a.auftraege, a.posten)
     for (const feld of ['erloesChf', 'warenerloesChf', 'montageerloesChf', 'warenkostenChf',
-      'betriebskostenChf', 'rueckzahlungChf', 'warengewinnChf', 'montagegewinnChf', 'verteilbarChf']) {
+      'montagekostenChf', 'betriebskostenChf', 'rueckzahlungChf', 'warengewinnChf',
+      'montagegewinnChf', 'verteilbarChf']) {
       assert.equal(a[feld], gerechnet[feld], `${a.nummer}: ${feld}`)
     }
     for (const wer of ['bora', 'ufuk', 'deniz']) {

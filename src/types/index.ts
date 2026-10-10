@@ -546,7 +546,7 @@ export interface AbrechnungPosten {
   auslageId?: string
   /** Die Kennung innerhalb des Auftrags – oder die der Auslage. */
   postenId: string
-  art: KostenArt | 'auslage'
+  art: KostenArt | 'auslage' | 'montage'
   /** Wie er auf dem Beleg heisst. Bei festen Arten leer; die Oberflaeche beschriftet sie. */
   bezeichnung?: string
   /** Zu welchem Kunden er gehoert, wo es einen gibt. */
@@ -589,6 +589,8 @@ export interface Abrechnung {
   warenerloesChf: number
   montageerloesChf: number
   warenkostenChf: number
+  /** Montage und Anfahrt, die an Ufuk und Deniz zurueckgehen. */
+  montagekostenChf: number
   betriebskostenChf: number
   rueckzahlungChf: number
   rueckzahlung: Record<Beteiligter, number>

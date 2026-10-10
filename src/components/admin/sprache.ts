@@ -627,6 +627,15 @@ const PAARE = {
   zRueckzahlung: ['Rückzahlung', 'Geri ödeme'],
   zAnteil: ['Anteil', 'Pay'],
   zZusammenSpalte: ['Zusammen', 'Toplam'],
+  zMontageSchuld: ['Montage und Anfahrt', 'Montaj ve yol'],
+  zUeberdeckung: [
+    'Achtung: Es gehen {fehlt} mehr hinaus, als hereingekommen ist. Es sind Posten gewählt, deren Aufträge noch nicht bezahlt sind – das Geld dafür ist noch nicht da.',
+    'Dikkat: Gelenden {fehlt} daha fazlası çıkıyor. Siparişleri henüz ödenmemiş kalemler seçili – o para daha gelmedi.',
+  ],
+  zMontageSchuldSatz: [
+    'Montage und Anfahrt sind eure Arbeit und werden hälftig geteilt. Sie stehen hier, weil sie euch zusteht – nicht weil sie etwas kostet.',
+    'Montaj ve yol sizin emeğiniz ve yarı yarıya paylaşılır. Burada görünür, çünkü size aittir – bir gider olduğu için değil.',
+  ],
   zEinnahmen: ['Eingegangen, noch nicht abgerechnet', 'Tahsil edildi, henüz hesaplaşılmadı'],
   zEinnahmenSatz: [
     'Aufträge, deren Geld da ist und die in keiner Abrechnung stehen. Hier wird ausgewählt, was verteilt werden soll.',

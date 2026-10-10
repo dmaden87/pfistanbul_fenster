@@ -509,8 +509,20 @@ export function kennzahlen(bestellungen: Bestellung[], auslagen: Auslage[]): Ken
   const realBetriebskostenChf = runde2(
     auslagen.filter((l) => l.bezahlt).reduce((s, l) => s + l.betragChf, 0))
 
+  /*
+   * CREDIT OHNE DIE MONTAGE. Diese Zahl steht unter "Total Kosten", und die
+   * Montage ist keine: Sie ist unsere eigene Arbeit, die aus dem Erloes
+   * bezahlt wird. Stuende sie hier, gaeben bezahlt und offen zusammen mehr
+   * als die Gesamtkosten - die Kachel ginge nicht mehr auf, und niemand
+   * saehe warum.
+   */
   const schulden = offeneSchulden(bestellungen, auslagen)
-  const creditChf = runde2(schulden.reduce((s, x) => s + x.betragChf, 0))
+  const creditChf = runde2(
+    schulden.reduce(
+      (s, x) => s + x.posten.filter((p) => p.art !== 'montage').reduce((m, p) => m + p.betragChf, 0),
+      0,
+    ),
+  )
 
   const kostenChf = runde2(warenkostenChf + betriebskostenChf)
   const betriebsergebnisChf = runde2(erloesChf - kostenChf)
@@ -684,7 +696,7 @@ export interface SchuldPosten {
    * Art abhakt, setzt sie alle zugleich auf bezahlt.
    */
   postenId: string
-  art: KostenArt | 'auslage'
+  art: KostenArt | 'auslage' | 'montage'
   /**
    * Der eigene Name des Postens, wo es einen gibt: bei "Weiteres" und bei
    * den Auslagen. Die festen Arten beschriftet die OBERFLAECHE aus `art` –
@@ -711,7 +723,36 @@ export interface Schuld {
  * Wem wir was schulden: alles, was jemand ausgelegt und noch nicht
  * zurueckbekommen hat – aus den Bestellungen und aus den Auslagen.
  */
-export function offeneSchulden(bestellungen: Bestellung[], auslagen: Auslage[]): Schuld[] {
+/**
+ * Die Kennungen aller Posten, die in einer Abrechnung stecken.
+ *
+ * FUER DIE MONTAGE-SCHULD. Bei den Kostenposten sagt `bezahlt`, dass sie
+ * erledigt sind - die Montage-Schuld hat aber keinen Datensatz, in den sich
+ * das schreiben liesse: Sie ergibt sich aus dem Auftrag. Erledigt ist sie
+ * deshalb genau dann, wenn sie in einer Abrechnung steht.
+ */
+export function abgerechnetePosten(abrechnungen: Abrechnung[]): Set<string> {
+  const raus = new Set<string>()
+  for (const a of abrechnungen) {
+    for (const p of a.posten) raus.add(`${p.bestellungId ?? p.auslageId ?? ''}:${p.postenId}`)
+  }
+  return raus
+}
+
+export function offeneSchulden(
+  bestellungen: Bestellung[],
+  auslagen: Auslage[],
+  abrechnungen: Abrechnung[] = [],
+): Schuld[] {
+  const schon = abgerechnetePosten(abrechnungen)
+  /*
+   * DIE MONTAGE HAENGT AM AUFTRAG, nicht nur an ihrem eigenen Posten. Wird
+   * der Erloes eines Auftrags verteilt, ist das Geld fuer seine Montage
+   * mitgegangen - ob als Rueckzahlung oder als Anteil am Montage-Topf,
+   * laeuft auf dasselbe hinaus. Stuende sie danach noch offen, waere sie ein
+   * zweites Mal faellig, und es gaebe nichts mehr, woraus.
+   */
+  const verteilteAuftraege = abgerechneteAuftraege(abrechnungen)
   const karte = new Map<Beteiligter, Schuld>()
   const hole = (t: Beteiligter): Schuld => {
     let s = karte.get(t)
@@ -720,6 +761,47 @@ export function offeneSchulden(bestellungen: Bestellung[], auslagen: Auslage[]):
   }
   for (const b of bestellungen) {
     if (!inRechnung(b)) continue
+
+    /*
+     * DIE MONTAGE IST AUCH EINE SCHULD - an uns selbst.
+     *
+     * Montage und Anfahrt sind die Arbeit von Ufuk und Deniz. Bisher tauchte
+     * das Geld dafuer erst ganz am Schluss auf, als Anteil am Montage-Topf;
+     * hier stand nichts. Wer die Liste las, sah Boras Auslagen und nicht die
+     * eigene Arbeit.
+     *
+     * HALBE / HALBE, wie der Schluessel es ohnehin sagt. Es gibt kein Feld
+     * "montiert von", also wird nichts erfunden: Es bleibt bei der Teilung,
+     * die schon immer galt, sie steht nur frueher da.
+     *
+     * UND SIE IST KEINE KOSTE. Wer sich selbst fuer die eigene Arbeit
+     * bezahlt, hat keine Ausgabe, sondern verteilt Erloes. Darum steht sie
+     * nicht in `kostenPosten` - sonst saenke die Marge jedes Auftrags um
+     * genau den Betrag, den wir selbst verdienen, und die Netzkosten
+     * enthielten ploetzlich Montage.
+     */
+    const montageSchuld = runde2(montageBetrag(b) + (b.anfahrt === false ? 0 : (b.anfahrtChf ?? 0)))
+    if (montageSchuld > 0 && !verteilteAuftraege.has(b.id)) {
+      for (const wer of ['ufuk', 'deniz'] as Beteiligter[]) {
+        const anteil = schluessel.montage[wer]
+        if (anteil <= 0) continue
+        const postenId = `${b.id}-montage-${wer}`
+        if (schon.has(`${b.id}:${postenId}`)) continue
+        const sm = hole(wer)
+        const betrag = runde2(montageSchuld * anteil)
+        sm.betragChf = runde2(sm.betragChf + betrag)
+        sm.posten.push({
+          bestellungId: b.id,
+          postenId,
+          art: 'montage',
+          kunde: b.kunde.name,
+          betragChf: betrag,
+          am: b.ausgeliefertAm ?? b.zusageAm ?? b.eingang,
+          erfasst: false,
+        })
+      }
+    }
+
     /*
      * NICHT ERFASSTE POSTEN ZAEHLEN MIT. Zuerst standen hier nur die von Hand
      * erfassten – und die Liste blieb leer, obwohl Bora die Netze und die
@@ -729,6 +811,7 @@ export function offeneSchulden(bestellungen: Bestellung[], auslagen: Auslage[]):
      */
     for (const k of kostenPosten(b)) {
       if (k.bezahlt) continue
+      if (schon.has(`${b.id}:${k.id}`)) continue
       const s = hole(k.traeger)
       s.betragChf = runde2(s.betragChf + k.betragChf)
       s.posten.push({
@@ -745,6 +828,7 @@ export function offeneSchulden(bestellungen: Bestellung[], auslagen: Auslage[]):
   }
   for (const l of auslagen) {
     if (l.bezahlt) continue
+    if (schon.has(`${l.id}:${l.id}`)) continue
     const s = hole(l.traeger)
     s.betragChf = runde2(s.betragChf + l.betragChf)
     s.posten.push({
@@ -825,6 +909,8 @@ export interface AbrechnungZahlen {
   warenerloesChf: number
   montageerloesChf: number
   warenkostenChf: number
+  /** Was fuer Montage und Anfahrt an Ufuk und Deniz zurueckgeht. */
+  montagekostenChf: number
   betriebskostenChf: number
   rueckzahlungChf: number
   rueckzahlung: Record<Beteiligter, number>
@@ -870,17 +956,24 @@ export function abrechnungZahlen(
 
   const rueckzahlung: Record<Beteiligter, number> = { bora: 0, ufuk: 0, deniz: 0 }
   let warenkostenChf = 0
+  let montagekostenChf = 0
   let betriebskostenChf = 0
   for (const p of posten) {
     rueckzahlung[p.traeger] = runde2(rueckzahlung[p.traeger] + p.betragChf)
     if (p.art === 'auslage') betriebskostenChf = runde2(betriebskostenChf + p.betragChf)
+    /*
+     * DIE MONTAGE GEHT VOM MONTAGE-TOPF AB, nicht vom Waren-Topf. Sonst
+     * waere es so, als haette Bora unsere Montage bezahlt: Sein Anteil
+     * stiege, weil wir uns selbst fuer unsere Arbeit auszahlen.
+     */
+    else if (p.art === 'montage') montagekostenChf = runde2(montagekostenChf + p.betragChf)
     else warenkostenChf = runde2(warenkostenChf + p.betragChf)
   }
-  const rueckzahlungChf = runde2(warenkostenChf + betriebskostenChf)
+  const rueckzahlungChf = runde2(warenkostenChf + montagekostenChf + betriebskostenChf)
 
   const aufWare = schluessel.betriebskosten === 'ware'
   const warengewinnChf = runde2(warenerloesChf - warenkostenChf - (aufWare ? betriebskostenChf : 0))
-  const montagegewinnChf = runde2(montageerloesChf - (aufWare ? 0 : betriebskostenChf))
+  const montagegewinnChf = runde2(montageerloesChf - montagekostenChf - (aufWare ? 0 : betriebskostenChf))
 
   const anteile: Record<Beteiligter, number> = { bora: 0, ufuk: 0, deniz: 0 }
   const summe: Record<Beteiligter, number> = { bora: 0, ufuk: 0, deniz: 0 }
@@ -896,6 +989,7 @@ export function abrechnungZahlen(
     warenerloesChf,
     montageerloesChf,
     warenkostenChf,
+    montagekostenChf,
     betriebskostenChf,
     rueckzahlungChf,
     rueckzahlung,

@@ -539,3 +539,17 @@
     margin-left: 0;
   }
 }
+
+/*
+ * Der Satz ueber eine Abrechnung, die mehr ausschuettet als hereinkam. Kein
+ * Rot: Es ist kein Fehler, sondern eine Lage, die gewollt sein kann. Aber
+ * er muss sich vom uebrigen Kleingedruckten abheben, sonst liest ihn
+ * niemand.
+ */
+.zahlen__warnung {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  border-left: 3px solid var(--accent-ink);
+  background: var(--surface);
+  color: var(--text);
+}
