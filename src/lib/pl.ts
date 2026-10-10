@@ -260,11 +260,17 @@ export function kostenPosten(b: Bestellung): EffektiverPosten[] {
    * zum Ansatz je Netz anfaellt, gilt es nicht. Montieren kostet, auch wenn
    * es die eigenen Leute tun.
    *
-   * ZUM ANSATZ DES KUNDENPREISES: Was die Kundschaft fuer die Montage zahlt,
-   * geht als Aufwand an die, die montieren. Der Montage-Topf ist damit genau
-   * null - an der Verteilung aendert sich nichts, nur das Betriebsergebnis
-   * sinkt um die Montagesumme. Die Anfahrt zaehlt mit: Wer montiert, ist
-   * gefahren.
+   * DER BETRAG KOMMT AUS DEM ANGEBOT, nicht aus einer Pauschale. Die 15
+   * Franken je Netz in shopConfig sind die Vorbelegung des Formulars; im
+   * Angebot laesst sich der Betrag ueberschreiben - nachgelassen, erhoeht,
+   * geschenkt -, und was dort steht, ist der Aufwand. Wer stattdessen 15 mal
+   * die Netzzahl rechnete, bekaeme bei jedem Nachlass einen Montage-Topf,
+   * den es nicht gibt, und eine Marge, die nicht stimmt.
+   *
+   * Weil der Ansatz derselbe ist wie der Kundenpreis, ist der Montage-Topf
+   * genau null: An der Verteilung aendert sich nichts, nur das
+   * Betriebsergebnis sinkt um die Montagesumme. Die Anfahrt zaehlt mit: Wer
+   * montiert, ist gefahren.
    *
    * HALBE / HALBE, wie der Schluessel in kostenConfig.ts es sagt. Es gibt
    * kein Feld "montiert von", also wird nichts erfunden.

@@ -791,6 +791,37 @@ pruefe('Die Montage traegt, wer montiert: halbe / halbe', () => {
   assert.ok(m.every((k) => !k.geschaetzt), 'der Betrag steht im Auftrag, er ist nicht geraten')
 })
 
+pruefe('Der Montage-Aufwand kommt aus dem ANGEBOT, nicht aus einer Pauschale', () => {
+  /*
+   * DIE 15 JE NETZ SIND EINE VORBELEGUNG, kein Gesetz. Im Angebot laesst
+   * sich der Betrag ueberschreiben - nachgelassen, erhoeht, geschenkt - und
+   * was dort steht, ist der Aufwand. Wer stattdessen 15 mal die Netzzahl
+   * rechnete, bekaeme bei jedem Nachlass einen Montage-Topf, den es nicht
+   * gibt, und eine Marge, die nicht stimmt.
+   */
+  const auftrag = (montageChf, mehr = {}) => best({
+    status: 'ausliefern', ausgeliefertAm: '2026-03-01',
+    positionen: [netz(100, 200, 165, 2)], summeChf: 330,
+    montage: true, montageChf, ...mehr,
+  })
+  const summe = (b) => runde(kostenPosten(b).filter((k) => k.art === 'montage')
+    .reduce((s, k) => s + k.betragChf, 0))
+
+  assert.equal(summe(auftrag(30)), 30, 'zwei Netze zum Ansatz')
+  assert.equal(summe(auftrag(50)), 50, 'im Angebot erhoeht')
+  assert.equal(summe(auftrag(10)), 10, 'im Angebot nachgelassen')
+  assert.equal(summe(auftrag(0)), 0, 'geschenkt heisst kein Aufwand')
+  assert.equal(summe(auftrag(30, { anfahrt: true, anfahrtChf: 20 })), 50, 'die Anfahrt zaehlt mit')
+
+  /* Und die Gegenprobe: Mehr Netze allein aendern nichts. */
+  const vierNetze = best({
+    status: 'ausliefern', ausgeliefertAm: '2026-03-01',
+    positionen: [netz(100, 200, 165, 4)], summeChf: 690,
+    montage: true, montageChf: 30,
+  })
+  assert.equal(summe(vierNetze), 30, 'der Betrag steht im Auftrag, nicht in der Netzzahl')
+})
+
 pruefe('Bezahlt und offen ergeben weiter die Gesamtkosten', () => {
   /*
    * Eine Weile musste die Montage hier herausgerechnet werden, weil sie als
