@@ -9,7 +9,22 @@ import { standardTraeger, verteilung as schluessel } from '../data/kostenConfig'
 /**
  * Die Erfolgsrechnung: was hereinkommt, was hinausgeht, was bleibt.
  *
- * ZWEI GRUNDSAETZE, aus denen sich fast alles hier ergibt:
+ * DREI GRUNDSAETZE, aus denen sich fast alles hier ergibt:
+ *
+ * 0. ALLES STEHT AUS SICHT DER FIRMA PFISTANBUL, nie aus der einer Person.
+ *    "Wer uns was schuldet" heisst: der Firma. "Wem wir was schulden" auch -
+ *    und darum stehen dort Bora, Ufuk und Deniz nebeneinander, obwohl zwei
+ *    davon die Firma sind. Boras Netze sind eine Schuld an ihn; Ufuks und
+ *    Deniz' Montage ist eine Schuld an sie. Wer stattdessen aus Deniz' Sicht
+ *    schaut, sieht seine eigene Montage als Einnahme und Boras Netze als
+ *    Schuld, und nichts geht mehr auf.
+ *
+ *    DAVON UNBERUEHRT: Die Montage ist trotzdem kein AUFWAND. Die drei
+ *    teilen den Erloes, sie beziehen keinen Lohn - eine Auszahlung an sie
+ *    ist Gewinnverwendung, keine Ausgabe. Darum mindert die Montage den
+ *    Montage-Topf und nicht das Betriebsergebnis. Soll das einmal anders
+ *    sein, ist es eine bewusste Entscheidung und keine Kleinigkeit: Das
+ *    Betriebsergebnis saenke um die ganze Montagesumme.
  *
  * 1. GESCHAETZT UND GEMESSEN WERDEN NIE VERMISCHT. Wo kein Betrag erfasst
  *    ist, springt die Formel aus src/lib/kosten.ts ein – aber der Datensatz
