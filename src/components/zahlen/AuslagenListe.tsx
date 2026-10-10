@@ -75,14 +75,30 @@ export function AuslagenListe({ auslagen, netzkosten, onAnlegen, onAendern, onEn
             <td>{t.zHerstellung}</td>
             <td className="zahlen__zahl">{formatChf(netzkosten.herstellungChf)}</td>
           </tr>
-          <tr>
-            <td>{t.zLieferkosten}</td>
-            <td className="zahlen__zahl">{formatChf(netzkosten.lieferungChf)}</td>
-          </tr>
-          <tr>
-            <td>{t.zEinfuhrsteuer}</td>
-            <td className="zahlen__zahl">{formatChf(netzkosten.mwstChf)}</td>
-          </tr>
+          {/*
+            KARGO ZUERST, die Einzelzeilen nur noch, wo es sie gibt. Neue
+            Auftraege tragen Fracht und Steuer zusammen, wie Bora sie
+            stellt; alte Datensaetze haben sie getrennt erfasst und behalten
+            ihre Zeilen.
+          */}
+          {netzkosten.kargoChf > 0 && (
+            <tr>
+              <td>{t.zKargoMwst}</td>
+              <td className="zahlen__zahl">{formatChf(netzkosten.kargoChf)}</td>
+            </tr>
+          )}
+          {netzkosten.lieferungChf > 0 && (
+            <tr>
+              <td>{t.zLieferkosten}</td>
+              <td className="zahlen__zahl">{formatChf(netzkosten.lieferungChf)}</td>
+            </tr>
+          )}
+          {netzkosten.mwstChf > 0 && (
+            <tr>
+              <td>{t.zEinfuhrsteuer}</td>
+              <td className="zahlen__zahl">{formatChf(netzkosten.mwstChf)}</td>
+            </tr>
+          )}
           {netzkosten.weitereChf > 0 && (
             <tr>
               <td>{t.zWeitereKosten}</td>

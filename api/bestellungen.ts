@@ -212,7 +212,8 @@ interface Bestellung {
   ausserRechnung?: boolean
 }
 
-export type KostenArt = 'herstellung' | 'lieferung' | 'mwst' | 'weiteres'
+/* 'kargo' fasst Fracht und Einfuhrsteuer zusammen - siehe src/types. */
+export type KostenArt = 'herstellung' | 'lieferung' | 'mwst' | 'kargo' | 'weiteres'
 export type Beteiligter = 'bora' | 'ufuk' | 'deniz'
 
 export interface KostenPosten {
@@ -252,7 +253,7 @@ function text(wert: unknown, max: number): string {
  * ist von einem TypeScript-Typ nichts mehr uebrig, und was aus dem Browser
  * kommt, muss gegen etwas geprueft werden, das es noch gibt.
  */
-const KOSTEN_ARTEN: ReadonlyArray<KostenArt> = ['herstellung', 'lieferung', 'mwst', 'weiteres']
+const KOSTEN_ARTEN: ReadonlyArray<KostenArt> = ['herstellung', 'lieferung', 'mwst', 'kargo', 'weiteres']
 const BETEILIGTE: ReadonlyArray<Beteiligter> = ['bora', 'ufuk', 'deniz']
 
 function zahl(wert: unknown): number {

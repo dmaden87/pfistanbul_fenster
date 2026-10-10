@@ -66,3 +66,16 @@ export function herstellungFuer(positionen: BestellPosition[]): number {
 export function einfuhrsteuerChf(warenwertChf: number): number {
   return runde2(warenwertChf * kostenConfig.einfuhrsteuer)
 }
+
+/**
+ * Die Fracht fuer eine Anzahl Netze, in Franken.
+ *
+ * NACH STUECK, NICHT NACH GROESSE. Die Fracht faellt je Sendung an; was ein
+ * einzelnes Netz daran traegt, laesst sich nur verteilen. Die Pauschale in
+ * src/data/kostenConfig.ts ist der gemessene Schnitt einer echten Sendung
+ * ueber verschiedene Groessen.
+ */
+export function frachtChf(netzZahl: number): number {
+  if (!(netzZahl > 0)) return 0
+  return runde2(netzZahl * kostenConfig.frachtProNetzChf)
+}

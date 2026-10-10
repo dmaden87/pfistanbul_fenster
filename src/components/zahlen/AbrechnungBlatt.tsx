@@ -29,6 +29,7 @@ export function AbrechnungBlatt({ abrechnung: a, t }: Props) {
     herstellung: t.zHerstellung,
     lieferung: t.zLieferkosten,
     mwst: t.zEinfuhrsteuer,
+    kargo: t.zKargoMwst,
     weiteres: t.zWeitereKosten,
     auslage: t.zBetriebskosten,
     montage: t.zMontageSchuld,

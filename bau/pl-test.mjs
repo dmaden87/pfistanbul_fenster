@@ -179,9 +179,42 @@ pruefe('ein einziger fehlender Einkaufspreis macht die ganze Bestellung zur Scha
   assert.equal(z.geschaetzt, true)
 })
 
-pruefe('Lieferkosten werden NIE geschaetzt', () => {
-  const z = zahlenFuer(best({ positionen: [netz(128, 96, 150)] }))
-  assert.equal(z.lieferungChf, 0, 'lieber eine Null als eine erfundene Fracht')
+pruefe('Kargo und MWST stehen zusammen und werden gerechnet', () => {
+  /*
+   * HIER STAND DAS GEGENTEIL: "Lieferkosten werden NIE geschaetzt - lieber
+   * eine Null als eine erfundene Fracht." Das war richtig, solange es keine
+   * Zahl gab. Jetzt gibt es eine aus einer echten Sendung, und eine Null ist
+   * nicht ehrlicher als eine Pauschale, die als solche gekennzeichnet ist:
+   * Sie liess Boras groessten Posten nach der Ware ganz verschwinden.
+   *
+   * Zusammengefasst, weil Bora es so in Rechnung stellt - Fracht und
+   * Einfuhrsteuer fallen mit derselben Sendung an und stehen auf seinem
+   * Beleg nicht getrennt.
+   */
+  const b = best({ positionen: [netz(128, 96, 150)] })
+  const kargo = kostenPosten(b).filter((k) => k.art === 'kargo')
+  assert.equal(kargo.length, 1, 'genau ein Posten, nicht zwei')
+  const ware = herstellungChf(128, 96)
+  assert.equal(kargo[0].betragChf, runde(12 + runde(ware * 0.081)), '12 Fracht je Netz plus die Steuer')
+  assert.equal(kargo[0].traeger, 'bora', 'die Fracht traegt immer Bora')
+  assert.equal(kargo[0].geschaetzt, true, 'eine Pauschale sagt, dass sie eine ist')
+
+  /* Und die Summe geht trotzdem in beide Zeilen auf. */
+  const z = zahlenFuer(b)
+  assert.equal(runde(z.lieferungChf + z.mwstChf), kargo[0].betragChf)
+  assert.ok(z.lieferungChf > 0, 'die Fracht steckt jetzt drin')
+})
+
+pruefe('Erfasste Fracht schlaegt die Pauschale, und bleibt einzeln', () => {
+  /*
+   * ZUSAMMENGEFASST WIRD NUR, WO NICHTS ERFASST IST. Wer eine echte Rechnung
+   * eintraegt, soll sie wiederfinden - nicht in einer Pauschale aufgehen
+   * sehen.
+   */
+  const b = best({ kosten: [{ id: 'k', art: 'lieferung', betragChf: 18, traeger: 'bora', erfasstAm: 'x' }] })
+  const arten = kostenPosten(b).map((k) => k.art)
+  assert.ok(!arten.includes('kargo'), 'keine Pauschale daneben')
+  assert.equal(zahlenFuer(b).lieferungChf, 18)
 })
 
 pruefe('die alten Felder lieferkostenChf und zollChf werden weiter gelesen', () => {
@@ -302,9 +335,12 @@ pruefe('Betriebskosten mindern das Ergebnis, nicht die Warenkosten', () => {
   const [a] = abschnitte([best({ ausgeliefertAm: '2026-01-10T00:00:00.000Z',
     kosten: [{ id: 'k', art: 'herstellung', betragChf: 30, traeger: 'bora', erfasstAm: 'x' }] })],
     [auslage({ am: '2026-01-20', betragChf: 40 })], 'total')
-  assert.equal(a.kostenChf, 30 + 0 + 2.43, 'Herstellung plus gerechnete Einfuhrsteuer')
+  /* Herstellung erfasst, dazu die Kargo-Pauschale: 12 Fracht fuer ein Netz
+     plus 8.1 Prozent Einfuhrsteuer auf die erfassten 30. */
+  const kargo = runde(12 + runde(30 * 0.081))
+  assert.equal(a.kostenChf, runde(30 + kargo), 'Herstellung plus Kargo und MWST')
   assert.equal(a.betriebskostenChf, 40)
-  assert.equal(a.ergebnisChf, 150 - 32.43 - 40)
+  assert.equal(a.ergebnisChf, runde(150 - 30 - kargo - 40))
 })
 
 /* --- Die Kennzahlen oben --------------------------------------------------- */

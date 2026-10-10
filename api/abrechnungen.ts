@@ -32,7 +32,7 @@ const TABELLE = demoModus ? TABELLE_ABRECHNUNGEN_DEMO : TABELLE_ABRECHNUNGEN
 const BETEILIGTE = ['bora', 'ufuk', 'deniz'] as const
 type Beteiligter = (typeof BETEILIGTE)[number]
 
-const ARTEN = ['herstellung', 'lieferung', 'mwst', 'weiteres', 'auslage', 'montage'] as const
+const ARTEN = ['herstellung', 'lieferung', 'mwst', 'kargo', 'weiteres', 'auslage', 'montage'] as const
 type Art = (typeof ARTEN)[number]
 
 interface AbrechnungAuftrag {

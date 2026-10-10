@@ -2,7 +2,7 @@ import type {
   Abrechnung, AbrechnungAuftrag, AbrechnungPosten,
   Auslage, Beteiligter, Bestellung, KostenArt, KostenPosten,
 } from '../types'
-import { einfuhrsteuerChf, herstellungFuer } from './kosten'
+import { einfuhrsteuerChf, frachtChf, herstellungFuer } from './kosten'
 import { montageBetrag } from '../components/admin/hilfen'
 import { standardTraeger, verteilung as schluessel } from '../data/kostenConfig'
 
@@ -202,23 +202,51 @@ export function kostenPosten(b: Bestellung): EffektiverPosten[] {
     }
   }
 
-  /* Lieferung wird NICHT gerechnet – nur was erfasst oder alt vermerkt ist. */
+  /*
+   * KARGO UND MWST GEHOEREN ZUSAMMEN, und zwar so, wie Bora sie in Rechnung
+   * stellt: Fracht und Einfuhrsteuer fallen mit derselben Sendung an, beides
+   * legt er aus, und auf seinem Beleg stehen sie nicht getrennt.
+   *
+   * HIER STAND, LIEFERUNG WERDE NIE GERECHNET - "lieber eine Null als eine
+   * erfundene Fracht". Das war richtig, solange es keine Zahl gab. Jetzt
+   * gibt es eine: rund 12 Franken je Netz aus einer echten Sendung. Eine
+   * Null ist nicht ehrlicher als eine Pauschale, die als solche
+   * gekennzeichnet ist - sie liess Boras groessten Posten nach der Ware ganz
+   * verschwinden und die Marge um acht Punkte besser aussehen.
+   *
+   * ZUSAMMENGEFASST WIRD NUR, WENN NICHTS ERFASST IST. Wo jemand Fracht oder
+   * Zoll einzeln eingetragen hat - heute oder in einem alten Datensatz -,
+   * bleibt es einzeln. Geloescht wird nie etwas.
+   */
   const lieferung = vorhanden('lieferung')
-  if (lieferung.length > 0) lieferung.forEach(uebernehmen)
-  else if ((b.lieferkostenChf ?? 0) > 0) {
-    raus.push({ id: `${b.id}-lieferung`, art: 'lieferung', betragChf: b.lieferkostenChf as number,
-      traeger: standardTraeger.lieferung, bezahlt: false, erfasst: false, geschaetzt: false })
-  }
-
-  /* Einfuhrsteuer: erfasst, sonst der alte Zollbetrag, sonst auf die Ware gerechnet. */
   const mwst = vorhanden('mwst')
-  if (mwst.length > 0) mwst.forEach(uebernehmen)
-  else {
-    const betrag = b.zollChf ?? einfuhrsteuerChf(herstellungChf)
+  const kargo = vorhanden('kargo')
+  const altVermerkt = (b.lieferkostenChf ?? 0) > 0 || b.zollChf !== undefined
+  const einzeln = lieferung.length > 0 || mwst.length > 0 || altVermerkt
+
+  if (kargo.length > 0) kargo.forEach(uebernehmen)
+  else if (einzeln) {
+    /* Der alte Weg, Stueck fuer Stueck - unveraendert. */
+    if (lieferung.length > 0) lieferung.forEach(uebernehmen)
+    else if ((b.lieferkostenChf ?? 0) > 0) {
+      raus.push({ id: `${b.id}-lieferung`, art: 'lieferung', betragChf: b.lieferkostenChf as number,
+        traeger: standardTraeger.lieferung, bezahlt: false, erfasst: false, geschaetzt: false })
+    }
+    if (mwst.length > 0) mwst.forEach(uebernehmen)
+    else {
+      const betrag = b.zollChf ?? einfuhrsteuerChf(herstellungChf)
+      if (betrag > 0) {
+        raus.push({ id: `${b.id}-mwst`, art: 'mwst', betragChf: betrag,
+          traeger: standardTraeger.mwst, bezahlt: false, erfasst: false,
+          geschaetzt: b.zollChf === undefined })
+      }
+    }
+  } else {
+    const netzZahl = b.positionen.reduce((n, p) => n + p.menge, 0)
+    const betrag = runde2(frachtChf(netzZahl) + einfuhrsteuerChf(herstellungChf))
     if (betrag > 0) {
-      raus.push({ id: `${b.id}-mwst`, art: 'mwst', betragChf: betrag,
-        traeger: standardTraeger.mwst, bezahlt: false, erfasst: false,
-        geschaetzt: b.zollChf === undefined })
+      raus.push({ id: `${b.id}-kargo`, art: 'kargo', betragChf: betrag,
+        traeger: standardTraeger.lieferung, bezahlt: false, erfasst: false, geschaetzt: true })
     }
   }
 
@@ -243,8 +271,20 @@ export function zahlenFuer(b: Bestellung): BestellZahlen {
     runde2(posten.filter((k) => k.art === art).reduce((s, k) => s + k.betragChf, 0))
 
   const herstellungChf = summeVon('herstellung')
-  const lieferungChf = summeVon('lieferung')
-  const mwstChf = summeVon('mwst')
+  /*
+   * KARGO ZAEHLT ZU BEIDEN, und darum wird es hier aufgeteilt statt
+   * verschwiegen: Der kombinierte Posten enthaelt Fracht UND Einfuhrsteuer.
+   * Stuende er nur in einer der beiden Zeilen, waere die andere falsch;
+   * stuende er in keiner, fehlten seine Franken in den Gesamtkosten - und
+   * genau das ist beim ersten Lauf passiert.
+   *
+   * Zerlegt wird nach derselben Formel, aus der er entsteht: die Steuer auf
+   * der Ware, der Rest ist Fracht.
+   */
+  const kargoChf = summeVon('kargo')
+  const kargoSteuer = kargoChf > 0 ? Math.min(kargoChf, einfuhrsteuerChf(herstellungChf)) : 0
+  const lieferungChf = runde2(summeVon('lieferung') + kargoChf - kargoSteuer)
+  const mwstChf = runde2(summeVon('mwst') + kargoSteuer)
   const weitereChf = summeVon('weiteres')
   const geschaetzt = posten.some((k) => k.geschaetzt)
 
@@ -582,6 +622,8 @@ export interface Warenkosten {
   herstellungChf: number
   lieferungChf: number
   mwstChf: number
+  /** Fracht und Einfuhrsteuer zusammen, wie Bora sie stellt. */
+  kargoChf: number
   weitereChf: number
   summeChf: number
   /** Davon noch nicht an den Traeger zurueckgeflossen. */
@@ -599,12 +641,18 @@ export interface Warenkosten {
  */
 export function warenkosten(bestellungen: Bestellung[]): Warenkosten {
   let auftraege = 0
-  let herstellungChf = 0, lieferungChf = 0, mwstChf = 0, weitereChf = 0, offenChf = 0
+  let herstellungChf = 0, lieferungChf = 0, mwstChf = 0, kargoChf = 0, weitereChf = 0, offenChf = 0
   for (const b of bestellungen) {
     if (!inRechnung(b)) continue
     auftraege += 1
     for (const k of kostenPosten(b)) {
       if (k.art === 'herstellung') herstellungChf = runde2(herstellungChf + k.betragChf)
+      /*
+       * Kargo steht als eigene Zeile, nicht aufgeteilt. Dieser Block
+       * beschriftet den Betriebskosten-Block, und dort soll stehen, was auf
+       * Boras Rechnung steht: Fracht und Steuer zusammen.
+       */
+      else if (k.art === 'kargo') kargoChf = runde2(kargoChf + k.betragChf)
       else if (k.art === 'lieferung') lieferungChf = runde2(lieferungChf + k.betragChf)
       else if (k.art === 'mwst') mwstChf = runde2(mwstChf + k.betragChf)
       else weitereChf = runde2(weitereChf + k.betragChf)
@@ -616,8 +664,9 @@ export function warenkosten(bestellungen: Bestellung[]): Warenkosten {
     herstellungChf,
     lieferungChf,
     mwstChf,
+    kargoChf,
     weitereChf,
-    summeChf: runde2(herstellungChf + lieferungChf + mwstChf + weitereChf),
+    summeChf: runde2(herstellungChf + lieferungChf + mwstChf + kargoChf + weitereChf),
     offenChf,
   }
 }

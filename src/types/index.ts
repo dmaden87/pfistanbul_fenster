@@ -467,7 +467,16 @@ export type Beteiligter = 'bora' | 'ufuk' | 'deniz'
  * Welche Art Kosten. Die ersten drei sind die festen Zeilen jeder
  * Bestellung, `weiteres` ist alles, was sonst noch anfaellt.
  */
-export type KostenArt = 'herstellung' | 'lieferung' | 'mwst' | 'weiteres'
+/**
+ * Die Arten eines Kostenpostens.
+ *
+ * `kargo` fasst Fracht UND Einfuhrsteuer eines Auftrags zusammen. Beides
+ * traegt immer Bora, beides faellt mit derselben Sendung an, und auf seiner
+ * Abrechnung steht es auch nicht getrennt. `lieferung` und `mwst` bleiben
+ * daneben bestehen: Was frueher einzeln erfasst wurde, bleibt einzeln -
+ * geloescht wird hier nichts.
+ */
+export type KostenArt = 'herstellung' | 'lieferung' | 'mwst' | 'kargo' | 'weiteres'
 
 /**
  * Ein Kostenposten – an einer Bestellung oder, als Auslage, ohne sie.

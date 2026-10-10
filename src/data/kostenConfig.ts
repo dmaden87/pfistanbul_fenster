@@ -80,6 +80,24 @@ export const kostenConfig = {
    * Montage.
    */
   einfuhrsteuer: 0.081,
+
+  /**
+   * Fracht je Netz in Franken.
+   *
+   * EINE PAUSCHALE, UND SIE IST EINE. Deniz' Angabe aus der laufenden
+   * Sendung: rund 12 Franken je Netz im Schnitt ueber verschiedene
+   * Groessen. Ein grosses Paket kostet mehr, ein kleines weniger - weil die
+   * Fracht je SENDUNG anfaellt und nicht je Netz, laesst sich der Anteil
+   * eines einzelnen Netzes ohnehin nur verteilen, nicht messen.
+   *
+   * Was dieser Wert bewegt: Mit ihm stehen Boras Frachtkosten in der Liste
+   * "Wem wir was schulden" und in der Marge. Ohne ihn fehlten sie ganz, und
+   * die Marge sah um rund acht Prozentpunkte besser aus, als sie ist.
+   *
+   * Kommt eine Rechnung mit dem echten Betrag, wird er am Auftrag erfasst
+   * und schlaegt diese Pauschale - wie ueberall sonst auch.
+   */
+  frachtProNetzChf: 12,
 } as const
 
 export const beteiligte: Record<Beteiligter, string> = {

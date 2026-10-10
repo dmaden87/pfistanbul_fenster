@@ -600,6 +600,12 @@ const PAARE = {
   zHerstellung: ['Herstellung Netze', 'Sineklik üretimi'],
   zLieferkosten: ['Lieferkosten', 'Nakliye'],
   zEinfuhrsteuer: ['Einfuhrsteuer', 'İthalat vergisi'],
+  /*
+   * "Kargo" ist das Wort, das auf Boras Rechnung steht - auf Tuerkisch wie
+   * auf Deutsch. Fracht und Einfuhrsteuer stehen dort zusammen, und darum
+   * stehen sie hier auch zusammen.
+   */
+  zKargoMwst: ['Kargo & MWST', 'Kargo & KDV'],
 
   zBetriebskostenTitel: ['Betriebskosten', 'İşletme giderleri'],
   zNetzkosten: ['Netzkosten aus den festen Aufträgen', 'Kesin siparişlerin sineklik maliyeti'],
