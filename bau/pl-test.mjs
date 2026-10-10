@@ -12,6 +12,7 @@ import {
   kostenPosten, warenkosten, offeneForderungen, offeneSchulden,
   abrechnungZahlen, offeneEinnahmen, naechsteAbrechnungsnummer,
   abrechnungEntwurf, postenSchluessel, postenSummeFuer,
+  ausgeglicheneSchulden, abrechnungJePosten,
 } from '../src/lib/pl.ts'
 import { herstellungChf } from '../src/lib/kosten.ts'
 
@@ -968,6 +969,60 @@ pruefe('Was nicht fest ist, laesst sich auch bezahlt nicht abrechnen', () => {
   // Eine Anzahlung auf eine Offerte ist kein Erloes.
   const b = best({ status: 'offerte', bezahltAm: '2026-03-02' })
   assert.equal(offeneEinnahmen([b], []).length, 0)
+})
+
+/* --- Was als ausgeglichen gilt ---------------------------------------------- */
+
+pruefe('Beglichene Posten stehen in einer eigenen Liste, nicht im Nichts', () => {
+  /*
+   * KEINE EINBAHNSTRASSE. Ein bezahlt markierter Posten verschwindet aus
+   * "Wem wir was schulden" - richtig, solange die Markierung stimmt. Eine
+   * Weile hiess das Haekchen dort aber "ist zurueckbezahlt" und schrieb
+   * sofort, lange bevor es Abrechnungen gab. Wer damals nur schauen wollte,
+   * hat etwas als beglichen hinterlassen, das nie beglichen wurde.
+   */
+  const b = best({ id: 'b1', status: 'ausliefern', ausgeliefertAm: '2026-03-01', kosten: [
+    { id: 'k1', art: 'herstellung', betragChf: 60, traeger: 'bora', bezahlt: true, erfasstAm: 'x' },
+    { id: 'k2', art: 'kargo', betragChf: 15, traeger: 'bora', erfasstAm: 'x' },
+  ] })
+  const offen = offeneSchulden([b], []).flatMap((s) => s.posten).map((p) => p.postenId)
+  const quitt = ausgeglicheneSchulden([b], []).flatMap((s) => s.posten).map((p) => p.postenId)
+  assert.ok(!offen.includes('k1'), 'beglichen steht nicht mehr offen')
+  assert.ok(quitt.includes('k1'), 'aber es steht irgendwo')
+  assert.ok(!quitt.includes('k2'), 'und das Offene nicht doppelt')
+})
+
+pruefe('Beide Listen zusammen ergeben alle Kosten des Auftrags', () => {
+  /* Die Probe darauf, dass nichts zwischen die Stuehle faellt. */
+  const b = best({ id: 'b1', status: 'ausliefern', ausgeliefertAm: '2026-03-01', montageChf: 30, kosten: [
+    { id: 'k1', art: 'herstellung', betragChf: 60, traeger: 'bora', bezahlt: true, erfasstAm: 'x' },
+  ] })
+  const summe = (liste) => runde(liste.reduce((n, s) => n + s.betragChf, 0))
+  assert.equal(
+    runde(summe(offeneSchulden([b], [])) + summe(ausgeglicheneSchulden([b], []))),
+    zahlenFuer(b).kostenChf,
+  )
+})
+
+pruefe('Eine bezahlte Auslage steht auch dort', () => {
+  const l = auslage({ id: 'al1', betragChf: 95, traeger: 'ufuk', bezahlt: true })
+  const quitt = ausgeglicheneSchulden([], [l])
+  assert.equal(quitt.length, 1)
+  assert.equal(quitt[0].traeger, 'ufuk')
+  assert.equal(quitt[0].posten[0].auslageId, 'al1')
+})
+
+pruefe('Zu jedem Posten laesst sich sagen, in welcher Abrechnung er steckt', () => {
+  /*
+   * Damit die Oberflaeche ihn zulassen oder sperren kann: Was in einem Beleg
+   * steht, wird nicht wieder geoeffnet.
+   */
+  const a = { nummer: 'A-2026-01', auftraege: [], posten: [
+    { bestellungId: 'b1', postenId: 'k1', art: 'herstellung', betragChf: 60, traeger: 'bora' },
+  ] }
+  const karte = abrechnungJePosten([a])
+  assert.equal(karte.get('b1:k1'), 'A-2026-01')
+  assert.equal(karte.get('b1:k2'), undefined)
 })
 
 /* --- Abgerechnet wird pro Auftrag ------------------------------------------ */

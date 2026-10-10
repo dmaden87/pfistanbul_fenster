@@ -10,10 +10,11 @@ import {
 import { beteiligte, kostenConfig } from '../../data/kostenConfig'
 import { formatChf } from '../../lib/format'
 import {
-  abrechnungEntwurf, abrechnungZahlen, abschnitte, forecast, kennzahlen,
-  naechsteAbrechnungsnummer, offeneEinnahmen, offeneForderungen, offeneSchulden,
-  postenSchluessel, postenSummeFuer, warenkosten, zaehltPhase, zahlenFuer,
-  type Periode,
+  abrechnungEntwurf, abrechnungJePosten, abrechnungZahlen, abschnitte,
+  ausgeglicheneSchulden, forecast, kennzahlen, naechsteAbrechnungsnummer,
+  offeneEinnahmen, offeneForderungen, offeneSchulden, postenSchluessel,
+  postenSummeFuer, warenkosten, zaehltPhase, zahlenFuer,
+  type Periode, type SchuldPosten,
 } from '../../lib/pl'
 import { AbrechnungBlatt } from './AbrechnungBlatt'
 import { KostenEditor } from './KostenEditor'
@@ -78,6 +79,7 @@ function ZahlenMaske({ onBack }: Props) {
   const [gewaehlteAuftraege, setGewaehlteAuftraege] = useState<string[]>([])
   const [gewaehltePosten, setGewaehltePosten] = useState<string[]>([])
   const [offeneHistorie, setOffeneHistorie] = useState<string | null>(null)
+  const [zeigeAusgeglichen, setZeigeAusgeglichen] = useState(false)
 
   /*
    * Die festen Kostenarten heissen hier, nicht in src/lib/pl.ts: Dort stuende
@@ -179,6 +181,8 @@ function ZahlenMaske({ onBack }: Props) {
   const entwurf = abrechnungen.find((a) => !a.erledigtAm)
   const erledigte = abrechnungen.filter((a) => a.erledigtAm)
   const einnahmen = offeneEinnahmen(bestellungen, abrechnungen)
+  const ausgeglichen = ausgeglicheneSchulden(bestellungen, auslagen)
+  const inAbrechnung = abrechnungJePosten(abrechnungen)
 
   /* Sendungen: die Pakete, wie sie zu Bora gegangen sind. */
   const pakete = new Map<string, {
@@ -295,6 +299,28 @@ function ZahlenMaske({ onBack }: Props) {
       setFehler(f instanceof Error ? f.message : t.zSpeichernSchiefgelaufen)
     }
     setSendet(false)
+  }
+
+  /**
+   * Ein als bezahlt markierter Posten wird wieder geoeffnet.
+   *
+   * KEINE EINBAHNSTRASSE. Eine Weile hiess das Haekchen bei "Wem wir was
+   * schulden" noch "ist zurueckbezahlt" und schrieb sofort - lange bevor es
+   * Abrechnungen gab. Wer damals nur schauen wollte, was passiert, hat etwas
+   * als beglichen hinterlassen, das nie beglichen wurde.
+   */
+  const wiederOeffnen = async (p: SchuldPosten) => {
+    if (p.auslageId) {
+      const neu = await aendereAuslage(p.auslageId, { bezahlt: false })
+      setAuslagen((l) => l.map((x) => (x.id === p.auslageId ? neu : x)))
+      return
+    }
+    const b = bestellungen.find((x) => x.id === p.bestellungId)
+    if (!b) return
+    await kostenSpeichern(
+      b.id,
+      (b.kosten ?? []).map((k) => (k.id === p.postenId ? { ...k, bezahlt: false } : k)),
+    )
   }
 
   const kostenSpeichern = async (id: string, kosten: KostenPosten[]) => {
@@ -786,6 +812,83 @@ function ZahlenMaske({ onBack }: Props) {
                 </tbody>
               </table></div>
             )}
+
+            {/*
+              WAS ALS ERLEDIGT GILT, muss sich ansehen und zuruecknehmen
+              lassen. Zugeklappt, weil es der seltene Fall ist - aber da,
+              weil ein falscher Haken hier bedeutet, dass jemand sein Geld
+              nicht bekommt.
+            */}
+            <div className="zahlen__ausgeglichen">
+              <button type="button" className="btn btn--quiet btn--sm"
+                aria-expanded={zeigeAusgeglichen}
+                onClick={() => setZeigeAusgeglichen(!zeigeAusgeglichen)}>
+                {t.zAusgeglichenTitel} ({ausgeglichen.reduce((n, s) => n + s.posten.length, 0)}) ·{' '}
+                {zeigeAusgeglichen ? t.zAusblenden : t.zAnzeigen}
+              </button>
+              {zeigeAusgeglichen && (
+                <>
+                  <p className="zahlen__hinweis">{t.zAusgeglichenSatz}</p>
+                  {ausgeglichen.length === 0 ? (
+                    <p className="zahlen__hinweis">{t.zAusgeglichenLeer}</p>
+                  ) : (
+                    <div className="zahlen__rollen"><table className="zahlen__tabelle">
+                      <thead>
+                        <tr>
+                          <th>{t.zPosten}</th>
+                          <th className="zahlen__zahl">{t.zBetrag}</th>
+                          <th>{t.zWiederOeffnen}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ausgeglichen.map((sch) => (
+                          <Fragment key={sch.traeger}>
+                            <tr className="zahlen__strich">
+                              <td><strong>{beteiligte[sch.traeger]}</strong></td>
+                              <td className="zahlen__zahl"><strong>{formatChf(sch.betragChf)}</strong></td>
+                              <td />
+                            </tr>
+                            {sch.posten.map((p) => {
+                              const nummer = inAbrechnung.get(postenSchluessel(p))
+                              return (
+                                <tr key={postenSchluessel(p)}>
+                                  <td data-titel={t.zPosten}>
+                                    {p.bezeichnung ?? KOSTENTITEL[p.art]}
+                                    <span className="zahlen__klein">
+                                      {p.kunde ? `${p.kunde} · ${p.am.slice(0, 10)}` : p.am.slice(0, 10)}
+                                    </span>
+                                  </td>
+                                  <td data-titel={t.zBetrag} className="zahlen__zahl">
+                                    {formatChf(p.betragChf)}
+                                  </td>
+                                  <td data-titel={t.zWiederOeffnen}>
+                                    {/*
+                                      Was in einer Abrechnung steckt, bleibt
+                                      zu: Der Beleg sagt, dass das Geld
+                                      geflossen ist. Dafuer steht da, in
+                                      welcher - sonst suchte man vergeblich,
+                                      warum sich nichts anklicken laesst.
+                                    */}
+                                    {nummer ? (
+                                      <span className="zahlen__klein">
+                                        {fuelle(t.zInAbrechnung, { nummer })}
+                                      </span>
+                                    ) : (
+                                      <input type="checkbox" checked aria-label={t.zWiederOeffnen}
+                                        onChange={() => void wiederOeffnen(p)} />
+                                    )}
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </Fragment>
+                        ))}
+                      </tbody>
+                    </table></div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
 

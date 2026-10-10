@@ -657,6 +657,16 @@ const PAARE = {
   ],
   zAuswaehlen: ['abrechnen?', 'hesaplaşsın mı?'],
   zBleibt: ['bleibt', 'kalan'],
+  zAusgeglichenTitel: ['Bereits ausgeglichen', 'Zaten kapatıldı'],
+  zAusgeglichenSatz: [
+    'Was als zurückbezahlt gilt und darum oben nicht mehr steht. Stimmt ein Haken nicht – etwa weil er aus der Zeit stammt, als er sofort schrieb –, nimm ihn hier zurück.',
+    'Geri ödenmiş sayılan ve bu yüzden yukarıda görünmeyenler. Bir işaret doğru değilse – örneğin hemen yazdığı dönemden kalmışsa – buradan geri al.',
+  ],
+  zWiederOeffnen: ['bezahlt?', 'ödendi mi?'],
+  zInAbrechnung: ['in {nummer}', '{nummer} içinde'],
+  zAusgeglichenLeer: ['Nichts als ausgeglichen markiert.', 'Kapatılmış olarak işaretlenmiş bir şey yok.'],
+  zAnzeigen: ['anzeigen', 'göster'],
+  zAusblenden: ['ausblenden', 'gizle'],
   zProAuftragSatz2: [
     'Ein Auftrag wird immer ganz abgerechnet: Seine Netzkosten, Kargo und Montage gehen mit.',
     'Bir sipariş her zaman bütün olarak hesaplanır: sineklik maliyeti, kargo ve montaj birlikte gider.',

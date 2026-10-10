@@ -910,6 +910,77 @@ export function offeneSchulden(
   return [...karte.values()].sort((x, y) => y.betragChf - x.betragChf)
 }
 
+/**
+ * Welche Abrechnung einen Posten enthaelt - fuer die Anzeige "steckt in A-2026-01".
+ */
+export function abrechnungJePosten(abrechnungen: Abrechnung[]): Map<string, string> {
+  const raus = new Map<string, string>()
+  for (const a of abrechnungen) {
+    for (const p of a.posten) raus.set(postenSchluessel(p), a.nummer)
+  }
+  return raus
+}
+
+/**
+ * Was als zurueckbezahlt gilt - das Gegenstueck zu `offeneSchulden`.
+ *
+ * WARUM ES DAS BRAUCHT. Ein Posten, der als bezahlt markiert ist,
+ * verschwindet aus "Wem wir was schulden" - und damit aus dem Blickfeld.
+ * Das ist richtig, solange die Markierung stimmt. Sie kann aber falsch
+ * sein: Eine Weile hiess das Haekchen dort "ist zurueckbezahlt" und schrieb
+ * sofort, lange bevor es Abrechnungen gab. Wer damals nur schauen wollte,
+ * was passiert, hat etwas als beglichen hinterlassen, das nie beglichen
+ * wurde - und die erste echte Abrechnung gaebe dem, der ausgelegt hat, zu
+ * wenig.
+ *
+ * Eine Einbahnstrasse darf das nicht sein. Hier steht, was als erledigt
+ * gilt, damit man es sehen und zuruecknehmen kann.
+ */
+export function ausgeglicheneSchulden(bestellungen: Bestellung[], auslagen: Auslage[]): Schuld[] {
+  const karte = new Map<Beteiligter, Schuld>()
+  const hole = (t: Beteiligter): Schuld => {
+    let s = karte.get(t)
+    if (!s) { s = { traeger: t, betragChf: 0, posten: [] }; karte.set(t, s) }
+    return s
+  }
+
+  for (const b of bestellungen) {
+    if (!inRechnung(b)) continue
+    for (const k of kostenPosten(b)) {
+      if (!k.bezahlt) continue
+      const s = hole(k.traeger)
+      s.betragChf = runde2(s.betragChf + k.betragChf)
+      s.posten.push({
+        bestellungId: b.id,
+        postenId: k.id,
+        art: k.art,
+        ...(k.bezeichnung ? { bezeichnung: k.bezeichnung } : {}),
+        kunde: b.kunde.name,
+        betragChf: k.betragChf,
+        am: b.zusageAm ?? b.eingang,
+        erfasst: k.erfasst,
+      })
+    }
+  }
+  for (const l of auslagen) {
+    if (!l.bezahlt) continue
+    const s = hole(l.traeger)
+    s.betragChf = runde2(s.betragChf + l.betragChf)
+    s.posten.push({
+      auslageId: l.id,
+      postenId: l.id,
+      art: 'auslage',
+      bezeichnung: l.bezeichnung,
+      betragChf: l.betragChf,
+      am: l.am,
+      erfasst: true,
+    })
+  }
+
+  for (const s of karte.values()) s.posten.sort((x, y) => (x.am < y.am ? -1 : 1))
+  return [...karte.values()].sort((x, y) => y.betragChf - x.betragChf)
+}
+
 /* --- Abrechnung ------------------------------------------------------------ */
 
 /**
