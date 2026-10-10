@@ -11,6 +11,7 @@ import {
   inRechnung, imFunnel, zaehltPhase, zahlenFuer, abschnitte, forecast, kennzahlen,
   kostenPosten, warenkosten, offeneForderungen, offeneSchulden,
   abrechnungZahlen, offeneEinnahmen, naechsteAbrechnungsnummer,
+  abrechnungEntwurf, postenSchluessel, postenSummeFuer,
 } from '../src/lib/pl.ts'
 import { herstellungChf } from '../src/lib/kosten.ts'
 
@@ -967,6 +968,80 @@ pruefe('Was nicht fest ist, laesst sich auch bezahlt nicht abrechnen', () => {
   // Eine Anzahlung auf eine Offerte ist kein Erloes.
   const b = best({ status: 'offerte', bezahltAm: '2026-03-02' })
   assert.equal(offeneEinnahmen([b], []).length, 0)
+})
+
+/* --- Abgerechnet wird pro Auftrag ------------------------------------------ */
+
+pruefe('Mit dem Auftrag gehen seine Kosten mit, ungefragt', () => {
+  /*
+   * DIE REGEL, DIE DEN DOPPELFALL VERSCHWINDEN LAESST. Vorher liessen sich
+   * Erloes und Kosten eines Auftrags trennen, und das ging zweimal schief:
+   * Wer den Erloes verteilt und die Montage offen laesst, zahlt sie ueber
+   * den Topf aus - und wenn er den Posten spaeter noch einmal abrechnet, ein
+   * zweites Mal. Der Auftrag ist die Einheit, in der das Geschaeft
+   * stattfindet; also ist er die Einheit, in der abgerechnet wird.
+   */
+  const b = best({ id: 'b1', status: 'ausliefern', ausgeliefertAm: '2026-03-01',
+    bezahltAm: '2026-03-02', montageChf: 30 })
+  const einnahmen = offeneEinnahmen([b], [])
+  const schulden = offeneSchulden([b], [])
+
+  /* Nur den Auftrag angekreuzt, keinen einzigen Posten. */
+  const e = abrechnungEntwurf(einnahmen, schulden, ['b1'], [])
+  assert.equal(e.auftraege.length, 1)
+  assert.ok(e.posten.length >= 3, 'Netze, Kargo und zweimal Montage gehen mit')
+  assert.ok(e.posten.some((p) => p.art === 'montage'))
+  assert.ok(e.posten.some((p) => p.art === 'herstellung'))
+
+  /* Und die Probe: Was hereinkam, geht vollstaendig hinaus. */
+  const z = abrechnungZahlen(e.auftraege, e.posten)
+  const hinaus = runde(z.summe.bora + z.summe.ufuk + z.summe.deniz)
+  assert.equal(hinaus, z.erloesChf, `${hinaus} statt ${z.erloesChf}`)
+})
+
+pruefe('Was zu keinem gewaehlten Auftrag gehoert, bleibt draussen', () => {
+  const dabei = best({ id: 'b1', status: 'ausliefern', ausgeliefertAm: '2026-03-01',
+    bezahltAm: '2026-03-02', montageChf: 30 })
+  const daneben = best({ id: 'b2', status: 'ausliefern', ausgeliefertAm: '2026-03-01', montageChf: 30 })
+  const e = abrechnungEntwurf(
+    offeneEinnahmen([dabei, daneben], []),
+    offeneSchulden([dabei, daneben], []),
+    ['b1'], [],
+  )
+  assert.ok(e.posten.every((p) => p.bestellungId === 'b1'), 'nur die des gewaehlten Auftrags')
+})
+
+pruefe('Auslagen ohne Auftrag lassen sich weiter einzeln waehlen', () => {
+  /*
+   * Werbung, Hosting, Material gehoeren zu keinem Auftrag - sie haetten
+   * sonst keinen Weg in eine Abrechnung.
+   */
+  const b = best({ id: 'b1', status: 'ausliefern', ausgeliefertAm: '2026-03-01', bezahltAm: '2026-03-02' })
+  const l = auslage({ id: 'al1', betragChf: 40, traeger: 'deniz' })
+  const schulden = offeneSchulden([b], [l])
+  const e = abrechnungEntwurf(offeneEinnahmen([b], []), schulden, [], ['al1:al1'])
+  assert.equal(e.auftraege.length, 0)
+  assert.deepEqual(e.posten.map((p) => p.auslageId), ['al1'])
+})
+
+pruefe('Ein einzeln gewaehlter Posten kommt nicht doppelt mit', () => {
+  const b = best({ id: 'b1', status: 'ausliefern', ausgeliefertAm: '2026-03-01',
+    bezahltAm: '2026-03-02', montageChf: 30 })
+  const schulden = offeneSchulden([b], [])
+  const alle = schulden.flatMap((s) => s.posten).map((p) => postenSchluessel(p))
+  const e = abrechnungEntwurf(offeneEinnahmen([b], []), schulden, ['b1'], alle)
+  const kennungen = e.posten.map((p) => postenSchluessel(p))
+  assert.equal(new Set(kennungen).size, kennungen.length, 'jede Kennung genau einmal')
+})
+
+pruefe('Die Kostensumme eines Auftrags laesst sich einzeln lesen', () => {
+  /* Fuer die Spalte "Kosten" neben dem Erloes. */
+  const b = best({ id: 'b1', status: 'ausliefern', ausgeliefertAm: '2026-03-01',
+    bezahltAm: '2026-03-02', montageChf: 30 })
+  const schulden = offeneSchulden([b], [auslage({ id: 'al1', betragChf: 40 })])
+  const summe = postenSummeFuer(schulden, 'b1')
+  assert.equal(summe, zahlenFuer(b).kostenChf, 'alles, was am Auftrag offen ist')
+  assert.ok(summe > 0)
 })
 
 pruefe('Die Nummer zaehlt je Jahr hoch', () => {

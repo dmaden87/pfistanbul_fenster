@@ -1,7 +1,6 @@
 import { Fragment, useCallback, useEffect, useState } from 'react'
 import type {
-  Abrechnung, AbrechnungAuftrag, AbrechnungPosten,
-  AdminStatus, Auslage, Bestellung, KostenArt, KostenPosten,
+  Abrechnung, AdminStatus, Auslage, Bestellung, KostenArt, KostenPosten,
 } from '../../types'
 import {
   adminStatus, aendereAbrechnung, aendereAuslage, aendereBestellung, anmelden,
@@ -11,9 +10,10 @@ import {
 import { beteiligte, kostenConfig } from '../../data/kostenConfig'
 import { formatChf } from '../../lib/format'
 import {
-  abrechnungZahlen, abschnitte, forecast, kennzahlen, naechsteAbrechnungsnummer,
-  offeneEinnahmen, offeneForderungen, offeneSchulden, warenkosten, zaehltPhase, zahlenFuer,
-  type Periode, type SchuldPosten,
+  abrechnungEntwurf, abrechnungZahlen, abschnitte, forecast, kennzahlen,
+  naechsteAbrechnungsnummer, offeneEinnahmen, offeneForderungen, offeneSchulden,
+  postenSchluessel, postenSummeFuer, warenkosten, zaehltPhase, zahlenFuer,
+  type Periode,
 } from '../../lib/pl'
 import { AbrechnungBlatt } from './AbrechnungBlatt'
 import { KostenEditor } from './KostenEditor'
@@ -197,10 +197,13 @@ function ZahlenMaske({ onBack }: Props) {
   }
 
   /*
-   * Ein Posten braucht eine Kennung, die ueber Auftraege hinweg eindeutig
-   * ist: Zwei Auftraege koennen beide ein Netz mit der Kennung "k1" haben.
+   * ABGERECHNET WIRD PRO AUFTRAG: Wer einen Auftrag ankreuzt, nimmt seine
+   * Kosten mit - Netze, Kargo, Montage. Das Kaestchen daneben ist dann
+   * gesetzt und gesperrt, damit man sieht, was mitgeht, und es nicht
+   * versehentlich wieder herausnimmt.
    */
-  const postenSchluessel = (p: SchuldPosten) => `${p.bestellungId ?? p.auslageId ?? ''}:${p.postenId}`
+  const mitAuftrag = (p: { bestellungId?: string }) =>
+    p.bestellungId !== undefined && gewaehlteAuftraege.includes(p.bestellungId)
 
   const waehleAuftrag = (id: string, an: boolean) =>
     setGewaehlteAuftraege((l) => (an ? [...l, id] : l.filter((x) => x !== id)))
@@ -216,31 +219,9 @@ function ZahlenMaske({ onBack }: Props) {
    * spaeter nicht davon abhaengt, ob es den Auftrag noch gibt.
    */
   const abrechnen = async () => {
-    const gewaehlt = einnahmen.filter((e) => gewaehlteAuftraege.includes(e.bestellungId))
-    const auftraege: AbrechnungAuftrag[] = gewaehlt.map((e) => ({
-      bestellungId: e.bestellungId,
-      referenz: e.referenz,
-      kunde: e.kunde,
-      erloesChf: e.erloesChf,
-      warenerloesChf: e.warenerloesChf,
-      montageerloesChf: e.montageerloesChf,
-    }))
-    const posten: AbrechnungPosten[] = []
-    for (const sch of schulden) {
-      for (const p of sch.posten) {
-        if (!gewaehltePosten.includes(postenSchluessel(p))) continue
-        posten.push({
-          ...(p.bestellungId ? { bestellungId: p.bestellungId } : {}),
-          ...(p.auslageId ? { auslageId: p.auslageId } : {}),
-          postenId: p.postenId,
-          art: p.art,
-          ...(p.bezeichnung ? { bezeichnung: p.bezeichnung } : {}),
-          ...(p.kunde ? { kunde: p.kunde } : {}),
-          betragChf: p.betragChf,
-          traeger: sch.traeger,
-        })
-      }
-    }
+    const { auftraege, posten } = abrechnungEntwurf(
+      einnahmen, schulden, gewaehlteAuftraege, gewaehltePosten,
+    )
     setSendet(true)
     setFehler(null)
     try {
@@ -794,8 +775,8 @@ function ZahlenMaske({ onBack }: Props) {
                           <td data-titel={t.zBetrag} className="zahlen__zahl">{formatChf(p.betragChf)}</td>
                           <td data-titel={t.zAuswaehlen}>
                             <input type="checkbox" aria-label={t.zAuswaehlen}
-                              disabled={entwurf !== undefined}
-                              checked={gewaehltePosten.includes(postenSchluessel(p))}
+                              disabled={entwurf !== undefined || mitAuftrag(p)}
+                              checked={mitAuftrag(p) || gewaehltePosten.includes(postenSchluessel(p))}
                               onChange={(e) => waehlePosten(postenSchluessel(p), e.target.checked)} />
                           </td>
                         </tr>
@@ -832,16 +813,21 @@ function ZahlenMaske({ onBack }: Props) {
           ) : (
             <>
               <h3 className="zahlen__unterkopf">{t.zEinnahmen}</h3>
-              <p className="zahlen__hinweis">{t.zEinnahmenSatz}</p>
+              <p className="zahlen__hinweis">{t.zEinnahmenSatz} {t.zProAuftragSatz2}</p>
               {einnahmen.length === 0 ? <p className="zahlen__hinweis">{t.zNichtsEinzunehmen}</p> : (
                 <div className="zahlen__rollen"><table className="zahlen__tabelle">
                   <thead>
                     <tr>
                       <th>{t.zAuftrag}</th>
                       <th>{t.zDatum}</th>
-                      <th className="zahlen__zahl">{t.zWare}</th>
-                      <th className="zahlen__zahl">{t.montageSumme}</th>
                       <th className="zahlen__zahl">{t.zErloes}</th>
+                      {/*
+                        WAS MITGEHT, STEHT DANEBEN. Mit dem Auftrag werden
+                        seine Kosten abgerechnet; ohne diese Spalte muesste
+                        man sie sich aus der Liste rechts zusammensuchen.
+                      */}
+                      <th className="zahlen__zahl">{t.zKosten}</th>
+                      <th className="zahlen__zahl">{t.zBleibt}</th>
                       <th>{t.zAuswaehlen}</th>
                     </tr>
                   </thead>
@@ -853,9 +839,15 @@ function ZahlenMaske({ onBack }: Props) {
                           <span className="zahlen__klein">{e.referenz}</span>
                         </td>
                         <td data-titel={t.zDatum}>{e.am.slice(0, 10)}</td>
-                        <td data-titel={t.zWare} className="zahlen__zahl">{formatChf(e.warenerloesChf)}</td>
-                        <td data-titel={t.montageSumme} className="zahlen__zahl">{formatChf(e.montageerloesChf)}</td>
                         <td data-titel={t.zErloes} className="zahlen__zahl">{formatChf(e.erloesChf)}</td>
+                        <td data-titel={t.zKosten} className="zahlen__zahl">
+                          − {formatChf(postenSummeFuer(schulden, e.bestellungId))}
+                        </td>
+                        <td data-titel={t.zBleibt} className="zahlen__zahl">
+                          <strong>
+                            {formatChf(e.erloesChf - postenSummeFuer(schulden, e.bestellungId))}
+                          </strong>
+                        </td>
                         <td data-titel={t.zAuswaehlen}>
                           <input type="checkbox" aria-label={t.zAuswaehlen}
                             checked={gewaehlteAuftraege.includes(e.bestellungId)}
@@ -884,7 +876,9 @@ function ZahlenMaske({ onBack }: Props) {
                   </button>
                   <span className="zahlen__hinweis">
                     {fuelle(t.zAbrechnenSatz, {
-                      a: gewaehlteAuftraege.length, p: gewaehltePosten.length,
+                      a: gewaehlteAuftraege.length,
+                      p: abrechnungEntwurf(einnahmen, schulden, gewaehlteAuftraege, gewaehltePosten)
+                        .posten.length,
                     })}
                   </span>
                 </div>

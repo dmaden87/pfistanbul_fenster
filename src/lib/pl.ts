@@ -1065,6 +1065,78 @@ export function abrechnungZahlen(
   }
 }
 
+/**
+ * Die Kennung eines Postens, eindeutig ueber Auftraege hinweg.
+ *
+ * Zwei Auftraege koennen beide ein Netz mit der Kennung "k1" haben; erst
+ * zusammen mit der Herkunft wird daraus etwas Unterscheidbares.
+ */
+export function postenSchluessel(p: { bestellungId?: string; auslageId?: string; postenId: string }): string {
+  return `${p.bestellungId ?? p.auslageId ?? ''}:${p.postenId}`
+}
+
+/**
+ * Was aus einer Auswahl in die Abrechnung geht.
+ *
+ * ABGERECHNET WIRD PRO AUFTRAG. Wer einen Auftrag ankreuzt, rechnet ihn
+ * GANZ ab: seine Netzkosten, sein Kargo, seine Montage. Einzeln ankreuzen
+ * laesst sich nur, was zu keinem Auftrag gehoert - Werbung, Hosting,
+ * Material - oder der Posten eines Auftrags, der selbst nicht dabei ist.
+ *
+ * WARUM DAS DIE RICHTIGE REGEL IST: Vorher liessen sich Erloes und Kosten
+ * eines Auftrags trennen, und das ging zweimal schief. Wer den Erloes
+ * verteilt und die Montage offen laesst, zahlt sie ueber den Topf aus -
+ * und wenn er den Posten spaeter noch einmal abrechnet, ein zweites Mal.
+ * Dasselbe mit Boras Netzkosten. Der Auftrag ist die Einheit, in der das
+ * Geschaeft stattfindet; also ist er auch die Einheit, in der abgerechnet
+ * wird.
+ */
+export function abrechnungEntwurf(
+  einnahmen: Einnahme[],
+  schulden: Schuld[],
+  gewaehlteAuftraege: string[],
+  gewaehltePosten: string[],
+): { auftraege: AbrechnungAuftrag[]; posten: AbrechnungPosten[] } {
+  const auftraege: AbrechnungAuftrag[] = einnahmen
+    .filter((e) => gewaehlteAuftraege.includes(e.bestellungId))
+    .map((e) => ({
+      bestellungId: e.bestellungId,
+      referenz: e.referenz,
+      kunde: e.kunde,
+      erloesChf: e.erloesChf,
+      warenerloesChf: e.warenerloesChf,
+      montageerloesChf: e.montageerloesChf,
+    }))
+
+  const posten: AbrechnungPosten[] = []
+  for (const s of schulden) {
+    for (const p of s.posten) {
+      const mitAuftrag = p.bestellungId !== undefined && gewaehlteAuftraege.includes(p.bestellungId)
+      if (!mitAuftrag && !gewaehltePosten.includes(postenSchluessel(p))) continue
+      posten.push({
+        ...(p.bestellungId ? { bestellungId: p.bestellungId } : {}),
+        ...(p.auslageId ? { auslageId: p.auslageId } : {}),
+        postenId: p.postenId,
+        art: p.art,
+        ...(p.bezeichnung ? { bezeichnung: p.bezeichnung } : {}),
+        ...(p.kunde ? { kunde: p.kunde } : {}),
+        betragChf: p.betragChf,
+        traeger: s.traeger,
+      })
+    }
+  }
+  return { auftraege, posten }
+}
+
+/** Was die offenen Posten eines Auftrags zusammen ausmachen. */
+export function postenSummeFuer(schulden: Schuld[], bestellungId: string): number {
+  let summe = 0
+  for (const s of schulden) {
+    for (const p of s.posten) if (p.bestellungId === bestellungId) summe = runde2(summe + p.betragChf)
+  }
+  return summe
+}
+
 /** Das naechste freie Etikett: A-<Jahr>-<laufende Nummer>. */
 export function naechsteAbrechnungsnummer(abrechnungen: Abrechnung[], jetzt = new Date()): string {
   const jahr = jetzt.getFullYear()

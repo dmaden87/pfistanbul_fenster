@@ -656,6 +656,11 @@ const PAARE = {
     'Açık bir şey yok. Bir sipariş ödendiğinde burada görünür.',
   ],
   zAuswaehlen: ['abrechnen?', 'hesaplaşsın mı?'],
+  zBleibt: ['bleibt', 'kalan'],
+  zProAuftragSatz2: [
+    'Ein Auftrag wird immer ganz abgerechnet: Seine Netzkosten, Kargo und Montage gehen mit.',
+    'Bir sipariş her zaman bütün olarak hesaplanır: sineklik maliyeti, kargo ve montaj birlikte gider.',
+  ],
   zAbrechnenKnopf: ['Abrechnen', 'Hesaplaşmayı başlat'],
   zAbrechnenSatz: [
     '{a} Aufträge und {p} Auslagen gewählt. Daraus wird ein Entwurf, den du vor dem Abschliessen prüfen kannst.',
