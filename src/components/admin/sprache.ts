@@ -608,7 +608,11 @@ const PAARE = {
   zKargoMwst: ['Kargo & MWST', 'Kargo & KDV'],
 
   zBetriebskostenTitel: ['Betriebskosten', 'İşletme giderleri'],
-  zNetzkosten: ['Netzkosten aus den festen Aufträgen', 'Kesin siparişlerin sineklik maliyeti'],
+  /*
+   * NICHT MEHR NUR "NETZKOSTEN": Seit die Montage Aufwand ist, steht sie in
+   * derselben Tabelle. Ein Titel, der nur die Netze nennt, waere falsch.
+   */
+  zNetzkosten: ['Kosten aus den festen Aufträgen', 'Kesin siparişlerden doğan maliyetler'],
   zNetzkostenSatz: [
     'Automatisch gerechnet aus {n} festen Aufträgen, ab der Zusage der Kundschaft – nichts davon wird hier erfasst.',
     'Müşteri onayından itibaren {n} kesin siparişten otomatik hesaplandı – burada hiçbiri elle girilmez.',
@@ -639,8 +643,8 @@ const PAARE = {
     'Dikkat: Gelenden {fehlt} daha fazlası çıkıyor. Siparişleri henüz ödenmemiş kalemler seçili – o para daha gelmedi.',
   ],
   zMontageSchuldSatz: [
-    'Montage und Anfahrt sind eure Arbeit und werden hälftig geteilt. Sie stehen hier, weil sie euch zusteht – nicht weil sie etwas kostet.',
-    'Montaj ve yol sizin emeğiniz ve yarı yarıya paylaşılır. Burada görünür, çünkü size aittir – bir gider olduğu için değil.',
+    'Montage und Anfahrt sind Aufwand zum Ansatz je Netz und werden hälftig geteilt – auch wenn ihr selbst montiert.',
+    'Montaj ve yol, sineklik başına orana göre bir giderdir ve yarı yarıya paylaşılır – montajı siz yapsanız da.',
   ],
   zEinnahmen: ['Eingegangen, noch nicht abgerechnet', 'Tahsil edildi, henüz hesaplaşılmadı'],
   zEinnahmenSatz: [

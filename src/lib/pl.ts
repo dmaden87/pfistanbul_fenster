@@ -19,12 +19,13 @@ import { standardTraeger, verteilung as schluessel } from '../data/kostenConfig'
  *    schaut, sieht seine eigene Montage als Einnahme und Boras Netze als
  *    Schuld, und nichts geht mehr auf.
  *
- *    DAVON UNBERUEHRT: Die Montage ist trotzdem kein AUFWAND. Die drei
- *    teilen den Erloes, sie beziehen keinen Lohn - eine Auszahlung an sie
- *    ist Gewinnverwendung, keine Ausgabe. Darum mindert die Montage den
- *    Montage-Topf und nicht das Betriebsergebnis. Soll das einmal anders
- *    sein, ist es eine bewusste Entscheidung und keine Kleinigkeit: Das
- *    Betriebsergebnis saenke um die ganze Montagesumme.
+ *    UND DIE MONTAGE IST AUFWAND. Hier stand eine Weile das Gegenteil - wer
+ *    sich selbst fuer die eigene Arbeit bezahle, habe keine Ausgabe,
+ *    sondern verteile Erloes. Das gilt fuer eine Gewinnverteilung; fuer
+ *    eine Leistung, die zum Ansatz je Netz anfaellt, gilt es nicht.
+ *    Montieren kostet, auch wenn es die eigenen Leute tun. Der Ansatz ist
+ *    der Kundenpreis, die Anfahrt zaehlt mit - der Montage-Topf ist damit
+ *    genau null, und das Betriebsergebnis traegt die Montage.
  *
  * 1. GESCHAETZT UND GEMESSEN WERDEN NIE VERMISCHT. Wo kein Betrag erfasst
  *    ist, springt die Formel aus src/lib/kosten.ts ein – aber der Datensatz
@@ -122,6 +123,8 @@ export interface BestellZahlen {
   herstellungChf: number
   lieferungChf: number
   mwstChf: number
+  /** Montage und Anfahrt – unsere eigene Arbeit, und seit jeher Aufwand. */
+  montageKostenChf: number
   weitereChf: number
   kostenChf: number
   /** Mindestens ein Kostenposten stammt aus der Formel, nicht aus einem Beleg. */
@@ -250,6 +253,36 @@ export function kostenPosten(b: Bestellung): EffektiverPosten[] {
     }
   }
 
+  /*
+   * DIE MONTAGE IST AUFWAND. Deniz' Entscheid, und er kehrt um, was hier
+   * vorher stand: "Wer sich selbst fuer die eigene Arbeit bezahlt, hat keine
+   * Ausgabe." Das gilt fuer eine Gewinnverteilung - fuer eine Leistung, die
+   * zum Ansatz je Netz anfaellt, gilt es nicht. Montieren kostet, auch wenn
+   * es die eigenen Leute tun.
+   *
+   * ZUM ANSATZ DES KUNDENPREISES: Was die Kundschaft fuer die Montage zahlt,
+   * geht als Aufwand an die, die montieren. Der Montage-Topf ist damit genau
+   * null - an der Verteilung aendert sich nichts, nur das Betriebsergebnis
+   * sinkt um die Montagesumme. Die Anfahrt zaehlt mit: Wer montiert, ist
+   * gefahren.
+   *
+   * HALBE / HALBE, wie der Schluessel in kostenConfig.ts es sagt. Es gibt
+   * kein Feld "montiert von", also wird nichts erfunden.
+   */
+  const montage = vorhanden('montage')
+  if (montage.length > 0) montage.forEach(uebernehmen)
+  else {
+    const betrag = runde2(montageBetrag(b) + (b.anfahrt === false ? 0 : (b.anfahrtChf ?? 0)))
+    if (betrag > 0) {
+      for (const wer of ['bora', 'ufuk', 'deniz'] as Beteiligter[]) {
+        const anteil = schluessel.montage[wer]
+        if (anteil <= 0) continue
+        raus.push({ id: `${b.id}-montage-${wer}`, art: 'montage', betragChf: runde2(betrag * anteil),
+          traeger: wer, bezahlt: false, erfasst: false, geschaetzt: false })
+      }
+    }
+  }
+
   vorhanden('weiteres').forEach(uebernehmen)
   return raus
 }
@@ -281,6 +314,7 @@ export function zahlenFuer(b: Bestellung): BestellZahlen {
    * Zerlegt wird nach derselben Formel, aus der er entsteht: die Steuer auf
    * der Ware, der Rest ist Fracht.
    */
+  const montageKostenChf = summeVon('montage')
   const kargoChf = summeVon('kargo')
   const kargoSteuer = kargoChf > 0 ? Math.min(kargoChf, einfuhrsteuerChf(herstellungChf)) : 0
   const lieferungChf = runde2(summeVon('lieferung') + kargoChf - kargoSteuer)
@@ -289,7 +323,7 @@ export function zahlenFuer(b: Bestellung): BestellZahlen {
   const geschaetzt = posten.some((k) => k.geschaetzt)
 
   const erloesChf = runde2(b.summeChf)
-  const kostenChf = runde2(herstellungChf + lieferungChf + mwstChf + weitereChf)
+  const kostenChf = runde2(herstellungChf + lieferungChf + mwstChf + montageKostenChf + weitereChf)
   const margeChf = runde2(erloesChf - kostenChf)
 
   return {
@@ -307,6 +341,7 @@ export function zahlenFuer(b: Bestellung): BestellZahlen {
     herstellungChf,
     lieferungChf,
     mwstChf,
+    montageKostenChf,
     weitereChf,
     kostenChf,
     geschaetzt,
@@ -565,19 +600,13 @@ export function kennzahlen(bestellungen: Bestellung[], auslagen: Auslage[]): Ken
     auslagen.filter((l) => l.bezahlt).reduce((s, l) => s + l.betragChf, 0))
 
   /*
-   * CREDIT OHNE DIE MONTAGE. Diese Zahl steht unter "Total Kosten", und die
-   * Montage ist keine: Sie ist unsere eigene Arbeit, die aus dem Erloes
-   * bezahlt wird. Stuende sie hier, gaeben bezahlt und offen zusammen mehr
-   * als die Gesamtkosten - die Kachel ginge nicht mehr auf, und niemand
-   * saehe warum.
+   * CREDIT IST WIEDER DIE GANZE SUMME. Eine Weile musste die Montage hier
+   * herausgerechnet werden, weil sie als Schuld dastand, ohne eine Koste zu
+   * sein - bezahlt und offen gaben zusammen mehr als die Gesamtkosten. Seit
+   * sie Aufwand ist, geht die Rechnung von selbst auf.
    */
   const schulden = offeneSchulden(bestellungen, auslagen)
-  const creditChf = runde2(
-    schulden.reduce(
-      (s, x) => s + x.posten.filter((p) => p.art !== 'montage').reduce((m, p) => m + p.betragChf, 0),
-      0,
-    ),
-  )
+  const creditChf = runde2(schulden.reduce((s, x) => s + x.betragChf, 0))
 
   const kostenChf = runde2(warenkostenChf + betriebskostenChf)
   const betriebsergebnisChf = runde2(erloesChf - kostenChf)
@@ -624,6 +653,8 @@ export interface Warenkosten {
   mwstChf: number
   /** Fracht und Einfuhrsteuer zusammen, wie Bora sie stellt. */
   kargoChf: number
+  /** Montage und Anfahrt – unsere eigene Arbeit, und trotzdem Aufwand. */
+  montageChf: number
   weitereChf: number
   summeChf: number
   /** Davon noch nicht an den Traeger zurueckgeflossen. */
@@ -641,7 +672,8 @@ export interface Warenkosten {
  */
 export function warenkosten(bestellungen: Bestellung[]): Warenkosten {
   let auftraege = 0
-  let herstellungChf = 0, lieferungChf = 0, mwstChf = 0, kargoChf = 0, weitereChf = 0, offenChf = 0
+  let herstellungChf = 0, lieferungChf = 0, mwstChf = 0, kargoChf = 0
+  let montageChf = 0, weitereChf = 0, offenChf = 0
   for (const b of bestellungen) {
     if (!inRechnung(b)) continue
     auftraege += 1
@@ -653,6 +685,7 @@ export function warenkosten(bestellungen: Bestellung[]): Warenkosten {
        * Boras Rechnung steht: Fracht und Steuer zusammen.
        */
       else if (k.art === 'kargo') kargoChf = runde2(kargoChf + k.betragChf)
+      else if (k.art === 'montage') montageChf = runde2(montageChf + k.betragChf)
       else if (k.art === 'lieferung') lieferungChf = runde2(lieferungChf + k.betragChf)
       else if (k.art === 'mwst') mwstChf = runde2(mwstChf + k.betragChf)
       else weitereChf = runde2(weitereChf + k.betragChf)
@@ -665,8 +698,9 @@ export function warenkosten(bestellungen: Bestellung[]): Warenkosten {
     lieferungChf,
     mwstChf,
     kargoChf,
+    montageChf,
     weitereChf,
-    summeChf: runde2(herstellungChf + lieferungChf + mwstChf + kargoChf + weitereChf),
+    summeChf: runde2(herstellungChf + lieferungChf + mwstChf + kargoChf + montageChf + weitereChf),
     offenChf,
   }
 }
@@ -760,7 +794,7 @@ export interface SchuldPosten {
    * Art abhakt, setzt sie alle zugleich auf bezahlt.
    */
   postenId: string
-  art: KostenArt | 'auslage' | 'montage'
+  art: KostenArt | 'auslage'
   /**
    * Der eigene Name des Postens, wo es einen gibt: bei "Weiteres" und bei
    * den Auslagen. Die festen Arten beschriftet die OBERFLAECHE aus `art` –
@@ -809,14 +843,6 @@ export function offeneSchulden(
   abrechnungen: Abrechnung[] = [],
 ): Schuld[] {
   const schon = abgerechnetePosten(abrechnungen)
-  /*
-   * DIE MONTAGE HAENGT AM AUFTRAG, nicht nur an ihrem eigenen Posten. Wird
-   * der Erloes eines Auftrags verteilt, ist das Geld fuer seine Montage
-   * mitgegangen - ob als Rueckzahlung oder als Anteil am Montage-Topf,
-   * laeuft auf dasselbe hinaus. Stuende sie danach noch offen, waere sie ein
-   * zweites Mal faellig, und es gaebe nichts mehr, woraus.
-   */
-  const verteilteAuftraege = abgerechneteAuftraege(abrechnungen)
   const karte = new Map<Beteiligter, Schuld>()
   const hole = (t: Beteiligter): Schuld => {
     let s = karte.get(t)
@@ -827,44 +853,12 @@ export function offeneSchulden(
     if (!inRechnung(b)) continue
 
     /*
-     * DIE MONTAGE IST AUCH EINE SCHULD - an uns selbst.
-     *
-     * Montage und Anfahrt sind die Arbeit von Ufuk und Deniz. Bisher tauchte
-     * das Geld dafuer erst ganz am Schluss auf, als Anteil am Montage-Topf;
-     * hier stand nichts. Wer die Liste las, sah Boras Auslagen und nicht die
-     * eigene Arbeit.
-     *
-     * HALBE / HALBE, wie der Schluessel es ohnehin sagt. Es gibt kein Feld
-     * "montiert von", also wird nichts erfunden: Es bleibt bei der Teilung,
-     * die schon immer galt, sie steht nur frueher da.
-     *
-     * UND SIE IST KEINE KOSTE. Wer sich selbst fuer die eigene Arbeit
-     * bezahlt, hat keine Ausgabe, sondern verteilt Erloes. Darum steht sie
-     * nicht in `kostenPosten` - sonst saenke die Marge jedes Auftrags um
-     * genau den Betrag, den wir selbst verdienen, und die Netzkosten
-     * enthielten ploetzlich Montage.
+     * DIE MONTAGE STEHT HIER NICHT MEHR EXTRA. Sie war eine Weile ein
+     * Sonderfall - sichtbar als Schuld, aber keine Koste. Seit sie Aufwand
+     * ist, kommt sie wie jeder andere Posten aus `kostenPosten` und braucht
+     * keinen eigenen Zweig: weniger Code, und `bezahlt` ist wieder die
+     * einzige Wahrheit darueber, ob sie erledigt ist.
      */
-    const montageSchuld = runde2(montageBetrag(b) + (b.anfahrt === false ? 0 : (b.anfahrtChf ?? 0)))
-    if (montageSchuld > 0 && !verteilteAuftraege.has(b.id)) {
-      for (const wer of ['ufuk', 'deniz'] as Beteiligter[]) {
-        const anteil = schluessel.montage[wer]
-        if (anteil <= 0) continue
-        const postenId = `${b.id}-montage-${wer}`
-        if (schon.has(`${b.id}:${postenId}`)) continue
-        const sm = hole(wer)
-        const betrag = runde2(montageSchuld * anteil)
-        sm.betragChf = runde2(sm.betragChf + betrag)
-        sm.posten.push({
-          bestellungId: b.id,
-          postenId,
-          art: 'montage',
-          kunde: b.kunde.name,
-          betragChf: betrag,
-          am: b.ausgeliefertAm ?? b.zusageAm ?? b.eingang,
-          erfasst: false,
-        })
-      }
-    }
 
     /*
      * NICHT ERFASSTE POSTEN ZAEHLEN MIT. Zuerst standen hier nur die von Hand

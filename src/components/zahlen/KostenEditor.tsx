@@ -38,6 +38,7 @@ export function KostenEditor({ bestellung, onSpeichern, onSchliessen }: Props) {
     lieferung: t.zLieferkosten,
     mwst: t.zEinfuhrsteuer,
     kargo: t.zKargoMwst,
+    montage: t.zMontageSchuld,
     weiteres: t.zWeitereKosten,
   }
   const geschaetzteHerstellung = herstellungFuer(bestellung.positionen)

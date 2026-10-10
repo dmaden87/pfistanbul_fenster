@@ -233,9 +233,11 @@ pruefe('die Marge ist Erloes minus allen Kosten', () => {
     ],
   }))
   assert.equal(z.erloesChf, 215)
-  assert.equal(z.kostenChf, 42.43)
-  assert.equal(z.margeChf, 172.57)
-  assert.equal(z.margeProzent, 80.3)
+  /* 42.43 erfasst, dazu 15 Montage: Sie ist Aufwand und zaehlt mit. */
+  assert.equal(z.montageKostenChf, 15)
+  assert.equal(z.kostenChf, 57.43)
+  assert.equal(z.margeChf, 157.57)
+  assert.equal(z.margeProzent, 73.3)
 })
 
 /* --- Realisiert gegen erwartet --------------------------------------------- */
@@ -762,24 +764,38 @@ pruefe('Eine abgeschaltete Anfahrt zaehlt nicht, auch mit Betrag', () => {
   assert.equal(ufuk.posten.find((p) => p.art === 'montage').betragChf, 15, 'nur die Montage')
 })
 
-pruefe('Die Montage ist KEINE Koste des Auftrags', () => {
+pruefe('Die Montage IST Aufwand und mindert die Marge', () => {
   /*
-   * DER KERN DER SACHE. Wer sich selbst fuer die eigene Arbeit bezahlt, hat
-   * keine Ausgabe, sondern verteilt Erloes. Stuende die Montage in
-   * `kostenPosten`, saenke die Marge jedes Auftrags um genau den Betrag,
-   * den wir selbst verdienen - und die Netzkosten enthielten Montage.
+   * HIER STAND DAS GEGENTEIL: "Wer sich selbst fuer die eigene Arbeit
+   * bezahlt, hat keine Ausgabe, sondern verteilt Erloes." Das gilt fuer eine
+   * Gewinnverteilung - fuer eine Leistung, die zum Ansatz je Netz anfaellt,
+   * gilt es nicht. Deniz' Entscheid: Montieren kostet, auch wenn es die
+   * eigenen Leute tun.
    */
   const ohne = best({ status: 'ausliefern', ausgeliefertAm: '2026-03-01' })
   const mit = best({ status: 'ausliefern', ausgeliefertAm: '2026-03-01', montageChf: 30, anfahrtChf: 20 })
-  assert.equal(zahlenFuer(mit).kostenChf, zahlenFuer(ohne).kostenChf, 'die Kosten sind dieselben')
-  assert.equal(warenkosten([mit]).summeChf, warenkosten([ohne]).summeChf)
-  assert.ok(kostenPosten(mit).every((k) => k.art !== 'montage'))
+  assert.equal(
+    runde(zahlenFuer(mit).kostenChf - zahlenFuer(ohne).kostenChf),
+    50,
+    'Montage und Anfahrt zusammen',
+  )
+  assert.ok(zahlenFuer(mit).margeProzent < zahlenFuer(ohne).margeProzent, 'die Marge sinkt')
 })
 
-pruefe('Credit unter "Total Kosten" zaehlt die Montage nicht mit', () => {
+pruefe('Die Montage traegt, wer montiert: halbe / halbe', () => {
+  const b = best({ status: 'ausliefern', ausgeliefertAm: '2026-03-01', montageChf: 30, anfahrtChf: 20 })
+  const m = kostenPosten(b).filter((k) => k.art === 'montage')
+  assert.equal(m.length, 2, 'Ufuk und Deniz, nicht Bora')
+  assert.deepEqual(m.map((k) => k.traeger).sort(), ['deniz', 'ufuk'])
+  assert.ok(m.every((k) => k.betragChf === 25))
+  assert.ok(m.every((k) => !k.geschaetzt), 'der Betrag steht im Auftrag, er ist nicht geraten')
+})
+
+pruefe('Bezahlt und offen ergeben weiter die Gesamtkosten', () => {
   /*
-   * Sonst gaeben bezahlt und offen zusammen mehr als die Gesamtkosten - die
-   * Kachel ginge nicht mehr auf, und niemand saehe warum.
+   * Eine Weile musste die Montage hier herausgerechnet werden, weil sie als
+   * Schuld dastand, ohne eine Koste zu sein. Seit sie Aufwand ist, geht die
+   * Rechnung von selbst auf.
    */
   const b = best({ status: 'ausliefern', ausgeliefertAm: '2026-03-01', montageChf: 30, anfahrtChf: 20 })
   const k = kennzahlen([b], [])
@@ -831,24 +847,26 @@ pruefe('Eine abgerechnete Montage steht nicht noch einmal offen', () => {
   assert.deepEqual(alle.map((p) => p.postenId), ['b1-montage-deniz'], 'nur die noch offene Haelfte')
 })
 
-pruefe('Ein abgerechneter Auftrag schuldet keine Montage mehr', () => {
+pruefe('Eine bezahlte Montage steht nicht mehr offen', () => {
   /*
-   * DER FEHLER, DEN DAS BILD GEZEIGT HAT. Bei einem Auftrag, dessen Erloes
-   * laengst verteilt war, stand die Montage weiter offen - sie waere ein
-   * zweites Mal ausbezahlt worden, und es gaebe nichts mehr, woraus.
-   *
-   * Ob das Montagegeld damals als Rueckzahlung oder als Anteil am
-   * Montage-Topf hinausging, spielt keine Rolle: Beides kommt auf dasselbe
-   * heraus, und beides ist weg.
+   * WIE JEDER ANDERE POSTEN AUCH. Die Montage hatte eine Weile einen eigenen
+   * Weg - sichtbar als Schuld, aber keine Koste, und erledigt dadurch, dass
+   * ihr Auftrag in einer Abrechnung stand. Seit sie Aufwand ist, gilt
+   * `bezahlt` wie ueberall sonst.
    */
-  const b = best({ id: 'b1', status: 'ausliefern', ausgeliefertAm: '2026-03-01',
-    bezahltAm: '2026-03-02', montageChf: 30 })
-  const offen = offeneSchulden([b], [], [])
-  assert.equal(offen.flatMap((s) => s.posten).filter((p) => p.art === 'montage').length, 2)
+  const offen = best({ id: 'b1', status: 'ausliefern', ausgeliefertAm: '2026-03-01', montageChf: 30 })
+  assert.equal(offeneSchulden([offen], []).flatMap((s) => s.posten)
+    .filter((p) => p.art === 'montage').length, 2)
 
-  const fertig = { erledigtAm: '2026-03-05', auftraege: [{ bestellungId: 'b1' }], posten: [] }
-  const nachher = offeneSchulden([b], [], [fertig])
-  assert.equal(nachher.flatMap((s) => s.posten).filter((p) => p.art === 'montage').length, 0)
+  const quitt = best({ id: 'b1', status: 'ausliefern', ausgeliefertAm: '2026-03-01', montageChf: 30,
+    kosten: [
+      { id: 'b1-montage-ufuk', art: 'montage', betragChf: 15, traeger: 'ufuk', bezahlt: true, erfasstAm: 'x' },
+      { id: 'b1-montage-deniz', art: 'montage', betragChf: 15, traeger: 'deniz', bezahlt: true, erfasstAm: 'x' },
+    ] })
+  assert.equal(offeneSchulden([quitt], []).flatMap((s) => s.posten)
+    .filter((p) => p.art === 'montage').length, 0)
+  /* Koste bleibt sie trotzdem - bezahlt heisst nicht gratis. */
+  assert.equal(zahlenFuer(quitt).montageKostenChf, 30)
 })
 
 pruefe('Mehr hinaus als herein ist moeglich und laesst sich erkennen', () => {

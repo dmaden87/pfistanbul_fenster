@@ -174,7 +174,7 @@ function ZahlenMaske({ onBack }: Props) {
   const k = kennzahlen(bestellungen, auslagen)
   const aussicht = forecast(bestellungen)
   const forderungen = offeneForderungen(bestellungen)
-  const schulden = offeneSchulden(bestellungen, auslagen, abrechnungen)
+  const schulden = offeneSchulden(bestellungen, auslagen)
   const netzkosten = warenkosten(bestellungen)
   const entwurf = abrechnungen.find((a) => !a.erledigtAm)
   const erledigte = abrechnungen.filter((a) => a.erledigtAm)
@@ -278,15 +278,8 @@ function ZahlenMaske({ onBack }: Props) {
           setAuslagen((l) => l.map((x) => (x.id === p.auslageId ? neu : x)))
           continue
         }
-        /*
-         * DIE MONTAGE-SCHULD WIRD NICHT GESCHRIEBEN. Sie hat keinen
-         * Kostenposten und soll keinen bekommen: Als `kosten` am Auftrag
-         * saenke sie die Marge um genau das, was wir selbst verdienen.
-         * Erledigt ist sie dadurch, dass sie in dieser Abrechnung steht -
-         * `offeneSchulden` sieht dort nach.
-         */
         const b = bestellungen.find((x) => x.id === p.bestellungId)
-        if (!b || p.art === 'auslage' || p.art === 'montage') continue
+        if (!b || p.art === 'auslage') continue
         const vorhanden = (b.kosten ?? []).some((k) => k.id === p.postenId)
         const kosten: KostenPosten[] = vorhanden
           ? (b.kosten ?? []).map((k) => (k.id === p.postenId ? { ...k, bezahlt: true } : k))
@@ -787,6 +780,11 @@ function ZahlenMaske({ onBack }: Props) {
                               Auftrag und soll nirgends eingetippt werden.
                             */}
                             {!p.erfasst && p.art !== 'montage' && (
+                              /*
+                                KEINE MARKE AN DER MONTAGE. "nicht erfasst"
+                                heisst "da fehlt noch ein Beleg" - bei der
+                                Montage fehlt nichts: Sie steht im Auftrag.
+                              */
                               <span className="kosten__marke">{t.zGerechnet}</span>
                             )}
                             <span className="zahlen__klein">

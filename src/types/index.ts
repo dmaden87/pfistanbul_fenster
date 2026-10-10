@@ -470,13 +470,17 @@ export type Beteiligter = 'bora' | 'ufuk' | 'deniz'
 /**
  * Die Arten eines Kostenpostens.
  *
+ * `montage` ist Montage und Anfahrt - unsere eigene Arbeit, und trotzdem
+ * Aufwand: Sie faellt zum Ansatz je Netz an, auch wenn die eigenen Leute sie
+ * leisten. Getragen wird sie von denen, die montieren.
+ *
  * `kargo` fasst Fracht UND Einfuhrsteuer eines Auftrags zusammen. Beides
  * traegt immer Bora, beides faellt mit derselben Sendung an, und auf seiner
  * Abrechnung steht es auch nicht getrennt. `lieferung` und `mwst` bleiben
  * daneben bestehen: Was frueher einzeln erfasst wurde, bleibt einzeln -
  * geloescht wird hier nichts.
  */
-export type KostenArt = 'herstellung' | 'lieferung' | 'mwst' | 'kargo' | 'weiteres'
+export type KostenArt = 'herstellung' | 'lieferung' | 'mwst' | 'kargo' | 'montage' | 'weiteres'
 
 /**
  * Ein Kostenposten – an einer Bestellung oder, als Auslage, ohne sie.
@@ -555,7 +559,7 @@ export interface AbrechnungPosten {
   auslageId?: string
   /** Die Kennung innerhalb des Auftrags – oder die der Auslage. */
   postenId: string
-  art: KostenArt | 'auslage' | 'montage'
+  art: KostenArt | 'auslage'
   /** Wie er auf dem Beleg heisst. Bei festen Arten leer; die Oberflaeche beschriftet sie. */
   bezeichnung?: string
   /** Zu welchem Kunden er gehoert, wo es einen gibt. */

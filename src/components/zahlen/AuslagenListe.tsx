@@ -99,6 +99,12 @@ export function AuslagenListe({ auslagen, netzkosten, onAnlegen, onAendern, onEn
               <td className="zahlen__zahl">{formatChf(netzkosten.mwstChf)}</td>
             </tr>
           )}
+          {netzkosten.montageChf > 0 && (
+            <tr>
+              <td>{t.zMontageSchuld}</td>
+              <td className="zahlen__zahl">{formatChf(netzkosten.montageChf)}</td>
+            </tr>
+          )}
           {netzkosten.weitereChf > 0 && (
             <tr>
               <td>{t.zWeitereKosten}</td>
