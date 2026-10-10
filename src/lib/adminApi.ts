@@ -1,4 +1,6 @@
-import type { AdminStatus, Auslage, Bestellung, BestellAenderung } from '../types'
+import type {
+  Abrechnung, AbrechnungAenderung, AdminStatus, Auslage, Bestellung, BestellAenderung,
+} from '../types'
 
 /**
  * Zugriff auf den Adminbereich. Alles läuft über /api/bestellungen; das
@@ -149,6 +151,62 @@ export async function aendereAuslage(id: string, aenderung: Partial<Auslage>): P
 export async function entferneAuslage(id: string): Promise<void> {
   await antwort(
     await fetch(AUSLAGEN, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ id }),
+    }),
+  )
+}
+
+/* --- Abrechnungen ------------------------------------------------------------ */
+
+const ABRECHNUNGEN = '/api/abrechnungen'
+
+export async function ladeAbrechnungen(): Promise<Abrechnung[]> {
+  const daten = await antwort<{ abrechnungen: Abrechnung[] }>(
+    await fetch(ABRECHNUNGEN, { credentials: 'same-origin' }),
+  )
+  return daten.abrechnungen
+}
+
+/**
+ * Legt eine Abrechnung als ENTWURF an.
+ *
+ * Die Zahlen kommen fertig gerechnet mit: Die Formel steht in src/lib/pl.ts,
+ * und api/ darf von dort nicht importieren. Der Server prueft die Form und
+ * legt ab – er rechnet nicht nach.
+ */
+export async function legeAbrechnungAn(
+  abrechnung: Omit<Abrechnung, 'id' | 'erstelltAm' | 'erledigtAm'>,
+): Promise<Abrechnung> {
+  const daten = await antwort<{ abrechnung: Abrechnung }>(
+    await fetch(ABRECHNUNGEN, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(abrechnung),
+    }),
+  )
+  return daten.abrechnung
+}
+
+export async function aendereAbrechnung(id: string, aenderung: AbrechnungAenderung): Promise<Abrechnung> {
+  const daten = await antwort<{ abrechnung: Abrechnung }>(
+    await fetch(ABRECHNUNGEN, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ ...aenderung, id }),
+    }),
+  )
+  return daten.abrechnung
+}
+
+/** Verwirft einen Entwurf. Erledigte Abrechnungen weist der Server ab. */
+export async function entferneAbrechnung(id: string): Promise<void> {
+  await antwort(
+    await fetch(ABRECHNUNGEN, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',

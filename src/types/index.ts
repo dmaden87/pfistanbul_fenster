@@ -517,6 +517,96 @@ export interface Auslage {
   erfasstAm: string
 }
 
+/* --- Die Abrechnung --------------------------------------------------------- */
+
+/**
+ * Ein Auftrag, wie er in einer Abrechnung steht.
+ *
+ * MIT EIGENEN BETRAEGEN, nicht nur als Verweis. Eine abgeschlossene
+ * Abrechnung ist ein Beleg: Was darin steht, muss in einem Jahr noch
+ * dasselbe sagen, auch wenn jemand inzwischen den Preis des Auftrags
+ * geaendert, den Kurs angepasst oder die Formel umgebaut hat.
+ */
+export interface AbrechnungAuftrag {
+  bestellungId: string
+  referenz: string
+  kunde: string
+  /** Der ganze Erloes dieses Auftrags, wie er in die Abrechnung ging. */
+  erloesChf: number
+  /** Davon aus der Ware, nach Rabatt – der Topf, an dem Bora beteiligt ist. */
+  warenerloesChf: number
+  /** Davon aus Montage und Anfahrt – unsere eigene Arbeit. */
+  montageerloesChf: number
+}
+
+/** Eine Auslage, wie sie in einer Abrechnung steht. */
+export interface AbrechnungPosten {
+  /** Woher der Posten kommt. Genau eines von beiden. */
+  bestellungId?: string
+  auslageId?: string
+  /** Die Kennung innerhalb des Auftrags – oder die der Auslage. */
+  postenId: string
+  art: KostenArt | 'auslage'
+  /** Wie er auf dem Beleg heisst. Bei festen Arten leer; die Oberflaeche beschriftet sie. */
+  bezeichnung?: string
+  /** Zu welchem Kunden er gehoert, wo es einen gibt. */
+  kunde?: string
+  betragChf: number
+  traeger: Beteiligter
+}
+
+/**
+ * Eine Abrechnung: einmal Geld verteilen, als Beleg.
+ *
+ * WARUM ES DAS GIBT. Vorher rechnete die Oberflaeche jedes Mal neu, was eine
+ * Abrechnung ueber ALLE festen Auftraege ergaebe – eine Vorschau, keine
+ * Abrechnung. Sie nahm auch Auftraege mit, von denen noch kein Rappen da
+ * war, und sie vergass, was beim letzten Mal schon verteilt wurde.
+ *
+ * Eine Abrechnung nimmt jetzt genau das, was ausgewaehlt wurde: Auftraege,
+ * deren Geld eingegangen ist, und Auslagen, die jemand ausgelegt hat. Sie
+ * ist ein Entwurf, solange `erledigtAm` fehlt, und danach unveraenderlich.
+ */
+export interface Abrechnung {
+  id: string
+  /** Fortlaufend, zum Darueberreden: A-2026-01. */
+  nummer: string
+  erstelltAm: string
+  /** Gesetzt heisst: abgeschlossen, ausbezahlt, unveraenderlich. */
+  erledigtAm?: string
+  notiz?: string
+
+  auftraege: AbrechnungAuftrag[]
+  posten: AbrechnungPosten[]
+
+  /*
+   * Die Summen, eingefroren. Sie liessen sich aus den Zeilen darueber neu
+   * rechnen – und genau das sollen sie nicht muessen: Ein Beleg, der sich
+   * beim Lesen neu rechnet, ist keiner. Dass beides beim Abschluss
+   * uebereinstimmt, prueft bau/abrechnung-test.mjs.
+   */
+  erloesChf: number
+  warenerloesChf: number
+  montageerloesChf: number
+  warenkostenChf: number
+  betriebskostenChf: number
+  rueckzahlungChf: number
+  rueckzahlung: Record<Beteiligter, number>
+  warengewinnChf: number
+  montagegewinnChf: number
+  verteilbarChf: number
+  anteile: Record<Beteiligter, number>
+  /** Anteil plus Rueckzahlung – was unter dem Strich zu jedem fliesst. */
+  summe: Record<Beteiligter, number>
+}
+
+/** Was sich an einer Abrechnung noch aendern laesst. */
+export interface AbrechnungAenderung {
+  /** true schliesst sie ab und friert sie ein. */
+  erledigt?: boolean
+  notiz?: string
+}
+
 /** Woher eine Auftragszeile stammt – oder dass sie nur zur Runde gehoert. */
 export interface ZeilenHerkunft {
   bestellungId: string

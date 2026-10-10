@@ -1,4 +1,7 @@
-import type { Auslage, Beteiligter, Bestellung, KostenArt, KostenPosten } from '../types'
+import type {
+  Abrechnung, AbrechnungAuftrag, AbrechnungPosten,
+  Auslage, Beteiligter, Bestellung, KostenArt, KostenPosten,
+} from '../types'
 import { einfuhrsteuerChf, herstellungFuer } from './kosten'
 import { montageBetrag } from '../components/admin/hilfen'
 import { standardTraeger, verteilung as schluessel } from '../data/kostenConfig'
@@ -761,74 +764,117 @@ export function offeneSchulden(bestellungen: Bestellung[], auslagen: Auslage[]):
 
 /* --- Abrechnung ------------------------------------------------------------ */
 
-export interface Aufteilung {
-  /** Erloes aller festen Auftraege, ob schon bezahlt oder nicht. */
+/**
+ * Ein Auftrag, dessen Geld da ist und der noch in keiner Abrechnung steht.
+ *
+ * DIE EINNAHMESEITE EINER ABRECHNUNG, und sie kommt NICHT aus
+ * `offeneForderungen`: Dort stehen die UNbezahlten – das ist ihre Definition.
+ * Wer dort etwas abhakt, sagt "das Geld ist eingegangen", und die Zeile
+ * verschwindet. Genau das Geld, das verteilt werden soll, findet sich in
+ * jener Liste also nie.
+ */
+export interface Einnahme {
+  bestellungId: string
+  referenz: string
+  kunde: string
   erloesChf: number
-  /** Davon aus der Ware, nach Rabatt. */
   warenerloesChf: number
-  /** Davon aus Montage und Anfahrt – unsere eigene Arbeit. */
   montageerloesChf: number
-  /** Noch nicht ausgeglichene Warenkosten. */
+  /** Seit wann das Geld da ist. */
+  am: string
+}
+
+/** Die Kennungen aller Auftraege, die in einer Abrechnung stecken. */
+export function abgerechneteAuftraege(abrechnungen: Abrechnung[]): Set<string> {
+  const raus = new Set<string>()
+  for (const a of abrechnungen) for (const x of a.auftraege) raus.add(x.bestellungId)
+  return raus
+}
+
+/**
+ * Was noch zu verteilen ist: bezahlte Auftraege ausserhalb jeder Abrechnung.
+ *
+ * ENTWUERFE ZAEHLEN MIT. Ein Auftrag, der in einer offenen Abrechnung liegt,
+ * steht hier nicht mehr zur Wahl – sonst liesse er sich in zwei Abrechnungen
+ * zugleich legen und das Geld waere zweimal verteilt.
+ */
+export function offeneEinnahmen(bestellungen: Bestellung[], abrechnungen: Abrechnung[]): Einnahme[] {
+  const schon = abgerechneteAuftraege(abrechnungen)
+  const raus: Einnahme[] = []
+  for (const b of bestellungen) {
+    if (!inRechnung(b) || schon.has(b.id)) continue
+    const z = zahlenFuer(b)
+    if (!z.einkassiert) continue
+    raus.push({
+      bestellungId: b.id,
+      referenz: b.referenz,
+      kunde: b.kunde.name,
+      erloesChf: z.erloesChf,
+      /* Der Rabatt mindert die Ware – nachgelassen wird auf den Netzpreis. */
+      warenerloesChf: runde2(z.netzeChf - z.rabattChf),
+      montageerloesChf: runde2(z.montageChf + z.anfahrtChf),
+      am: b.bezahltAm ?? b.bezahlung?.zeitpunkt ?? z.datum,
+    })
+  }
+  return raus.sort((x, y) => (x.am < y.am ? -1 : 1))
+}
+
+/** Die Summen einer Abrechnung, aus ihren Zeilen gerechnet. */
+export interface AbrechnungZahlen {
+  erloesChf: number
+  warenerloesChf: number
+  montageerloesChf: number
   warenkostenChf: number
-  /** Noch nicht ausgeglichene Betriebskosten. */
   betriebskostenChf: number
-  /** Beides zusammen – das, was noch zurueckgeht. */
   rueckzahlungChf: number
-  /** Was jede und jeder zurueckbekommt, bevor verteilt wird. */
   rueckzahlung: Record<Beteiligter, number>
-  /** Die zwei Toepfe. Koennen negativ sein – dann ist nichts zu verteilen. */
   warengewinnChf: number
   montagegewinnChf: number
   verteilbarChf: number
   anteile: Record<Beteiligter, number>
-  /** Anteil plus Rueckzahlung – was unter dem Strich zu jedem fliesst. */
   summe: Record<Beteiligter, number>
 }
 
 /**
- * Was eine Abrechnung heute ergaebe.
+ * Was eine Abrechnung aus diesen Auftraegen und Auslagen ergibt.
  *
- * ALLE FESTEN AUFTRAEGE, NICHT NUR DIE BEZAHLTEN. Die Frage lautet: Wenn
- * heute alles beglichen waere – was bliebe, und wer bekaeme was? Dass ein
- * Kunde noch nicht gezahlt hat, verschiebt den Zeitpunkt, nicht die Summe.
- * (Zuerst stand hier nur Einkassiertes; dann zeigte die Abrechnung bei
- * lauter offenen Auftraegen schlicht nichts an.)
- *
- * UND NUR DAS NOCH NICHT VERRECHNETE AUF DER KOSTENSEITE. Was jemand schon
- * zurueckbekommen hat, ist erledigt und faellt heraus – sonst zoege es den
- * Gewinn ein zweites Mal herunter.
+ * ZUERST ZURUECK, DANN VERTEILEN. Wer etwas ausgelegt hat, bekommt es vom
+ * eingegangenen Geld zuerst zurueck; erst was danach bleibt, geht nach den
+ * Schluesseln.
  *
  * ZWEI TOEPFE, wie abgemacht: Die Ware kauft Bora ein, daran ist er
  * beteiligt. Montage und Anfahrt sind die Arbeit von Ufuk und Deniz und
  * werden unter ihnen geteilt. Die Schluessel stehen in
  * src/data/kostenConfig.ts – auch, aus welchem Topf die Betriebskosten
  * bezahlt werden.
+ *
+ * EIN TOPF IM MINUS WIRD NICHT VERTEILT. Die Anzeige las sonst "Bora
+ * -10.02", und das sieht aus, als schuldete Bora uns Geld. In Wahrheit ist
+ * nur noch nichts zu verteilen. Der Topf bleibt negativ stehen, denn das
+ * ist die Lage; die Anteile werden bei null abgeschnitten. Die Rueckzahlung
+ * bleibt davon unberuehrt: Eine Auslage geht zurueck, auch wenn am Ende
+ * nichts zu verteilen ist.
  */
-export function aufteilung(bestellungen: Bestellung[], auslagen: Auslage[]): Aufteilung {
+export function abrechnungZahlen(
+  auftraege: AbrechnungAuftrag[],
+  posten: AbrechnungPosten[],
+): AbrechnungZahlen {
   let erloesChf = 0
   let warenerloesChf = 0
   let montageerloesChf = 0
-
-  for (const b of bestellungen) {
-    if (!inRechnung(b)) continue
-    const z = zahlenFuer(b)
-    erloesChf = runde2(erloesChf + z.erloesChf)
-    /* Der Rabatt mindert die Ware – nachgelassen wird auf den Netzpreis. */
-    warenerloesChf = runde2(warenerloesChf + z.netzeChf - z.rabattChf)
-    montageerloesChf = runde2(montageerloesChf + z.montageChf + z.anfahrtChf)
+  for (const a of auftraege) {
+    erloesChf = runde2(erloesChf + a.erloesChf)
+    warenerloesChf = runde2(warenerloesChf + a.warenerloesChf)
+    montageerloesChf = runde2(montageerloesChf + a.montageerloesChf)
   }
 
-  /* Die Kostenseite kommt aus den OFFENEN Posten – Ausgeglichenes faellt weg. */
-  const schulden = offeneSchulden(bestellungen, auslagen)
   const rueckzahlung: Record<Beteiligter, number> = { bora: 0, ufuk: 0, deniz: 0 }
   let warenkostenChf = 0
   let betriebskostenChf = 0
-  for (const s of schulden) {
-    rueckzahlung[s.traeger] = s.betragChf
-    for (const posten of s.posten) {
-      if (posten.art === 'auslage') betriebskostenChf = runde2(betriebskostenChf + posten.betragChf)
-      else warenkostenChf = runde2(warenkostenChf + posten.betragChf)
-    }
+  for (const p of posten) {
+    rueckzahlung[p.traeger] = runde2(rueckzahlung[p.traeger] + p.betragChf)
+    if (p.art === 'auslage') betriebskostenChf = runde2(betriebskostenChf + p.betragChf)
+    else warenkostenChf = runde2(warenkostenChf + p.betragChf)
   }
   const rueckzahlungChf = runde2(warenkostenChf + betriebskostenChf)
 
@@ -836,12 +882,6 @@ export function aufteilung(bestellungen: Bestellung[], auslagen: Auslage[]): Auf
   const warengewinnChf = runde2(warenerloesChf - warenkostenChf - (aufWare ? betriebskostenChf : 0))
   const montagegewinnChf = runde2(montageerloesChf - (aufWare ? 0 : betriebskostenChf))
 
-  /*
-   * EIN TOPF IM MINUS WIRD NICHT VERTEILT. Die Anzeige las sonst "Bora
-   * -10.02", und das sieht aus, als schuldete Bora uns Geld. In Wahrheit ist
-   * nur noch nichts zu verteilen. Der Topf bleibt negativ stehen, denn das
-   * ist die Lage; die Anteile werden bei null abgeschnitten.
-   */
   const anteile: Record<Beteiligter, number> = { bora: 0, ufuk: 0, deniz: 0 }
   const summe: Record<Beteiligter, number> = { bora: 0, ufuk: 0, deniz: 0 }
   const ware = Math.max(0, warengewinnChf)
@@ -865,4 +905,17 @@ export function aufteilung(bestellungen: Bestellung[], auslagen: Auslage[]): Auf
     anteile,
     summe,
   }
+}
+
+/** Das naechste freie Etikett: A-<Jahr>-<laufende Nummer>. */
+export function naechsteAbrechnungsnummer(abrechnungen: Abrechnung[], jetzt = new Date()): string {
+  const jahr = jetzt.getFullYear()
+  const anfang = `A-${jahr}-`
+  const hoechste = abrechnungen
+    .map((a) => a.nummer)
+    .filter((n) => n.startsWith(anfang))
+    .map((n) => Number(n.slice(anfang.length)))
+    .filter((n) => Number.isFinite(n))
+    .reduce((h, n) => Math.max(h, n), 0)
+  return `${anfang}${String(hoechste + 1).padStart(2, '0')}`
 }

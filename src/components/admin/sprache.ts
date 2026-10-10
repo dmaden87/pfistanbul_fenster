@@ -627,6 +627,50 @@ const PAARE = {
   zRueckzahlung: ['Rückzahlung', 'Geri ödeme'],
   zAnteil: ['Anteil', 'Pay'],
   zZusammenSpalte: ['Zusammen', 'Toplam'],
+  zEinnahmen: ['Eingegangen, noch nicht abgerechnet', 'Tahsil edildi, henüz hesaplaşılmadı'],
+  zEinnahmenSatz: [
+    'Aufträge, deren Geld da ist und die in keiner Abrechnung stehen. Hier wird ausgewählt, was verteilt werden soll.',
+    'Parası gelmiş ve hiçbir hesaplaşmada yer almayan siparişler. Dağıtılacak olan burada seçilir.',
+  ],
+  zNichtsEinzunehmen: [
+    'Nichts Offenes. Sobald ein Auftrag bezahlt ist, steht er hier.',
+    'Açık bir şey yok. Bir sipariş ödendiğinde burada görünür.',
+  ],
+  zAuswaehlen: ['abrechnen?', 'hesaplaşsın mı?'],
+  zAbrechnenKnopf: ['Abrechnen', 'Hesaplaşmayı başlat'],
+  zAbrechnenSatz: [
+    '{a} Aufträge und {p} Auslagen gewählt. Daraus wird ein Entwurf, den du vor dem Abschliessen prüfen kannst.',
+    '{a} sipariş ve {p} masraf seçildi. Bundan, kapatmadan önce kontrol edebileceğin bir taslak oluşur.',
+  ],
+  zAbrechnungLeer: [
+    'Nichts offen. Wähle oben Aufträge und Auslagen aus und klicke auf „Abrechnen“.',
+    'Açık bir şey yok. Yukarıdan sipariş ve masraf seç, sonra „Hesaplaşmayı başlat“a bas.',
+  ],
+  zEntwurf: ['Entwurf', 'Taslak'],
+  zEntwurfSatz: [
+    'Noch nicht abgeschlossen. Prüfe die Zahlen – „Erledigt“ friert sie ein, schreibt die Auslagen auf zurückbezahlt und nimmt die Aufträge aus der Liste oben.',
+    'Henüz kapatılmadı. Rakamları kontrol et – „Tamamlandı“ onları dondurur, masrafları geri ödendi olarak işaretler ve siparişleri yukarıdaki listeden çıkarır.',
+  ],
+  zErledigtKnopf: ['Erledigt', 'Tamamlandı'],
+  zVerwerfenKnopf: ['Entwurf verwerfen', 'Taslağı sil'],
+  zWirdAbgeschlossen: ['Wird abgeschlossen …', 'Kapatılıyor …'],
+  zHistorie: ['Frühere Abrechnungen', 'Önceki hesaplaşmalar'],
+  zHistorieLeer: ['Noch keine abgeschlossene Abrechnung.', 'Henüz tamamlanmış hesaplaşma yok.'],
+  zHistorieSatz: [
+    'Abgeschlossen und unveränderlich. Die Zahlen sind die von damals – auch wenn ein Preis seither geändert wurde.',
+    'Tamamlandı ve değiştirilemez. Rakamlar o günkülerdir – bir fiyat o zamandan beri değişmiş olsa bile.',
+  ],
+  zAufklappen: ['Details', 'Ayrıntılar'],
+  zZuklappen: ['schliessen', 'kapat'],
+  zAbrechnungAm: ['abgerechnet am', 'hesaplaşma tarihi'],
+  zAuftraegeDarin: ['Aufträge', 'Siparişler'],
+  /*
+   * NICHT "AUSLAGEN". Das meiste darin sind Netzkosten aus den Auftraegen;
+   * Auslagen im engeren Sinn sind nur die Betriebskosten. Wer "16 Auslagen"
+   * liest, sucht sechzehn Quittungen.
+   */
+  zKostenDarin: ['Kosten und Auslagen', 'Maliyet ve masraflar'],
+  zNotizFeld: ['Notiz zur Abrechnung', 'Hesaplaşma notu'],
   zAbrechnungSatz: [
     'Stand heute: Alle festen Aufträge sind verrechnet, alle offenen Auslagen zurückbezahlt. Was jemand schon ausgeglichen hat, steht nicht mehr darin – darum die Häkchen oben.',
     'Bugün itibarıyla: tüm kesin siparişler hesaplanmış, açık masraflar geri ödenmiş sayılır. Daha önce kapatılanlar burada görünmez – yukarıdaki işaretler bunun içindir.',

@@ -526,6 +526,64 @@ export function demoAuslagen(): Record<string, unknown>[] {
     { id: 'demo-al-4', am: tag(333), bezeichnung: 'Visitenkarten und Flyer', kategorie: 'marketing',
       betragChf: 95, traeger: 'ufuk', bezahlt: true, erfasstAm: new Date(Date.now() - 333 * 86400000).toISOString() },
     { id: 'demo-al-3', am: tag(12), bezeichnung: 'Domain und Hosting', kategorie: 'infrastruktur',
-      betragChf: 38.4, traeger: 'deniz', bezahlt: true, erfasstAm: new Date(Date.now() - 12 * 86400000).toISOString() },
+      betragChf: 38.4, traeger: 'deniz', erfasstAm: new Date(Date.now() - 12 * 86400000).toISOString() },
+  ]
+}
+
+/**
+ * Eine abgeschlossene Abrechnung, damit die Historie nicht leer ist.
+ *
+ * SIE GEHOERT ZU demo-10 (Erika Stutz) UND ZU demo-al-4 (Visitenkarten) -
+ * den beiden Beispielen, die als bezahlt markiert sind, ohne dass bisher
+ * jemand haette sagen koennen, warum. Jetzt steht es da: Sie wurden in
+ * dieser Abrechnung verteilt.
+ *
+ * Die Zahlen gehen auf: 170 Erloes gehen vollstaendig hinaus - 44.77 an
+ * Bora, 108.95 an Ufuk, 16.28 an Deniz. Ein Test rechnet sie mit
+ * abrechnungZahlen() nach; weicht die Formel einmal ab, faellt es dort auf
+ * und nicht erst beim naechsten Verteilen.
+ */
+export function demoAbrechnungen(): Record<string, unknown>[] {
+  const vor = (zurueck: number) => new Date(Date.now() - zurueck * 86400000).toISOString()
+  return [
+    {
+      id: 'demo-ab-1',
+      nummer: 'A-2025-01',
+      erstelltAm: vor(328),
+      erledigtAm: vor(328),
+      notiz: 'Erste Abrechnung, nach der Lieferung im Herbst.',
+      auftraege: [
+        {
+          bestellungId: 'demo-10',
+          referenz: 'PF-D010',
+          kunde: 'Erika Stutz',
+          erloesChf: 170,
+          warenerloesChf: 150,
+          montageerloesChf: 20,
+        },
+      ],
+      posten: [
+        { bestellungId: 'demo-10', postenId: 'd10k1', art: 'herstellung', kunde: 'Erika Stutz',
+          betragChf: 28.8, traeger: 'bora' },
+        { bestellungId: 'demo-10', postenId: 'd10k2', art: 'lieferung', kunde: 'Erika Stutz',
+          betragChf: 14, traeger: 'bora' },
+        { bestellungId: 'demo-10', postenId: 'd10k3', art: 'mwst', kunde: 'Erika Stutz',
+          betragChf: 2.33, traeger: 'deniz' },
+        { auslageId: 'demo-al-4', postenId: 'demo-al-4', art: 'auslage',
+          bezeichnung: 'Visitenkarten und Flyer', betragChf: 95, traeger: 'ufuk' },
+      ],
+      erloesChf: 170,
+      warenerloesChf: 150,
+      montageerloesChf: 20,
+      warenkostenChf: 45.13,
+      betriebskostenChf: 95,
+      rueckzahlungChf: 140.13,
+      rueckzahlung: { bora: 42.8, ufuk: 95, deniz: 2.33 },
+      warengewinnChf: 9.87,
+      montagegewinnChf: 20,
+      verteilbarChf: 29.87,
+      anteile: { bora: 1.97, ufuk: 13.95, deniz: 13.95 },
+      summe: { bora: 44.77, ufuk: 108.95, deniz: 16.28 },
+    },
   ]
 }

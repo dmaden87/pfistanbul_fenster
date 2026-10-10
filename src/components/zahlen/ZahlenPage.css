@@ -450,3 +450,92 @@
 .zahlen__block {
   margin-top: var(--space-7);
 }
+
+/* --- Abrechnung: Entwurf und Historie --------------------------------------- */
+
+.zahlen__werkzeug {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
+  margin-top: var(--space-4);
+}
+
+/*
+ * Der Entwurf und die aufgeklappte Historie zeigen DASSELBE Bauteil. Ein
+ * Rahmen darum sagt, dass es zusammengehoert - sonst laufen die drei
+ * Tabellen in die Seite aus und man weiss nicht, wo die Abrechnung aufhoert.
+ */
+.abrechnung {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.abrechnung .zahlen__unterkopf:first-child {
+  margin-top: 0;
+}
+
+.abrechnung__liste {
+  list-style: none;
+  /*
+   * Siehe bau/pruefung.mjs: Jede Liste ohne Punkte sagt, wie weit sie
+   * einrueckt. `padding-left` zaehlt dort nicht - die Pruefung verlangt die
+   * logische Eigenschaft, damit es in jeder Schreibrichtung stimmt.
+   */
+  padding-inline-start: 0;
+  margin: var(--space-3) 0 0;
+}
+
+.abrechnung__eintrag + .abrechnung__eintrag {
+  margin-top: var(--space-2);
+}
+
+/*
+ * Der ganze Kopf ist der Knopf, nicht ein Pfeil daneben: Auf dem Telefon
+ * trifft man einen Pfeil von 16 Pixeln nicht, und daneben zu tippen tut
+ * nichts - das liest sich wie ein kaputter Eintrag.
+ */
+.abrechnung__kopf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-4);
+  width: 100%;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.abrechnung__kopf:hover {
+  border-color: var(--accent-ink);
+}
+
+.abrechnung__nummer {
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+/* Der Betrag rechts, damit die Spalte untereinander lesbar bleibt. */
+.abrechnung__summe {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.abrechnung__pfeil {
+  font-size: var(--step--2);
+  color: var(--text-muted);
+}
+
+@media (max-width: 30rem) {
+  .abrechnung__summe {
+    margin-left: 0;
+  }
+}

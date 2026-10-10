@@ -48,6 +48,8 @@ export const TABELLE_DEMO = 'pf:demo:bestellungen'
  */
 export const TABELLE_AUSLAGEN = 'pf:auslagen'
 export const TABELLE_AUSLAGEN_DEMO = 'pf:demo:auslagen'
+export const TABELLE_ABRECHNUNGEN = 'pf:abrechnungen'
+export const TABELLE_ABRECHNUNGEN_DEMO = 'pf:demo:abrechnungen'
 
 /** True, sobald ein Speicher verbunden ist. Ohne ihn bleibt der Adminbereich leer, statt zu lügen. */
 export const speicherBereit = Boolean(url && token)

@@ -1,17 +1,21 @@
 import { Fragment, useCallback, useEffect, useState } from 'react'
 import type {
-  AdminStatus, Auslage, Bestellung, Beteiligter, KostenArt, KostenPosten,
+  Abrechnung, AbrechnungAuftrag, AbrechnungPosten,
+  AdminStatus, Auslage, Bestellung, KostenArt, KostenPosten,
 } from '../../types'
 import {
-  adminStatus, aendereAuslage, aendereBestellung, anmelden,
-  entferneAuslage, ladeAuslagen, ladeBestellungen, legeAuslageAn,
+  adminStatus, aendereAbrechnung, aendereAuslage, aendereBestellung, anmelden,
+  entferneAbrechnung, entferneAuslage, ladeAbrechnungen, ladeAuslagen, ladeBestellungen,
+  legeAbrechnungAn, legeAuslageAn,
 } from '../../lib/adminApi'
 import { beteiligte, kostenConfig } from '../../data/kostenConfig'
 import { formatChf } from '../../lib/format'
 import {
-  abschnitte, aufteilung, forecast, kennzahlen, offeneForderungen, offeneSchulden,
-  warenkosten, zaehltPhase, zahlenFuer, type Periode, type SchuldPosten,
+  abrechnungZahlen, abschnitte, forecast, kennzahlen, naechsteAbrechnungsnummer,
+  offeneEinnahmen, offeneForderungen, offeneSchulden, warenkosten, zaehltPhase, zahlenFuer,
+  type Periode, type SchuldPosten,
 } from '../../lib/pl'
+import { AbrechnungBlatt } from './AbrechnungBlatt'
 import { KostenEditor } from './KostenEditor'
 import { AuslagenListe } from './AuslagenListe'
 import { SprachRahmen } from '../admin/SprachRahmen'
@@ -65,6 +69,15 @@ function ZahlenMaske({ onBack }: Props) {
   const [sendet, setSendet] = useState(false)
   const [periode, setPeriode] = useState<Periode>('ytd')
   const [offenerEditor, setOffenerEditor] = useState<string | null>(null)
+  const [abrechnungen, setAbrechnungen] = useState<Abrechnung[]>([])
+  /*
+   * Die Auswahl liegt im Browser, nicht auf dem Server: Sie ist ein paar
+   * Klicks lang und keine Tatsache. Erst "Abrechnen" macht daraus einen
+   * Entwurf, und der steht dann fuer alle gleich da.
+   */
+  const [gewaehlteAuftraege, setGewaehlteAuftraege] = useState<string[]>([])
+  const [gewaehltePosten, setGewaehltePosten] = useState<string[]>([])
+  const [offeneHistorie, setOffeneHistorie] = useState<string | null>(null)
 
   /*
    * Die festen Kostenarten heissen hier, nicht in src/lib/pl.ts: Dort stuende
@@ -84,9 +97,10 @@ function ZahlenMaske({ onBack }: Props) {
       const s = await adminStatus()
       setStatus(s)
       if (s.angemeldet) {
-        const [b, a] = await Promise.all([ladeBestellungen(), ladeAuslagen()])
+        const [b, a, ab] = await Promise.all([ladeBestellungen(), ladeAuslagen(), ladeAbrechnungen()])
         setBestellungen(b)
         setAuslagen(a)
+        setAbrechnungen(ab)
       }
       setFehler(null)
     } catch (f) {
@@ -159,8 +173,10 @@ function ZahlenMaske({ onBack }: Props) {
   const aussicht = forecast(bestellungen)
   const forderungen = offeneForderungen(bestellungen)
   const schulden = offeneSchulden(bestellungen, auslagen)
-  const teilung = aufteilung(bestellungen, auslagen)
   const netzkosten = warenkosten(bestellungen)
+  const entwurf = abrechnungen.find((a) => !a.erledigtAm)
+  const erledigte = abrechnungen.filter((a) => a.erledigtAm)
+  const einnahmen = offeneEinnahmen(bestellungen, abrechnungen)
 
   /* Sendungen: die Pakete, wie sie zu Bora gegangen sind. */
   const pakete = new Map<string, {
@@ -178,6 +194,126 @@ function ZahlenMaske({ onBack }: Props) {
     pakete.set(b.paket, p)
   }
 
+  /*
+   * Ein Posten braucht eine Kennung, die ueber Auftraege hinweg eindeutig
+   * ist: Zwei Auftraege koennen beide ein Netz mit der Kennung "k1" haben.
+   */
+  const postenSchluessel = (p: SchuldPosten) => `${p.bestellungId ?? p.auslageId ?? ''}:${p.postenId}`
+
+  const waehleAuftrag = (id: string, an: boolean) =>
+    setGewaehlteAuftraege((l) => (an ? [...l, id] : l.filter((x) => x !== id)))
+  const waehlePosten = (schluessel: string, an: boolean) =>
+    setGewaehltePosten((l) => (an ? [...l, schluessel] : l.filter((x) => x !== schluessel)))
+
+  /**
+   * Aus der Auswahl einen Entwurf machen.
+   *
+   * GERECHNET WIRD HIER UND MITGESCHICKT. Die Formel steht in src/lib/pl.ts,
+   * und api/ darf von dort nicht importieren - der Server legt ab, was
+   * ankommt. Die Zeilen gehen mit ihren Betraegen mit, damit der Beleg
+   * spaeter nicht davon abhaengt, ob es den Auftrag noch gibt.
+   */
+  const abrechnen = async () => {
+    const gewaehlt = einnahmen.filter((e) => gewaehlteAuftraege.includes(e.bestellungId))
+    const auftraege: AbrechnungAuftrag[] = gewaehlt.map((e) => ({
+      bestellungId: e.bestellungId,
+      referenz: e.referenz,
+      kunde: e.kunde,
+      erloesChf: e.erloesChf,
+      warenerloesChf: e.warenerloesChf,
+      montageerloesChf: e.montageerloesChf,
+    }))
+    const posten: AbrechnungPosten[] = []
+    for (const sch of schulden) {
+      for (const p of sch.posten) {
+        if (!gewaehltePosten.includes(postenSchluessel(p))) continue
+        posten.push({
+          ...(p.bestellungId ? { bestellungId: p.bestellungId } : {}),
+          ...(p.auslageId ? { auslageId: p.auslageId } : {}),
+          postenId: p.postenId,
+          art: p.art,
+          ...(p.bezeichnung ? { bezeichnung: p.bezeichnung } : {}),
+          ...(p.kunde ? { kunde: p.kunde } : {}),
+          betragChf: p.betragChf,
+          traeger: sch.traeger,
+        })
+      }
+    }
+    setSendet(true)
+    setFehler(null)
+    try {
+      const neu = await legeAbrechnungAn({
+        nummer: naechsteAbrechnungsnummer(abrechnungen),
+        auftraege,
+        posten,
+        ...abrechnungZahlen(auftraege, posten),
+      })
+      setAbrechnungen((l) => [neu, ...l])
+      setGewaehlteAuftraege([])
+      setGewaehltePosten([])
+    } catch (f) {
+      setFehler(f instanceof Error ? f.message : t.zSpeichernSchiefgelaufen)
+    }
+    setSendet(false)
+  }
+
+  /**
+   * Den Entwurf abschliessen.
+   *
+   * ERST DIE POSTEN, DANN DER ABSCHLUSS. Geht zwischendurch etwas schief,
+   * steht die Abrechnung noch offen und laesst sich noch einmal abschliessen
+   * - ein paar Posten sind dann schon auf bezahlt, und das Wiederholen
+   * setzt sie noch einmal auf denselben Wert. Umgekehrt waere der Beleg
+   * fertig und die Auslagen stuenden weiter offen.
+   */
+  const erledigen = async (a: Abrechnung) => {
+    setSendet(true)
+    setFehler(null)
+    try {
+      for (const p of a.posten) {
+        if (p.auslageId) {
+          const neu = await aendereAuslage(p.auslageId, { bezahlt: true })
+          setAuslagen((l) => l.map((x) => (x.id === p.auslageId ? neu : x)))
+          continue
+        }
+        const b = bestellungen.find((x) => x.id === p.bestellungId)
+        if (!b || p.art === 'auslage') continue
+        const vorhanden = (b.kosten ?? []).some((k) => k.id === p.postenId)
+        const kosten: KostenPosten[] = vorhanden
+          ? (b.kosten ?? []).map((k) => (k.id === p.postenId ? { ...k, bezahlt: true } : k))
+          : [
+              ...(b.kosten ?? []),
+              {
+                id: p.postenId,
+                art: p.art,
+                betragChf: p.betragChf,
+                traeger: p.traeger,
+                bezahlt: true,
+                erfasstAm: new Date().toISOString(),
+              },
+            ]
+        await kostenSpeichern(b.id, kosten)
+      }
+      const fertig = await aendereAbrechnung(a.id, { erledigt: true })
+      setAbrechnungen((l) => l.map((x) => (x.id === a.id ? fertig : x)))
+    } catch (f) {
+      setFehler(f instanceof Error ? f.message : t.zSpeichernSchiefgelaufen)
+    }
+    setSendet(false)
+  }
+
+  const verwerfen = async (a: Abrechnung) => {
+    setSendet(true)
+    setFehler(null)
+    try {
+      await entferneAbrechnung(a.id)
+      setAbrechnungen((l) => l.filter((x) => x.id !== a.id))
+    } catch (f) {
+      setFehler(f instanceof Error ? f.message : t.zSpeichernSchiefgelaufen)
+    }
+    setSendet(false)
+  }
+
   const kostenSpeichern = async (id: string, kosten: KostenPosten[]) => {
     const neu = await aendereBestellung(id, { kosten })
     setBestellungen((liste) => liste.map((b) => (b.id === id ? neu : b)))
@@ -189,40 +325,6 @@ function ZahlenMaske({ onBack }: Props) {
     setBestellungen((liste) => liste.map((b) => (b.id === id ? neu : b)))
   }
 
-  /*
-   * Ein Haekchen bei "Wem wir was schulden": Der Posten ist ausgeglichen.
-   *
-   * NICHT ERFASSTE POSTEN WERDEN DABEI FESTGESCHRIEBEN. Was aus der Formel
-   * oder aus einem alten Feld kommt, steht in keiner Liste, also gibt es daran
-   * auch nichts abzuhaken - das Haekchen legt den Posten mit demselben Betrag
-   * und derselben Kennung an und setzt ihn auf bezahlt. So bleibt die Summe
-   * gleich und der Stand haelt.
-   */
-  const ausgleichen = async (traeger: Beteiligter, posten: SchuldPosten, ja: boolean) => {
-    if (posten.auslageId) {
-      const neu = await aendereAuslage(posten.auslageId, { bezahlt: ja })
-      setAuslagen((l) => l.map((x) => (x.id === posten.auslageId ? neu : x)))
-      return
-    }
-    const b = bestellungen.find((x) => x.id === posten.bestellungId)
-    if (!b || posten.art === 'auslage') return
-    const vorhanden = (b.kosten ?? []).some((k) => k.id === posten.postenId)
-    const kosten: KostenPosten[] = vorhanden
-      ? (b.kosten ?? []).map((k) => (k.id === posten.postenId ? { ...k, bezahlt: ja } : k))
-      : [
-          ...(b.kosten ?? []),
-          {
-            id: posten.postenId,
-            art: posten.art,
-            betragChf: posten.betragChf,
-            traeger,
-            bezahlt: ja,
-            am: posten.am.slice(0, 10),
-            erfasstAm: new Date().toISOString(),
-          },
-        ]
-    await kostenSpeichern(b.id, kosten)
-  }
 
   return (
     <section className="section zahlen">
@@ -594,12 +696,18 @@ function ZahlenMaske({ onBack }: Props) {
 
         {/* --- Offene Posten ------------------------------------------------- */}
         {/*
-          HIER WIRD AUSGEGLICHEN, und nur hier. Die Haekchen sind keine
-          Anzeigeschalter: Ein Haken heisst "das Geld ist geflossen". Dadurch
-          faellt die Zeile aus dieser Liste UND aus der Abrechnung unten
-          heraus - das ist genau die Steuerung, die gewuenscht war. Was
-          gerechnet ist und noch nie erfasst wurde, wird beim Haken
-          festgeschrieben; siehe `ausgleichen` weiter oben.
+          ZWEI VERSCHIEDENE HAEKCHEN, und der Unterschied ist der ganze Umbau.
+
+          Links heisst es "das Geld ist eingegangen". Der Auftrag faellt aus
+          den Forderungen und taucht unten bei den Einnahmen auf, die sich
+          abrechnen lassen.
+
+          Rechts heisst es "nimm diese Auslage in die naechste Abrechnung".
+          Frueher hiess es dort "ist zurueckbezahlt", und der Posten
+          verschwand beim Anklicken - das war die Meldung ueber etwas, das
+          schon geschehen war, und nicht der Weg, es zu tun. Zurueckbezahlt
+          wird jetzt beim Abschluss der Abrechnung, und zwar fuer alles
+          darin auf einmal.
         */}
         <div className="zahlen__block zahlen__zweispaltig">
           <div>
@@ -645,14 +753,9 @@ function ZahlenMaske({ onBack }: Props) {
               <div className="zahlen__rollen"><table className="zahlen__tabelle">
                 <thead>
                   <tr>
-                    {/*
-                      KEINE DATUMSSPALTE. Daneben muss das Kaestchen stehen,
-                      und in der halben Seitenbreite ging es sonst rechts
-                      hinaus - sichtbar erst im Messbild, nicht im Kopf.
-                    */}
                     <th>{t.zPosten}</th>
                     <th className="zahlen__zahl">{t.zBetrag}</th>
-                    <th>{t.zAusgeglichen}</th>
+                    <th>{t.zAuswaehlen}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -673,9 +776,11 @@ function ZahlenMaske({ onBack }: Props) {
                             </span>
                           </td>
                           <td data-titel={t.zBetrag} className="zahlen__zahl">{formatChf(p.betragChf)}</td>
-                          <td data-titel={t.zAusgeglichen}>
-                            <input type="checkbox" checked={false} aria-label={t.zAusgeglichen}
-                              onChange={() => void ausgleichen(sch.traeger, p, true)} />
+                          <td data-titel={t.zAuswaehlen}>
+                            <input type="checkbox" aria-label={t.zAuswaehlen}
+                              disabled={entwurf !== undefined}
+                              checked={gewaehltePosten.includes(postenSchluessel(p))}
+                              onChange={(e) => waehlePosten(postenSchluessel(p), e.target.checked)} />
                           </td>
                         </tr>
                       ))}
@@ -690,92 +795,127 @@ function ZahlenMaske({ onBack }: Props) {
         {/* --- Abrechnung ---------------------------------------------------- */}
         <div className="zahlen__block">
           <h2>{t.zAbrechnung}</h2>
-          <p className="zahlen__hinweis">{t.zAbrechnungSatz}</p>
-          <div className="zahlen__rollen"><table className="zahlen__tabelle zahlen__tabelle--schmal">
-            <tbody>
-              <tr>
-                <td>{t.zEinkassiertWare}</td>
-                <td className="zahlen__zahl">{formatChf(teilung.warenerloesChf)}</td>
-              </tr>
-              <tr>
-                <td>{t.zEinkassiertMontage}</td>
-                <td className="zahlen__zahl">{formatChf(teilung.montageerloesChf)}</td>
-              </tr>
-              <tr>
-                <td>{t.zWarenkostenDieser}</td>
-                <td className="zahlen__zahl">− {formatChf(teilung.warenkostenChf)}</td>
-              </tr>
-              <tr>
-                <td>{t.zBetriebskosten}</td>
-                <td className="zahlen__zahl">− {formatChf(teilung.betriebskostenChf)}</td>
-              </tr>
-              <tr className="zahlen__strich">
-                <td>{t.zTopfWare}</td>
-                <td className="zahlen__zahl">{formatChf(teilung.warengewinnChf)}</td>
-              </tr>
-              <tr>
-                <td>{t.zTopfMontage}</td>
-                <td className="zahlen__zahl">{formatChf(teilung.montagegewinnChf)}</td>
-              </tr>
-            </tbody>
-          </table></div>
 
-          {/*
-            DREI SPALTEN, NICHT EINE. Wer etwas ausgelegt hat, bekommt es
-            zuerst zurueck; erst was danach bleibt, wird verteilt. Stand nur
-            der Anteil da, las sich die Zeile als sei das alles, was fliesst.
-          */}
-          <div className="zahlen__rollen"><table className="zahlen__tabelle zahlen__tabelle--schmal">
-            <thead>
-              <tr>
-                <th>{t.zWer}</th>
-                <th className="zahlen__zahl">{t.zRueckzahlung}</th>
-                <th className="zahlen__zahl">{t.zAnteil}</th>
-                <th className="zahlen__zahl">{t.zZusammenSpalte}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(['bora', 'ufuk', 'deniz'] as const).map((wer) => (
-                <tr key={wer}>
-                  <td data-titel={t.zWer}>{beteiligte[wer]}</td>
-                  <td data-titel={t.zRueckzahlung} className="zahlen__zahl">
-                    {formatChf(teilung.rueckzahlung[wer])}
-                  </td>
-                  <td data-titel={t.zAnteil} className="zahlen__zahl">
-                    {formatChf(teilung.anteile[wer])}
-                  </td>
-                  <td data-titel={t.zZusammenSpalte} className="zahlen__zahl">
-                    <strong>{formatChf(teilung.summe[wer])}</strong>
-                  </td>
-                </tr>
-              ))}
-              <tr className="zahlen__strich">
-                <td><strong>{t.zZusammen}</strong></td>
-                <td className="zahlen__zahl"><strong>{formatChf(teilung.rueckzahlungChf)}</strong></td>
-                <td className="zahlen__zahl"><strong>{formatChf(teilung.verteilbarChf)}</strong></td>
-                <td className="zahlen__zahl">
-                  <strong>{formatChf(teilung.rueckzahlungChf + teilung.verteilbarChf)}</strong>
-                </td>
-              </tr>
-            </tbody>
-          </table></div>
+          {entwurf ? (
+            <>
+              <p className="zahlen__hinweis">
+                <span className="kosten__marke">{t.zEntwurf}</span> {entwurf.nummer} · {t.zEntwurfSatz}
+              </p>
+              <AbrechnungBlatt abrechnung={entwurf} t={t} />
+              <div className="zahlen__werkzeug">
+                <button type="button" className="btn" disabled={sendet}
+                  onClick={() => void erledigen(entwurf)}>
+                  {sendet ? t.zWirdAbgeschlossen : t.zErledigtKnopf}
+                </button>
+                <button type="button" className="btn btn--quiet" disabled={sendet}
+                  onClick={() => void verwerfen(entwurf)}>
+                  {t.zVerwerfenKnopf}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <h3 className="zahlen__unterkopf">{t.zEinnahmen}</h3>
+              <p className="zahlen__hinweis">{t.zEinnahmenSatz}</p>
+              {einnahmen.length === 0 ? <p className="zahlen__hinweis">{t.zNichtsEinzunehmen}</p> : (
+                <div className="zahlen__rollen"><table className="zahlen__tabelle">
+                  <thead>
+                    <tr>
+                      <th>{t.zAuftrag}</th>
+                      <th>{t.zDatum}</th>
+                      <th className="zahlen__zahl">{t.zWare}</th>
+                      <th className="zahlen__zahl">{t.montageSumme}</th>
+                      <th className="zahlen__zahl">{t.zErloes}</th>
+                      <th>{t.zAuswaehlen}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {einnahmen.map((e) => (
+                      <tr key={e.bestellungId}>
+                        <td data-titel={t.zAuftrag}>
+                          {e.kunde}
+                          <span className="zahlen__klein">{e.referenz}</span>
+                        </td>
+                        <td data-titel={t.zDatum}>{e.am.slice(0, 10)}</td>
+                        <td data-titel={t.zWare} className="zahlen__zahl">{formatChf(e.warenerloesChf)}</td>
+                        <td data-titel={t.montageSumme} className="zahlen__zahl">{formatChf(e.montageerloesChf)}</td>
+                        <td data-titel={t.zErloes} className="zahlen__zahl">{formatChf(e.erloesChf)}</td>
+                        <td data-titel={t.zAuswaehlen}>
+                          <input type="checkbox" aria-label={t.zAuswaehlen}
+                            checked={gewaehlteAuftraege.includes(e.bestellungId)}
+                            onChange={(ev) => waehleAuftrag(e.bestellungId, ev.target.checked)} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table></div>
+              )}
 
-          {teilung.verteilbarChf === 0 && (
-            <p className="zahlen__hinweis">
-              {t.zNichtsZuVerteilen}
-            </p>
+              {gewaehlteAuftraege.length + gewaehltePosten.length === 0 ? (
+                /*
+                 * Der Satz steht nur da, wenn es ueberhaupt etwas zu waehlen
+                 * gibt. Sonst las sich die Seite zweimal hintereinander wie
+                 * eine Aufforderung ins Leere: "nichts da" und direkt
+                 * darunter "waehle etwas aus".
+                 */
+                (einnahmen.length > 0 || schulden.length > 0) && (
+                  <p className="zahlen__hinweis">{t.zAbrechnungLeer}</p>
+                )
+              ) : (
+                <div className="zahlen__werkzeug">
+                  <button type="button" className="btn" disabled={sendet} onClick={() => void abrechnen()}>
+                    {t.zAbrechnenKnopf}
+                  </button>
+                  <span className="zahlen__hinweis">
+                    {fuelle(t.zAbrechnenSatz, {
+                      a: gewaehlteAuftraege.length, p: gewaehltePosten.length,
+                    })}
+                  </span>
+                </div>
+              )}
+            </>
           )}
-          {teilung.rueckzahlungChf > 0 && (
-            <p className="zahlen__hinweis">
-              {fuelle(t.zZuerstZurueck, { betrag: formatChf(teilung.rueckzahlungChf) })}
-            </p>
-          )}
+
           <p className="zahlen__hinweis">
             {fuelle(t.zVerteilungSatz, {
               kurs: kostenConfig.eurChf,
               steuer: (kostenConfig.einfuhrsteuer * 100).toFixed(1),
             })}
           </p>
+
+          {/* --- Historie ---------------------------------------------------- */}
+          <h3 className="zahlen__unterkopf">{t.zHistorie}</h3>
+          {erledigte.length === 0 ? <p className="zahlen__hinweis">{t.zHistorieLeer}</p> : (
+            <>
+              <p className="zahlen__hinweis">{t.zHistorieSatz}</p>
+              <ul className="abrechnung__liste">
+                {erledigte.map((a) => (
+                  <li key={a.id} className="abrechnung__eintrag">
+                    <button type="button" className="abrechnung__kopf"
+                      aria-expanded={offeneHistorie === a.id}
+                      onClick={() => setOffeneHistorie(offeneHistorie === a.id ? null : a.id)}>
+                      <span className="abrechnung__nummer">{a.nummer}</span>
+                      <span className="zahlen__klein">
+                        {t.zAbrechnungAm} {(a.erledigtAm ?? a.erstelltAm).slice(0, 10)} ·{' '}
+                        {a.auftraege.length} {a.auftraege.length === 1 ? t.zAuftrag : t.zAuftraegeDarin} ·{' '}
+                        {a.posten.length} {t.zPosten}
+                      </span>
+                      <span className="abrechnung__summe">{formatChf(a.erloesChf)}</span>
+                      <span className="abrechnung__pfeil" aria-hidden="true">
+                        {offeneHistorie === a.id ? t.zZuklappen : t.zAufklappen}
+                      </span>
+                    </button>
+                    {offeneHistorie === a.id && (
+                      <div className="abrechnung__inhalt">
+                        {a.notiz && <p className="zahlen__hinweis">{a.notiz}</p>}
+                        <AbrechnungBlatt abrechnung={a} t={t} />
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </div>
       </div>
     </section>

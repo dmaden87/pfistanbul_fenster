@@ -153,6 +153,34 @@ await pruefe('Die Beispieldaten decken jede Phase ab und rechnen auf', async () 
   )
 })
 
+await pruefe('Die Beispiel-Abrechnung rechnet mit derselben Formel auf', async () => {
+  /*
+   * DIE ZAHLEN IM BEISPIEL SIND VON HAND GESCHRIEBEN - sie muessen es sein,
+   * denn eine abgeschlossene Abrechnung ist eingefroren. Genau darum koennen
+   * sie unbemerkt von der Formel abweichen. Hier wird beides verglichen:
+   * Weicht `abrechnungZahlen` einmal ab, faellt es hier auf und nicht erst
+   * beim naechsten echten Verteilen.
+   */
+  const { demoAbrechnungen } = await import('../api/_demo.ts')
+  const { abrechnungZahlen } = await import('../src/lib/pl.ts')
+  const liste = demoAbrechnungen()
+  assert.ok(liste.length >= 1, 'ohne Beispiel bleibt die Historie leer')
+  for (const a of liste) {
+    const gerechnet = abrechnungZahlen(a.auftraege, a.posten)
+    for (const feld of ['erloesChf', 'warenerloesChf', 'montageerloesChf', 'warenkostenChf',
+      'betriebskostenChf', 'rueckzahlungChf', 'warengewinnChf', 'montagegewinnChf', 'verteilbarChf']) {
+      assert.equal(a[feld], gerechnet[feld], `${a.nummer}: ${feld}`)
+    }
+    for (const wer of ['bora', 'ufuk', 'deniz']) {
+      assert.equal(a.anteile[wer], gerechnet.anteile[wer], `${a.nummer}: Anteil ${wer}`)
+      assert.equal(a.summe[wer], gerechnet.summe[wer], `${a.nummer}: Summe ${wer}`)
+    }
+    /* Und die Probe aufs Ganze: Was hereinkam, geht vollstaendig hinaus. */
+    const hinaus = Math.round((a.summe.bora + a.summe.ufuk + a.summe.deniz) * 100) / 100
+    assert.equal(hinaus, a.erloesChf, `${a.nummer}: ${hinaus} statt ${a.erloesChf}`)
+  }
+})
+
 await pruefe('Die Beispieldaten benutzen nur Werte, die es wirklich gibt', async () => {
   /*
    * DER GRUND: In den Beispielen stand `mechanismus: 'plissee'`. Diesen Wert
