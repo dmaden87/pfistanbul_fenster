@@ -1116,6 +1116,85 @@ await pruefe('ohne Anmeldung keine Kosten', async () => {
   assert.equal(a.code, 401)
 })
 
+/* --- Die Kontaktdaten, in jeder Phase -------------------------------------- */
+await pruefe('Kontaktdaten lassen sich feldweise aendern', async () => {
+  const b = await anfrageMitNetzen('A-KONT1')
+  let n = await ruf({ method: 'PATCH', cookie, body: { id: b.id, kunde: { strasse: 'Seestrasse 14' } } })
+  assert.equal(n.code, 200)
+  assert.equal(n.daten.bestellung.kunde.strasse, 'Seestrasse 14')
+  // WAS NICHT MITKAM, BLEIBT STEHEN. Sonst loescht ein halbes Formular den Rest.
+  assert.equal(n.daten.bestellung.kunde.name, b.kunde.name)
+  assert.equal(n.daten.bestellung.kunde.email, b.kunde.email)
+  n = await ruf({ method: 'PATCH', cookie, body: { id: b.id, kunde: { plz: '8606', ort: 'Greifensee' } } })
+  assert.equal(n.daten.bestellung.kunde.plz, '8606')
+  assert.equal(n.daten.bestellung.kunde.ort, 'Greifensee')
+  assert.equal(n.daten.bestellung.kunde.strasse, 'Seestrasse 14', 'die Strasse von vorhin steht noch')
+})
+await pruefe('Ein Tippfehler in der Mailadresse laesst sich spaeter berichtigen', async () => {
+  const b = await anfrageMitNetzen('A-KONT2')
+  const n = await ruf({ method: 'PATCH', cookie, body: { id: b.id, kunde: { email: 'neu@example.ch' } } })
+  assert.equal(n.daten.bestellung.kunde.email, 'neu@example.ch')
+})
+await pruefe('Auch wenn der Auftrag laengst ausgeliefert und bezahlt ist', async () => {
+  const b = await anfrageMitNetzen('A-KONT3')
+  await ruf({ method: 'PATCH', cookie, body: { id: b.id, status: 'ausliefern' } })
+  await ruf({ method: 'PATCH', cookie, body: { id: b.id, ausgeliefert: true } })
+  await ruf({ method: 'PATCH', cookie, body: { id: b.id, bezahlt: true } })
+  /*
+   * DAS IST DER FALL, DER DEN AUSSCHLAG GAB: Der Nachname faellt auf, wenn
+   * die Quittung gedruckt wird - also lange nach der Uebergabe. Eine Phase,
+   * in der die Adresse einfriert, zwingt zum zweiten Zettel.
+   */
+  const n = await ruf({ method: 'PATCH', cookie, body: { id: b.id, kunde: { name: 'Rolf Benz-Meier' } } })
+  assert.equal(n.code, 200)
+  assert.equal(n.daten.bestellung.kunde.name, 'Rolf Benz-Meier')
+  assert.ok(n.daten.bestellung.ausgeliefertAm, 'der Auftrag bleibt ausgeliefert')
+  assert.ok(n.daten.bestellung.bezahltAm, 'und bezahlt')
+})
+await pruefe('Und selbst im Archiv, nach einer Absage', async () => {
+  const b = await anfrageMitNetzen('A-KONT4')
+  await ruf({ method: 'PATCH', cookie, body: { id: b.id, status: 'abgesagt', absageGrund: 'zuTeuer' } })
+  const n = await ruf({ method: 'PATCH', cookie, body: { id: b.id, kunde: { telefon: '079 111 22 33' } } })
+  assert.equal(n.code, 200)
+  assert.equal(n.daten.bestellung.kunde.telefon, '079 111 22 33')
+  assert.equal(n.daten.bestellung.status, 'abgesagt', 'die Absage bleibt eine Absage')
+  assert.equal(n.daten.bestellung.absageGrund, 'zuTeuer')
+})
+await pruefe('Ohne Namen geht es nicht – auch nicht nachtraeglich', async () => {
+  const b = await anfrageMitNetzen('A-KONT5')
+  const n = await ruf({ method: 'PATCH', cookie, body: { id: b.id, kunde: { name: '   ' } } })
+  assert.equal(n.code, 400, 'was beim Anlegen abgelehnt wird, darf nicht ueber eine Aenderung hereinkommen')
+  const danach = (await ruf({ method: 'GET', cookie })).daten.bestellungen.find((x) => x.id === b.id)
+  assert.equal(danach.kunde.name, b.kunde.name, 'der alte Name steht unveraendert da')
+})
+await pruefe('Mail und Telefon duerfen nicht beide verschwinden', async () => {
+  const b = await anfrageMitNetzen('A-KONT6')
+  // Erst das Telefon leeren: Das ist erlaubt, die Mailadresse bleibt ja.
+  let n = await ruf({ method: 'PATCH', cookie, body: { id: b.id, kunde: { telefon: '' } } })
+  assert.equal(n.code, 200)
+  assert.equal(n.daten.bestellung.kunde.telefon, '')
+  // Jetzt auch noch die Mailadresse – dann bliebe kein Rueckweg.
+  n = await ruf({ method: 'PATCH', cookie, body: { id: b.id, kunde: { email: '' } } })
+  assert.equal(n.code, 400)
+  const danach = (await ruf({ method: 'GET', cookie })).daten.bestellungen.find((x) => x.id === b.id)
+  assert.ok(danach.kunde.email, 'die Mailadresse steht noch')
+})
+await pruefe('Die Bemerkung der Kundschaft bleibt unantastbar', async () => {
+  const b = await anfrageMitNetzen('A-KONT7')
+  const n = await ruf({
+    method: 'PATCH', cookie,
+    body: { id: b.id, kunde: { name: 'Neuer Name', bemerkung: 'untergeschoben' } },
+  })
+  assert.equal(n.daten.bestellung.kunde.name, 'Neuer Name')
+  assert.equal(n.daten.bestellung.kunde.bemerkung, b.kunde.bemerkung, 'ihre Worte, nicht unsere')
+})
+await pruefe('Ohne Anmeldung aendert niemand eine Adresse', async () => {
+  const b = await anfrageMitNetzen('A-KONT8')
+  const n = await ruf({ method: 'PATCH', body: { id: b.id, kunde: { name: 'Fremder' } } })
+  assert.equal(n.code, 401)
+})
+
+
 /* --- Ergebnis ---------------------------------------------------------------- */
 
 console.log(`\n${bestanden}/${bestanden + fehler.length} bestanden`)

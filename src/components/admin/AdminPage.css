@@ -445,6 +445,71 @@
   border-left: 3px solid var(--border-strong);
 }
 
+/* --- Kontaktdaten bearbeiten ------------------------------------------------- */
+
+/*
+ * Ein unauffaelliger Verweis unter den Kontaktdaten, kein Knopf: Er steht
+ * auf jeder Karte in jeder Phase, und ein gefuellter Knopf an dieser Stelle
+ * zoege den Blick von dem ab, was auf der Karte wirklich zu tun ist.
+ */
+.admin__kontakt-knopf {
+  align-self: flex-start;
+  margin-top: var(--space-2);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.85rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.admin__kontakt-knopf:hover {
+  color: var(--text);
+}
+
+.admin__kontakt-editor {
+  margin-top: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--accent);
+  background: var(--surface-raised);
+}
+
+.admin__kontakt-titel {
+  margin: 0 0 var(--space-3);
+  font-weight: 600;
+}
+
+/*
+ * Zwei Spalten, wo Platz ist. Name und Strasse duerfen breit stehen, PLZ und
+ * Ort gehoeren nebeneinander - sonst steht eine vierstellige Zahl allein auf
+ * einer Zeile, so breit wie ein Strassenname.
+ */
+.admin__kontakt-felder {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.admin__kontakt-felder > .field:nth-child(1),
+.admin__kontakt-felder > .field:nth-child(4) {
+  grid-column: 1 / -1;
+}
+
+.admin__kontakt-fehler {
+  margin: var(--space-3) 0 0;
+  color: var(--warn, #a4472b);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 560px) {
+  .admin__kontakt-felder {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* --- Quittung ---------------------------------------------------------------- */
 
 .admin__quittung-reihe {

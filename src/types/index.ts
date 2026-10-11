@@ -641,6 +641,12 @@ export interface ZeilenHerkunft {
 export interface BestellAenderung {
   status?: BestellStatus
   /**
+   * Die Kontaktdaten, feldweise. Was fehlt, bleibt stehen - ein Formular,
+   * das nur den Namen kennt, darf die Adresse nicht loeschen. Die Bemerkung
+   * ist absichtlich nicht dabei: Das sind die Worte der Kundschaft.
+   */
+  kunde?: Partial<Pick<Bestellung['kunde'], 'name' | 'email' | 'telefon' | 'strasse' | 'plz' | 'ort'>>
+  /**
    * Die Kostenposten der Buchhaltung, GANZ ODER GAR NICHT. Einzelne Posten
    * nachzupflegen hiesse, beim Loeschen zu raten, was gemeint war - die
    * Oberflaeche hat die Liste ohnehin vollstaendig vor sich.

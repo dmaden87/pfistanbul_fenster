@@ -425,6 +425,21 @@ const PAARE = {
     '{n} Netze tragen einen Richtpreis, der nicht dem entspricht, was der Rechner heute sagt. Bei von Hand erfassten Aufträgen ist das der getippte Preis – dann vergleicht er sich mit sich selbst.',
     '{n} sineklikte, bugünkü hesapla örtüşmeyen bir yaklaşık fiyat var. Elle girilen siparişlerde bu, yazılan fiyatın kendisidir – yani kendisiyle karşılaştırılır.',
   ],
+  kontaktBearbeiten: ['Kontaktdaten bearbeiten', 'İletişim bilgilerini düzenle'],
+  kontaktName: ['Name', 'Ad'],
+  kontaktEmail: ['E-Mail', 'E-posta'],
+  kontaktTelefon: ['Telefon', 'Telefon'],
+  kontaktStrasse: ['Strasse und Nr.', 'Sokak ve no.'],
+  kontaktPlz: ['PLZ', 'Posta kodu'],
+  kontaktOrt: ['Ort', 'Yer'],
+  kontaktOhneName: [
+    'Ohne Namen lässt sich der Auftrag niemandem zuordnen.',
+    'Ad olmadan sipariş kimseye bağlanamaz.',
+  ],
+  kontaktOhneRueckweg: [
+    'E-Mail oder Telefon muss bleiben – sonst gibt es keinen Rückweg zur Kundschaft.',
+    'E-posta veya telefon kalmalı – yoksa müşteriye ulaşmanın yolu kalmaz.',
+  ],
   quittungAnzeigen: ['Quittung erstellen', 'Makbuz oluştur'],
   quittungSatz: [
     'Beleg über den bezahlten Betrag – als PDF zum Mitgeben oder Senden.',

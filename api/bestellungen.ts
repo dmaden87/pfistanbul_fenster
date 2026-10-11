@@ -722,6 +722,45 @@ async function aendern(req: VercelRequest, res: VercelResponse) {
   }
 
   /*
+   * DIE KONTAKTDATEN, IN JEDER PHASE.
+   *
+   * Eine Adresse ist kein Zustand, sondern eine Angabe - und Angaben sind
+   * falsch oder veraltet, unabhaengig davon, wie weit der Auftrag ist. Der
+   * Tippfehler in der Mailadresse faellt auf, wenn die Offerte zurueckkommt;
+   * die Hausnummer, wenn der Monteur vor dem falschen Haus steht; der
+   * Nachname, wenn die Quittung gedruckt wird. Wer das nicht hier aendern
+   * kann, fuehrt die richtige Adresse im Kopf oder in einem zweiten Zettel.
+   *
+   * FELDWEISE, NICHT ALS BLOCK. Was nicht mitkommt, bleibt stehen - sonst
+   * loescht ein Formular, das nur den Namen kennt, die halbe Adresse.
+   *
+   * DIE BEMERKUNG IST NICHT DABEI: Sie sind die Worte der Kundschaft aus dem
+   * Formular, kein Kontaktfeld. Fuer eigene Notizen gibt es die interne
+   * Notiz, und die ueberschreibt niemandes Aussage.
+   */
+  if (koerper.kunde !== undefined && koerper.kunde !== null) {
+    const k = koerper.kunde as Record<string, unknown>
+    const neuerKunde = { ...bestellung.kunde }
+    if (k.name !== undefined) neuerKunde.name = text(k.name, 120)
+    if (k.email !== undefined) neuerKunde.email = text(k.email, 160)
+    if (k.telefon !== undefined) neuerKunde.telefon = text(k.telefon, 40)
+    if (k.strasse !== undefined) neuerKunde.strasse = text(k.strasse, 120)
+    if (k.plz !== undefined) neuerKunde.plz = text(k.plz, 10)
+    if (k.ort !== undefined) neuerKunde.ort = text(k.ort, 80)
+    /*
+     * DIESELBE UNTERGRENZE WIE BEI DER GEBURT. Ohne Namen und ohne Rueckweg
+     * ist ein Auftrag nicht zuzuordnen; was beim Anlegen abgelehnt wird,
+     * darf nicht ueber den Umweg einer Aenderung hineinkommen.
+     */
+    if (!neuerKunde.name) return res.status(400).json({ error: 'Ohne Namen geht es nicht.' })
+    if (!neuerKunde.email && !neuerKunde.telefon) {
+      return res.status(400).json({ error: 'Mailadresse oder Telefonnummer muss bleiben.' })
+    }
+    bestellung.kunde = neuerKunde
+    geaendert = true
+  }
+
+  /*
    * Die Felder der Phasen. Datumsfelder setzt ein ISO-Datum, ein leerer
    * String loescht; die Haken folgen dem Muster true → jetzt, false → weg.
    */

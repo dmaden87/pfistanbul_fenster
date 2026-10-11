@@ -31,6 +31,7 @@ import {
 } from '../../lib/phasen'
 import { NetzEditor } from './NetzEditor'
 import { Angebot } from './Angebot'
+import { KontaktEditor } from './KontaktEditor'
 import { fuelle, useSprache } from './sprache'
 
 /**
@@ -316,6 +317,7 @@ export function BestellKarte({
   const [absageFrage, setAbsageFrage] = useState(false)
   const [preiseBearbeiten, setPreiseBearbeiten] = useState(false)
   const [kopiert, setKopiert] = useState(false)
+  const [kontaktBearbeiten, setKontaktBearbeiten] = useState(false)
 
   /*
    * DIE NACHRICHT AN DIE KUNDSCHAFT IST IMMER DEUTSCH, auch wenn Ufuk den
@@ -681,6 +683,19 @@ export function BestellKarte({
 
       {offen && (
         <div className="admin__karte-inhalt">
+          {/*
+            KONTAKTDATEN AENDERN, IN JEDER PHASE - ohne Bedingung an den
+            Abschnitt. Eine Adresse ist kein Zustand des Auftrags, sondern
+            eine Angabe ueber einen Menschen, und die veraltet unabhaengig
+            davon, wie weit der Auftrag ist.
+          */}
+          {kontaktBearbeiten ? (
+            <KontaktEditor
+              bestellung={b}
+              onSpeichern={(aenderung) => onAendern(b.id, aenderung)}
+              onAbbrechen={() => setKontaktBearbeiten(false)}
+            />
+          ) : (
           <div className="admin__kunde">
             <a href={`mailto:${b.kunde.email}`}>{b.kunde.email || t.keineEmail}</a>
             {b.kunde.telefon && <a href={`tel:${b.kunde.telefon}`}>{b.kunde.telefon}</a>}
@@ -698,7 +713,11 @@ export function BestellKarte({
             {b.montageTermin && abschnitt !== 'ausliefern' && (
               <span className="admin__detail">{t.montageTermin}: {tag(b.montageTermin, ort)}</span>
             )}
+            <button type="button" className="admin__kontakt-knopf" onClick={() => setKontaktBearbeiten(true)}>
+              {t.kontaktBearbeiten}
+            </button>
           </div>
+          )}
 
           <div className="admin__positionen">
             {bearbeitet ? (
