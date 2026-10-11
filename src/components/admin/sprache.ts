@@ -425,6 +425,11 @@ const PAARE = {
     '{n} Netze tragen einen Richtpreis, der nicht dem entspricht, was der Rechner heute sagt. Bei von Hand erfassten Aufträgen ist das der getippte Preis – dann vergleicht er sich mit sich selbst.',
     '{n} sineklikte, bugünkü hesapla örtüşmeyen bir yaklaşık fiyat var. Elle girilen siparişlerde bu, yazılan fiyatın kendisidir – yani kendisiyle karşılaştırılır.',
   ],
+  quittungAnzeigen: ['Quittung erstellen', 'Makbuz oluştur'],
+  quittungSatz: [
+    'Beleg über den bezahlten Betrag – als PDF zum Mitgeben oder Senden.',
+    'Ödenen tutarın belgesi – yanında vermek veya göndermek için PDF.',
+  ],
   bewertungTitel: ['Bewertung erbitten', 'Değerlendirme iste'],
   bewertungSatz: [
     'Montiert und bezahlt – jetzt ist der Moment. Später erinnert sich niemand mehr.',

@@ -79,6 +79,7 @@ interface BestellKarteProps {
   onLoeschen: (id: string) => void
   /** Oeffnet die Offerte an die Kundschaft. */
   onOfferte: (id: string) => void
+  onQuittung: (id: string) => void
   /** Oeffnet den Talon an Bora: Preisanfrage oder Bestellung, fuer diese Auftraege. */
   onBlatt: (ids: string[], art: 'anfrage' | 'bestellung', nummer: string) => void
   /** Fuers Paket gewaehlt. Nur in "Bestellen". */
@@ -303,6 +304,7 @@ export function BestellKarte({
   onAendern,
   onLoeschen,
   onOfferte,
+  onQuittung,
   onBlatt,
   gewaehlt,
   onWahl,
@@ -633,6 +635,21 @@ export function BestellKarte({
         also die leere Menge: Der Block erschiene nie, und niemand haette es
         gemerkt - Tests und Typen sind damit zufrieden.
       */}
+      {/*
+        DIE QUITTUNG STEHT VOR DER BITTE UM EINE BEWERTUNG, weil das die
+        Reihenfolge der Uebergabe ist: erst den Beleg geben, dann um Sterne
+        bitten. Und sie steht ausserhalb der Klappe - wer bar bezahlt hat,
+        wartet unter Umstaenden daneben darauf.
+      */}
+      {abgeschlossen(b) && (
+        <div className="admin__quittung-reihe">
+          <button type="button" className="btn btn--quiet" onClick={() => onQuittung(b.id)}>
+            {t.quittungAnzeigen}
+          </button>
+          <span className="admin__detail">{t.quittungSatz}</span>
+        </div>
+      )}
+
       {abgeschlossen(b) && (
         <div className="admin__bewertung">
           <div className="admin__bewertung-kopf">
@@ -748,6 +765,11 @@ export function BestellKarte({
                   <button type="button" className="btn btn--quiet" onClick={() => onOfferte(b.id)}>
                     {t.offerteAnzeigen}
                   </button>
+                  {abgeschlossen(b) && (
+                    <button type="button" className="btn btn--quiet" onClick={() => onQuittung(b.id)}>
+                      {t.quittungAnzeigen}
+                    </button>
+                  )}
                 </div>
               </>
             )}

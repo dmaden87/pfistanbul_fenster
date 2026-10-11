@@ -1,0 +1,239 @@
+/*
+ * Die Quittung an die Kundschaft.
+ *
+ * Schwesterblatt der Offerte: gleiches Format, gleicher Satz, gleiche
+ * Anzeigeschrift. Das ist Absicht - wer beide nebeneinander legt, soll
+ * denselben Absender erkennen, ohne den Namen zu lesen.
+ *
+ * Ein Unterschied: Der Betrag steht hier staerker heraus als auf der
+ * Offerte. Auf einer Offerte ist die Zahl ein Vorschlag, auf einer Quittung
+ * ist sie die Aussage des ganzen Blatts.
+ */
+
+.quittung {
+  max-width: 210mm;
+  margin: 0 auto;
+  padding: 14mm 16mm;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  color: #111111;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 10pt;
+  line-height: 1.45;
+}
+
+.quittung__kopf {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12mm;
+}
+
+.quittung__absender {
+  font-size: 8.5pt;
+  line-height: 1.35;
+  color: #444444;
+}
+
+.quittung__firma {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 12pt;
+  font-weight: 700;
+  color: #111111;
+}
+
+.quittung__empfaenger {
+  font-style: normal;
+  text-align: right;
+  line-height: 1.4;
+}
+
+.quittung__titelzeile {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8mm;
+  margin-top: 12mm;
+  padding-bottom: 2mm;
+  border-bottom: 1.5pt solid #111111;
+}
+
+.quittung__titelzeile h1 {
+  margin: 0;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 22pt;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.quittung__eckdaten {
+  display: flex;
+  gap: 8mm;
+  margin: 0;
+  font-size: 8.5pt;
+}
+
+.quittung__eckdaten dt {
+  color: #555555;
+}
+
+.quittung__eckdaten dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.quittung__anrede {
+  margin-top: 7mm;
+}
+
+/* --- Die Positionen -------------------------------------------------------- */
+
+.quittung__tabelle {
+  width: 100%;
+  margin-top: 7mm;
+  border-collapse: collapse;
+  font-size: 9.5pt;
+}
+
+.quittung__tabelle th {
+  padding: 1.5mm 2mm;
+  border-bottom: 1pt solid #111111;
+  font-size: 8pt;
+  font-weight: 600;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #333333;
+}
+
+.quittung__tabelle td {
+  padding: 2mm;
+  border-bottom: 0.5pt solid #dddddd;
+  vertical-align: top;
+}
+
+.quittung__pos {
+  width: 9mm;
+  color: #666666;
+}
+
+.quittung__mass-spalte {
+  white-space: nowrap;
+}
+
+.quittung__zahl {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* --- Das Total ------------------------------------------------------------- */
+
+.quittung__totale {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6mm;
+}
+
+.quittung__total {
+  min-width: 82mm;
+}
+
+.quittung__total-zeile {
+  display: flex;
+  justify-content: space-between;
+  gap: 6mm;
+  padding: 1.2mm 0;
+}
+
+/*
+ * Die bezahlte Summe ist die Aussage des Blatts - sie bekommt einen Rahmen,
+ * damit sie sich auch dann finden laesst, wenn jemand den Beleg nur kurz
+ * aus einem Ordner zieht.
+ */
+.quittung__total-zeile--stark {
+  margin-top: 2mm;
+  padding: 2.5mm 3mm;
+  border: 1.5pt solid #111111;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 12pt;
+  font-weight: 700;
+}
+
+.quittung__steuer {
+  margin-top: 4mm;
+  font-size: 8.5pt;
+  color: #555555;
+}
+
+/* --- Zahlung und Fuss ------------------------------------------------------ */
+
+.quittung__zahlung {
+  margin-top: 8mm;
+  padding-top: 4mm;
+  border-top: 0.5pt solid #dddddd;
+}
+
+.quittung__zahlung h2 {
+  margin: 0 0 1.5mm;
+  font-size: 9pt;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #333333;
+}
+
+.quittung__zahlung p {
+  margin: 0;
+  font-size: 9pt;
+}
+
+.quittung__fuss {
+  margin-top: 10mm;
+  padding-top: 4mm;
+  border-top: 0.5pt solid #dddddd;
+}
+
+.quittung__dank {
+  margin: 0;
+  font-size: 9pt;
+}
+
+.quittung__signatur {
+  margin: 5mm 0 0;
+  font-size: 8.5pt;
+  color: #555555;
+}
+
+/*
+ * Auf dem Bildschirm darf das Blatt schrumpfen; im Druck gilt oben das
+ * Millimetermass. Ohne diese Regel schiebt die Tabelle auf dem Telefon die
+ * Vorschau seitlich hinaus.
+ */
+@media (max-width: 560px) {
+  .quittung {
+    padding: 8mm;
+    font-size: 9pt;
+  }
+
+  .quittung__kopf,
+  .quittung__titelzeile {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4mm;
+  }
+
+  .quittung__empfaenger {
+    text-align: left;
+  }
+
+  .quittung__eckdaten {
+    flex-wrap: wrap;
+    gap: 5mm;
+  }
+
+  .quittung__total {
+    min-width: 0;
+    width: 100%;
+  }
+}

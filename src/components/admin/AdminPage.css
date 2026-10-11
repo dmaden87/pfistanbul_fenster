@@ -445,6 +445,23 @@
   border-left: 3px solid var(--border-strong);
 }
 
+/* --- Quittung ---------------------------------------------------------------- */
+
+.admin__quittung-reihe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+@media (max-width: 480px) {
+  .admin__quittung-reihe > .btn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
 /* --- Bitte um eine Bewertung ------------------------------------------------ */
 
 /*

@@ -16,6 +16,7 @@ import { BestellKarte } from './BestellKarte'
 import { PaketKarte } from './PaketKarte'
 import { Bestellauftrag } from './Bestellauftrag'
 import { Offerte } from './Offerte'
+import { Quittung } from './Quittung'
 import { NeueBestellung } from './NeueBestellung'
 import { SprachRahmen } from './SprachRahmen'
 import { SprachSchalter } from './SprachSchalter'
@@ -123,6 +124,8 @@ function AdminMaske({ onBack, onOpenZahlen }: AdminPageProps) {
   const [zielPaket, setZielPaket] = useState('')
   /** Welche Bestellung gerade als Offerte angezeigt wird. */
   const [offeneOfferte, setOffeneOfferte] = useState<string | null>(null)
+  /** Welche Bestellung gerade als Quittung angezeigt wird. */
+  const [offeneQuittung, setOffeneQuittung] = useState<string | null>(null)
   /* Nur das Archiv startet zugeklappt: Die Phasen sind die Arbeit. */
   const [zugeklappt, setZugeklappt] = useState<Abschnitt[]>(['archiv'])
   const { t } = useSprache()
@@ -354,6 +357,7 @@ function AdminMaske({ onBack, onOpenZahlen }: AdminPageProps) {
       onAendern={handleAendern}
       onLoeschen={handleLoeschen}
       onOfferte={setOffeneOfferte}
+      onQuittung={setOffeneQuittung}
       onBlatt={(ids, art, nummer) => setBlatt({ ids, art, nummer })}
       gewaehlt={auswahl.includes(b.id)}
       /*
@@ -375,6 +379,17 @@ function AdminMaske({ onBack, onOpenZahlen }: AdminPageProps) {
       <section className="section">
         <div className="shell">
           <Offerte bestellung={offerte} onZurueck={() => setOffeneOfferte(null)} />
+        </div>
+      </section>
+    )
+  }
+
+  const quittung = offeneQuittung ? bestellungen.find((b) => b.id === offeneQuittung) : undefined
+  if (quittung) {
+    return (
+      <section className="section">
+        <div className="shell">
+          <Quittung bestellung={quittung} onZurueck={() => setOffeneQuittung(null)} />
         </div>
       </section>
     )

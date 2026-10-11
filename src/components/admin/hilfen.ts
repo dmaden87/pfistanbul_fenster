@@ -108,14 +108,23 @@ export function positionenSumme(liste: BestellPosition[]): number {
 }
 
 /**
- * Die Montagepauschale. Dieselbe Herleitung wie auf dem Server: Steht sie als
- * eigenes Feld da, gilt dieses; bei Alteintraegen bleibt der Rueckschluss aus
- * der Differenz, der stimmt, weil ausser Netzen und Montage nichts in die
- * Summe eingeht.
+ * Die Montagepauschale. Steht sie als eigenes Feld da, gilt dieses; bei
+ * Alteintraegen bleibt der Rueckschluss aus der Differenz.
+ *
+ * DIE FORMEL IST EIN ZWILLING VON montageBetrag() IN api/bestellungen.ts.
+ * Zwei Kopien, weil api/ nicht aus src/ importieren darf - und genau daran
+ * ist sie einmal auseinandergelaufen: Als die Anfahrt ein eigener Posten in
+ * der Summe wurde, zog der Server nach und diese Kopie nicht. Fuer jeden
+ * Alteintrag mit Anfahrt und ohne eigenes Montagefeld hiess die Anfahrt
+ * seither "Montage" - auf der Offerte, auf der Karte, und in der Abrechnung,
+ * wo sie als Montageaufwand haelftig an Ufuk und Deniz ging.
+ *
+ * Wer hier etwas aendert, aendert es dort mit. bau/quittung-test.mjs haelt
+ * beide Fassungen gegeneinander, damit es nicht noch einmal still passiert.
  */
 export function montageBetrag(b: Bestellung): number {
   if (typeof b.montageChf === 'number') return b.montageChf
-  const rest = b.summeChf - positionenSumme(b.positionen) + (b.rabattChf ?? 0)
+  const rest = b.summeChf - positionenSumme(b.positionen) - (b.anfahrtChf ?? 0) + (b.rabattChf ?? 0)
   return rest > 0 ? Math.round(rest * 100) / 100 : 0
 }
 
@@ -233,4 +242,49 @@ export function whatsappNummer(roh: string | undefined): string | null {
   if (ziffern.startsWith('0')) return ziffern.length === 10 ? `41${ziffern.slice(1)}` : null
   /* Ohne Null und ohne Vorwahl laesst sich das Land nicht raten. */
   return null
+}
+
+/**
+ * Was auf der Quittung als bezahlter Betrag steht.
+ *
+ * DIESE ZAHL MUSS `summeChf` SEIN. Die Quittung behauptet schriftlich, ein
+ * bestimmter Betrag sei erhalten worden - weicht sie von dem ab, was die
+ * Kundin wirklich bezahlt hat, ist das keine Schoenheitsfrage, sondern ein
+ * falscher Beleg. Deshalb steht die Rechnung hier und nicht in der Ansicht:
+ * So kann ein Test sie gegen `summeChf` halten, statt dass jemand zwei
+ * Stellen von Hand gleich haelt.
+ *
+ * Die Posten werden gelesen wie in der Offerte, damit Offerte und Quittung
+ * zum selben Auftrag nie verschiedene Zahlen zeigen.
+ */
+export function quittungPosten(b: Bestellung, proNetzChf: number) {
+  const runde2 = (x: number) => Math.round(x * 100) / 100
+  const netze = b.positionen.reduce((n, p) => n + p.menge, 0)
+  const netzeChf = runde2(b.positionen.reduce((s, p) => s + p.preisChf * p.menge, 0))
+  const rabattChf = b.rabattChf ?? 0
+  const mitAnfahrt = b.anfahrt === true
+  const anfahrtChf = mitAnfahrt ? (b.anfahrtChf ?? 0) : 0
+  const montageChf = montageFuerOfferte(b, netze, proNetzChf)
+  return {
+    netze,
+    netzeChf,
+    rabattChf,
+    mitAnfahrt,
+    anfahrtChf,
+    montageChf,
+    totalChf: runde2(netzeChf - rabattChf + anfahrtChf + montageChf),
+  }
+}
+
+/**
+ * Wie auf der Quittung steht, dass bezahlt wurde.
+ *
+ * NUR SO WEIT, WIE WIR ES WISSEN. Bei der Uebergabe steht im Datensatz
+ * nicht, ob bar oder mit Twint - also steht es auch nicht auf dem Beleg.
+ * Lieber eine Angabe weniger als eine erfundene: Ein Beleg, der "bar"
+ * behauptet, wo mit Twint bezahlt wurde, ist in einer Buchhaltung schlimmer
+ * als einer, der nur "bei der Uebergabe" sagt.
+ */
+export function quittungZahlart(b: Bestellung): string {
+  return b.zahlung === 'online' ? 'Online bezahlt (Karte oder Twint)' : 'Bei der Übergabe bezahlt'
 }
