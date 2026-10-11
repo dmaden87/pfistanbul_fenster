@@ -445,6 +445,51 @@
   border-left: 3px solid var(--border-strong);
 }
 
+/* --- Bitte um eine Bewertung ------------------------------------------------ */
+
+/*
+ * Der Akzentstreifen links wie beim Erfassen-Block: Das ist in dieser Maske
+ * das Zeichen fuer "hier ist etwas zu tun", im Unterschied zu den grauen
+ * Reihen, die nur berichten.
+ */
+.admin__bewertung {
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--accent);
+  background: var(--surface-raised);
+}
+
+.admin__bewertung-kopf {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.admin__bewertung-knoepfe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+/*
+ * Auf dem Telefon nehmen die Knoepfe die ganze Breite - dieselbe Regel wie
+ * ueberall sonst in dieser Maske. Die Adresse daneben darf dabei umbrechen,
+ * sonst schiebt sie die Karte seitlich hinaus.
+ */
+.admin__bewertung-knoepfe > * {
+  word-break: break-word;
+}
+
+@media (max-width: 480px) {
+  .admin__bewertung-knoepfe > * {
+    width: 100%;
+    text-align: center;
+  }
+}
+
 /* --- Bestellung von Hand erfassen ------------------------------------------ */
 
 .admin__erfassen {

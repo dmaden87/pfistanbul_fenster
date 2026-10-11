@@ -34,6 +34,20 @@ export const operator = {
    */
   instagram: 'https://www.instagram.com/pfistanbul.fenster/',
 
+  /**
+   * Wohin wir Kundschaft fuer eine Google-Bewertung schicken.
+   *
+   * UNSERE EIGENE ADRESSE, NICHT GOOGLES. Sie leitet per vercel.json auf den
+   * Kurzlink des Unternehmensprofils weiter. Der Umweg ist der Zweck: Zieht
+   * Google die Kennung um oder wechseln wir das Profil, ist es eine Zeile
+   * Konfiguration - und die Karten, die bei der Kundschaft in der Kueche
+   * haengen, zeigen weiter dorthin, wo sie sollen.
+   *
+   * Die Google-Adresse selbst steht genau einmal, in vercel.json, und
+   * bau/bewerten-test.mjs haelt sie fest.
+   */
+  reviewUrl: 'https://pfistanbul.ch/bewerten',
+
   /** Dienst, der die Formulare an die Mailbox weiterleitet. */
   formService: 'Web3Forms',
   /** Betreiberin des Dienstes. */

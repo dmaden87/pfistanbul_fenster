@@ -15,6 +15,19 @@
  * Jahren noch dorthin fuehren, wohin er heute fuehrt. Deshalb steht die
  * Google-Adresse unveraendert im Code drin.
  *
+ * ZWEI ADRESSEN SIND ERLAUBT, und die Wahl ist eine echte:
+ *
+ *   https://pfistanbul.ch/bewerten   unsere eigene, per vercel.json
+ *                                    weitergeleitet - laesst sich spaeter
+ *                                    umbiegen, ohne dass Gedrucktes stirbt
+ *   https://g.page/r/.../review      Googles Kurzlink - haengt an keiner
+ *                                    Domain, die wir verlieren koennen
+ *
+ * Fuer Karten, die lange liegen, ist die eigene besser: Zieht Google die
+ * Kennung um, ist es eine Zeile Konfiguration statt eines Nachdrucks. Wer
+ * die Domain aufgibt, verliert dafuer beides auf einmal - aber wer sie
+ * aufgibt, hat ohnehin andere Sorgen.
+ *
  * WOHER DIE ADRESSE KOMMT: Google Unternehmensprofil oeffnen, "Rezensionen"
  * -> "Mehr Rezensionen erhalten" -> Link kopieren. Er sieht aus wie
  * https://g.page/r/XXXXXXXXXXXX/review und oeffnet direkt das Sternefenster.
@@ -54,7 +67,8 @@ const ADRESSE = process.argv[2] ?? 'https://g.page/r/BEISPIEL-NOCH-NICHT-ECHT/re
  * echte Kennung. Die Adresse muss uebergeben worden sein UND darf kein
  * Platzhalterwort tragen.
  */
-const ECHT = /^https:\/\/(g\.page\/r\/[\w-]+\/review|search\.google\.com\/local\/writereview\?|maps\.app\.goo\.gl\/)/
+const ECHT =
+  /^https:\/\/(pfistanbul\.ch\/bewerten$|g\.page\/r\/[\w-]+\/review|search\.google\.com\/local\/writereview\?|maps\.app\.goo\.gl\/)/
 const PLATZHALTER = /beispiel|muster|xxxx|todo|placeholder/i
 const istEcht = Boolean(process.argv[2]) && ECHT.test(ADRESSE) && !PLATZHALTER.test(ADRESSE)
 

@@ -1,5 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": true,
-  "trailingSlash": false
+  "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/bewerten",
+      "destination": "https://g.page/r/CUgM6MbeGFs2EAE/review",
+      "permanent": false
+    }
+  ]
 }

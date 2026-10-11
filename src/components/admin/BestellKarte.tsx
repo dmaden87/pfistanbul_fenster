@@ -13,8 +13,10 @@ import {
   tag,
   zahlungsdifferenz,
   zahlungstext,
+  whatsappNummer,
 } from './hilfen'
 import { auftragAufbauen } from '../../lib/bestellauftrag'
+import { operator } from '../../data/operator'
 import {
   abgeschlossen,
   bezahltAm,
@@ -311,6 +313,37 @@ export function BestellKarte({
   const [loeschFrage, setLoeschFrage] = useState(false)
   const [absageFrage, setAbsageFrage] = useState(false)
   const [preiseBearbeiten, setPreiseBearbeiten] = useState(false)
+  const [kopiert, setKopiert] = useState(false)
+
+  /*
+   * DIE NACHRICHT AN DIE KUNDSCHAFT IST IMMER DEUTSCH, auch wenn Ufuk den
+   * Adminbereich auf Tuerkisch bedient. Die Sprache der Maske sagt etwas
+   * ueber den, der sie bedient - nicht ueber den, der die Nachricht liest.
+   * Derselbe Grund wie beim Bestellblatt an Bora, nur andersherum: dort
+   * Tuerkisch, hier Deutsch, und beides unabhaengig davon, wer gerade tippt.
+   */
+  const bewertungsText =
+    `Guten Tag ${b.kunde.name}, danke für Ihr Vertrauen! Wenn Sie mit unseren ` +
+    `Plissees zufrieden sind, freuen wir uns sehr über eine kurze Bewertung – ` +
+    `das dauert eine Minute und hilft uns mehr als alles andere: ${operator.reviewUrl}`
+
+  const nummer = whatsappNummer(b.kunde.telefon)
+  const whatsappZiel = nummer
+    ? `https://wa.me/${nummer}?text=${encodeURIComponent(bewertungsText)}`
+    : null
+
+  /*
+   * Die Zwischenablage darf fehlschlagen - ohne HTTPS, ohne Erlaubnis, in
+   * manchen eingebetteten Ansichten. Dann bleibt der Knopf einfach stumm,
+   * statt die Karte mit einem Fehler zu behelligen: Die Adresse steht als
+   * Verweis gleich daneben und laesst sich von Hand nehmen.
+   */
+  const linkKopieren = () => {
+    navigator.clipboard?.writeText(operator.reviewUrl).then(
+      () => { setKopiert(true); setTimeout(() => setKopiert(false), 2000) },
+      () => {},
+    )
+  }
 
   /*
    * BIS ZUR BEZAHLUNG LAESST SICH DER PREIS AENDERN, und zwar in jeder Phase
@@ -584,6 +617,41 @@ export function BestellKarte({
               {t.speichern}
             </button>
           )}
+        </div>
+      )}
+
+      {/*
+        DIE BITTE UM EINE BEWERTUNG, und zwar erst wenn geliefert UND bezahlt
+        ist. Vorher ist sie unverschaemt, und ein Kunde mit offener Rechnung
+        vergibt keine fuenf Sterne. Danach verfliegt der Moment schnell: Wer
+        drei Wochen spaeter fragt, bekommt ein Ja und nie eine Bewertung.
+
+        GENAU DAS IST `abgeschlossen()` - und genau deshalb steht hier nicht
+        `abschnitt === 'ausliefern'`. Eine uebergebene und bezahlte Bestellung
+        wandert im selben Augenblick ins Archiv (abschnittFuer in phasen.ts).
+        Die Bedingung "in Ausliefern UND geliefert UND bezahlt" beschreibt
+        also die leere Menge: Der Block erschiene nie, und niemand haette es
+        gemerkt - Tests und Typen sind damit zufrieden.
+      */}
+      {abgeschlossen(b) && (
+        <div className="admin__bewertung">
+          <div className="admin__bewertung-kopf">
+            <strong>{t.bewertungTitel}</strong>
+            <span className="admin__detail">{t.bewertungSatz}</span>
+          </div>
+          <div className="admin__bewertung-knoepfe">
+            <a className="btn btn--quiet" href={operator.reviewUrl} target="_blank" rel="noreferrer">
+              {operator.reviewUrl.replace('https://', '')}
+            </a>
+            <button type="button" className="btn btn--quiet" onClick={linkKopieren}>
+              {kopiert ? t.bewertungKopiert : t.bewertungKopieren}
+            </button>
+            {whatsappZiel && (
+              <a className="btn btn--haupt" href={whatsappZiel} target="_blank" rel="noreferrer">
+                {t.bewertungWhatsapp}
+              </a>
+            )}
+          </div>
         </div>
       )}
       {abschnitt === 'archiv' && b.zahlungKommentar && (

@@ -211,3 +211,26 @@ export function verkaufspreisFuer(
   if (masseGleich && alt!.preisChf > 0) return alt!.preisChf
   return vorschlag ?? 0
 }
+
+/**
+ * Die Nummer, wie WhatsApp sie braucht: nur Ziffern, mit Landesvorwahl.
+ *
+ * WAS AUS DEM FORMULAR KOMMT, IST UNORDENTLICH. "079 123 45 67",
+ * "+41 79 123 45 67", "0041791234567" - alles dasselbe Telefon. wa.me
+ * versteht nur die nackte internationale Form.
+ *
+ * Die 41 wird nur dort ergaenzt, wo eine fuehrende Null steht: Das ist die
+ * Schweizer Schreibweise. Eine Nummer, die schon mit einer Vorwahl beginnt,
+ * bleibt unberuehrt - sonst waere aus einer deutschen Nummer stillschweigend
+ * eine Schweizer geworden. Im Zweifel lieber kein Knopf als ein Knopf, der
+ * jemand Fremden anschreibt.
+ */
+export function whatsappNummer(roh: string | undefined): string | null {
+  if (!roh) return null
+  const ziffern = roh.replace(/[^\d+]/g, '')
+  if (ziffern.startsWith('00')) return ziffern.slice(2).length >= 10 ? ziffern.slice(2) : null
+  if (ziffern.startsWith('+')) return ziffern.slice(1).length >= 10 ? ziffern.slice(1) : null
+  if (ziffern.startsWith('0')) return ziffern.length === 10 ? `41${ziffern.slice(1)}` : null
+  /* Ohne Null und ohne Vorwahl laesst sich das Land nicht raten. */
+  return null
+}

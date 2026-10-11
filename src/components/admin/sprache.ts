@@ -425,6 +425,14 @@ const PAARE = {
     '{n} Netze tragen einen Richtpreis, der nicht dem entspricht, was der Rechner heute sagt. Bei von Hand erfassten Aufträgen ist das der getippte Preis – dann vergleicht er sich mit sich selbst.',
     '{n} sineklikte, bugünkü hesapla örtüşmeyen bir yaklaşık fiyat var. Elle girilen siparişlerde bu, yazılan fiyatın kendisidir – yani kendisiyle karşılaştırılır.',
   ],
+  bewertungTitel: ['Bewertung erbitten', 'Değerlendirme iste'],
+  bewertungSatz: [
+    'Montiert und bezahlt – jetzt ist der Moment. Später erinnert sich niemand mehr.',
+    'Montaj bitti, ödeme geldi – tam zamanı. Sonra kimse hatırlamıyor.',
+  ],
+  bewertungKopieren: ['Link kopieren', 'Bağlantıyı kopyala'],
+  bewertungKopiert: ['Kopiert', 'Kopyalandı'],
+  bewertungWhatsapp: ['Per WhatsApp fragen', "WhatsApp'tan iste"],
   knopfPreisAendern: ['Preis ändern', 'Fiyatı değiştir'],
   preisAenderbarSatz: [
     'Solange nicht bezahlt ist, lässt sich der Preis ändern – Mangel, Goodwill, Zusatzmaterial.',
