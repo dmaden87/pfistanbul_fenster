@@ -699,14 +699,38 @@ const PAARE = {
     'Ein Auftrag wird immer ganz abgerechnet: Seine Netzkosten, Kargo und Montage gehen mit.',
     'Bir sipariş her zaman bütün olarak hesaplanır: sineklik maliyeti, kargo ve montaj birlikte gider.',
   ],
-  zAbrechnenKnopf: ['Abrechnen', 'Hesaplaşmayı başlat'],
-  zAbrechnenSatz: [
-    '{a} Aufträge und {p} Auslagen gewählt. Daraus wird ein Entwurf, den du vor dem Abschliessen prüfen kannst.',
-    '{a} sipariş ve {p} masraf seçildi. Bundan, kapatmadan önce kontrol edebileceğin bir taslak oluşur.',
+  zWeitereAusgaben: ['Weitere Kosten und Auslagen', 'Diğer masraflar'],
+  zWeitereKostenSatz: [
+    'Werbung, Hosting, Material – sie gehören zu keinem Auftrag und fahren deshalb nie von selbst mit. Was hier angekreuzt ist, kommt in denselben Abrechnungslauf und wird mit ausgeglichen.',
+    'Reklam, hosting, malzeme – hiçbir siparişe ait değiller, bu yüzden kendiliğinden eklenmezler. Burada işaretlenen aynı hesaplaşmaya girer ve birlikte ödenir.',
   ],
+  zKeineWeiterenKosten: [
+    'Keine offenen Auslagen. Neue trägst du oben unter „Betriebskosten“ ein.',
+    'Açık masraf yok. Yenisini yukarıda „İşletme giderleri“ altına girersin.',
+  ],
+  zAbrechnenKnopf: ['Abrechnen', 'Hesaplaşmayı başlat'],
+  /*
+   * "1 Auftraege und 3 Auslagen" stand hier - zweimal falsch. Die Mehrzahl
+   * stimmte bei eins nicht, und was gezaehlt wird, sind nicht Auslagen,
+   * sondern alle Kostenposten des Entwurfs: Die Netze, das Kargo und die
+   * Montage der gewaehlten Auftraege fahren ja mit.
+   */
+  zAbrechnenSatz: [
+    'Gewählt: {a}, dazu {p}. Daraus wird ein Entwurf, den du vor dem Abschliessen prüfen kannst.',
+    'Seçildi: {a}, ayrıca {p}. Bundan, kapatmadan önce kontrol edebileceğin bir taslak oluşur.',
+  ],
+  zAuftragZahl: ['{n} Auftrag', '{n} sipariş'],
+  zAuftraegeZahl: ['{n} Aufträge', '{n} sipariş'],
+  zPostenZahl: ['{n} Kostenposten', '{n} maliyet kalemi'],
+  /*
+   * "Waehle OBEN aus" stand hier, und das stimmte, solange die Kaestchen
+   * fuer Auslagen allein im Block darueber standen. Seit beide Listen in
+   * der Abrechnung selbst stehen, schickt das Wort jemanden auf die Suche
+   * an die falsche Stelle.
+   */
   zAbrechnungLeer: [
-    'Nichts offen. Wähle oben Aufträge und Auslagen aus und klicke auf „Abrechnen“.',
-    'Açık bir şey yok. Yukarıdan sipariş ve masraf seç, sonra „Hesaplaşmayı başlat“a bas.',
+    'Noch nichts gewählt. Kreuze Aufträge oder weitere Kosten an und klicke auf „Abrechnen“.',
+    'Henüz bir şey seçilmedi. Sipariş veya diğer masrafları işaretle, sonra „Hesaplaşmayı başlat“a bas.',
   ],
   zEntwurf: ['Entwurf', 'Taslak'],
   zEntwurfSatz: [

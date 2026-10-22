@@ -12,7 +12,7 @@ import { formatChf } from '../../lib/format'
 import {
   abrechnungEntwurf, abrechnungJePosten, abrechnungZahlen, abschnitte,
   ausgeglicheneSchulden, forecast, kennzahlen, naechsteAbrechnungsnummer,
-  offeneEinnahmen, offeneForderungen, offeneSchulden, postenSchluessel,
+  freiePosten, offeneEinnahmen, offeneForderungen, offeneSchulden, postenSchluessel,
   postenSummeFuer, warenkosten, zaehltPhase, zahlenFuer,
   type Periode, type SchuldPosten,
 } from '../../lib/pl'
@@ -181,6 +181,8 @@ function ZahlenMaske({ onBack }: Props) {
   const entwurf = abrechnungen.find((a) => !a.erledigtAm)
   const erledigte = abrechnungen.filter((a) => a.erledigtAm)
   const einnahmen = offeneEinnahmen(bestellungen, abrechnungen)
+  /* Die Posten, die an keinem Auftrag haengen - sie fahren nie von selbst mit. */
+  const frei = freiePosten(schulden)
   const ausgeglichen = ausgeglicheneSchulden(bestellungen, auslagen)
   const inAbrechnung = abrechnungJePosten(abrechnungen)
 
@@ -777,7 +779,15 @@ function ZahlenMaske({ onBack }: Props) {
                         <td />
                       </tr>
                       {sch.posten.map((p) => (
-                        <tr key={p.postenId}>
+                        /*
+                          DER SCHLUESSEL BRAUCHT DIE HERKUNFT. `postenId`
+                          allein ist nicht eindeutig: Zwei Auftraege koennen
+                          beide einen von Hand erfassten Posten "k1" tragen,
+                          und React verwechselt dann Zeilen - ein Haekchen
+                          erschiene an der falschen. Genau davor warnt der
+                          Kommentar bei postenSchluessel().
+                        */
+                        <tr key={postenSchluessel(p)}>
                           <td data-titel={t.zPosten}>
                             {p.bezeichnung ?? KOSTENTITEL[p.art]}
                             {/*
@@ -962,6 +972,57 @@ function ZahlenMaske({ onBack }: Props) {
                 </table></div>
               )}
 
+              {/*
+                WEITERE KOSTEN - und zwar HIER, im Abrechnungsblock.
+                Vorher standen die Kaestchen dafuer nur in "Wem wir was
+                schulden", einem Block weiter oben mit einer anderen
+                Ueberschrift. Wer abrechnen wollte, sah hier eine Liste von
+                Auftraegen und sonst nichts - und hielt es fuer unmoeglich,
+                eine Ausgabe mit in denselben Lauf zu nehmen. Die Mechanik
+                konnte es die ganze Zeit; sie war nur nicht dort, wo man
+                arbeitet.
+
+                Es stehen nur die Posten hier, die an KEINEM Auftrag
+                haengen. Die Kosten eines Auftrags fahren mit ihm mit,
+                sobald er angekreuzt ist - sie hier noch einmal zu zeigen,
+                hiesse 30 Zeilen Wiederholung.
+              */}
+              <h3 className="zahlen__unterkopf">{t.zWeitereAusgaben}</h3>
+              {frei.length === 0 ? (
+                <p className="zahlen__hinweis">{t.zKeineWeiterenKosten}</p>
+              ) : (
+                <>
+                  <p className="zahlen__hinweis">{t.zWeitereKostenSatz}</p>
+                  <div className="zahlen__rollen"><table className="zahlen__tabelle">
+                    <thead>
+                      <tr>
+                        <th>{t.zPosten}</th>
+                        <th>{t.zWer}</th>
+                        <th className="zahlen__zahl">{t.zBetrag}</th>
+                        <th>{t.zAuswaehlen}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {frei.map((p) => (
+                        <tr key={postenSchluessel(p)}>
+                          <td data-titel={t.zPosten}>
+                            {p.bezeichnung ?? KOSTENTITEL[p.art]}
+                            <span className="zahlen__klein">{p.am.slice(0, 10)}</span>
+                          </td>
+                          <td data-titel={t.zWer}>{beteiligte[p.traeger]}</td>
+                          <td data-titel={t.zBetrag} className="zahlen__zahl">{formatChf(p.betragChf)}</td>
+                          <td data-titel={t.zAuswaehlen}>
+                            <input type="checkbox" aria-label={t.zAuswaehlen}
+                              checked={gewaehltePosten.includes(postenSchluessel(p))}
+                              onChange={(e) => waehlePosten(postenSchluessel(p), e.target.checked)} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table></div>
+                </>
+              )}
+
               {gewaehlteAuftraege.length + gewaehltePosten.length === 0 ? (
                 /*
                  * Der Satz steht nur da, wenn es ueberhaupt etwas zu waehlen
@@ -979,9 +1040,13 @@ function ZahlenMaske({ onBack }: Props) {
                   </button>
                   <span className="zahlen__hinweis">
                     {fuelle(t.zAbrechnenSatz, {
-                      a: gewaehlteAuftraege.length,
-                      p: abrechnungEntwurf(einnahmen, schulden, gewaehlteAuftraege, gewaehltePosten)
-                        .posten.length,
+                      a: fuelle(gewaehlteAuftraege.length === 1 ? t.zAuftragZahl : t.zAuftraegeZahl, {
+                        n: gewaehlteAuftraege.length,
+                      }),
+                      p: fuelle(t.zPostenZahl, {
+                        n: abrechnungEntwurf(einnahmen, schulden, gewaehlteAuftraege, gewaehltePosten)
+                          .posten.length,
+                      }),
                     })}
                   </span>
                 </div>

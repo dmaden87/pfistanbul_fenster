@@ -12,7 +12,7 @@ import {
   kostenPosten, warenkosten, offeneForderungen, offeneSchulden,
   abrechnungZahlen, offeneEinnahmen, naechsteAbrechnungsnummer,
   abrechnungEntwurf, postenSchluessel, postenSummeFuer,
-  ausgeglicheneSchulden, abrechnungJePosten,
+  ausgeglicheneSchulden, abrechnungJePosten, freiePosten,
 } from '../src/lib/pl.ts'
 import { herstellungChf } from '../src/lib/kosten.ts'
 
@@ -1109,6 +1109,61 @@ pruefe('Die Nummer zaehlt je Jahr hoch', () => {
     'A-2026-04',
     'die hoechste gewinnt, nicht die letzte',
   )
+})
+
+/* --- Weitere Kosten in einem Abrechnungslauf -------------------------------- */
+
+/*
+ * DAS WAR DER GEMELDETE FEHLER: Eine Auslage liess sich nicht in einen
+ * Abrechnungslauf nehmen. Nicht weil die Mechanik fehlte - sie konnte es die
+ * ganze Zeit -, sondern weil die Kaestchen dafuer allein in "Wem wir was
+ * schulden" standen, einem anderen Block als die Abrechnung. `freiePosten`
+ * liefert genau das, was im Abrechnungsblock zur Wahl stehen muss.
+ */
+
+const mitAuslagen = () => {
+  const b = best({ id: 'b1', montageChf: 30, bezahltAm: '2026-05-02', ausgeliefertAm: '2026-05-01' })
+  const auslagen = [
+    auslage({ id: 'al-1', am: '2026-04-01', bezeichnung: 'Instagram-Werbung', betragChf: 120, traeger: 'deniz' }),
+    auslage({ id: 'al-2', am: '2026-03-01', bezeichnung: 'Domain und Hosting', betragChf: 38.4, traeger: 'ufuk' }),
+    auslage({ id: 'al-3', am: '2026-02-01', bezeichnung: 'schon beglichen', betragChf: 10, traeger: 'bora', bezahlt: true }),
+  ]
+  return { b, auslagen, schulden: offeneSchulden([b], auslagen, []) }
+}
+
+pruefe('nur Auslagen stehen als freie Posten zur Wahl', () => {
+  const { schulden } = mitAuslagen()
+  const frei = freiePosten(schulden)
+  assert.equal(frei.length, 2, frei.map((p) => p.bezeichnung).join(', '))
+  assert.ok(frei.every((p) => p.bestellungId === undefined), 'Auftragskosten fahren mit dem Auftrag mit')
+  assert.ok(!frei.some((p) => p.bezeichnung === 'schon beglichen'), 'Beglichenes steht nicht zur Wahl')
+})
+
+pruefe('zu jeder Auslage steht, wer sie ausgelegt hat', () => {
+  const { schulden } = mitAuslagen()
+  const frei = freiePosten(schulden)
+  assert.equal(frei.find((p) => p.bezeichnung === 'Domain und Hosting').traeger, 'ufuk')
+  assert.ok(frei[0].am <= frei[1].am, 'nach Datum sortiert')
+})
+
+pruefe('ein Auftrag und zwei Auslagen gehen zusammen in einen Lauf', () => {
+  const { b, schulden } = mitAuslagen()
+  const einnahmen = offeneEinnahmen([b], [])
+  const entwurf = abrechnungEntwurf(einnahmen, schulden, [b.id], freiePosten(schulden).map(postenSchluessel))
+  assert.equal(entwurf.auftraege.length, 1)
+  assert.equal(entwurf.posten.filter((p) => p.art === 'auslage').length, 2, 'beide Auslagen sind drin')
+  assert.ok(entwurf.posten.some((p) => p.bestellungId === b.id), 'und die Kosten des Auftrags auch')
+})
+
+pruefe('die Auslagen mindern den Warentopf und gehen an den zurueck, der sie auslegte', () => {
+  const { b, schulden } = mitAuslagen()
+  const einnahmen = offeneEinnahmen([b], [])
+  const entwurf = abrechnungEntwurf(einnahmen, schulden, [b.id], freiePosten(schulden).map(postenSchluessel))
+  const zahlen = abrechnungZahlen(entwurf.auftraege, entwurf.posten)
+  assert.equal(zahlen.betriebskostenChf, 158.4, 'Werbung plus Hosting')
+  /* Ufuk bekommt sein Hosting zurueck - plus seinen halben Montageanteil. */
+  assert.equal(zahlen.rueckzahlung.ufuk, 38.4 + 15)
+  assert.equal(zahlen.rueckzahlung.deniz, 120 + 15)
 })
 
 console.log(`\n${bestanden}/${bestanden + fehler.length} bestanden`)

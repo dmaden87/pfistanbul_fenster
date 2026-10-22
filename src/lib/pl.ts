@@ -1208,6 +1208,35 @@ export function postenSummeFuer(schulden: Schuld[], bestellungId: string): numbe
   return summe
 }
 
+/**
+ * Die offenen Posten, die an KEINEM Auftrag haengen - Werbung, Hosting,
+ * Material, also die Auslagen.
+ *
+ * WARUM SIE EINE EIGENE LISTE BRAUCHEN. Die Kosten eines Auftrags fahren
+ * mit, sobald man den Auftrag ankreuzt; danach muss sich niemand um sie
+ * kuemmern. Eine Auslage gehoert zu keinem Auftrag und faehrt deshalb nie
+ * mit - sie muss eigens gewaehlt werden. Genau das war nicht zu finden:
+ * Die Kaestchen dafuer standen allein in "Wem wir was schulden", also in
+ * einem anderen Block als der Abrechnung, und wer abrechnen wollte, sah
+ * dort nur Auftraege und hielt weitere Ausgaben fuer unmoeglich.
+ *
+ * Posten eines Auftrags, der selbst nicht dabei ist, stehen bewusst NICHT
+ * hier: Sie gehoeren neben ihren Auftrag, nicht in eine Sammelliste.
+ */
+export function freiePosten(schulden: Schuld[]): (SchuldPosten & { traeger: Beteiligter })[] {
+  /*
+   * DER TRAEGER GEHT MIT. Er steht an der Schuld, nicht am Posten - wer
+   * ausgelegt hat, ist ja die Gruppierung. Aus einer flachen Liste heraus
+   * waere er sonst nicht mehr zu sehen, und bei einer Auslage ist genau das
+   * die wichtigste Angabe: Wem geben wir das Geld zurueck?
+   */
+  const raus: (SchuldPosten & { traeger: Beteiligter })[] = []
+  for (const s of schulden) {
+    for (const p of s.posten) if (p.bestellungId === undefined) raus.push({ ...p, traeger: s.traeger })
+  }
+  return raus.sort((x, y) => (x.am < y.am ? -1 : 1))
+}
+
 /** Das naechste freie Etikett: A-<Jahr>-<laufende Nummer>. */
 export function naechsteAbrechnungsnummer(abrechnungen: Abrechnung[], jetzt = new Date()): string {
   const jahr = jetzt.getFullYear()
