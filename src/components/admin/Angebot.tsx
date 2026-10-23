@@ -111,7 +111,7 @@ export function Angebot({ bestellung: b, onSpeichern, onAbbrechen }: AngebotProp
    * null, egal was wir verlangen.
    */
   const abweichendeStempel = b.positionen.filter((p) => {
-    const gerechnet = gerechneterPreis(p.breiteCm, p.hoeheCm)
+    const gerechnet = gerechneterPreis(p.breiteCm, p.hoeheCm, p.rahmendicke, p.netzart)
     return gerechnet !== null && typeof p.richtpreisChf === 'number' && p.richtpreisChf !== gerechnet
   }).length
 
@@ -138,7 +138,7 @@ export function Angebot({ bestellung: b, onSpeichern, onAbbrechen }: AngebotProp
     setPreise(
       Object.fromEntries(
         b.positionen.map((p, i) => {
-          const gerechnet = gerechneterPreis(p.breiteCm, p.hoeheCm)
+          const gerechnet = gerechneterPreis(p.breiteCm, p.hoeheCm, p.rahmendicke, p.netzart)
           return [schluessel(p, i), gerechnet ? String(gerechnet) : (preise[schluessel(p, i)] ?? '')]
         }),
       ),
@@ -174,7 +174,7 @@ export function Angebot({ bestellung: b, onSpeichern, onAbbrechen }: AngebotProp
       await onSpeichern({
         positionen: b.positionen.map((p, i) => {
           const zeile: BestellPosition = { ...p, preisChf: verkauf(p, i) }
-          const gerechnet = gerechneterPreis(p.breiteCm, p.hoeheCm)
+          const gerechnet = gerechneterPreis(p.breiteCm, p.hoeheCm, p.rahmendicke, p.netzart)
           if (stempelErsetzen) {
             /*
              * Neu stempeln heisst: die Rechnung von heute, nicht der Preis,

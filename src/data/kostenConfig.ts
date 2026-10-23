@@ -10,55 +10,57 @@ import type { Beteiligter } from '../types'
  */
 
 /**
- * BORA RECHNET NACH UMFANG, NICHT NACH FLAECHE.
+ * BORA RECHNET NACH QUADRATMETERN - SEIT OKTOBER 2026 AUSDRUECKLICH.
  *
- * Aus sieben echten Preisen zurueckgerechnet (Oktober 2026). Die Zahlen
- * sprechen deutlich:
+ * Davor standen hier sieben aus echten Angeboten zurueckgerechnete Preise
+ * und eine Gerade ueber den UMFANG, die sie auf 0.37 EUR genau traf. Diese
+ * Formel ist Geschichte, und nicht weil sie schlecht war: Weil Boras Preise
+ * uneinheitlich waren - der Satz je Quadratmeter schwankte zwischen 17.90
+ * und 35.81 -, haben wir uns mit ihm auf einen festen m2-Preis geeinigt.
+ * Eine Formel, die alte Angebote genau trifft, beschreibt damit eine
+ * Preisliste, die es nicht mehr gibt.
  *
- *   Modell                    R²      mittlere Abweichung   groesste
- *   nur Flaeche              -0.14          6.66 EUR         8.76 EUR
- *   Sockel + Flaeche          0.93          1.26 EUR         3.97 EUR
- *   Sockel + Umfang           1.00          0.36 EUR         0.69 EUR
+ *   1.5er Rahmen (schmal)    35 EUR/m2
+ *   2.8er Rahmen (normal)    30 EUR/m2
  *
- * In der Kreuzpruefung (jedes Netz einmal weglassen und vorhersagen) liegt
- * das Umfangsmodell bei 0.54 EUR Fehler, das Flaechenmodell bei 1.72 EUR.
+ * DIE SIEBEN MESSPUNKTE STEHEN NICHT MEHR IM TEST. Sie zu behalten hiesse,
+ * die Formel gegen eine Vereinbarung zu pruefen, die abgeloest wurde - der
+ * Test waere rot, obwohl alles stimmt. Was jetzt geprueft wird, ist die
+ * Vereinbarung selbst: Flaeche mal Satz, und der Aufschlag fuer den
+ * schmalen Rahmen.
  *
- * DIE ROHE GERADE LAEUFT AUF 1.74 + 6.36, hier stehen 1.60 + 6.40. Der
- * Unterschied betraegt auf dem schlechtesten Punkt 0.07 EUR und liegt damit
- * weit unter dem, was Bora selbst rundet – er nennt ganze Euro. Die
- * glatteren Zahlen nachzufuehren hiesse, jede Kostenschaetzung im ganzen
- * Werkzeug um Rappen zu verschieben, ohne dass irgendetwas genauer wuerde.
- * Wandert die Gerade einmal weiter, faellt es in bau/kosten-test.mjs auf:
- * Dort ist eine Toleranz von 1.00 EUR hinterlegt.
+ * WAS NOCH FEHLT: der Aufschlag fuer engmaschiges Gewebe. Bora nennt ihn
+ * naechste Woche; bis dahin rechnen beide Gewebe gleich, und das steht
+ * unten als eigene Zahl, damit es eine Zeile ist und keine Suche.
  *
- * Das passt zur Sache: Rahmen, Schiene, Buerstendichtung und der plissierte
- * Gewebestreifen gehen nach laufendem Meter. Das Gewebe selbst ist das
- * Billigste daran. Wer nach Flaeche rechnet, setzt bei schmalen hohen Netzen
- * – also bei jeder Tuere – zu wenig Kosten an und sieht die Marge dort
- * besser, als sie ist.
- *
- * Die sieben Messpunkte stehen in bau/kosten-test.mjs und pruefen diese
- * Formel bei jedem Durchlauf nach. Kommen neue Preise von Bora, gehoeren sie
- * dort hinein, und die Formel wird neu gerechnet.
- *
- * DIESE ZAHLEN BEWEGEN AUCH DEN VERKAUFSPREIS. Seit der Richtpreis in
- * src/lib/estimate.ts eine Mindestmarge von 75 Prozent tragen muss, zieht er
- * bei grossen Netzen an diesen Kosten. Wird der Einkauf teurer, steigt der
- * Richtpreis fuer grosse Netze von selbst mit, statt still Marge zu
- * verlieren – und wer hier etwas aendert, aendert mit, was auf der
- * Startseite steht.
- *
- * WAS DIESEN SIEBEN FEHLT, IST DIE GROESSE. Sie decken 3.20 bis 6.22 Meter
- * Umfang ab – ein Netz von 250 x 250 cm hat zehn Meter. Alles darueber ist
- * Hochrechnung, beim Einkauf wie beim Verkaufspreis in src/lib/estimate.ts.
- * Ein einziger echter Preis fuer ein grosses Netz waere hier mehr wert als
- * drei weitere mittlere.
+ * DIESE ZAHLEN BEWEGEN AUCH DEN VERKAUFSPREIS. src/lib/estimate.ts rechnet
+ * den Richtpreis aus diesen Kosten; wird der Einkauf teurer, steigt er mit,
+ * statt still Marge zu verlieren - und wer hier etwas aendert, aendert mit,
+ * was auf der Startseite steht.
  */
 export const kostenConfig = {
-  /** Sockelbetrag je Netz in Euro, unabhaengig von der Groesse. */
-  sockelEur: 1.6,
-  /** Zuschlag je Meter Umfang in Euro. Umfang = 2 x (Breite + Hoehe). */
-  proMeterEur: 6.4,
+  /**
+   * Was Bora je Quadratmeter verlangt, nach Rahmendicke.
+   *
+   * Der schmale 1.5er ist aufwendiger zu fertigen und kostet entsprechend
+   * mehr. Die Schluessel sind dieselben wie in RAHMENDICKEN - wer dort
+   * einen hinzufuegt, muss hier einen Preis nennen, sonst rechnet das
+   * Netz mit dem Normalsatz weiter, als waere nichts gewesen.
+   */
+  proM2Eur: { '1.5': 35, '2.8': 30 } as Record<string, number>,
+
+  /** Der Satz, wenn eine Rahmendicke nicht in der Tabelle steht – Alteintraege. */
+  proM2StandardEur: 30,
+
+  /**
+   * Aufschlag auf den m2-Preis fuer engmaschiges Gewebe, als Faktor.
+   *
+   * NOCH UNBEKANNT, deshalb 1: Bora nennt den Betrag naechste Woche. Bis
+   * dahin rechnen beide Gewebe gleich, und das ist ehrlicher als eine
+   * geratene Zahl - eine Schaetzung, die sich als Preis ausgibt, ist in
+   * einer Marge das Schlimmste.
+   */
+  engmaschigFaktor: 1,
 
   /**
    * Umrechnung Euro in Franken. EINE ZAHL, VON HAND GEPFLEGT.

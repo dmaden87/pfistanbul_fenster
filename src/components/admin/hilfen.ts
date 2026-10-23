@@ -181,7 +181,7 @@ export function zahlungsdifferenz(b: Bestellung): number | null {
 export function vorschlagFuer(p: BestellPosition): number | null {
   if (typeof p.richtpreisChf === 'number' && p.richtpreisChf > 0) return p.richtpreisChf
   if (!p.breiteCm || !p.hoeheCm) return null
-  return estimateNetChf(p.breiteCm, p.hoeheCm)
+  return estimateNetChf(p.breiteCm, p.hoeheCm, p.rahmendicke, p.netzart)
 }
 
 /**
@@ -190,9 +190,14 @@ export function vorschlagFuer(p: BestellPosition): number | null {
  * Dieselbe Funktion, die der Kundschaft auf der Startseite ihren Richtpreis
  * zeigt – deshalb steht hier kein eigener Satz Zahlen, sondern ein Aufruf.
  */
-export function gerechneterPreis(breiteCm: number | undefined, hoeheCm: number | undefined): number | null {
+export function gerechneterPreis(
+  breiteCm: number | undefined,
+  hoeheCm: number | undefined,
+  rahmendicke?: string,
+  netzart?: string,
+): number | null {
   if (!breiteCm || !hoeheCm) return null
-  return estimateNetChf(breiteCm, hoeheCm)
+  return estimateNetChf(breiteCm, hoeheCm, rahmendicke, netzart)
 }
 
 /**

@@ -17,8 +17,9 @@
  */
 import assert from 'node:assert/strict'
 import { gerechneterPreis, verkaufspreisFuer, vorschlagFuer } from '../src/components/admin/hilfen.ts'
-import { estimateNetChf, margenGrenze, priceModel } from '../src/lib/estimate.ts'
-import { einfuhrsteuerChf, herstellungChf, umfangM } from '../src/lib/kosten.ts'
+import { aufschlagChf, estimateNetChf, margeProzent, selbstkostenChf } from '../src/lib/estimate.ts'
+import { einfuhrsteuerChf, herstellungChf } from '../src/lib/kosten.ts'
+import { kostenConfig } from '../src/data/kostenConfig.ts'
 import { windowTypes } from '../src/data/catalog.ts'
 
 let bestanden = 0
@@ -119,20 +120,30 @@ pruefe('Ohne Vorschlag und ohne alten Preis bleibt null', () => {
  * tief, haben wir sie schon versprochen; ist sie zu hoch, ruft niemand an.
  */
 
-pruefe('Der Richtpreis folgt dem Umfang, nicht der Flaeche', () => {
+pruefe('Gleiche Flaeche, gleicher Preis - so wie eingekauft wird', () => {
   /*
-   * DER FEHLER, DER HIER JAHRELANG STAND: Zwei Netze mit derselben Flaeche
-   * bekamen denselben Preis, obwohl das eine anderthalbmal so viel Rahmen,
-   * Schiene und Buerstendichtung braucht. 30 x 300 und 95 x 95 haben beide
-   * rund 0.9 m², aber 6.6 gegen 3.8 Meter Umfang.
+   * DIESER TEST STAND EINMAL ANDERSHERUM, und beide Fassungen waren zu
+   * ihrer Zeit richtig.
+   *
+   * Solange Bora Stueck fuer Stueck offerierte, folgten seine Preise
+   * erkennbar dem Umfang: 30 x 300 braucht anderthalbmal so viel Rahmen,
+   * Schiene und Buerstendichtung wie 95 x 95, obwohl beide rund 0.9 m²
+   * haben. Ein Preis nach Flaeche setzte bei schmalen hohen Netzen zu wenig
+   * an - und genau das hielt dieser Test fest.
+   *
+   * Seit der m2-Vereinbarung stimmt es nicht mehr: Bora verlangt denselben
+   * Satz je Quadratmeter, egal welche Form. Damit traegt ER das Risiko der
+   * ungleichen Formen, nicht wir, und unser Verkaufspreis darf dieselbe
+   * Rechnung machen wie unser Einkauf. Eine Formel, die hier feiner waere
+   * als die Preisliste, waere eine Erfindung.
    */
-  const schmalHoch = estimateNetChf(30, 300)
-  const quadratisch = estimateNetChf(95, 95)
-  assert.ok(schmalHoch > quadratisch,
-    `gleiche Flaeche, mehr Umfang muss mehr kosten: ${schmalHoch} gegen ${quadratisch}`)
+  assert.equal(estimateNetChf(30, 300), estimateNetChf(90, 100),
+    'dieselbe Flaeche kostet dasselbe')
+  assert.ok(estimateNetChf(100, 200) > estimateNetChf(100, 100),
+    'mehr Flaeche kostet mehr')
 })
 
-pruefe('Mehr Umfang kostet nie weniger', () => {
+pruefe('Mehr Flaeche kostet nie weniger', () => {
   let vorher = 0
   for (let seite = 20; seite <= 300; seite += 5) {
     const preis = estimateNetChf(seite, seite)
@@ -141,98 +152,76 @@ pruefe('Mehr Umfang kostet nie weniger', () => {
   }
 })
 
-pruefe('Das Modell trifft die vier Katalogpreise auf wenige Franken', () => {
+pruefe('Der Richtpreis ist Kosten plus gedeckelter Aufschlag', () => {
   /*
-   * Nicht genau, und das soll es auch nicht: Der Richtpreis traegt die
-   * Sicherheitsmarge und liegt darum ueber dem Siedlungspreis. Aber die
-   * ROHE Gerade muss nahe an den Preisen liegen, aus denen sie stammt -
-   * sonst beschreibt sie etwas anderes als unser Sortiment.
+   * DIE GANZE FORMEL IN EINER ZEILE, und deshalb steht sie hier noch einmal
+   * ausgeschrieben: Wer sie in estimate.ts aendert, soll diesen Test rot
+   * sehen und nicht erst die Startseite.
    */
-  for (const t of windowTypes) {
-    const roh = priceModel.baseChf + priceModel.proMeterChf * umfangM(t.widthCm, t.heightCm)
-    assert.ok(Math.abs(roh - t.priceChf) <= 3,
-      `${t.label}: Modell ${roh.toFixed(2)}, Katalog ${t.priceChf}`)
+  for (const [b, h] of [[60, 100], [100, 150], [150, 250], [250, 250]]) {
+    const k = selbstkostenChf(b, h)
+    const erwartet = Math.ceil((k + Math.min(3 * k, 150)) / 5 - 1e-9) * 5
+    assert.equal(estimateNetChf(b, h), erwartet, `${b} x ${h}`)
   }
 })
 
-pruefe('Sondermass ist nie billiger als derselbe Siedlungspreis', () => {
+pruefe('Die Selbstkosten sind Ware plus Fracht plus Einfuhrsteuer', () => {
+  const ware = herstellungChf(100, 150)
+  assert.equal(selbstkostenChf(100, 150),
+    Math.round((ware + kostenConfig.frachtProNetzChf + einfuhrsteuerChf(ware)) * 100) / 100)
+})
+
+pruefe('Kleine Netze tragen die vollen 75 Prozent Marge', () => {
   /*
-   * Sonst lohnte es sich, das ausgemessene Format als Sondermass zu
-   * bestellen - und die Siedlungspreise, die wir nicht anfassen, waeren
-   * ausgehebelt.
+   * Solange der Aufschlag unter dem Deckel bleibt, ist die Marge genau die
+   * vereinbarte - bis auf die Rundung auf fuenf Franken, die sie minim
+   * nach oben schiebt.
    */
-  for (const t of windowTypes) {
-    const rechner = estimateNetChf(t.widthCm, t.heightCm)
-    assert.ok(rechner >= t.priceChf, `${t.label}: Rechner ${rechner}, Siedlung ${t.priceChf}`)
-  }
+  const marge = margeProzent(60, 100)
+  assert.ok(marge >= 75 && marge <= 78, `60 x 100 traegt ${marge} Prozent`)
+  assert.ok(aufschlagChf(selbstkostenChf(60, 100)) < 150, 'der Deckel greift hier noch nicht')
 })
 
-pruefe('Gerundet wird auf fuenf Franken, und nur nach oben', () => {
-  for (const [b, h] of [[20, 20], [63, 97], [100, 100], [128, 182], [250, 250], [300, 300]]) {
-    const preis = estimateNetChf(b, h)
-    assert.equal(preis % 5, 0, `${b} x ${h} ergibt ${preis}`)
-    /*
-     * Die Rechnung dahinter ist das Hoehere aus Katalogformel und
-     * Margengrenze - NICHT nur die Formel. Stuende hier nur sie, liesse der
-     * Test bei grossen Netzen eine Stufe von achtzig Franken durchgehen und
-     * pruefte in Wahrheit nichts mehr.
-     */
-    const roh = Math.max(
-      (priceModel.baseChf + priceModel.proMeterChf * umfangM(b, h)) * 1.05,
-      margenGrenze(b, h))
-    assert.ok(preis >= roh - 1e-9, `${b} x ${h}: ${preis} liegt unter der Rechnung ${roh.toFixed(2)}`)
-    assert.ok(preis - roh < 5, `${b} x ${h}: ${preis} liegt mehr als eine Stufe darueber`)
-  }
-})
-
-pruefe('Die Sicherheitsmarge liegt wirklich drauf', () => {
-  /* Fuenf Prozent, bevor gerundet wird - sonst ist es keine Marge. */
-  const roh = priceModel.baseChf + priceModel.proMeterChf * umfangM(100, 100)
-  assert.ok(estimateNetChf(100, 100) >= roh * 1.05 - 1e-9)
-})
-
-pruefe('Kein Format im erlaubten Feld faellt unter 75 Prozent Marge', () => {
+pruefe('Bei grossen Netzen greift der Deckel und die Marge sinkt', () => {
+  assert.equal(aufschlagChf(selbstkostenChf(250, 250)), 150, 'der Aufschlag steht auf dem Deckel')
+  const marge = margeProzent(250, 250)
+  assert.ok(marge < 50, `250 x 250 traegt noch ${marge} Prozent`)
   /*
-   * DAS IST DIE ZUSAGE, DIE DER RECHNER EINHALTEN MUSS - und der Waechter
-   * zwischen den zwei Rechnungen. Preis und Kosten stehen in verschiedenen
-   * Dateien und werden verschieden gepflegt; dass sie zueinander passen,
-   * prueft sonst niemand.
-   *
-   * Ohne die Margengrenze in estimateNetChf duennte die Marge nach oben aus
-   * - bei 300 x 300 cm auf 67 Prozent -, weil der Sockel im Verkaufspreis
-   * bei grossen Netzen fast nichts mehr wiegt, die Kosten aber weiterlaufen.
-   * Dieser Test geht ohne sie rot.
-   *
-   * In Fuenferschritten durch das ganze erlaubte Feld, nicht in Zehnern: Die
-   * duennste Stelle liegt bei 220 x 300, und die faende ein grobes Raster
-   * nicht.
+   * DAS IST DER ZWECK DES DECKELS, nicht sein Preis: Ohne ihn kostete
+   * dieses Netz das Vierfache seiner Kosten, also ueber 800 Franken.
    */
-  let duennste = { marge: 1, format: '' }
-  for (let b = 20; b <= 300; b += 5) {
-    for (let h = 20; h <= 300; h += 5) {
-      const preis = estimateNetChf(b, h)
-      const ware = herstellungChf(b, h)
-      const kosten = ware + einfuhrsteuerChf(ware)
-      const marge = (preis - kosten) / preis
-      if (marge < duennste.marge) duennste = { marge, format: `${b} x ${h}` }
-    }
-  }
-  assert.ok(duennste.marge >= 0.75,
-    `duennste Marge ${Math.round(duennste.marge * 1000) / 10} % bei ${duennste.format}`)
+  assert.ok(estimateNetChf(250, 250) < 4 * selbstkostenChf(250, 250))
 })
 
-pruefe('Unterhalb der Grenze rechnet weiter die Katalogformel', () => {
-  /*
-   * Die Marge ist eine UNTERGRENZE, kein zweiter Preis. Wo die Formel von
-   * allein ueber 75 Prozent liegt - alles unter rund sechs Metern Umfang,
-   * also das Alltagsgeschaeft -, darf sie sich nicht einmischen.
-   */
-  for (const [b, h] of [[60, 60], [120, 80], [70, 120], [100, 100], [160, 120]]) {
-    const ausFormel = (priceModel.baseChf + priceModel.proMeterChf * umfangM(b, h)) * 1.05
-    assert.ok(ausFormel > margenGrenze(b, h),
-      `${b} x ${h}: die Grenze ${margenGrenze(b, h).toFixed(2)} draengt die Formel ${ausFormel.toFixed(2)} weg`)
+pruefe('Die Marge faellt mit der Groesse, nie umgekehrt', () => {
+  let vorher = 101
+  for (const [b, h] of [[60, 100], [100, 150], [140, 200], [180, 250], [250, 250]]) {
+    const m = margeProzent(b, h)
+    assert.ok(m <= vorher, `${b} x ${h}: ${m} Prozent nach ${vorher}`)
+    vorher = m
   }
 })
+
+pruefe('Der schmale Rahmen kostet die Kundschaft mehr', () => {
+  for (const [b, h] of [[60, 100], [100, 150], [150, 250]]) {
+    assert.ok(estimateNetChf(b, h, '1.5') >= estimateNetChf(b, h, '2.8'),
+      `${b} x ${h}: schmal ${estimateNetChf(b, h, '1.5')}, normal ${estimateNetChf(b, h, '2.8')}`)
+  }
+  assert.ok(estimateNetChf(100, 150, '1.5') > estimateNetChf(100, 150, '2.8'),
+    'bei mittleren Formaten muss der Unterschied durchschlagen')
+})
+
+pruefe('Ein Altwert in der Rahmendicke rechnet wie der normale Rahmen', () => {
+  assert.equal(estimateNetChf(100, 150, '3-4 cm'), estimateNetChf(100, 150, '2.8'))
+  assert.equal(estimateNetChf(100, 150, undefined), estimateNetChf(100, 150, '2.8'))
+})
+
+pruefe('Ohne Masse gibt es keinen Preis statt eines erfundenen', () => {
+  assert.equal(estimateNetChf(0, 150), 0)
+  assert.equal(estimateNetChf(100, 0), 0)
+  assert.equal(margeProzent(0, 0), null)
+})
+
 
 /* --- Ergebnis ---------------------------------------------------------------- */
 

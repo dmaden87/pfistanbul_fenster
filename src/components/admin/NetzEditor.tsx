@@ -246,7 +246,7 @@ export function NetzEditor({
    */
   const mitPreis = (e: Entwurf, position: BestellPosition): BestellPosition => {
     if (katalog) return position
-    const vorschlag = gerechneterPreis(position.breiteCm, position.hoeheCm)
+    const vorschlag = gerechneterPreis(position.breiteCm, position.hoeheCm, position.rahmendicke, position.netzart)
     const alt = e.id ? vorher.get(e.id) : undefined
     return {
       ...position,

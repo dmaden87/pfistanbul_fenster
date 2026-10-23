@@ -1038,6 +1038,11 @@ export function offeneEinnahmen(bestellungen: Bestellung[], abrechnungen: Abrech
   return raus.sort((x, y) => (x.am < y.am ? -1 : 1))
 }
 
+/** Was aus beiden Toepfen zusammen zu verteilen ist. */
+function verteilbar(ware: number, montage: number): number {
+  return runde2(ware + montage)
+}
+
 /** Die Summen einer Abrechnung, aus ihren Zeilen gerechnet. */
 export interface AbrechnungZahlen {
   erloesChf: number
@@ -1114,8 +1119,29 @@ export function abrechnungZahlen(
   const summe: Record<Beteiligter, number> = { bora: 0, ufuk: 0, deniz: 0 }
   const ware = Math.max(0, warengewinnChf)
   const montage = Math.max(0, montagegewinnChf)
-  for (const wer of ['bora', 'ufuk', 'deniz'] as Beteiligter[]) {
+  const wer3 = ['bora', 'ufuk', 'deniz'] as Beteiligter[]
+  for (const wer of wer3) {
     anteile[wer] = runde2(ware * schluessel.ware[wer] + montage * schluessel.montage[wer])
+  }
+
+  /*
+   * DER RAPPEN MUSS IRGENDWOHIN. Jeder der drei Anteile wird einzeln auf
+   * zwei Stellen gerundet, und drei gerundete Zahlen ergeben nicht
+   * zwangslaeufig die Summe, aus der sie stammen - bei einem Verteilbaren
+   * von 180.00 kamen 180.01 heraus.
+   *
+   * Auf einer Abrechnung ist das keine Nachkommastelle, sondern ein
+   * Widerspruch: Das Blatt behauptet, was hereinkam, gehe vollstaendig
+   * hinaus. Der Rest geht deshalb an den groessten Anteil - er faellt dort
+   * am wenigsten ins Gewicht, und das Blatt stimmt.
+   */
+  const rest = runde2(verteilbar(ware, montage) - wer3.reduce((s, w) => s + anteile[w], 0))
+  if (rest !== 0) {
+    const groesster = wer3.reduce((a, b) => (anteile[a] >= anteile[b] ? a : b))
+    anteile[groesster] = runde2(anteile[groesster] + rest)
+  }
+
+  for (const wer of wer3) {
     summe[wer] = runde2(anteile[wer] + rueckzahlung[wer])
   }
 
@@ -1130,7 +1156,7 @@ export function abrechnungZahlen(
     rueckzahlung,
     warengewinnChf,
     montagegewinnChf,
-    verteilbarChf: runde2(ware + montage),
+    verteilbarChf: verteilbar(ware, montage),
     anteile,
     summe,
   }

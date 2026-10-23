@@ -1,11 +1,19 @@
 /**
- * Prueft den Kostenrechner gegen Boras echte Preise.
+ * Prueft den Kostenrechner gegen Boras m2-Vereinbarung.
  *
- * DIE SIEBEN MESSPUNKTE SIND DIE QUELLE. Kommen neue Preise, gehoeren sie
- * hier hinein – und wenn die Formel sie nicht mehr trifft, geht dieser Test
- * rot, bevor jemand mit falschen Margen rechnet.
+ * HIER STANDEN SIEBEN GEMESSENE PREISE und eine Formel ueber den Umfang,
+ * die sie auf 0.37 EUR genau traf. Beides ist abgeloest: Weil Boras Preise
+ * von Netz zu Netz uneinheitlich waren - der Satz je Quadratmeter schwankte
+ * zwischen 17.90 und 35.81 -, wurde im Oktober 2026 ein fester m2-Preis
+ * vereinbart. Die alten Punkte stehen bewusst nicht mehr hier: Sie wuerden
+ * die Formel gegen eine Preisliste pruefen, die niemand mehr anwendet, und
+ * dieser Test waere rot, obwohl alles stimmt.
+ *
+ * Geprueft wird jetzt die Vereinbarung selbst - Flaeche mal Satz, der
+ * Aufschlag fuer den schmalen Rahmen, und die Rueckfaelle fuer das, was in
+ * alten Datensaetzen steht.
  */
-import { umfangM, herstellungEur, herstellungChf, herstellungFuer, einfuhrsteuerChf } from '../src/lib/kosten.ts'
+import { umfangM, flaecheM2, satzEur, herstellungEur, herstellungChf, herstellungFuer, einfuhrsteuerChf } from '../src/lib/kosten.ts'
 import { kostenConfig } from '../src/data/kostenConfig.ts'
 
 let gut = 0
@@ -16,41 +24,52 @@ function pruefe(name, bedingung, hinweis = '') {
 }
 
 /*
- * Breite cm, Hoehe cm, Preis EUR – von Bora, Oktober 2026.
- *
- * MASSE SO GENAU, WIE SIE VORLIEGEN. Das groesste Netz stand zuerst als
- * 128 x 182 hier und ist seither auf den Millimeter nachgetragen: 128.6 x
- * 182.5. Sechs Millimeter aendern den Preis um keinen Rappen – sie aendern
- * aber, was dieser Test prueft, und ein gerundetes Mass neben einem echten
- * Preis sieht aus wie eine Messung und ist eine Erinnerung.
+ * BORAS PREISLISTE, STAND OKTOBER 2026. Zwei Zahlen statt sieben Messpunkte
+ * - das ist der ganze Unterschied zwischen einer zurueckgerechneten Formel
+ * und einer Vereinbarung.
  */
-const MESSPUNKTE = [
-  [68, 203, 36], [128.6, 182.5, 42], [128, 96, 30], [64, 96, 22],
-  [160.5, 122, 37], [117, 82, 27], [72, 122, 27],
-]
+const SATZ = { '1.5': 35, '2.8': 30 }
+
+pruefe('Flaeche: 100 x 50 sind ein halber Quadratmeter', flaecheM2(100, 50) === 0.5)
+
+for (const [dicke, satz] of Object.entries(SATZ)) {
+  pruefe(`${dicke}er Rahmen: ein Quadratmeter kostet ${satz} EUR`,
+    herstellungEur(100, 100, dicke) === satz, String(herstellungEur(100, 100, dicke)))
+  pruefe(`${dicke}er Rahmen: zwei Quadratmeter kosten doppelt`,
+    herstellungEur(200, 100, dicke) === satz * 2, String(herstellungEur(200, 100, dicke)))
+}
+
+pruefe('Der schmale Rahmen ist teurer als der normale',
+  herstellungEur(100, 150, '1.5') > herstellungEur(100, 150, '2.8'))
 
 /*
- * DIE TOLERANZ IST DAS EIGENTLICHE VERSPRECHEN. Eine Formel, die "ungefaehr"
- * stimmt, ist wertlos, wenn niemand sagt, wie ungefaehr. Groesste gemessene
- * Abweichung ist 0.76 EUR (160.5 x 122); 1.00 laesst etwas Luft, ohne eine
- * schlechtere Formel durchzulassen. Mit dem Flaechenmodell (Abweichung bis
- * 3.97) ginge dieser Test rot – genau so soll es sein.
+ * DER RUECKFALL IST KEIN SCHOENHEITSFEHLER. Alteintraege tragen im Feld
+ * Rahmendicke freien Text ("3-4 cm", "60 mm"), und es gab damals nur einen
+ * Rahmen: den gewoehnlichen. Wer daraus null machte, stellte einen Auftrag
+ * ohne Warenkosten in die Marge.
  */
-const TOLERANZ_EUR = 1.0
+pruefe('Ein Altwert rechnet mit dem Normalsatz',
+  herstellungEur(100, 100, '3-4 cm') === SATZ['2.8'])
+pruefe('Fehlt die Angabe ganz, ebenso',
+  herstellungEur(100, 100) === SATZ['2.8'])
+pruefe('Der Satz zu einem unbekannten Wert ist der Normalsatz',
+  satzEur('irgendwas') === kostenConfig.proM2StandardEur)
 
-let groesste = 0
-for (const [b, h, preis] of MESSPUNKTE) {
-  const gerechnet = herstellungEur(b, h)
-  const ab = Math.abs(gerechnet - preis)
-  groesste = Math.max(groesste, ab)
-  pruefe(`${b} x ${h} kostet ${preis} EUR, gerechnet ${gerechnet.toFixed(2)}`,
-    ab <= TOLERANZ_EUR, `${ab.toFixed(2)} EUR daneben`)
-}
-pruefe(`groesste Abweichung ${groesste.toFixed(2)} EUR bleibt unter ${TOLERANZ_EUR}`, groesste <= TOLERANZ_EUR)
+/*
+ * ENGMASCHIG KOSTET NOCH NICHT MEHR, weil Bora den Aufschlag erst nennt.
+ * Eine geratene Zahl waere schlimmer als Gleichstand: Sie saehe aus wie ein
+ * Preis. Wird der Faktor gesetzt, faellt dieser Test auf - und dann gehoert
+ * er umgeschrieben, nicht geloescht.
+ */
+pruefe('Engmaschig rechnet vorerst gleich wie normal',
+  herstellungEur(100, 150, '2.8', 'engmaschig') === herstellungEur(100, 150, '2.8', 'normal'),
+  `Faktor steht auf ${kostenConfig.engmaschigFaktor}`)
 
-pruefe('Umfang: 100 x 50 sind 3 Meter', umfangM(100, 50) === 3)
-pruefe('Sockel allein: ein Netz ohne Groesse kostet nichts', herstellungEur(0, 0) === 0)
+pruefe('Ein Netz ohne Groesse kostet nichts', herstellungEur(0, 0) === 0)
 pruefe('negative Masse ergeben nichts', herstellungEur(-100, 50) === 0)
+
+/* Der Umfang geht nicht mehr in den Preis ein, das Mass gibt es aber weiter. */
+pruefe('Umfang: 100 x 50 sind 3 Meter', umfangM(100, 50) === 3)
 
 const eur = herstellungEur(100, 100)
 pruefe('Franken sind Euro mal Kurs',

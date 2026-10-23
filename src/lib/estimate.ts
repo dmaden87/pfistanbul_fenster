@@ -1,6 +1,5 @@
 import type { CustomRequestLine } from '../types'
-import { windowTypes } from '../data/catalog'
-import { einfuhrsteuerChf, herstellungChf, umfangM } from './kosten'
+import { einfuhrsteuerChf, frachtChf, herstellungChf } from './kosten'
 
 /**
  * Richtpreis für Sondermasse.
@@ -43,45 +42,34 @@ import { einfuhrsteuerChf, herstellungChf, umfangM } from './kosten'
  * Umbau auseinander.
  */
 
-/** Aufschlag für die Unsicherheit einer Einzelanfertigung. */
-const UNCERTAINTY = 0.05
+/**
+ * Die Marge, die der Richtpreis tragen soll - MARGE VOM VERKAUFSPREIS.
+ *
+ * 75 Prozent Marge heissen: Die Kosten sind ein Viertel des Preises, der
+ * Aufschlag also das Dreifache der Kosten. Nicht zu verwechseln mit "75
+ * Prozent aufschlagen", was das 1.75-fache waere und rund 38 Prozent Marge
+ * ergaebe. Genau diese Verwechslung stand einmal in der Vereinbarung.
+ */
+const MARGE_FAKTOR = 3
 
 /**
- * Die Marge, die ein Richtpreis mindestens tragen muss.
+ * Mehr als so viel Aufschlag nimmt kein Netz, egal wie gross.
  *
- * WARUM ES SIE BRAUCHT, obwohl die Katalogformel vernünftige Preise liefert:
- * Die Formel folgt dem Umfang, die Kosten auch – aber nicht im gleichen
- * Verhältnis. Der Sockel im Verkaufspreis (rund 80 Franken für Ausmessen,
- * Fahren, Beraten, Garantie) wiegt bei einem kleinen Netz schwer und bei
- * einem grossen fast nichts, während die Kosten stur weiterlaufen. Darum
- * dünnt die Marge nach oben aus: Bei 300 × 300 cm waren es noch 67 Prozent.
+ * OHNE DECKEL MULTIPLIZIERT DIE MARGE DIE FLAECHE MIT. Ein Netz von
+ * 250 x 250 cm kostet uns rund 205 Franken bis vor Ort; mal vier waeren das
+ * ueber 800. Dafuer kauft niemand ein Insektenschutzgitter, und es waere
+ * auch nicht verdient: Eine grosse Tuere macht uns nicht viermal so viel
+ * Arbeit wie ein Badfenster, sie braucht nur mehr Material.
  *
- * Also eine zweite Linie: Der Richtpreis ist das HÖHERE aus Katalogformel
- * und dem, was diese Marge verlangt. Unterhalb von rund sechs Metern Umfang
- * trägt die Formel von allein, dort ändert sich nichts; darüber übernimmt
- * die Marge.
- *
- * DAMIT HÄNGT DER VERKAUFSPREIS AN BORAS EINKAUFSPREIS, und das ist
- * beabsichtigt: Wird der Einkauf teurer, zieht der Richtpreis für grosse
- * Netze von selbst nach, statt still Marge zu verlieren. Wer
- * src/data/kostenConfig.ts anfasst, bewegt damit auch das, was auf der
- * Startseite steht.
- *
- * Gerechnet wird gegen Herstellung und Einfuhrsteuer. Die Fracht steckt
- * nicht darin – sie fällt je Sendung an, nicht je Netz, und liesse sich nur
- * raten. Die wahre Marge liegt also etwas unter diesem Wert; was wirklich
- * herauskommt, steht im Bereich "Zahlen" pro Auftrag und pro Sendung.
+ * Die Folge ist gewollt: Kleine Netze tragen ihre vollen 75 Prozent, bei
+ * den grossen sinkt die Marge - auf 43 Prozent bei 250 x 250. Wer das
+ * aendert, aendert die Preise auf der Startseite.
  */
-const MIN_MARGE = 0.75
+const DECKEL_CHF = 150
 
 /**
  * Auf diesen Betrag wird aufgerundet – nie ab, damit die Offerte nicht
  * teurer ausfällt als der genannte Richtpreis.
- *
- * FÜNF STATT ZEHN, seit die Rechnung nach Umfang geht. Zehner-Schritte waren
- * grob genug, dass zwei spürbar verschiedene Fenster denselben Preis
- * bekamen; der feinere Schritt gibt die Rechnung wieder, statt sie
- * einzuebnen.
  */
 const ROUND_TO_CHF = 5
 
@@ -109,36 +97,41 @@ const ROUND_TO_CHF = 5
  * bau/kosten-test.mjs - dann wird aus der Hochrechnung eine Rechnung.
  */
 
-export interface PriceModel {
-  /** Sockelbetrag pro Netz, unabhängig von der Grösse. */
-  baseChf: number
-  /** Zuschlag pro Meter Umfang. */
-  proMeterChf: number
-}
-
 /**
- * Kleinste-Quadrate-Gerade durch die Katalogformate (Preis über Umfang).
- * Beide Werte werden bei null abgeschnitten: Ein negativer Meterpreis würde
- * bedeuten, dass ein grösseres Netz weniger kostet – das darf aus
- * fehlerhaften Katalogdaten nie herausfallen.
+ * Der Richtpreis fuer ein Netz dieser Masse.
+ *
+ * DIE FORMEL, WIE SIE MIT DENIZ UND UFUK VEREINBART IST:
+ *
+ *   Netzkosten + Fracht und Zoll + min(3 x Gesamtkosten, 150)
+ *
+ * Der Aufschlag von drei mal den Kosten ist eine Marge von 75 Prozent -
+ * Marge VOM VERKAUFSPREIS, nicht Aufschlag auf die Kosten. Das ist nicht
+ * dasselbe und war die eine Stelle, an der die Vereinbarung mehrdeutig war:
+ * "75 Prozent dazuschlagen" waere das 1.75-fache und ergaebe rund 38
+ * Prozent Marge. Gemeint ist das Vierfache.
+ *
+ * DER DECKEL VON 150 FRANKEN IST DER ZWECK DER UEBUNG. Ohne ihn kostete ein
+ * Netz von 250 x 250 ueber 800 Franken, weil die Marge die Flaeche
+ * mitmultipliziert. Mit ihm traegt ein kleines Netz seine 75 Prozent, und
+ * bei den grossen sinkt die Marge - auf 43 Prozent beim groessten. Das ist
+ * gewollt: Eine Balkontuere soll bezahlbar bleiben, und sie kostet uns
+ * nicht viermal so viel Arbeit wie ein Badfenster.
+ *
+ * WAS HIER NICHT MEHR STEHT: eine Gerade durch die Katalogpreise. Der
+ * Rechner las die vier Siedlungsformate und rechnete einen Sockel und einen
+ * Meterpreis daraus zurueck - erst ueber die Flaeche, dann ueber den Umfang.
+ * Das war richtig, solange Boras Preise die einzige Quelle waren und
+ * uneinheitlich. Seit es eine m2-Vereinbarung gibt, rechnet der Richtpreis
+ * vorwaerts aus den Kosten statt rueckwaerts aus Preisen.
+ *
+ * DIE SIEDLUNGSPREISE BLEIBEN, WIE SIE SIND. Die vier Katalogformate tragen
+ * ihre eigenen Preise und werden von dieser Funktion nicht beruehrt - sie
+ * gilt fuer Sondermasse.
  */
-function fitModel(): PriceModel {
-  const points = windowTypes.map((type) => ({
-    u: umfangM(type.widthCm, type.heightCm),
-    p: type.priceChf,
-  }))
-  if (points.length === 0) return { baseChf: 0, proMeterChf: 0 }
 
-  const meanU = points.reduce((sum, x) => sum + x.u, 0) / points.length
-  const meanP = points.reduce((sum, x) => sum + x.p, 0) / points.length
-  const sxy = points.reduce((sum, x) => sum + (x.u - meanU) * (x.p - meanP), 0)
-  const sxx = points.reduce((sum, x) => sum + (x.u - meanU) ** 2, 0)
-
-  const proMeterChf = sxx > 0 ? Math.max(0, sxy / sxx) : 0
-  return { baseChf: Math.max(0, meanP - proMeterChf * meanU), proMeterChf }
+function runde2(x: number): number {
+  return Math.round(x * 100) / 100
 }
-
-export const priceModel = fitModel()
 
 /** Aufrunden mit kleiner Toleranz, damit CHF 150.0000001 nicht auf 155 springt. */
 function roundUpTo(value: number, step: number): number {
@@ -146,28 +139,53 @@ function roundUpTo(value: number, step: number): number {
 }
 
 /**
- * Geschätzter Preis für ein einzelnes Netz dieser Masse, inklusive
- * Sicherheitsmarge und Rundung.
- *
- * NIMMT MASSE, NICHT FLÄCHE. Die Fläche allein reicht nicht mehr: 30 × 300
- * und 95 × 95 haben beide 0.9 m², aber 6.6 gegen 3.8 Meter Umfang – und
- * damit verschiedene Preise, so wie sie auch verschieden viel kosten.
+ * Was ein Netz dieser Masse uns kostet, bis es vor Ort liegt: Ware, Fracht
+ * und Einfuhrsteuer. Ohne Montage - die steht im Angebot als eigener Posten.
  */
-export function estimateNetChf(breiteCm: number, hoeheCm: number): number {
-  const ausKatalog =
-    (priceModel.baseChf + priceModel.proMeterChf * umfangM(breiteCm, hoeheCm)) * (1 + UNCERTAINTY)
-  return roundUpTo(Math.max(ausKatalog, margenGrenze(breiteCm, hoeheCm)), ROUND_TO_CHF)
+export function selbstkostenChf(
+  breiteCm: number,
+  hoeheCm: number,
+  rahmendicke?: string,
+  netzart?: string,
+): number {
+  const ware = herstellungChf(breiteCm, hoeheCm, rahmendicke, netzart)
+  if (ware <= 0) return 0
+  return runde2(ware + frachtChf(1) + einfuhrsteuerChf(ware))
 }
 
 /**
- * Der tiefste Preis, der MIN_MARGE noch trägt.
+ * Der Richtpreis fuer ein einzelnes Netz, aufgerundet auf fuenf Franken.
  *
- * Marge heisst hier Marge vom Verkaufspreis, nicht Aufschlag auf die Kosten:
- * 75 Prozent Marge sind das Vierfache der Kosten, nicht das 1.75-fache.
+ * Aufgerundet und nie ab: Die Offerte soll nicht teurer ausfallen als der
+ * Richtpreis, den die Kundschaft auf der Seite gesehen hat.
  */
-export function margenGrenze(breiteCm: number, hoeheCm: number): number {
-  const ware = herstellungChf(breiteCm, hoeheCm)
-  return (ware + einfuhrsteuerChf(ware)) / (1 - MIN_MARGE)
+export function estimateNetChf(
+  breiteCm: number,
+  hoeheCm: number,
+  rahmendicke?: string,
+  netzart?: string,
+): number {
+  const kosten = selbstkostenChf(breiteCm, hoeheCm, rahmendicke, netzart)
+  if (kosten <= 0) return 0
+  return roundUpTo(kosten + aufschlagChf(kosten), ROUND_TO_CHF)
+}
+
+/** Der Aufschlag auf die Selbstkosten: 75 Prozent Marge, gedeckelt. */
+export function aufschlagChf(kostenChf: number): number {
+  return Math.min(runde2(MARGE_FAKTOR * kostenChf), DECKEL_CHF)
+}
+
+/**
+ * Die Marge, die ein Richtpreis dieser Groesse traegt, in Prozent.
+ *
+ * Nur zum Hinsehen - gerechnet wird mit den Betraegen. Sie faellt mit der
+ * Groesse, sobald der Deckel greift, und das soll man sehen koennen.
+ */
+export function margeProzent(breiteCm: number, hoeheCm: number, rahmendicke?: string, netzart?: string): number | null {
+  const kosten = selbstkostenChf(breiteCm, hoeheCm, rahmendicke, netzart)
+  const preis = estimateNetChf(breiteCm, hoeheCm, rahmendicke, netzart)
+  if (!(preis > 0)) return null
+  return Math.round((100 * (preis - kosten)) / preis)
 }
 
 export interface EstimateLine {
