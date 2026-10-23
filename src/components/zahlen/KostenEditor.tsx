@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { Beteiligter, Bestellung, KostenArt, KostenPosten } from '../../types'
 import { beteiligte } from '../../data/kostenConfig'
 import { einfuhrsteuerChf, herstellungFuer } from '../../lib/kosten'
-import { formatChf } from '../../lib/format'
+import { betragOderNull, formatChf } from '../../lib/format'
 import { zahlenFuer } from '../../lib/pl'
 import { fuelle, useSprache } from '../admin/sprache'
 import './KostenEditor.css'
@@ -50,25 +50,38 @@ export function KostenEditor({ bestellung, onSpeichern, onSchliessen }: Props) {
    * `neu: true` gemerkt. Die Oberflaeche zeigt daneben "geschaetzt", damit
    * niemand eine Zahl fuer gemessen haelt, die nur gerechnet ist.
    */
-  const start: (KostenPosten & { neu?: boolean })[] = []
+  /*
+   * DER ZUSTAND TRAEGT DEN GETIPPTEN TEXT, nicht nur die Zahl.
+   *
+   * Das Feld war ein `type="number"`, und ein solches Feld nimmt den
+   * Schweizer Tausender-Apostroph gar nicht erst an - der Browser liefert
+   * einen leeren Wert zurueck. Wer "12'345.67" tippte, speicherte nichts.
+   *
+   * Jetzt ist es ein Textfeld, und solange jemand tippt, bleibt stehen, was
+   * er geschrieben hat. Gerechnet wird mit betragAusText(); erst beim
+   * Speichern wird daraus eine Zahl.
+   */
+  const start: (KostenPosten & { neu?: boolean; betragText: string })[] = []
+  const mitText = (k: KostenPosten) => ({ ...k, betragText: String(k.betragChf) })
   for (const art of ARTEN) {
     const treffer = vorhanden.filter((k) => k.art === art)
-    if (treffer.length > 0) { start.push(...treffer); continue }
+    if (treffer.length > 0) { start.push(...treffer.map(mitText)); continue }
     const betrag = art === 'herstellung' ? geschaetzteHerstellung
       : art === 'mwst' ? einfuhrsteuerChf(geschaetzteHerstellung)
       : 0
-    start.push({ id: neueId(), art, betragChf: betrag, traeger: 'bora', erfasstAm: '', neu: true })
+    start.push({ id: neueId(), art, betragChf: betrag, betragText: betrag > 0 ? String(betrag) : '', traeger: 'bora', erfasstAm: '', neu: true })
   }
-  start.push(...vorhanden.filter((k) => k.art === 'weiteres'))
+  start.push(...vorhanden.filter((k) => k.art === 'weiteres').map(mitText))
 
   const [posten, setPosten] = useState(start)
   const [sendet, setSendet] = useState(false)
   const [fehler, setFehler] = useState<string | null>(null)
 
-  const aendere = (id: string, teil: Partial<KostenPosten>) =>
+  const aendere = (id: string, teil: Partial<KostenPosten & { betragText: string }>) =>
     setPosten((liste) => liste.map((k) => (k.id === id ? { ...k, ...teil } : k)))
 
-  const summe = posten.reduce((s, k) => s + (Number(k.betragChf) || 0), 0)
+  const betrag = (k: { betragText: string }) => betragOderNull(k.betragText)
+  const summe = posten.reduce((s, k) => s + betrag(k), 0)
   const z = zahlenFuer(bestellung)
 
   const speichern = async () => {
@@ -84,12 +97,12 @@ export function KostenEditor({ bestellung, onSpeichern, onSchliessen }: Props) {
        * den Datensatz; deshalb wird jeder Posten neu aufgebaut statt kopiert.
        */
       await onSpeichern(posten
-        .filter((k) => Number(k.betragChf) > 0 || k.art === 'herstellung')
+        .filter((k) => betrag(k) > 0 || k.art === 'herstellung')
         .map((k) => ({
           id: k.id,
           art: k.art,
           ...(k.bezeichnung ? { bezeichnung: k.bezeichnung } : {}),
-          betragChf: Number(k.betragChf) || 0,
+          betragChf: betrag(k),
           traeger: k.traeger,
           ...(k.bezahlt ? { bezahlt: true } : {}),
           ...(k.am ? { am: k.am } : {}),
@@ -135,11 +148,10 @@ export function KostenEditor({ bestellung, onSpeichern, onSchliessen }: Props) {
               <td data-titel={t.zBetrag}>
                 <input
                   className="input kosten__betrag"
-                  type="number"
-                  step="0.05"
-                  min="0"
-                  value={k.betragChf}
-                  onChange={(e) => aendere(k.id, { betragChf: Number(e.target.value) })}
+                  inputMode="decimal"
+                  placeholder="12'345.67"
+                  value={k.betragText}
+                  onChange={(e) => aendere(k.id, { betragText: e.target.value })}
                 />
               </td>
               <td data-titel={t.zAusgelegtVon}>
@@ -174,7 +186,7 @@ export function KostenEditor({ bestellung, onSpeichern, onSchliessen }: Props) {
       <div className="kosten__fuss">
         <button type="button" className="btn btn--ghost btn--sm"
           onClick={() => setPosten((l) => [...l,
-            { id: neueId(), art: 'weiteres', bezeichnung: '', betragChf: 0, traeger: 'deniz', erfasstAm: '' }])}>
+            { id: neueId(), art: 'weiteres', bezeichnung: '', betragChf: 0, betragText: '', traeger: 'deniz', erfasstAm: '' }])}>
           {t.zWeitereKosten}
         </button>
         <p className="kosten__summe">

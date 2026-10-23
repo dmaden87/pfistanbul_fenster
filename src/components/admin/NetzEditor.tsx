@@ -14,7 +14,7 @@ import {
   type Netzfarbe,
   type Rahmenfarbe,
 } from '../../data/produktion'
-import { formatChf, formatSize } from '../../lib/format'
+import { betragOderNull, formatChf, formatSize } from '../../lib/format'
 import { netSets, netsInSet, setById, typeById, windowTypes } from '../../data/catalog'
 import { gerechneterPreis, positionenSumme, verkaufspreisFuer } from './hilfen'
 import { fuelle, useSprache } from './sprache'
@@ -168,10 +168,13 @@ function leer(): Entwurf {
   }
 }
 
-function zahl(wert: string): number {
-  const n = Number(wert.replace(',', '.'))
-  return Number.isFinite(n) ? n : 0
-}
+/*
+ * Masse und Mengen lesen dieselbe Schreibweise wie die Betraege: Wer
+ * "1'234" tippt, meint tausendzweihundertvierunddreissig - bei Millimetern
+ * genauso wie bei Franken. Hier stand `Number(w.replace(',','.'))`, und das
+ * machte aus einem Apostroph lautlos eine Null.
+ */
+const zahl = betragOderNull
 
 /** Auf den Millimeter, nicht auf den Zentimeter: 128.6 gerundet passt nicht. */
 function masszahl(wert: string): number | undefined {

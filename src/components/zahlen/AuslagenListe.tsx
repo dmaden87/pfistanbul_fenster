@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Auslage, AuslagenKategorie, Beteiligter } from '../../types'
 import { beteiligte } from '../../data/kostenConfig'
-import { formatChf } from '../../lib/format'
+import { betragOderNull, formatChf } from '../../lib/format'
 import type { Warenkosten } from '../../lib/pl'
 import { fuelle, useSprache } from '../admin/sprache'
 
@@ -53,7 +53,7 @@ export function AuslagenListe({ auslagen, netzkosten, onAnlegen, onAendern, onEn
     setSendet(true)
     setFehler(null)
     try {
-      await onAnlegen({ am, bezeichnung, kategorie, betragChf: Number(betragChf), traeger })
+      await onAnlegen({ am, bezeichnung, kategorie, betragChf: betragOderNull(betragChf), traeger })
       setBezeichnung('')
       setBetrag('')
     } catch (f) {
@@ -152,9 +152,9 @@ export function AuslagenListe({ auslagen, netzkosten, onAnlegen, onAendern, onEn
         </select>
         <input
           className="input auslage__betrag"
-          type="number" step="0.05" min="0"
+          inputMode="decimal"
           value={betragChf}
-          placeholder="CHF"
+          placeholder="12'345.67"
           aria-label={t.zBetrag}
           onChange={(e) => setBetrag(e.target.value)}
         />
@@ -163,7 +163,7 @@ export function AuslagenListe({ auslagen, netzkosten, onAnlegen, onAendern, onEn
           {TRAEGER.map((t) => <option key={t} value={t}>{beteiligte[t]}</option>)}
         </select>
         <button type="submit" className="btn btn--sm"
-          disabled={sendet || !bezeichnung.trim() || !(Number(betragChf) > 0)}>
+          disabled={sendet || !bezeichnung.trim() || !(betragOderNull(betragChf) > 0)}>
           {t.zEintragen}
         </button>
       </form>

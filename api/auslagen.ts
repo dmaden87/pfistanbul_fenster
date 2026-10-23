@@ -56,8 +56,30 @@ function text(wert: unknown, max: number): string {
   return typeof wert === 'string' ? wert.trim().slice(0, max) : ''
 }
 
+/*
+ * EIN BETRAG, WIE ER ANKOMMT. Der Browser schickt Zahlen, aber verlassen
+ * darf sich darauf niemand: Wer von Hand gegen die Schnittstelle arbeitet
+ * oder ein Feld vergisst zu parsen, schickt "1'234.50" - und `Number()`
+ * machte daraus NaN und damit eine Null. Eine Null ist eine Aussage; ein
+ * nicht gelesener Betrag ist keine. Darum wird hier dieselbe Schreibweise
+ * gelesen wie im Browser (betragAusText in src/lib/format.ts), nur ohne
+ * Import: api/ darf nicht aus src/ importieren.
+ */
 function zahl(wert: unknown): number {
-  const n = typeof wert === 'number' ? wert : Number(wert)
+  if (typeof wert === 'number') return Number.isFinite(wert) ? Math.round(wert * 100) / 100 : 0
+  if (typeof wert !== 'string') return 0
+  let text = wert.trim().replace(/['\u2018\u2019\u00b4`\u00a0\u202f\s]/g, '')
+  if (text === '') return 0
+  const p = text.lastIndexOf('.')
+  const k = text.lastIndexOf(',')
+  if (p >= 0 && k >= 0) {
+    const trenner = p > k ? '.' : ','
+    text = text.split(trenner === '.' ? ',' : '.').join('').replace(trenner, '.')
+  } else if (k >= 0) {
+    text = text.replace(',', '.')
+  }
+  if (!/^-?\d*\.?\d*$/.test(text)) return 0
+  const n = Number(text)
   return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0
 }
 

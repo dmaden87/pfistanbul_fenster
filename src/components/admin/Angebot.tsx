@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { BestellAenderung, Bestellung, BestellPosition } from '../../types'
 import { shopConfig } from '../../data/shopConfig'
-import { formatChf } from '../../lib/format'
+import { betragOderNull, formatChf } from '../../lib/format'
 import { gerechneterPreis, montageBetrag, positionDetail, vorschlagFuer } from './hilfen'
 import { fuelle, useSprache } from './sprache'
 
@@ -46,10 +46,12 @@ interface AngebotProps {
  */
 const { montageChf: MONTAGE_PRO_NETZ, anfahrtspauschaleChf: ANFAHRT_PAUSCHALE, serviceArea: LIEFERGEBIET } = shopConfig
 
-function zahl(wert: string): number {
-  const n = Number(wert.replace(',', '.'))
-  return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : 0
-}
+/*
+ * Liest auch die Schweizer Schreibweise mit Apostroph - siehe
+ * betragAusText() in src/lib/format.ts. Hier stand `Number(w.replace(',','.'))`,
+ * und das machte aus "1'234.50" lautlos eine Null.
+ */
+const zahl = betragOderNull
 
 const runde2 = (n: number) => Math.round(n * 100) / 100
 
