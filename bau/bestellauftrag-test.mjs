@@ -120,7 +120,13 @@ pruefe('Ein Katalognetz traegt Masse und Rahmendicke aus dem Katalog', () => {
   const netz = a.zeilen[0]
   assert.equal(netz.breiteCm, 117)
   assert.equal(netz.hoeheCm, 82.5)
-  assert.equal(netz.rahmendicke, '3-4 cm')
+  /*
+   * HIER STAND '3-4 cm', und das war die Dicke der FENSTERrahmen im
+   * Pfisterhoelzli - sie stand als Vorbelegung an jedem Katalogtyp und
+   * fuhr damit als Rahmenmass unseres Plissees zu Bora. Seit das Feld in
+   * den Einkaufspreis eingeht, steht dort der gewoehnliche 2.8er.
+   */
+  assert.equal(netz.rahmendicke, '2.8')
   assert.equal(a.luecken.length, 0, 'ein Katalognetz sollte vollstaendig sein')
 })
 

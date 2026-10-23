@@ -102,6 +102,8 @@ interface Position {
   rahmendicke?: string
   rahmenfarbe?: string
   netzfarbe?: string
+  /** 'normal' oder 'engmaschig'. Fehlt bei Alteintraegen - dort ist es normal. */
+  netzart?: string
   mechanismus?: string
   oeffnung?: string
   /** Verweis in den Katalog, damit der Auftrag ein Set in Netze aufloesen kann. */
@@ -305,7 +307,7 @@ function positionen(wert: unknown): Position[] {
     // Die Angaben fuer den Produzenten und die Katalogverweise. Was leer
     // ankommt, bleibt weg: Der Bestellauftrag prueft spaeter, ob alles da
     // ist, und meldet die Luecke, statt sie mit einer Annahme zu fuellen.
-    for (const feld of ['rahmendicke', 'rahmenfarbe', 'netzfarbe', 'mechanismus', 'oeffnung', 'typId', 'setId'] as const) {
+    for (const feld of ['rahmendicke', 'rahmenfarbe', 'netzfarbe', 'netzart', 'mechanismus', 'oeffnung', 'typId', 'setId'] as const) {
       const wert = text(roh?.[feld], 40)
       if (wert) position[feld] = wert
     }
@@ -317,7 +319,12 @@ function positionen(wert: unknown): Position[] {
  * Die Felder, an denen die bewahrten Preise haengen. Aendert sich eines, ist
  * es ein anderes Netz, und die alten Zahlen gehoeren nicht mehr dazu.
  */
-const PREISRELEVANT = ['breiteCm', 'hoeheCm', 'rahmendicke', 'rahmenfarbe', 'netzfarbe', 'mechanismus', 'typId', 'setId'] as const
+/*
+ * DIE NETZART GEHOERT DAZU, seit engmaschiges Gewebe mehr kostet: Wer sie
+ * umstellt, bestellt etwas anderes, und der bewahrte Einkaufspreis von
+ * vorher gilt nicht mehr. Dieselbe Ueberlegung wie bei der Rahmendicke.
+ */
+const PREISRELEVANT = ['breiteCm', 'hoeheCm', 'rahmendicke', 'rahmenfarbe', 'netzfarbe', 'netzart', 'mechanismus', 'typId', 'setId'] as const
 
 /**
  * Traegt die beiden Preise, die nicht vom Browser kommen duerfen, von den

@@ -15,6 +15,13 @@ import {
   ausgeglicheneSchulden, abrechnungJePosten, freiePosten,
 } from '../src/lib/pl.ts'
 import { herstellungChf } from '../src/lib/kosten.ts'
+/*
+ * DIE PAUSCHALE KOMMT AUS DER KONFIGURATION, nicht als Zahl in den Test:
+ * Sie stand hier zweimal als 12 und ging beim Wechsel auf 13 rot, ohne dass
+ * etwas kaputt war. Was sich mit Boras Abrechnungen aendert, gehoert an eine
+ * Stelle - gepruefft wird die Formel, nicht die Zahl.
+ */
+import { kostenConfig } from '../src/data/kostenConfig.ts'
 
 let bestanden = 0
 const fehler = []
@@ -197,7 +204,8 @@ pruefe('Kargo und MWST stehen zusammen und werden gerechnet', () => {
   const kargo = kostenPosten(b).filter((k) => k.art === 'kargo')
   assert.equal(kargo.length, 1, 'genau ein Posten, nicht zwei')
   const ware = herstellungChf(128, 96)
-  assert.equal(kargo[0].betragChf, runde(12 + runde(ware * 0.081)), '12 Fracht je Netz plus die Steuer')
+  assert.equal(kargo[0].betragChf, runde(kostenConfig.frachtProNetzChf + runde(ware * 0.081)),
+    'Fracht je Netz plus die Steuer')
   assert.equal(kargo[0].traeger, 'bora', 'die Fracht traegt immer Bora')
   assert.equal(kargo[0].geschaetzt, true, 'eine Pauschale sagt, dass sie eine ist')
 
@@ -339,9 +347,9 @@ pruefe('Betriebskosten mindern das Ergebnis, nicht die Warenkosten', () => {
   const [a] = abschnitte([best({ ausgeliefertAm: '2026-01-10T00:00:00.000Z',
     kosten: [{ id: 'k', art: 'herstellung', betragChf: 30, traeger: 'bora', erfasstAm: 'x' }] })],
     [auslage({ am: '2026-01-20', betragChf: 40 })], 'total')
-  /* Herstellung erfasst, dazu die Kargo-Pauschale: 12 Fracht fuer ein Netz
+  /* Herstellung erfasst, dazu die Kargo-Pauschale: Fracht fuer ein Netz
      plus 8.1 Prozent Einfuhrsteuer auf die erfassten 30. */
-  const kargo = runde(12 + runde(30 * 0.081))
+  const kargo = runde(kostenConfig.frachtProNetzChf + runde(30 * 0.081))
   assert.equal(a.kostenChf, runde(30 + kargo), 'Herstellung plus Kargo und MWST')
   assert.equal(a.betriebskostenChf, 40)
   assert.equal(a.ergebnisChf, runde(150 - 30 - kargo - 40))

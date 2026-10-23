@@ -84,9 +84,10 @@ export const kostenConfig = {
   /**
    * Fracht je Netz in Franken.
    *
-   * EINE PAUSCHALE, UND SIE IST EINE. Deniz' Angabe aus der laufenden
-   * Sendung: rund 12 Franken je Netz im Schnitt ueber verschiedene
-   * Groessen. Ein grosses Paket kostet mehr, ein kleines weniger - weil die
+   * EINE PAUSCHALE, UND SIE IST EINE. Deniz' Angabe aus den Abrechnungen:
+   * rund 13 Franken je Netz im Schnitt ueber verschiedene Groessen. Zuerst
+   * standen hier 12 - die Zahl stammte aus einer einzelnen Sendung, die
+   * jetzige aus mehreren. Ein grosses Paket kostet mehr, ein kleines weniger - weil die
    * Fracht je SENDUNG anfaellt und nicht je Netz, laesst sich der Anteil
    * eines einzelnen Netzes ohnehin nur verteilen, nicht messen.
    *
@@ -97,7 +98,7 @@ export const kostenConfig = {
    * Kommt eine Rechnung mit dem echten Betrag, wird er am Auftrag erfasst
    * und schlaegt diese Pauschale - wie ueberall sonst auch.
    */
-  frachtProNetzChf: 12,
+  frachtProNetzChf: 13,
 } as const
 
 export const beteiligte: Record<Beteiligter, string> = {

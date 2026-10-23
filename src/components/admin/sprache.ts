@@ -425,6 +425,8 @@ const PAARE = {
     '{n} Netze tragen einen Richtpreis, der nicht dem entspricht, was der Rechner heute sagt. Bei von Hand erfassten Aufträgen ist das der getippte Preis – dann vergleicht er sich mit sich selbst.',
     '{n} sineklikte, bugünkü hesapla örtüşmeyen bir yaklaşık fiyat var. Elle girilen siparişlerde bu, yazılan fiyatın kendisidir – yani kendisiyle karşılaştırılır.',
   ],
+  netzart: ['Gewebe', 'Dokuma'],
+  altwert: ['(alt)', '(eski)'],
   kostenErfassen: ['Kosten erfassen', 'Maliyetleri gir'],
   kontaktBearbeiten: ['Kontaktdaten bearbeiten', 'İletişim bilgilerini düzenle'],
   kontaktName: ['Name', 'Ad'],

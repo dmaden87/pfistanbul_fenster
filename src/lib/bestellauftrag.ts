@@ -1,5 +1,5 @@
 import type { Bestellung, BestellPosition, OpeningDirection, ZeilenHerkunft } from '../types'
-import type { Mechanismus, Netzfarbe, Rahmenfarbe } from '../data/produktion'
+import type { Mechanismus, Netzart, Netzfarbe, Rahmenfarbe } from '../data/produktion'
 import { setById, typeById } from '../data/catalog'
 
 /**
@@ -32,6 +32,7 @@ export interface AuftragsNetz {
   rahmendicke?: string
   rahmenfarbe?: Rahmenfarbe
   netzfarbe?: Netzfarbe
+  netzart?: Netzart
   mechanismus?: Mechanismus
   oeffnung?: OpeningDirection
 }
@@ -98,13 +99,26 @@ const PFLICHT: { feld: keyof AuftragsNetz; name: string }[] = [
   { feld: 'rahmendicke', name: 'Rahmendicke' },
   { feld: 'rahmenfarbe', name: 'Rahmenfarbe' },
   { feld: 'netzfarbe', name: 'Netzfarbe' },
+  /*
+   * DAS GEWEBE STEHT HIER NICHT, obwohl es auf das Blatt gehoert.
+   *
+   * Es war einen Versuch lang Pflichtangabe, und das haette jeden Auftrag
+   * aus der Zeit davor als unvollstaendig gemeldet - und damit den Druck
+   * seines Bestellblatts gesperrt, denn der Knopf haengt an `luecken`.
+   * Alteintraege tragen das Feld nicht, weil es nur ein Gewebe gab.
+   *
+   * Stattdessen wird es weiter unten auf 'normal' gesetzt, wo es fehlt: Das
+   * ist, was immer bestellt wurde, und steht so auch auf dem Blatt. Eine
+   * Angabe, die nie eine Wahl war, nachtraeglich zur Luecke zu erklaeren,
+   * hiesse unsere eigene Geschichte fuer einen Fehler zu halten.
+   */
   { feld: 'mechanismus', name: 'Mechanismus' },
   { feld: 'oeffnung', name: 'Öffnungsrichtung' },
 ]
 
 /** Die Bauart eines Netzes als Zeichenkette – zwei gleiche Netze ergeben dieselbe. */
 function bauart(n: AuftragsNetz): string {
-  return [n.breiteCm, n.hoeheCm, n.rahmendicke, n.rahmenfarbe, n.netzfarbe, n.mechanismus, n.oeffnung].join('|')
+  return [n.breiteCm, n.hoeheCm, n.rahmendicke, n.rahmenfarbe, n.netzfarbe, n.netzart, n.mechanismus, n.oeffnung].join('|')
 }
 
 /** Die Angaben eines Katalogtyps als Netz. */
@@ -119,6 +133,7 @@ function ausTyp(typId: string, menge: number, position: BestellPosition): Auftra
     breiteCm: position.breiteCm ?? typ.widthCm,
     hoeheCm: position.hoeheCm ?? typ.heightCm,
     rahmendicke: position.rahmendicke ?? typ.rahmendicke,
+    netzart: position.netzart ?? 'normal',
     rahmenfarbe: position.rahmenfarbe,
     netzfarbe: position.netzfarbe,
     mechanismus: position.mechanismus,
@@ -162,6 +177,7 @@ function netzeAusPosition(p: BestellPosition): AuftragsNetz[] {
       rahmendicke: p.rahmendicke,
       rahmenfarbe: p.rahmenfarbe,
       netzfarbe: p.netzfarbe,
+      netzart: p.netzart ?? 'normal',
       mechanismus: p.mechanismus,
       oeffnung: p.oeffnung,
     },
@@ -251,6 +267,7 @@ export function netzeAusBestellung(bestellung: Bestellung): (AuftragsNetz & { pr
     rahmendicke: p.rahmendicke,
     rahmenfarbe: p.rahmenfarbe,
     netzfarbe: p.netzfarbe,
+    netzart: p.netzart ?? 'normal',
     mechanismus: p.mechanismus,
     oeffnung: p.oeffnung,
     preisChf: p.preisChf,

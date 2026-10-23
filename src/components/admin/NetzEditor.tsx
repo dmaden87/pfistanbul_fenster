@@ -2,11 +2,15 @@ import { useState } from 'react'
 import type { BestellPosition, OpeningDirection } from '../../types'
 import {
   MECHANISMEN,
+  NETZARTEN,
   NETZFARBEN,
   OEFFNUNGEN,
+  RAHMENDICKEN,
   RAHMENFARBEN,
+  RAHMENFARBEN_WAHL,
   STANDARD,
   type Mechanismus,
+  type Netzart,
   type Netzfarbe,
   type Rahmenfarbe,
 } from '../../data/produktion'
@@ -60,6 +64,7 @@ interface Entwurf {
   rahmendicke: string
   rahmenfarbe: Rahmenfarbe
   netzfarbe: Netzfarbe
+  netzart: Netzart
   mechanismus: Mechanismus
   oeffnung: OpeningDirection | ''
   typId?: string
@@ -136,6 +141,7 @@ function zuEntwurf(p: BestellPosition): Entwurf {
     rahmendicke: p.rahmendicke ?? STANDARD.rahmendicke,
     rahmenfarbe: p.rahmenfarbe ?? STANDARD.rahmenfarbe,
     netzfarbe: p.netzfarbe ?? STANDARD.netzfarbe,
+    netzart: p.netzart ?? STANDARD.netzart,
     mechanismus: p.mechanismus ?? STANDARD.mechanismus,
     // Die Oeffnungsrichtung wird NICHT vorbelegt. Sie sieht man nur am
     // Fenster, und ein falsch geratener Standard liefert die halbe Runde
@@ -156,6 +162,7 @@ function leer(): Entwurf {
     rahmendicke: STANDARD.rahmendicke,
     rahmenfarbe: STANDARD.rahmenfarbe,
     netzfarbe: STANDARD.netzfarbe,
+    netzart: STANDARD.netzart,
     mechanismus: STANDARD.mechanismus,
     oeffnung: '',
   }
@@ -181,6 +188,7 @@ function ausEntwurf(e: Entwurf): BestellPosition {
     rahmendicke: e.rahmendicke.trim() || undefined,
     rahmenfarbe: e.rahmenfarbe,
     netzfarbe: e.netzfarbe,
+    netzart: e.netzart,
     mechanismus: e.mechanismus,
   }
   const breite = masszahl(e.breiteCm)
@@ -365,14 +373,39 @@ export function NetzEditor({
           <div className="netz__reihe netz__reihe--produktion">
             <label className="netz__feld netz__feld--klein">
               <span>{t.rahmendicke}</span>
-              <input className="input" value={e.rahmendicke} disabled={katalog} onChange={(ev) => aendere(i, { rahmendicke: ev.target.value })} />
+              {/*
+                EINE WAHL, KEIN FREITEXT: Die Dicke geht in den Einkaufspreis
+                ein, und "ca. 2-3" laesst sich nicht multiplizieren.
+                Ein Altwert, der zu keiner der beiden passt, steht als
+                eigene Zeile da - verschwiegen wuerde er stillschweigend
+                durch 2.8 ersetzt, und das waere eine erfundene Angabe.
+              */}
+              <select className="input" value={e.rahmendicke} disabled={katalog}
+                onChange={(ev) => aendere(i, { rahmendicke: ev.target.value })}>
+                {!(e.rahmendicke in RAHMENDICKEN) && (
+                  <option value={e.rahmendicke}>
+                    {e.rahmendicke === '' ? t.bitteWaehlen : `${e.rahmendicke} ${t.altwert}`}
+                  </option>
+                )}
+                {Object.entries(RAHMENDICKEN).map(([wert, b]) => (
+                  <option key={wert} value={wert}>
+                    {b[sprache]}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className="netz__feld netz__feld--klein">
               <span>{t.rahmen}</span>
               <select className="input" value={e.rahmenfarbe} disabled={katalog} onChange={(ev) => aendere(i, { rahmenfarbe: ev.target.value as Rahmenfarbe })}>
-                {Object.entries(RAHMENFARBEN).map(([wert, b]) => (
+                {/* Eine Farbe, die nicht mehr im Angebot ist, bleibt am Altauftrag sichtbar. */}
+                {!RAHMENFARBEN_WAHL.includes(e.rahmenfarbe) && (
+                  <option value={e.rahmenfarbe}>
+                    {RAHMENFARBEN[e.rahmenfarbe][sprache]} {t.altwert}
+                  </option>
+                )}
+                {RAHMENFARBEN_WAHL.map((wert) => (
                   <option key={wert} value={wert}>
-                    {b[sprache]}
+                    {RAHMENFARBEN[wert][sprache]}
                   </option>
                 ))}
               </select>
@@ -388,6 +421,17 @@ export function NetzEditor({
               </select>
             </label>
             <label className="netz__feld">
+              <span>{t.netzart}</span>
+              <select className="input" value={e.netzart} disabled={katalog}
+                onChange={(ev) => aendere(i, { netzart: ev.target.value as Netzart })}>
+                {Object.entries(NETZARTEN).map(([wert, b]) => (
+                  <option key={wert} value={wert}>
+                    {b[sprache]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="netz__feld netz__feld--klein">
               <span>{t.mechanismus}</span>
               <select className="input" value={e.mechanismus} disabled={katalog} onChange={(ev) => aendere(i, { mechanismus: ev.target.value as Mechanismus })}>
                 {Object.entries(MECHANISMEN).map(([wert, b]) => (

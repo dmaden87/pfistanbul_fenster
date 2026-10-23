@@ -50,12 +50,67 @@ export function beschriften(
 
 /* --- Rahmenfarbe ------------------------------------------------------------ */
 
-export type Rahmenfarbe = 'weiss' | 'schwarz' | 'dunkelbraun'
+/**
+ * OHNE KOSTENFOLGE. Bora verlangt fuer alle drei denselben Preis; die Farbe
+ * steht hier, damit sie auf dem Bestellblatt landet, nicht damit jemand
+ * damit rechnet.
+ *
+ * `dunkelbraun` IST NICHT MEHR IM ANGEBOT, bleibt aber stehen: Es steht in
+ * Bestellungen, die schon geschrieben sind, und ohne diesen Eintrag zeigte
+ * ihr Blatt den nackten Schluessel statt eines Worts. Geloescht wird hier
+ * nie etwas - nur nicht mehr angeboten (siehe RAHMENFARBEN_WAHL).
+ */
+export type Rahmenfarbe = 'weiss' | 'anthrazit' | 'schwarz' | 'dunkelbraun'
 
 export const RAHMENFARBEN: Record<Rahmenfarbe, Beschriftung> = {
   weiss: { deutsch: 'weiss', tuerkisch: 'beyaz' },
+  anthrazit: { deutsch: 'anthrazit', tuerkisch: 'antrasit' },
   schwarz: { deutsch: 'schwarz', tuerkisch: 'siyah' },
   dunkelbraun: { deutsch: 'dunkelbraun', tuerkisch: 'koyu kahverengi' },
+}
+
+/** Was im Admin zur Wahl steht - ohne die Altfarbe. */
+export const RAHMENFARBEN_WAHL: Rahmenfarbe[] = ['weiss', 'anthrazit', 'schwarz']
+
+/* --- Rahmendicke ------------------------------------------------------------ */
+
+/**
+ * DIE DICKE DES PLISSEE-RAHMENS, und sie kostet Geld: Bora rechnet den
+ * schmalen 1.5er teurer als den gewoehnlichen 2.8er. Deshalb ist aus dem
+ * freien Textfeld eine Wahl geworden - ein Mass, das in den Preis eingeht,
+ * darf nicht als "ca. 2-3" im Datensatz stehen.
+ *
+ * NICHT ZU VERWECHSELN mit shopConfig.rahmendicke: Das ist die Dicke der
+ * FENSTERrahmen in der Siedlung ("3-4 cm"), eine Angabe ueber die Haeuser.
+ * Diese hier beschreibt unser Produkt.
+ *
+ * ALTE EINTRAEGE TRAGEN FREIEN TEXT. Das Feld bleibt deshalb ein String;
+ * was nicht in dieser Tabelle steht, wird angezeigt, wie es dasteht, und
+ * laesst sich im Editor auf einen der beiden Werte setzen.
+ */
+export type Rahmendicke = '1.5' | '2.8'
+
+export const RAHMENDICKEN: Record<Rahmendicke, Beschriftung> = {
+  '1.5': { deutsch: '1.5 cm, schmal', tuerkisch: '1.5 cm, ince' },
+  '2.8': { deutsch: '2.8 cm, normal', tuerkisch: '2.8 cm, normal' },
+}
+
+/* --- Netzart ---------------------------------------------------------------- */
+
+/**
+ * Gewoehnliches oder engmaschiges Gewebe. Engmaschig haelt auch kleine
+ * Muecken und Pollen ab und kostet bei Bora mehr - wie viel, steht noch
+ * nicht fest (Stand Oktober 2026 angekuendigt fuer die naechste Woche).
+ *
+ * Die Wahl steht trotzdem schon da: Sie gehoert auf das Bestellblatt, damit
+ * Bora das richtige Gewebe einzieht. Bis der Aufschlag bekannt ist, rechnet
+ * der Kostenrechner beide gleich - und das steht so in kostenConfig.ts.
+ */
+export type Netzart = 'normal' | 'engmaschig'
+
+export const NETZARTEN: Record<Netzart, Beschriftung> = {
+  normal: { deutsch: 'normal', tuerkisch: 'normal' },
+  engmaschig: { deutsch: 'engmaschig', tuerkisch: 'sık dokulu' },
 }
 
 /* --- Netzfarbe -------------------------------------------------------------- */
@@ -110,11 +165,19 @@ export const STANDARD = {
   rahmenfarbe: 'weiss' as Rahmenfarbe,
   netzfarbe: 'grau' as Netzfarbe,
   mechanismus: 'akkordeon' as Mechanismus,
+  netzart: 'normal' as Netzart,
   /**
-   * Rahmendicke der Fensterrahmen im Pfisterhölzli. Der Bereich ist Absicht
-   * und fuer den Produzenten verstaendlich – er baut mit dieser Toleranz.
+   * Die Dicke UNSERES Plissee-Rahmens, nicht die der Fensterrahmen.
+   *
+   * HIER STAND "3-4 cm", und das war die Dicke der FENSTERrahmen im
+   * Pfisterhoelzli - eine Angabe ueber die Haeuser, die versehentlich zur
+   * Vorbelegung eines Produktmerkmals geworden war. Seit Bora den schmalen
+   * 1.5er teurer rechnet als den 2.8er, geht dieses Feld in den Preis ein;
+   * eine Toleranzangabe laesst sich nicht multiplizieren.
+   *
+   * Der 2.8er ist der gewoehnliche und deshalb die Vorbelegung.
    */
-  rahmendicke: '3-4 cm',
+  rahmendicke: '2.8' as Rahmendicke,
 } as const
 
 /**

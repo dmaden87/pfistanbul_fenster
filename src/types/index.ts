@@ -1,4 +1,4 @@
-import type { Mechanismus, Netzfarbe, Rahmenfarbe } from '../data/produktion'
+import type { Mechanismus, Netzart, Netzfarbe, Rahmenfarbe } from '../data/produktion'
 
 /** Eine Überbauung, deren Fenster wir ausgemessen haben. */
 export interface Ueberbauung {
@@ -260,7 +260,17 @@ export interface BestellPosition {
    * Bestellauftrag nicht erzeugt, sondern sagt, was fehlt – lieber eine
    * Meldung als eine Lieferung aus der Tuerkei, die nicht passt.
    */
+  /**
+   * Die Dicke des Plissee-Rahmens: '1.5' oder '2.8'.
+   *
+   * BLEIBT EIN STRING, obwohl es jetzt eine Wahl ist. Alteintraege tragen
+   * freien Text ("ca. 3 cm", "2-3"), und den zu verwerfen hiesse, eine
+   * Angabe zu loeschen, die jemand aufgenommen hat. Die Oberflaeche bietet
+   * die zwei Werte an und zeigt einen abweichenden Altwert, wie er dasteht.
+   */
   rahmendicke?: string
+  /** Gewoehnliches oder engmaschiges Gewebe. Fehlt bei Alteintraegen – dort ist es normal. */
+  netzart?: Netzart
   rahmenfarbe?: Rahmenfarbe
   netzfarbe?: Netzfarbe
   mechanismus?: Mechanismus
