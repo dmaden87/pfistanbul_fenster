@@ -43,40 +43,66 @@ import { einfuhrsteuerChf, frachtChf, herstellungChf } from './kosten'
  */
 
 /**
- * Die Marge, die der Richtpreis tragen soll - MARGE VOM VERKAUFSPREIS.
+ * Der Sockel je Netz, unabhaengig von der Groesse.
  *
- * 75 Prozent Marge heissen: Die Kosten sind ein Viertel des Preises, der
- * Aufschlag also das Dreifache der Kosten. Nicht zu verwechseln mit "75
- * Prozent aufschlagen", was das 1.75-fache waere und rund 38 Prozent Marge
- * ergaebe. Genau diese Verwechslung stand einmal in der Vereinbarung.
+ * ER BEZAHLT, WAS NICHT MIT DER FLAECHE WAECHST: Ausmessen vor Ort, die
+ * Fahrt dorthin, die Beratung, die Garantie auf das Mass. Ein kleines
+ * Fenster macht davon genauso viel Arbeit wie ein grosses.
+ *
+ * Deniz' Anker, an denen diese Zahl haengt: 1 m² = 140, 1.5 = 160, 2 = 185,
+ * 3 = 235. Mit Sockel 65 und Warenfaktor 1.6 trifft die Rechnung alle vier
+ * auf den Franken.
  */
-const MARGE_FAKTOR = 3
+const SOCKEL_CHF = 65
 
 /**
- * Mehr als so viel Aufschlag nimmt kein Netz, egal wie gross.
+ * Womit die Selbstkosten multipliziert werden.
  *
- * OHNE DECKEL MULTIPLIZIERT DIE MARGE DIE FLAECHE MIT. Ein Netz von
- * 250 x 250 cm kostet uns rund 205 Franken bis vor Ort; mal vier waeren das
- * ueber 800. Dafuer kauft niemand ein Insektenschutzgitter, und es waere
- * auch nicht verdient: Eine grosse Tuere macht uns nicht viermal so viel
- * Arbeit wie ein Badfenster, sie braucht nur mehr Material.
+ * HIER STANDEN EINMAL FAKTOR 3 UND EIN DECKEL VON 130 - eine Marge von 75
+ * Prozent, gekappt. Die Form war falsch, und zwar an beiden Enden: Bis
+ * 1 m² wuchs der Preis mit 100 Franken je m², danach brach der Zuwachs auf
+ * 20 bis 30 ein. Die mittleren Formate sassen damit zu hoch auf dem Knick,
+ * und ein Netz von 6 m² kostete nur das Doppelte von einem mit 1 m² -
+ * obwohl sechsmal so viel Material drin steckt.
  *
- * Die Folge ist gewollt: Kleine Netze tragen ihre vollen 75 Prozent, bei
- * den grossen sinkt die Marge. Wer das aendert, aendert die Preise auf der
- * Startseite.
+ * Sockel plus Faktor ergibt stattdessen eine Gerade: rund 49 Franken je
+ * Quadratmeter, ohne Knick und ohne Deckel. Die Marge faellt dabei von
+ * selbst mit der Groesse (78 Prozent beim kleinsten Netz, 48 beim
+ * groessten), weil der Sockel sich ueber mehr Flaeche verteilt. Das ist die
+ * gewuenschte Richtung: Eine grosse Tuere soll bezahlbar bleiben, und sie
+ * macht uns nicht sechsmal so viel Arbeit.
  *
- * ZUERST STANDEN HIER 150. Damit lagen die mittleren Formate zu hoch - ein
- * Fenster von 100 x 150 kam auf 210 Franken. Der Deckel greift genau dort
- * zuerst, naemlich ab rund 0.9 m2; die kleinen Netze beruehrt er nicht, die
- * grossen werden um dieselben zwanzig Franken guenstiger.
+ * KEIN DECKEL MEHR. Er war die Ursache des flachen oberen Endes. Wer eine
+ * Obergrenze will, baut sie hier wieder ein - sie fehlt nicht aus
+ * Versehen.
  */
-const DECKEL_CHF = 130
+const WARENFAKTOR = 1.6
 
 /**
  * Auf diesen Betrag wird aufgerundet – nie ab, damit die Offerte nicht
  * teurer ausfällt als der genannte Richtpreis.
  */
 const ROUND_TO_CHF = 5
+
+/**
+ * Unter diesen Betrag faellt kein Netz, egal wie klein.
+ *
+ * WARUM ES IHN BRAUCHT: Ein Netz von 50 x 70 cm kostet uns 24 Franken und
+ * traegt mit der Marge einen Preis von 100. Dafuer faehrt niemand zweimal
+ * hin - einmal zum Ausmessen, einmal zum Montieren. Diese Fahrten stehen in
+ * keinem der Betraege: Die Montage ist ein eigener Posten im Angebot, und
+ * das Ausmessen verrechnen wir gar nicht.
+ *
+ * Der Betrag ist derselbe, der als unteres Ende auf der Startseite steht
+ * (priceRange.minChf). Das ist Absicht und kein Zufall: Was wir ankuendigen,
+ * soll auch die Untergrenze dessen sein, was herauskommt - sonst steht auf
+ * der Seite eine Zahl, die der Rechner gleich darauf unterbietet.
+ *
+ * Deniz' Beobachtung dazu: Grosse Fenster sind der Normalfall, kleine fast
+ * nicht vorhanden. Der Mindestpreis trifft also selten - und wenn, dann den
+ * Auftrag, der sich sonst nicht lohnt.
+ */
+const MINDESTPREIS_CHF = 125
 
 /*
  * HIER STAND RELIABLE_AREA_M2 = 2.5, und daran hingen zwei Merker: `oversized`
@@ -172,12 +198,21 @@ export function estimateNetChf(
 ): number {
   const kosten = selbstkostenChf(breiteCm, hoeheCm, rahmendicke, netzart)
   if (kosten <= 0) return 0
-  return roundUpTo(kosten + aufschlagChf(kosten), ROUND_TO_CHF)
+  const gerechnet = SOCKEL_CHF + runde2(WARENFAKTOR * kosten)
+  return roundUpTo(Math.max(gerechnet, MINDESTPREIS_CHF), ROUND_TO_CHF)
 }
 
-/** Der Aufschlag auf die Selbstkosten: 75 Prozent Marge, gedeckelt. */
+/**
+ * Was ueber den Selbstkosten liegt - der Deckungsbeitrag eines Netzes.
+ *
+ * Nicht zum Rechnen, sondern zum Hinsehen: Die Oberflaeche zeigt damit, was
+ * ein Netz einbringt, ohne dass jemand zwei Zahlen voneinander abziehen
+ * muss. Der Mindestpreis geht mit ein, denn bei einem kleinen Netz ist er
+ * es, der den Beitrag bestimmt.
+ */
 export function aufschlagChf(kostenChf: number): number {
-  return Math.min(runde2(MARGE_FAKTOR * kostenChf), DECKEL_CHF)
+  const preis = Math.max(SOCKEL_CHF + runde2(WARENFAKTOR * kostenChf), MINDESTPREIS_CHF)
+  return runde2(preis - kostenChf)
 }
 
 /**

@@ -17,7 +17,7 @@
  */
 import assert from 'node:assert/strict'
 import { gerechneterPreis, verkaufspreisFuer, vorschlagFuer } from '../src/components/admin/hilfen.ts'
-import { aufschlagChf, estimateNetChf, margeProzent, selbstkostenChf } from '../src/lib/estimate.ts'
+import { estimateNetChf, margeProzent, selbstkostenChf } from '../src/lib/estimate.ts'
 import { einfuhrsteuerChf, herstellungChf } from '../src/lib/kosten.ts'
 import { kostenConfig } from '../src/data/kostenConfig.ts'
 import { priceRange } from '../src/data/catalog.ts'
@@ -154,16 +154,30 @@ pruefe('Mehr Flaeche kostet nie weniger', () => {
   }
 })
 
-pruefe('Der Richtpreis ist Kosten plus gedeckelter Aufschlag', () => {
+pruefe('Der Richtpreis ist Sockel plus Faktor mal Selbstkosten', () => {
   /*
-   * DIE GANZE FORMEL IN EINER ZEILE, und deshalb steht sie hier noch einmal
-   * ausgeschrieben: Wer sie in estimate.ts aendert, soll diesen Test rot
-   * sehen und nicht erst die Startseite.
+   * DIE GANZE FORMEL NOCH EINMAL AUSGESCHRIEBEN. Wer sie in estimate.ts
+   * aendert, soll diesen Test rot sehen und nicht erst die Startseite.
+   * Sockel und Faktor stehen hier als Zahlen, weil sie die Vereinbarung
+   * sind - der frueher hier gepruefte Deckel war abgeleitet, diese beiden
+   * sind gesetzt.
    */
-  for (const [b, h] of [[60, 100], [100, 150], [150, 250], [250, 250]]) {
+  for (const [b, h] of [[100, 150], [160, 122], [150, 250], [250, 250]]) {
     const k = selbstkostenChf(b, h)
-    const erwartet = Math.ceil((k + Math.min(3 * k, aufschlagChf(1_000_000))) / 5 - 1e-9) * 5
+    const erwartet = Math.ceil(Math.max(65 + Math.round(1.6 * k * 100) / 100, 125) / 5 - 1e-9) * 5
     assert.equal(estimateNetChf(b, h), erwartet, `${b} x ${h}`)
+  }
+})
+
+pruefe('Die vier Ankerpreise werden auf den Franken getroffen', () => {
+  /*
+   * DIE ANKER SIND DIE VEREINBARUNG, nicht die Formel: 1 m² = 140,
+   * 1.5 = 160, 2 = 185, 3 = 235. Sockel und Faktor sind daraus gerechnet;
+   * wer an einem von beiden dreht, verschiebt diese vier Punkte und soll
+   * das hier sehen.
+   */
+  for (const [flaeche, ziel] of [[1.0, 140], [1.5, 160], [2.0, 185], [3.0, 235]]) {
+    assert.equal(estimateNetChf(100, (flaeche * 10000) / 100), ziel, `${flaeche} m²`)
   }
 })
 
@@ -173,38 +187,48 @@ pruefe('Die Selbstkosten sind Ware plus Fracht plus Einfuhrsteuer', () => {
     Math.round((ware + kostenConfig.frachtProNetzChf + einfuhrsteuerChf(ware)) * 100) / 100)
 })
 
-pruefe('Kleine Netze tragen die vollen 75 Prozent Marge', () => {
+pruefe('Unter den Mindestpreis faellt kein Netz', () => {
+  for (const [b, h] of [[30, 40], [40, 60], [50, 70], [60, 80]]) {
+    assert.ok(estimateNetChf(b, h) >= 125, `${b} x ${h} kostet ${estimateNetChf(b, h)}`)
+  }
   /*
-   * Solange der Aufschlag unter dem Deckel bleibt, ist die Marge genau die
-   * vereinbarte - bis auf die Rundung auf fuenf Franken, die sie minim
-   * nach oben schiebt.
+   * UND ER IST DIESELBE ZAHL WIE AUF DER STARTSEITE. Was wir ankuendigen,
+   * soll die Untergrenze dessen sein, was herauskommt - sonst unterbietet
+   * der Rechner die eigene Ankuendigung.
    */
-  const marge = margeProzent(60, 100)
-  assert.ok(marge >= 75 && marge <= 78, `60 x 100 traegt ${marge} Prozent`)
-  assert.ok(aufschlagChf(selbstkostenChf(60, 100)) < 150, 'der Deckel greift hier noch nicht')
+  assert.equal(estimateNetChf(30, 40), priceRange.minChf)
 })
 
-pruefe('Bei grossen Netzen greift der Deckel und die Marge sinkt', () => {
+pruefe('Der Preis waechst gleichmaessig, ohne Knick', () => {
   /*
-   * DER DECKEL WIRD ABGELEITET, NICHT ABGESCHRIEBEN. Er stand hier als 150
-   * und ging beim Wechsel auf 130 rot, obwohl nichts kaputt war - dieselbe
-   * Falle wie bei der Frachtpauschale. Per Definition ist der Deckel der
-   * Aufschlag bei beliebig grossen Kosten.
+   * DER KNICK WAR DAS PROBLEM DER ALTEN FORMEL: Bis 1 m² wuchs der Preis um
+   * 100 Franken je m², danach nur noch um 20 bis 30 - die mittleren
+   * Formate sassen zu hoch auf dem Knick, die grossen zu tief darunter.
+   * Eine Gerade hat ueberall denselben Zuwachs.
    */
-  const deckel = aufschlagChf(1_000_000)
-  assert.equal(aufschlagChf(selbstkostenChf(250, 250)), deckel, 'der Aufschlag steht auf dem Deckel')
-  const marge = margeProzent(250, 250)
-  assert.ok(marge < 50, `250 x 250 traegt noch ${marge} Prozent`)
-  /*
-   * DAS IST DER ZWECK DES DECKELS, nicht sein Preis: Ohne ihn kostete
-   * dieses Netz das Vierfache seiner Kosten, also ueber 800 Franken.
-   */
-  assert.ok(estimateNetChf(250, 250) < 4 * selbstkostenChf(250, 250))
+  const punkte = [1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0]
+    .map((flaeche) => ({ flaeche, preis: estimateNetChf(100, (flaeche * 10000) / 100) }))
+  const schritte = punkte.slice(1).map((x, i) =>
+    (x.preis - punkte[i].preis) / (x.flaeche - punkte[i].flaeche))
+  const kleinster = Math.min(...schritte)
+  const groesster = Math.max(...schritte)
+  assert.ok(groesster - kleinster <= 12,
+    `Zuwachs schwankt zwischen ${kleinster.toFixed(0)} und ${groesster.toFixed(0)} CHF je m²`)
 })
 
-pruefe('Die Marge faellt mit der Groesse, nie umgekehrt', () => {
+pruefe('Die Marge faellt mit der Groesse, weil der Sockel sich verteilt', () => {
+  /*
+   * KEIN DECKEL MEHR, und er fehlt nicht aus Versehen: Die Marge faellt von
+   * selbst, weil der Sockel von 65 Franken sich ueber mehr Flaeche
+   * verteilt. Beim kleinsten Netz traegt der Preis ueber 75 Prozent, beim
+   * groessten unter 55 - aber nie unter 40, sonst waere die Gerade zu flach.
+   */
+  assert.ok(margeProzent(60, 80) >= 75, `60 x 80 traegt ${margeProzent(60, 80)} Prozent`)
+  assert.ok(margeProzent(250, 250) < 55, `250 x 250 traegt ${margeProzent(250, 250)} Prozent`)
+  assert.ok(margeProzent(250, 250) > 40)
+
   let vorher = 101
-  for (const [b, h] of [[60, 100], [100, 150], [140, 200], [180, 250], [250, 250]]) {
+  for (const [b, h] of [[60, 80], [100, 150], [140, 200], [180, 250], [250, 250]]) {
     const m = margeProzent(b, h)
     assert.ok(m <= vorher, `${b} x ${h}: ${m} Prozent nach ${vorher}`)
     vorher = m
