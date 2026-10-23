@@ -14,7 +14,8 @@
     "test": "node bau/api-test.mjs && node --import ./bau/ts-aufloeser.mjs bau/bewerten-test.mjs && ADMIN_PASSWORT=testpasswort KV_REST_API_URL=http://attrappe KV_REST_API_TOKEN=attrappe node --import ./bau/ts-aufloeser.mjs bau/quittung-test.mjs && KV_REST_API_URL=http://attrappe KV_REST_API_TOKEN=attrappe ADMIN_PASSWORT=testpasswort node --import ./bau/ts-aufloeser.mjs bau/bestellungen-test.mjs && node --import ./bau/ts-aufloeser.mjs bau/betrag-test.mjs && node --import ./bau/ts-aufloeser.mjs bau/produktion-test.mjs && node --import ./bau/ts-aufloeser.mjs bau/phasen-test.mjs && node --import ./bau/ts-aufloeser.mjs bau/demo-test.mjs && node --import ./bau/ts-aufloeser.mjs bau/preise-test.mjs && node --import ./bau/ts-aufloeser.mjs bau/einkauf-test.mjs && node --import ./bau/ts-aufloeser.mjs bau/bestellauftrag-test.mjs && node --import ./bau/ts-aufloeser.mjs bau/warenkorb-test.mjs && node --import ./bau/ts-aufloeser.mjs bau/kosten-test.mjs && node --import ./bau/ts-aufloeser.mjs bau/pl-test.mjs && ADMIN_PASSWORT=testpasswort KV_REST_API_URL=http://attrappe KV_REST_API_TOKEN=attrappe node --import ./bau/ts-aufloeser.mjs bau/auslagen-test.mjs && ADMIN_PASSWORT=testpasswort KV_REST_API_URL=http://attrappe KV_REST_API_TOKEN=attrappe node --import ./bau/ts-aufloeser.mjs bau/abrechnungen-test.mjs",
     "vorrendern": "node --import ./bau/ts-aufloeser.mjs bau/vorrendern.mjs",
     "melden": "node bau/indexnow.mjs",
-    "bewertung": "node bau/bewertung.mjs"
+    "bewertung": "node bau/bewertung.mjs",
+    "preisblatt": "node --import ./bau/ts-aufloeser.mjs bau/preisblatt.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",

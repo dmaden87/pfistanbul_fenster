@@ -164,6 +164,22 @@ function runde2(x: number): number {
   return Math.round(x * 100) / 100
 }
 
+/**
+ * Die Zahlen der Preisformel, zum Anzeigen.
+ *
+ * WER DIE FORMEL AUFSCHREIBT, SCHREIBT SIE AB - und dann laeuft sie
+ * auseinander. Das Preisblatt fuer Bora und Ufuk nennt Sockel und Faktor im
+ * Klartext; stuenden sie dort als getippte Zahlen, zeigte es nach der
+ * naechsten Anpassung eine Formel, nach der niemand mehr rechnet. Genau so
+ * ist die beworbene Spanne einmal auf 100 bis 200 stehengeblieben.
+ */
+export const preisFormel = {
+  sockelChf: SOCKEL_CHF,
+  warenfaktor: WARENFAKTOR,
+  mindestpreisChf: MINDESTPREIS_CHF,
+  rundungChf: ROUND_TO_CHF,
+} as const
+
 /** Aufrunden mit kleiner Toleranz, damit CHF 150.0000001 nicht auf 155 springt. */
 function roundUpTo(value: number, step: number): number {
   return Math.ceil(value / step - 1e-9) * step
