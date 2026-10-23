@@ -5,6 +5,7 @@ import { einfuhrsteuerChf, herstellungFuer } from '../../lib/kosten'
 import { formatChf } from '../../lib/format'
 import { zahlenFuer } from '../../lib/pl'
 import { fuelle, useSprache } from '../admin/sprache'
+import './KostenEditor.css'
 
 /**
  * Die Kosten einer Bestellung erfassen.

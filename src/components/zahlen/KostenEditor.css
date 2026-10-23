@@ -1,0 +1,136 @@
+/*
+ * Der Kosteneditor bringt seine Stile selbst mit.
+ *
+ * SIE STANDEN IN ZahlenPage.css, und das ging gut, solange der Editor nur
+ * dort vorkam. Seit er auch auf der Auftragskarte unter "Bestellungen"
+ * haengt, waere er dort ohne diese Datei ungestylt gewesen - eine Tabelle
+ * ohne Raster, Betraege ohne Ausrichtung. Weder Typpruefung noch Linter
+ * sehen so etwas; es faellt erst im Browser auf.
+ *
+ * Ein Bauteil, das an zwei Orten verwendet wird, traegt seine Darstellung
+ * bei sich. Die Zahlen-Seite bekommt sie weiterhin, weil sie den Editor
+ * einbindet und damit diese Datei mitlaedt.
+ */
+
+/* --- Kosteneditor ----------------------------------------------------------- */
+
+.kosten__tabelle {
+  width: 100%;
+  margin-top: var(--space-4);
+  border-collapse: collapse;
+  font-size: var(--step--1);
+}
+
+.kosten__tabelle th,
+.kosten__tabelle td {
+  padding: var(--space-2) var(--space-3) var(--space-2) 0;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.kosten__tabelle thead th {
+  font-size: var(--step--2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-subtle);
+}
+
+/*
+ * EINE KLASSE REICHT HIER NICHT: `.input` aus base.css setzt width:100% und
+ * wird spaeter gebuendelt – bei gleicher Spezifitaet gewinnt die spaetere
+ * Regel. Derselbe Fall wie im Angebot des Adminbereichs.
+ */
+.kosten__tabelle .kosten__betrag,
+.auslage__form .auslage__betrag {
+  width: 7rem;
+}
+
+.kosten__tabelle .kosten__wer {
+  width: 8rem;
+}
+
+.kosten__tabelle .kosten__text {
+  width: 100%;
+  min-width: 8rem;
+}
+
+.kosten__marke {
+  display: inline-block;
+  margin-left: var(--space-2);
+  padding: 0.1em 0.45em;
+  border-radius: var(--radius-xs);
+  background: var(--highlight-soft);
+  color: var(--highlight-ink);
+  font-size: var(--step--2);
+  white-space: nowrap;
+}
+
+.kosten__fuss,
+.kosten__knoepfe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.kosten__summe {
+  font-size: var(--step--1);
+  color: var(--text-muted);
+}
+
+/* --- Auf dem Telefon --------------------------------------------------------- */
+
+@media (max-width: 52rem) {
+  /*
+   * Die Tabelle wird zur Karte: Der Kopf verschwindet, jede Zelle traegt
+   * ihre Beschriftung selbst (data-titel). Dieselben Regeln galten vorher
+   * gemeinsam mit den Tabellen der Zahlen-Seite; hier stehen sie fuer den
+   * Editor allein, damit er sie ueberall mitbringt, wo er auftaucht.
+   */
+  .kosten__tabelle thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .kosten__tabelle,
+  .kosten__tabelle tbody,
+  .kosten__tabelle tr,
+  .kosten__tabelle td {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .kosten__tabelle tr {
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .kosten__tabelle td {
+    border-bottom: none;
+    padding: var(--space-1) var(--space-3);
+  }
+
+  .kosten__tabelle td[data-titel] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    text-align: right;
+  }
+
+  .kosten__tabelle td[data-titel]::before {
+    content: attr(data-titel);
+    flex: 0 0 auto;
+    text-align: left;
+    font-size: var(--step--2);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-subtle);
+  }
+}

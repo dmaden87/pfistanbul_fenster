@@ -445,6 +445,30 @@
   border-left: 3px solid var(--border-strong);
 }
 
+/* --- Kosten auf der Karte ---------------------------------------------------- */
+
+/*
+ * Zugeklappt nur ein leiser Verweis wie der Kontakt daneben. Aufgeklappt
+ * bekommt der Block einen eigenen Rahmen: Was hier steht, gehoert nicht zu
+ * dem, was man der Kundschaft zeigt, und soll sich auch optisch vom Rest der
+ * Karte abheben.
+ */
+.admin__kosten {
+  margin-top: var(--space-3);
+}
+
+.admin__kosten--offen {
+  padding: var(--space-4);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--border-strong);
+  background: var(--surface-raised);
+}
+
+.admin__kosten-titel {
+  margin: 0 0 var(--space-3);
+  font-weight: 600;
+}
+
 /* --- Kontaktdaten bearbeiten ------------------------------------------------- */
 
 /*

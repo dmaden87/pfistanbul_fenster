@@ -32,6 +32,7 @@ import {
 import { NetzEditor } from './NetzEditor'
 import { Angebot } from './Angebot'
 import { KontaktEditor } from './KontaktEditor'
+import { KostenEditor } from '../zahlen/KostenEditor'
 import { fuelle, useSprache } from './sprache'
 
 /**
@@ -318,6 +319,7 @@ export function BestellKarte({
   const [preiseBearbeiten, setPreiseBearbeiten] = useState(false)
   const [kopiert, setKopiert] = useState(false)
   const [kontaktBearbeiten, setKontaktBearbeiten] = useState(false)
+  const [kostenOffen, setKostenOffen] = useState(false)
 
   /*
    * DIE NACHRICHT AN DIE KUNDSCHAFT IST IMMER DEUTSCH, auch wenn Ufuk den
@@ -797,6 +799,44 @@ export function BestellKarte({
       )}
 
       {offen && b.kunde.bemerkung && <p className="admin__bemerkung">{b.kunde.bemerkung}</p>}
+
+      {/*
+        DIE KOSTEN - IN JEDER PHASE, ABER EINGEKLAPPT.
+        
+        Sie standen hier einmal nicht, und der Grund dafuer gilt weiter: Diese
+        Karte ist das Verkaufs-CRM, und man haelt sie beim Ausmessen der
+        Kundschaft hin. Boras Einkaufspreis offen daneben waere ein Klick vom
+        Kunden entfernt.
+        
+        Deshalb zwei Tueren statt keiner: Der Block liegt schon hinter "Netze
+        und Angaben anzeigen", und die Kosten noch einmal hinter einem eigenen
+        Knopf. Wer sie braucht, kommt in zwei Klicks hin; wer die Karte
+        herumzeigt, sieht sie nie.
+        
+        Ohne Phasenbedingung, weil Kosten nicht auf eine Phase warten: Eine
+        Fahrt zum Ausmessen, Mustermaterial, eine Anfrage, aus der nichts
+        wurde - das kostet, bevor ueberhaupt bestellt ist. In die
+        Erfolgsrechnung geht davon nichts, bis der Auftrag in einer festen
+        Phase steht; das entscheidet `inRechnung`, nicht dieses Formular.
+      */}
+      {offen && (
+        <div className={kostenOffen ? 'admin__kosten admin__kosten--offen' : 'admin__kosten'}>
+          {kostenOffen ? (
+            <>
+              <p className="admin__kosten-titel">{t.kostenErfassen}</p>
+              <KostenEditor
+                bestellung={b}
+                onSpeichern={(kosten) => onAendern(b.id, { kosten })}
+                onSchliessen={() => setKostenOffen(false)}
+              />
+            </>
+          ) : (
+            <button type="button" className="admin__kontakt-knopf" onClick={() => setKostenOffen(true)}>
+              {t.kostenErfassen}
+            </button>
+          )}
+        </div>
+      )}
 
       {offen && (
         <div className="field admin__notiz">
