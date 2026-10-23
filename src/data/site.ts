@@ -16,6 +16,8 @@
  * Zwei Adressen, die beide dieselbe Seite ausliefern, waeren dagegen
  * schaedlich - sie machten sich bei Suchmaschinen gegenseitig Konkurrenz.
  */
+import { priceRange } from './catalog'
+
 export const site = {
   adresse: 'https://pfistanbul.ch',
   sprache: 'de-CH',
@@ -42,12 +44,21 @@ export const site = {
  * inzwischen die meisten Anfragen. Der Name der Siedlung steht jetzt auf
  * /siedlungen, wo er hingehoert und wo ihn auch findet, wer danach sucht.
  */
+/*
+ * DIE SPANNE KOMMT AUS priceRange, nicht aus dieser Zeile.
+ *
+ * Sie stand hier als "CHF 100-200" ausgeschrieben - und blieb stehen, als
+ * die Spanne auf der Seite laengst 125 bis 225 lautete. Zwei Zahlen, die
+ * dasselbe behaupten und nichts voneinander wissen, laufen auseinander;
+ * diese hier ausgerechnet in der Beschreibung, die Suchmaschinen lesen und
+ * die niemand von uns je wieder anschaut.
+ */
 export const startseite = {
   titel: 'Insektenschutz-Plissee nach Mass – Kanton Zürich | Pfistanbul Fenster',
   beschreibung:
     'Fliegengitter nach Mass für jedes Fenster: Plissee zum Auf- und Zuziehen, Aluminiumrahmen, ' +
-    'meist ohne Bohren. Richtwert CHF 100–200 pro Fenster, Lieferung im Kanton Zürich. ' +
-    'Für ausgemessene Siedlungen gibt es feste Preise.',
+    `meist ohne Bohren. Richtwert CHF ${priceRange.minChf}–${priceRange.maxChf} pro Fenster, ` +
+    'Lieferung im Kanton Zürich. Für ausgemessene Siedlungen gibt es feste Preise.',
 } as const
 
 /** Die rechtlichen Seiten. Jede hat eine eigene Adresse. */

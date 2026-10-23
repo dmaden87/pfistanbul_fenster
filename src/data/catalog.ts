@@ -182,10 +182,25 @@ export const construction: MeshOption[] = [
  * Richtpreis für Fenster ausserhalb einer ausgemessenen Überbauung.
  * Bewusst als Spanne mit Gültigkeitsbereich – bei deutlich grösseren Flächen
  * trägt sie nicht mehr.
+ *
+ * HIER STANDEN 100 BIS 200, und das stimmte, solange der Richtpreis aus den
+ * Katalogpreisen zurückgerechnet wurde. Seit er auf Boras m2-Vereinbarung
+ * steht (src/lib/estimate.ts), liegt die Spanne höher.
+ *
+ * DIE ZAHLEN SIND EIN VERSPRECHEN UND KEINE MESSUNG: Sie stehen auf der
+ * Seite, bevor jemand Masse eintippt, und sollen die Rechnung umschliessen,
+ * ohne sie zu übertreffen. Deniz hat 125 bis 225 gesetzt; gerechnet ergibt
+ * die Formel für Formate bis 2 m² heute 115 (60 × 80) bis 205 (75 × 250).
+ * Die Spanne ist damit auf beiden Seiten vorsichtig – wer rechnet, zahlt
+ * eher weniger als angekündigt, und das ist die richtige Richtung.
+ *
+ * Wer am Deckel in estimate.ts dreht, muss hier nachsehen: Die beiden Zahlen
+ * wissen nichts voneinander, und bau/preise-test.mjs hält nur fest, dass die
+ * Spanne die Rechnung umschliesst.
  */
 export const priceRange = {
-  minChf: 100,
-  maxChf: 200,
+  minChf: 125,
+  maxChf: 225,
   maxAreaM2: 2,
 } as const
 

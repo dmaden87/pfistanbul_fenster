@@ -20,6 +20,8 @@ import { gerechneterPreis, verkaufspreisFuer, vorschlagFuer } from '../src/compo
 import { aufschlagChf, estimateNetChf, margeProzent, selbstkostenChf } from '../src/lib/estimate.ts'
 import { einfuhrsteuerChf, herstellungChf } from '../src/lib/kosten.ts'
 import { kostenConfig } from '../src/data/kostenConfig.ts'
+import { priceRange } from '../src/data/catalog.ts'
+import { startseite } from '../src/data/site.ts'
 import { windowTypes } from '../src/data/catalog.ts'
 
 let bestanden = 0
@@ -160,7 +162,7 @@ pruefe('Der Richtpreis ist Kosten plus gedeckelter Aufschlag', () => {
    */
   for (const [b, h] of [[60, 100], [100, 150], [150, 250], [250, 250]]) {
     const k = selbstkostenChf(b, h)
-    const erwartet = Math.ceil((k + Math.min(3 * k, 150)) / 5 - 1e-9) * 5
+    const erwartet = Math.ceil((k + Math.min(3 * k, aufschlagChf(1_000_000))) / 5 - 1e-9) * 5
     assert.equal(estimateNetChf(b, h), erwartet, `${b} x ${h}`)
   }
 })
@@ -183,7 +185,14 @@ pruefe('Kleine Netze tragen die vollen 75 Prozent Marge', () => {
 })
 
 pruefe('Bei grossen Netzen greift der Deckel und die Marge sinkt', () => {
-  assert.equal(aufschlagChf(selbstkostenChf(250, 250)), 150, 'der Aufschlag steht auf dem Deckel')
+  /*
+   * DER DECKEL WIRD ABGELEITET, NICHT ABGESCHRIEBEN. Er stand hier als 150
+   * und ging beim Wechsel auf 130 rot, obwohl nichts kaputt war - dieselbe
+   * Falle wie bei der Frachtpauschale. Per Definition ist der Deckel der
+   * Aufschlag bei beliebig grossen Kosten.
+   */
+  const deckel = aufschlagChf(1_000_000)
+  assert.equal(aufschlagChf(selbstkostenChf(250, 250)), deckel, 'der Aufschlag steht auf dem Deckel')
   const marge = margeProzent(250, 250)
   assert.ok(marge < 50, `250 x 250 traegt noch ${marge} Prozent`)
   /*
@@ -224,6 +233,59 @@ pruefe('Ohne Masse gibt es keinen Preis statt eines erfundenen', () => {
 
 
 /* --- Ergebnis ---------------------------------------------------------------- */
+
+/* --- Der Richtwert auf der Startseite --------------------------------------- */
+
+/*
+ * DIE SPANNE IST EIN VERSPRECHEN. Sie steht auf der Seite, bevor jemand
+ * Masse eintippt - und wer dann rechnet, soll keine Zahl ausserhalb davon
+ * sehen. Die beiden Zahlen wissen nichts von estimate.ts; wer am Deckel
+ * dreht, verschiebt die Rechnung und nicht das Versprechen. Genau das ist
+ * schon passiert: Die Spanne stand auf 100 bis 200, als der Rechner laengst
+ * 130 bis 360 lieferte.
+ */
+pruefe('Kein Format im beworbenen Feld faellt aus der beworbenen Spanne', () => {
+  const draussen = []
+  for (let b = 40; b <= 220; b += 5) {
+    for (let h = 40; h <= 260; h += 5) {
+      const flaeche = (b / 100) * (h / 100)
+      if (flaeche > priceRange.maxAreaM2) continue
+      const preis = estimateNetChf(b, h)
+      if (preis > priceRange.maxChf) draussen.push(`${b} x ${h} kostet ${preis}`)
+    }
+  }
+  assert.deepEqual(draussen, [],
+    `ueber dem beworbenen Maximum von ${priceRange.maxChf}:\n      ${draussen.slice(0, 5).join('\n      ')}`)
+})
+
+/*
+ * NACH UNTEN WIRD NUR GEWARNT, NICHT GEPRUEFT: Ein Netz, das weniger kostet
+ * als angekuendigt, ist eine angenehme Ueberraschung und kein Fehler. Dass
+ * die Spanne dort vorsichtig ist, steht in catalog.ts.
+ */
+pruefe('Das beworbene Maximum liegt nicht absurd ueber der Rechnung', () => {
+  let groesster = 0
+  for (let b = 40; b <= 220; b += 5) {
+    for (let h = 40; h <= 260; h += 5) {
+      if ((b / 100) * (h / 100) > priceRange.maxAreaM2) continue
+      groesster = Math.max(groesster, estimateNetChf(b, h))
+    }
+  }
+  assert.ok(priceRange.maxChf <= groesster * 1.25,
+    `beworben bis ${priceRange.maxChf}, gerechnet hoechstens ${groesster} - die Spanne verspricht zu viel`)
+})
+
+/*
+ * DIE SPANNE STAND AN ZWEI STELLEN. In priceRange, woher die Seite sie
+ * nimmt - und ausgeschrieben in der Beschreibung der Startseite, die
+ * Suchmaschinen lesen und die niemand von uns je wieder anschaut. Als die
+ * Spanne von 100-200 auf 125-225 ging, zog nur die eine nach; die
+ * vorgerenderte Seite trug beide Zahlen gleichzeitig.
+ */
+pruefe('Die Beschreibung der Startseite nennt dieselbe Spanne', () => {
+  assert.ok(startseite.beschreibung.includes(`CHF ${priceRange.minChf}–${priceRange.maxChf}`),
+    `in der Beschreibung steht: ${startseite.beschreibung}`)
+})
 
 console.log(`\n${bestanden}/${bestanden + fehler.length} bestanden`)
 if (fehler.length > 0) {

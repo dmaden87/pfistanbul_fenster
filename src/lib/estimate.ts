@@ -62,10 +62,15 @@ const MARGE_FAKTOR = 3
  * Arbeit wie ein Badfenster, sie braucht nur mehr Material.
  *
  * Die Folge ist gewollt: Kleine Netze tragen ihre vollen 75 Prozent, bei
- * den grossen sinkt die Marge - auf 43 Prozent bei 250 x 250. Wer das
- * aendert, aendert die Preise auf der Startseite.
+ * den grossen sinkt die Marge. Wer das aendert, aendert die Preise auf der
+ * Startseite.
+ *
+ * ZUERST STANDEN HIER 150. Damit lagen die mittleren Formate zu hoch - ein
+ * Fenster von 100 x 150 kam auf 210 Franken. Der Deckel greift genau dort
+ * zuerst, naemlich ab rund 0.9 m2; die kleinen Netze beruehrt er nicht, die
+ * grossen werden um dieselben zwanzig Franken guenstiger.
  */
-const DECKEL_CHF = 150
+const DECKEL_CHF = 130
 
 /**
  * Auf diesen Betrag wird aufgerundet – nie ab, damit die Offerte nicht
