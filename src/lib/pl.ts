@@ -843,6 +843,28 @@ export function abgerechnetePosten(abrechnungen: Abrechnung[]): Set<string> {
   return raus
 }
 
+/**
+ * Die Auslagen, die in einer ABGESCHLOSSENEN Abrechnung stehen.
+ *
+ * Fuers Ausgabenbuch: Was abgerechnet ist, steht dort nur noch als Haken da
+ * und sagt niemandem mehr etwas - die Einzelheiten stehen im Beleg, mit
+ * Betrag, Traeger und Datum. Zwei Listen fuer dieselbe Sache, und die
+ * kuerzere ist die vollstaendigere.
+ *
+ * NUR ABGESCHLOSSENE, und das ist der Unterschied zu abgerechnetePosten():
+ * Ein Posten in einem offenen Entwurf gehoert weiter ins Buch. Der Entwurf
+ * laesst sich verwerfen, und dann stuende die Auslage nirgends mehr -
+ * weder im Buch noch in einem Beleg.
+ */
+export function abgerechneteAuslagen(abrechnungen: Abrechnung[]): Set<string> {
+  const raus = new Set<string>()
+  for (const a of abrechnungen) {
+    if (!a.erledigtAm) continue
+    for (const p of a.posten) if (p.auslageId) raus.add(p.auslageId)
+  }
+  return raus
+}
+
 export function offeneSchulden(
   bestellungen: Bestellung[],
   auslagen: Auslage[],

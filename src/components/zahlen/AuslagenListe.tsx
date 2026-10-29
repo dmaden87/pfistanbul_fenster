@@ -29,9 +29,13 @@ interface Props {
   onAnlegen: (a: Omit<Auslage, 'id' | 'erfasstAm'>) => Promise<void>
   onAendern: (id: string, teil: Partial<Auslage>) => Promise<void>
   onEntfernen: (id: string) => Promise<void>
+  /** Die Kennungen der Auslagen, die in einer abgeschlossenen Abrechnung stehen. */
+  abgerechnet: Set<string>
 }
 
-export function AuslagenListe({ auslagen, netzkosten, onAnlegen, onAendern, onEntfernen }: Props) {
+export function AuslagenListe({
+  auslagen, netzkosten, onAnlegen, onAendern, onEntfernen, abgerechnet,
+}: Props) {
   const { t } = useSprache()
   const TITEL: Record<AuslagenKategorie, string> = {
     marketing: t.zMarketing,
@@ -64,6 +68,24 @@ export function AuslagenListe({ auslagen, netzkosten, onAnlegen, onAendern, onEn
 
   const summe = auslagen.reduce((s, a) => s + a.betragChf, 0)
   const offen = auslagen.filter((a) => !a.bezahlt).reduce((s, a) => s + a.betragChf, 0)
+
+  /*
+   * WAS ABGERECHNET IST, STEHT NICHT MEHR HIER.
+   *
+   * Es trug nur noch ein gesetztes Haekchen und sagte damit niemandem mehr
+   * etwas; die Einzelheiten stehen im Beleg, mit Betrag, Traeger und Datum.
+   * Zwei Listen fuer dieselbe Sache, und die kuerzere ist die
+   * vollstaendigere.
+   *
+   * Nebenbei schliesst das eine Luecke: Das Haekchen hier war die einzige
+   * Stelle, an der sich eine abgerechnete Auslage wieder auf "offen" setzen
+   * liess - der Beleg sagte dann "ausbezahlt", das Buch "steht noch aus".
+   *
+   * Von Hand abgehakte Auslagen bleiben stehen: Sie stehen in keinem Beleg,
+   * und wer sie ausblendete, loeschte die einzige Spur.
+   */
+  const sichtbar = auslagen.filter((a) => !abgerechnet.has(a.id))
+  const versteckt = auslagen.length - sichtbar.length
 
   return (
     <div className="zahlen__block">
@@ -169,7 +191,18 @@ export function AuslagenListe({ auslagen, netzkosten, onAnlegen, onAendern, onEn
       </form>
       {fehler && <p className="form-status form-status--error">{fehler}</p>}
 
-      {auslagen.length > 0 && (
+      {/*
+        DAS AUSBLENDEN WIRD BENANNT. Eine Zeile, die verschwindet, ohne dass
+        jemand sagt warum, sieht aus wie ein verlorener Datensatz - und man
+        sucht sie in der Datenbank statt im Beleg.
+      */}
+      {versteckt > 0 && (
+        <p className="zahlen__hinweis">
+          {fuelle(versteckt === 1 ? t.zAusgeblendetEine : t.zAusgeblendet, { n: versteckt })}
+        </p>
+      )}
+
+      {sichtbar.length > 0 && (
         <div className="zahlen__rollen"><table className="zahlen__tabelle">
           <thead>
             <tr>
@@ -183,7 +216,7 @@ export function AuslagenListe({ auslagen, netzkosten, onAnlegen, onAendern, onEn
             </tr>
           </thead>
           <tbody>
-            {auslagen.map((a) => (
+            {sichtbar.map((a) => (
               <tr key={a.id}>
                 <td data-titel={t.zDatum}>{a.am}</td>
                 <td data-titel={t.zWofuer}>{a.bezeichnung}</td>

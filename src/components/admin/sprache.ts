@@ -711,6 +711,14 @@ const PAARE = {
     'Keine offenen Auslagen. Neue trägst du oben unter „Betriebskosten“ ein.',
     'Açık masraf yok. Yenisini yukarıda „İşletme giderleri“ altına girersin.',
   ],
+  zAusgeblendet: [
+    '{n} abgerechnete Posten stehen nicht mehr in dieser Liste – sie sind in ihrer Abrechnung festgehalten.',
+    '{n} hesaplaşması yapılmış kalem bu listede görünmüyor – ilgili hesaplaşmada kayıtlılar.',
+  ],
+  zAusgeblendetEine: [
+    'Ein abgerechneter Posten steht nicht mehr in dieser Liste – er ist in seiner Abrechnung festgehalten.',
+    'Hesaplaşması yapılmış bir kalem bu listede görünmüyor – ilgili hesaplaşmada kayıtlı.',
+  ],
   zAbrechnenKnopf: ['Abrechnen', 'Hesaplaşmayı başlat'],
   /*
    * "1 Auftraege und 3 Auslagen" stand hier - zweimal falsch. Die Mehrzahl

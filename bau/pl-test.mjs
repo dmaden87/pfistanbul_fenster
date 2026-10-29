@@ -12,7 +12,7 @@ import {
   kostenPosten, warenkosten, offeneForderungen, offeneSchulden,
   abrechnungZahlen, offeneEinnahmen, naechsteAbrechnungsnummer,
   abrechnungEntwurf, postenSchluessel, postenSummeFuer,
-  ausgeglicheneSchulden, abrechnungJePosten, freiePosten,
+  ausgeglicheneSchulden, abrechnungJePosten, freiePosten, abgerechneteAuslagen,
 } from '../src/lib/pl.ts'
 import { herstellungChf } from '../src/lib/kosten.ts'
 /*
@@ -1172,6 +1172,48 @@ pruefe('die Auslagen mindern den Warentopf und gehen an den zurueck, der sie aus
   /* Ufuk bekommt sein Hosting zurueck - plus seinen halben Montageanteil. */
   assert.equal(zahlen.rueckzahlung.ufuk, 38.4 + 15)
   assert.equal(zahlen.rueckzahlung.deniz, 120 + 15)
+})
+
+/* --- Was aus dem Ausgabenbuch verschwindet --------------------------------- */
+
+const mitBeleg = (erledigt) => ({
+  id: 'a1', nummer: 'A-2026-01', erstelltAm: '2026-05-01',
+  ...(erledigt ? { erledigtAm: '2026-05-02' } : {}),
+  auftraege: [],
+  posten: [
+    { auslageId: 'al-1', postenId: 'al-1', art: 'auslage', bezeichnung: 'Hosting', betragChf: 38.4, traeger: 'ufuk' },
+    { bestellungId: 'b1', postenId: 'k1', art: 'herstellung', betragChf: 30, traeger: 'bora' },
+  ],
+})
+
+pruefe('eine abgerechnete Auslage verschwindet aus dem Buch', () => {
+  const raus = abgerechneteAuslagen([mitBeleg(true)])
+  assert.ok(raus.has('al-1'))
+  assert.equal(raus.size, 1, 'nur Auslagen, keine Auftragsposten')
+})
+
+/*
+ * DER GRENZFALL, AUF DEN ES ANKOMMT. Ein Entwurf laesst sich verwerfen.
+ * Blendete das Buch seine Posten schon aus, stuende die Auslage danach
+ * nirgends mehr - weder im Buch noch in einem Beleg.
+ */
+pruefe('ein offener Entwurf blendet nichts aus', () => {
+  assert.equal(abgerechneteAuslagen([mitBeleg(false)]).size, 0)
+})
+
+pruefe('ohne Abrechnungen bleibt alles stehen', () => {
+  assert.equal(abgerechneteAuslagen([]).size, 0)
+})
+
+/*
+ * VON HAND ABGEHAKTE BLEIBEN SICHTBAR. Sie stehen in keinem Beleg; wer sie
+ * ausblendete, loeschte die einzige Spur. Das entscheidet die Liste, nicht
+ * diese Funktion - hier wird nur festgehalten, dass `bezahlt` allein kein
+ * Grund ist.
+ */
+pruefe('ein blosses Haekchen reicht nicht zum Ausblenden', () => {
+  const nurAbgehakt = auslage({ id: 'al-9', bezahlt: true })
+  assert.ok(!abgerechneteAuslagen([mitBeleg(true)]).has(nurAbgehakt.id))
 })
 
 console.log(`\n${bestanden}/${bestanden + fehler.length} bestanden`)

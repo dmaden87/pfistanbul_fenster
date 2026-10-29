@@ -12,7 +12,8 @@ import { formatChf } from '../../lib/format'
 import {
   abrechnungEntwurf, abrechnungJePosten, abrechnungZahlen, abschnitte,
   ausgeglicheneSchulden, forecast, kennzahlen, naechsteAbrechnungsnummer,
-  freiePosten, offeneEinnahmen, offeneForderungen, offeneSchulden, postenSchluessel,
+  abgerechneteAuslagen, freiePosten, offeneEinnahmen, offeneForderungen, offeneSchulden,
+  postenSchluessel,
   postenSummeFuer, warenkosten, zaehltPhase, zahlenFuer,
   type Periode, type SchuldPosten,
 } from '../../lib/pl'
@@ -697,6 +698,7 @@ function ZahlenMaske({ onBack }: Props) {
         <AuslagenListe
           auslagen={auslagen}
           netzkosten={netzkosten}
+          abgerechnet={abgerechneteAuslagen(abrechnungen)}
           onAnlegen={async (a) => { const neu = await legeAuslageAn(a); setAuslagen((l) => [neu, ...l]) }}
           onAendern={async (id, teil) => {
             const neu = await aendereAuslage(id, teil)
