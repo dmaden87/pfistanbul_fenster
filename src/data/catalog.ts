@@ -189,25 +189,25 @@ export const construction: MeshOption[] = [
  *
  * DIE ZAHLEN SIND EIN VERSPRECHEN UND KEINE MESSUNG: Sie stehen auf der
  * Seite, bevor jemand Masse eintippt, und sollen die Rechnung umschliessen,
- * ohne sie zu übertreffen. Deniz hat 125 bis 225 gesetzt; gerechnet ergibt
- * die Formel für Formate bis 2 m² heute 125 bis 180 – unten auf den
- * Franken (der Mindestpreis ist dieselbe Zahl), oben mit Luft. Wer rechnet,
- * zahlt also eher weniger als angekündigt, und das ist die richtige
- * Richtung.
+ * ohne sie zu übertreffen. Gerechnet ergibt die Formel für Formate bis
+ * 2 m² heute 125 bis 180: unten auf den Franken – der Mindestpreis ist
+ * dieselbe Zahl –, oben mit zwanzig Franken Luft. Wer rechnet, zahlt also
+ * eher weniger als angekündigt, und das ist die richtige Richtung.
  *
- * DIE LUFT OBEN IST GEWACHSEN, seit Bora den normalen Rahmen auf 28 EUR/m²
- * gesenkt hat und wir das weitergeben. bau/preise-test.mjs lässt das
- * Versprechen höchstens ein Viertel über der Rechnung liegen – bei 180
- * sind das genau 225. Fällt der Einkauf noch einmal, wird dieser Test rot,
- * und dann gehört hier eine kleinere Zahl hin statt eines grösseren
- * Spielraums im Test.
+ * OBEN STANDEN ZULETZT 225. Das war richtig, solange Bora 30 EUR/m²
+ * verlangte; seit es 28 sind und wir das weitergeben, war die Zahl zwanzig
+ * Prozent über allem, was der Rechner ausgibt. Eine Spanne, die so weit
+ * über der Rechnung liegt, verschreckt, ohne irgendetwas zu versprechen –
+ * und bau/preise-test.mjs lässt ohnehin höchstens ein Viertel Abstand zu,
+ * das wären bei 180 genau 225 gewesen. Der nächste Preisschritt hätte ihn
+ * rot gemacht.
  *
  * Wer an der Formel in estimate.ts dreht, muss hier nachsehen: Die beiden
  * Zahlen wissen nichts voneinander.
  */
 export const priceRange = {
   minChf: 125,
-  maxChf: 225,
+  maxChf: 200,
   maxAreaM2: 2,
 } as const
 
