@@ -5,41 +5,29 @@ import { einfuhrsteuerChf, frachtChf, herstellungChf } from './kosten'
  * Richtpreis für Sondermasse.
  *
  * Wir wollen einer Kundin sagen können, was ungefähr auf sie zukommt, statt
- * sie wie die Konkurrenz auf "Preis auf Anfrage" zu vertrösten. Grundlage
- * sind die vier ausgemessenen Formate: Aus ihren Preisen werden hier zwei
- * Zahlen zurückgerechnet – ein Sockel je Netz und ein Betrag pro Meter
- * Umfang. Damit bleibt der Rechner automatisch richtig, wenn sich die Preise
- * ändern: Es gibt keine zweite, von Hand gepflegte Preisliste.
+ * sie wie die Konkurrenz auf "Preis auf Anfrage" zu vertrösten.
  *
- * NACH UMFANG, NICHT NACH FLÄCHE – und das ist der Punkt.
+ * ER RECHNET VORWÄRTS AUS DEN KOSTEN, nicht rückwärts aus Preisen:
  *
- * Hier stand jahrelang eine Rechnung über die Fläche, begründet mit "ein
- * Sockel plus ein Betrag pro Quadratmeter Gewebe". Diese Begründung ist
- * widerlegt. Bora stellt Rahmen, Schiene, Bürstendichtung und den
- * plissierten Gewebestreifen in Rechnung – alles Laufmeter. Das Gewebe
- * selbst ist das Billigste daran (siehe src/data/kostenConfig.ts, sieben
- * nachgerechnete Preise).
+ *   Selbstkosten = Ware (Fläche × Boras m2-Satz) + Fracht + Einfuhrsteuer
+ *   Richtpreis   = Sockel + Warenfaktor × Selbstkosten, aufgerundet auf
+ *                  fünf Franken, mindestens der Mindestpreis
  *
- * Und unsere EIGENEN Katalogpreise sagen dasselbe:
+ * So bleibt der Rechner richtig, wenn sich der Einkauf ändert: Es gibt
+ * keine zweite, von Hand gepflegte Preisliste. Senkt Bora seinen Satz,
+ * sinkt der Richtpreis mit – das ist gewollt und war Ende Oktober 2026 die
+ * ausdrückliche Entscheidung, als der normale Rahmen von 30 auf 28 EUR/m²
+ * fiel: Der Vorteil geht an die Kundschaft, nicht in die Marge.
  *
- *   erklärt durch    R²      mittlere Abweichung
- *   Fläche          0.89         CHF 3.02
- *   Umfang          0.99         CHF 1.09
+ * HIER STAND EINMAL EINE GERADE ÜBER DEN UMFANG, zurückgerechnet aus den
+ * Katalogpreisen und sieben Angeboten von Bora. Sie war richtig, solange
+ * Boras Preise die einzige Quelle waren und uneinheitlich. Seit es eine
+ * m2-Vereinbarung gibt, beschriebe sie eine Preisliste, die es nicht mehr
+ * gibt.
  *
- * Am deutlichsten an der Balkontüre: Sie hat weniger Fläche als "Zimmer"
- * (1.73 gegen 1.958 m²) und kostet trotzdem mehr (155 gegen 150). Nach
- * Fläche ist das ein Widerspruch, nach Umfang stimmt es (5.80 gegen
- * 5.65 m). Die Preise waren von Hand gesetzt – die Hand hat nach Umfang
- * gerechnet, der Rechner nach Fläche.
- *
- * Praktisch heisst der Unterschied: Ein Flächenmodell verlangt für schmale
- * hohe Netze zu wenig – also für jede Türe und jedes Balkonfenster, das
- * Alltagsgeschäft – und für grosse quadratische zu viel. Es verschenkt
- * Marge, wo es oft vorkommt, und verschreckt, wo es selten vorkommt.
- *
- * `umfangM` kommt aus ./kosten und wird NICHT hier zweitgerechnet: Preis
- * und Kosten sollen denselben Umfang meinen, sonst laufen sie beim nächsten
- * Umbau auseinander.
+ * DIE SIEDLUNGSPREISE BLEIBEN, WIE SIE SIND. Die vier Katalogformate tragen
+ * ihre eigenen Preise und werden von dieser Funktion nicht berührt – sie
+ * gilt für Sondermasse.
  */
 
 /**
@@ -50,8 +38,18 @@ import { einfuhrsteuerChf, frachtChf, herstellungChf } from './kosten'
  * Fenster macht davon genauso viel Arbeit wie ein grosses.
  *
  * Deniz' Anker, an denen diese Zahl haengt: 1 m² = 140, 1.5 = 160, 2 = 185,
- * 3 = 235. Mit Sockel 65 und Warenfaktor 1.6 trifft die Rechnung alle vier
- * auf den Franken.
+ * 3 = 235 - gesetzt, als der normale Rahmen noch 30 EUR/m² kostete. Mit
+ * Sockel 65 und Warenfaktor 1.6 traf die Rechnung damals alle vier auf den
+ * Franken.
+ *
+ * SEIT BORAS SATZ AUF 28 LIEGT, TRIFFT SIE FUENF BIS ZEHN FRANKEN TIEFER:
+ * 135 / 155 / 180 / 225. Der Faktor haette sich auf 1.68 heben lassen, dann
+ * staenden die alten Preise wieder da und der guenstigere Einkauf bliebe
+ * bei uns. Deniz hat anders entschieden: Er geht an die Kundschaft.
+ *
+ * Die Anker stehen hier trotzdem weiter, denn sie halten die FORM der
+ * Geraden fest - ihr Abstand zueinander ist derselbe geblieben, die ganze
+ * Linie ist nur um die ersparten zwei Euro je Quadratmeter gesunken.
  */
 const SOCKEL_CHF = 65
 
@@ -65,10 +63,10 @@ const SOCKEL_CHF = 65
  * und ein Netz von 6 m² kostete nur das Doppelte von einem mit 1 m² -
  * obwohl sechsmal so viel Material drin steckt.
  *
- * Sockel plus Faktor ergibt stattdessen eine Gerade: rund 49 Franken je
+ * Sockel plus Faktor ergibt stattdessen eine Gerade: rund 45 Franken je
  * Quadratmeter, ohne Knick und ohne Deckel. Die Marge faellt dabei von
- * selbst mit der Groesse (78 Prozent beim kleinsten Netz, 48 beim
- * groessten), weil der Sockel sich ueber mehr Flaeche verteilt. Das ist die
+ * selbst mit der Groesse (71 Prozent bei 0.8 m², 51 bei 5 m²), weil der
+ * Sockel sich ueber mehr Flaeche verteilt. Das ist die
  * gewuenschte Richtung: Eine grosse Tuere soll bezahlbar bleiben, und sie
  * macht uns nicht sechsmal so viel Arbeit.
  *
@@ -126,38 +124,6 @@ const MINDESTPREIS_CHF = 125
  * Sicherheitsmarge ist genau dafuer da. Kommen groessere Netze mit echten
  * Preisen dazu, gehoeren sie in den Katalog und in
  * bau/kosten-test.mjs - dann wird aus der Hochrechnung eine Rechnung.
- */
-
-/**
- * Der Richtpreis fuer ein Netz dieser Masse.
- *
- * DIE FORMEL, WIE SIE MIT DENIZ UND UFUK VEREINBART IST:
- *
- *   Netzkosten + Fracht und Zoll + min(3 x Gesamtkosten, 150)
- *
- * Der Aufschlag von drei mal den Kosten ist eine Marge von 75 Prozent -
- * Marge VOM VERKAUFSPREIS, nicht Aufschlag auf die Kosten. Das ist nicht
- * dasselbe und war die eine Stelle, an der die Vereinbarung mehrdeutig war:
- * "75 Prozent dazuschlagen" waere das 1.75-fache und ergaebe rund 38
- * Prozent Marge. Gemeint ist das Vierfache.
- *
- * DER DECKEL VON 150 FRANKEN IST DER ZWECK DER UEBUNG. Ohne ihn kostete ein
- * Netz von 250 x 250 ueber 800 Franken, weil die Marge die Flaeche
- * mitmultipliziert. Mit ihm traegt ein kleines Netz seine 75 Prozent, und
- * bei den grossen sinkt die Marge - auf 43 Prozent beim groessten. Das ist
- * gewollt: Eine Balkontuere soll bezahlbar bleiben, und sie kostet uns
- * nicht viermal so viel Arbeit wie ein Badfenster.
- *
- * WAS HIER NICHT MEHR STEHT: eine Gerade durch die Katalogpreise. Der
- * Rechner las die vier Siedlungsformate und rechnete einen Sockel und einen
- * Meterpreis daraus zurueck - erst ueber die Flaeche, dann ueber den Umfang.
- * Das war richtig, solange Boras Preise die einzige Quelle waren und
- * uneinheitlich. Seit es eine m2-Vereinbarung gibt, rechnet der Richtpreis
- * vorwaerts aus den Kosten statt rueckwaerts aus Preisen.
- *
- * DIE SIEDLUNGSPREISE BLEIBEN, WIE SIE SIND. Die vier Katalogformate tragen
- * ihre eigenen Preise und werden von dieser Funktion nicht beruehrt - sie
- * gilt fuer Sondermasse.
  */
 
 function runde2(x: number): number {

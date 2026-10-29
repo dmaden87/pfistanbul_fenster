@@ -169,15 +169,36 @@ pruefe('Der Richtpreis ist Sockel plus Faktor mal Selbstkosten', () => {
   }
 })
 
-pruefe('Die vier Ankerpreise werden auf den Franken getroffen', () => {
+pruefe('Die Preisgerade steht, wo sie nach Boras Satz stehen muss', () => {
   /*
    * DIE ANKER SIND DIE VEREINBARUNG, nicht die Formel: 1 m² = 140,
-   * 1.5 = 160, 2 = 185, 3 = 235. Sockel und Faktor sind daraus gerechnet;
-   * wer an einem von beiden dreht, verschiebt diese vier Punkte und soll
-   * das hier sehen.
+   * 1.5 = 160, 2 = 185, 3 = 235. Sockel und Faktor sind daraus gerechnet.
+   *
+   * GETROFFEN HABEN SIE BEI 30 EUR/m². Seit Bora den normalen Rahmen auf
+   * 28 gesenkt hat, liegt die ganze Gerade tiefer - fuenf bis zehn Franken,
+   * je nach Groesse. Das ist kein Fehler, sondern die Entscheidung: Der
+   * guenstigere Einkauf geht an die Kundschaft. Wer die alten Preise
+   * zurueckwollte, muesste den Warenfaktor von 1.6 auf 1.68 heben.
+   *
+   * ZWEI AUSSAGEN STEHEN DESHALB HIER. Die erste haelt die heutigen Zahlen
+   * fest, damit eine unbeabsichtigte Aenderung an der Formel auffaellt. Die
+   * zweite ist die dauerhafte: Die Gerade darf sich vom Anker loesen, aber
+   * nicht weit - hoechstens fuenfzehn Franken darunter und nie darueber.
+   * Wandert sie weiter, ist das eine Preisentscheidung und keine Rechnung,
+   * und dann gehoeren hier neue Zahlen hin statt eines groesseren
+   * Spielraums.
    */
-  for (const [flaeche, ziel] of [[1.0, 140], [1.5, 160], [2.0, 185], [3.0, 235]]) {
-    assert.equal(estimateNetChf(100, (flaeche * 10000) / 100), ziel, `${flaeche} m²`)
+  const anker = [[1.0, 140], [1.5, 160], [2.0, 185], [3.0, 235]]
+  const heute = [135, 155, 180, 225]
+
+  anker.forEach(([flaeche], i) => {
+    assert.equal(estimateNetChf(100, (flaeche * 10000) / 100), heute[i], `${flaeche} m²`)
+  })
+
+  for (const [flaeche, ziel] of anker) {
+    const preis = estimateNetChf(100, (flaeche * 10000) / 100)
+    assert.ok(preis <= ziel && preis >= ziel - 15,
+      `${flaeche} m²: ${preis} liegt nicht mehr beim Anker ${ziel}`)
   }
 })
 

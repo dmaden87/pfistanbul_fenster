@@ -24,11 +24,18 @@ function pruefe(name, bedingung, hinweis = '') {
 }
 
 /*
- * BORAS PREISLISTE, STAND OKTOBER 2026. Zwei Zahlen statt sieben Messpunkte
- * - das ist der ganze Unterschied zwischen einer zurueckgerechneten Formel
- * und einer Vereinbarung.
+ * BORAS PREISLISTE. Zwei Zahlen statt sieben Messpunkte - das ist der ganze
+ * Unterschied zwischen einer zurueckgerechneten Formel und einer
+ * Vereinbarung.
+ *
+ * SIE STEHT HIER NICHT NOCH EINMAL GETIPPT, sondern kommt aus der Konfiguration.
+ * Geprueft wird die Rechnung - Flaeche mal Satz, der Rueckfall auf den
+ * Normalsatz -, nicht der Satz selbst. Als hier zuletzt Zahlen standen,
+ * ging der Test rot, weil Bora den normalen Rahmen von 30 auf 28 senkte:
+ * rot auf eine Vereinbarung, die sich geaendert hatte, und nicht auf einen
+ * Fehler. Genau so ist schon die Fracht von 12 auf 13 rot geworden.
  */
-const SATZ = { '1.5': 35, '2.8': 30 }
+const SATZ = kostenConfig.proM2Eur
 
 pruefe('Flaeche: 100 x 50 sind ein halber Quadratmeter', flaecheM2(100, 50) === 0.5)
 

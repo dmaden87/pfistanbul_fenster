@@ -21,7 +21,12 @@ import type { Beteiligter } from '../types'
  * Preisliste, die es nicht mehr gibt.
  *
  *   1.5er Rahmen (schmal)    35 EUR/m2
- *   2.8er Rahmen (normal)    30 EUR/m2
+ *   2.8er Rahmen (normal)    28 EUR/m2
+ *
+ * DER NORMALE RAHMEN STAND ZUERST BEI 30 - Bora hat ihn Ende Oktober 2026
+ * auf 28 gesenkt, der schmale bleibt bei 35. Wer diese Zahl aendert,
+ * aendert damit auch den Richtpreis; wie der gleich bleiben kann, steht in
+ * src/lib/estimate.ts beim Warenfaktor.
  *
  * DIE SIEBEN MESSPUNKTE STEHEN NICHT MEHR IM TEST. Sie zu behalten hiesse,
  * die Formel gegen eine Vereinbarung zu pruefen, die abgeloest wurde - der
@@ -47,10 +52,10 @@ export const kostenConfig = {
    * einen hinzufuegt, muss hier einen Preis nennen, sonst rechnet das
    * Netz mit dem Normalsatz weiter, als waere nichts gewesen.
    */
-  proM2Eur: { '1.5': 35, '2.8': 30 } as Record<string, number>,
+  proM2Eur: { '1.5': 35, '2.8': 28 } as Record<string, number>,
 
   /** Der Satz, wenn eine Rahmendicke nicht in der Tabelle steht – Alteintraege. */
-  proM2StandardEur: 30,
+  proM2StandardEur: 28,
 
   /**
    * Aufschlag auf den m2-Preis fuer engmaschiges Gewebe, als Faktor.
