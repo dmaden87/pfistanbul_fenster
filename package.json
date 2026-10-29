@@ -16,7 +16,8 @@
     "melden": "node bau/indexnow.mjs",
     "bewertung": "node bau/bewertung.mjs",
     "preisblatt": "node --import ./bau/ts-aufloeser.mjs bau/preisblatt.mjs",
-    "referenzpreise": "node --import ./bau/ts-aufloeser.mjs bau/referenzpreise.mjs"
+    "referenzpreise": "node --import ./bau/ts-aufloeser.mjs bau/referenzpreise.mjs",
+    "referenzliste": "node --import ./bau/ts-aufloeser.mjs bau/referenzliste.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",

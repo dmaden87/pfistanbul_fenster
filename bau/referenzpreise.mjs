@@ -21,44 +21,22 @@
  * zeigte das Blatt Preise, die niemand mehr verlangt. Genau so ist die
  * beworbene Spanne einmal auf "100 bis 200" stehengeblieben.
  *
+ * DANEBEN STEHT DIE LISTE (bau/referenzliste.mjs). Dieses Blatt beantwortet
+ * eine Frage - was kostet das? - und passt dafuer auf eine Seite. Die Liste
+ * beantwortet die zweite: was bleibt uns davon? Beides in eine Zelle zu
+ * schreiben macht das Raster unlesbar, und genau dafuer ist es da.
+ *
  * DIE ZAHLEN SIND RICHTPREISE, KEINE OFFERTE. Was die Kundin bezahlt, steht
  * im Auftrag; dieses Blatt sagt, womit zu rechnen ist, bevor es einen
  * Auftrag gibt.
  */
-import { execFileSync } from 'node:child_process'
-import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { estimateNetChf, margeProzent, preisFormel, selbstkostenChf } from '../src/lib/estimate.ts'
 import { kostenConfig } from '../src/data/kostenConfig.ts'
 import { RAHMENDICKEN } from '../src/data/produktion.ts'
 import { shopConfig } from '../src/data/shopConfig.ts'
-
-const CHROMIUM = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
-const ZIEL = 'drucksachen'
-
-/*
- * DAS RASTER DECKT AB, WAS VORKOMMT. Unter 50 cm gibt es kaum ein Fenster,
- * und ueber 200 Breite faellt ein Plissee ohnehin in die Beratung. Die
- * Schritte von zehn Zentimetern sind grob genug fuer eine Seite und fein
- * genug zum Ablesen: Wer 137 misst, liest 140 und liegt nie zu tief, weil
- * der Preis mit der Flaeche steigt.
- */
-const BREITEN = [50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200]
-const HOEHEN = [50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250]
-
-/*
- * Der gewoehnliche Rahmen kommt zuerst - er ist der Normalfall, und wer das
- * Blatt aus dem Rucksack zieht, soll ihn oben haben und nicht blaettern.
- */
-const DICKEN = ['2.8', '1.5']
-
-/* Die Formate, an denen sich Kosten und Marge ablesen lassen. */
-const ECKPUNKTE = [[100, 100], [100, 150], [100, 200], [150, 200], [200, 250]]
-
-const chf = (x) => x.toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-
-const schrift = (datei) =>
-  `url(data:font/woff2;base64,${readFileSync(`public/fonts/${datei}`).toString('base64')}) format('woff2')`
+import {
+  BREITEN, DICKEN, ECKPUNKTE, HOEHEN, alsPdf, chf, flaecheM2, monat, schriften,
+} from './drucksache.mjs'
 
 const seite = (dicke) => {
   const satzEur = kostenConfig.proM2Eur[dicke] ?? kostenConfig.proM2StandardEur
@@ -67,7 +45,7 @@ const seite = (dicke) => {
   const zeilen = HOEHEN.map((h) => {
     const zellen = BREITEN.map((b) => {
       const preis = estimateNetChf(b, h, dicke)
-      const m2 = (b / 100) * (h / 100)
+      const m2 = flaecheM2(b, h)
       /* Wo der Mindestpreis greift, traegt das Netz seine Marge nicht mehr
          aus der Flaeche - das soll man sehen, nicht nachrechnen muessen. */
       const mindest = preis === preisFormel.mindestpreisChf
@@ -81,7 +59,7 @@ const seite = (dicke) => {
     const preis = estimateNetChf(b, h, dicke)
     return `<tr>
       <td class="links">${b} × ${h}</td>
-      <td>${((b / 100) * (h / 100)).toFixed(2)} m²</td>
+      <td>${flaecheM2(b, h).toFixed(2)} m²</td>
       <td>${chf(kosten)}</td>
       <td class="preis">${preis}</td>
       <td>${chf(Math.round((preis - kosten) * 100) / 100)}</td>
@@ -92,7 +70,7 @@ const seite = (dicke) => {
   return `<section class="blatt">
   <div class="kopf">
     <h1>Referenzpreise · ${name}</h1>
-    <span class="marke">Pfistanbul Fenster · ${new Date().toLocaleDateString('de-CH', { month: 'long', year: 'numeric' })}</span>
+    <span class="marke">Pfistanbul Fenster · ${monat()}</span>
   </div>
   <p class="lead">
     Richtpreis je Netz in Franken, aufgerundet auf ${preisFormel.rundungChf}. Senkrecht die Höhe, waagrecht die
@@ -137,10 +115,7 @@ const seite = (dicke) => {
 const html = `<!doctype html>
 <html lang="de"><head><meta charset="utf-8">
 <style>
-  @font-face { font-family: 'Fraunces'; font-weight: 700; src: ${schrift('fraunces-normal-700-latin-ext.woff2')}; }
-  @font-face { font-family: 'Inter'; font-weight: 400; src: ${schrift('inter-normal-400-latin-ext.woff2')}; }
-  @font-face { font-family: 'Inter'; font-weight: 600; src: ${schrift('inter-normal-600-latin-ext.woff2')}; }
-  @font-face { font-family: 'Inter'; font-weight: 700; src: ${schrift('inter-normal-700-latin-ext.woff2')}; }
+  ${schriften()}
 
   @page { size: A4 landscape; margin: 8mm 9mm; }
 
@@ -202,49 +177,10 @@ const html = `<!doctype html>
 ${DICKEN.map(seite).join('\n')}
 </body></html>`
 
-mkdirSync(ZIEL, { recursive: true })
-const profil = join(ZIEL, 'profil-referenzpreise')
-rmSync(profil, { recursive: true, force: true })
-mkdirSync(profil, { recursive: true })
-const quelle = join(ZIEL, 'referenzpreise.html')
-const pdf = join(ZIEL, 'referenzpreise.pdf')
-writeFileSync(quelle, html)
-
-execFileSync(CHROMIUM, [
-  '--headless=new', '--disable-gpu', '--no-sandbox',
-  `--user-data-dir=${profil}`, '--no-first-run',
-  '--no-pdf-header-footer', `--print-to-pdf=${pdf}`,
-  quelle,
-], { stdio: ['ignore', 'ignore', 'pipe'] })
-
-/*
- * GEGENPROBE: Chromium meldet auch dann Erfolg, wenn es eine leere Datei
- * schreibt - etwa wenn eine Schrift fehlt und das Rendern stehenbleibt. Ein
- * PDF unter zwanzig Kilobyte hat keine zwei Seiten Tabelle drin.
- */
-const groesse = statSync(pdf).size
-if (groesse < 20_000) {
-  console.error(`${pdf} ist nur ${groesse} Bytes gross – da steht nichts drin.`)
-  process.exit(1)
-}
-
-/*
- * UND DIE ZWEITE, WICHTIGERE: EINE SEITE JE RAHMENDICKE. Laeuft die Tabelle
- * ueber, schiebt der Druck die letzten Zeilen auf ein zweites Blatt - und
- * das faellt sonst erst auf, wenn jemand mit dem halben Raster am Fenster
- * steht. Beim ersten Anlauf war genau das der Fall: vier Seiten statt zwei.
- */
-const seiten = (readFileSync(pdf).toString('latin1').match(/\/Type\s*\/Page[^s]/g) ?? []).length
-if (seiten !== DICKEN.length) {
-  console.error(`${pdf} hat ${seiten} Seiten statt ${DICKEN.length} – das Raster passt nicht aufs Blatt.`)
-  process.exit(1)
-}
-
-if (!process.env.HTML_BEHALTEN) rmSync(quelle)
-rmSync(profil, { recursive: true, force: true })
+const { pdf, groesse, seiten } = alsPdf({ html, name: 'referenzpreise', seiten: DICKEN.length })
 
 const alle = DICKEN.flatMap((d) =>
   HOEHEN.flatMap((h) => BREITEN.map((b) => estimateNetChf(b, h, d))))
-console.log(`${pdf} geschrieben – ${(groesse / 1024).toFixed(0)} kB, ${DICKEN.length} Seiten`)
+console.log(`${pdf} geschrieben – ${(groesse / 1024).toFixed(0)} kB, ${seiten} Seiten`)
 console.log(`${BREITEN.length} Breiten x ${HOEHEN.length} Hoehen · Preise ${Math.min(...alle)} bis ${Math.max(...alle)} CHF`)
 console.log(`Formel: ${preisFormel.sockelChf} + ${preisFormel.warenfaktor} x Selbstkosten, mindestens ${preisFormel.mindestpreisChf}`)
