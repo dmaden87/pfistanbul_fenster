@@ -17,7 +17,8 @@
     "bewertung": "node bau/bewertung.mjs",
     "preisblatt": "node --import ./bau/ts-aufloeser.mjs bau/preisblatt.mjs",
     "referenzpreise": "node --import ./bau/ts-aufloeser.mjs bau/referenzpreise.mjs",
-    "referenzliste": "node --import ./bau/ts-aufloeser.mjs bau/referenzliste.mjs"
+    "referenzliste": "node --import ./bau/ts-aufloeser.mjs bau/referenzliste.mjs",
+    "flyer": "node --import ./bau/ts-aufloeser.mjs bau/flyer.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
