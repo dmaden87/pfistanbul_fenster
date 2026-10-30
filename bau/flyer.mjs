@@ -49,10 +49,17 @@ const LUFT = 400
  */
 const FOTO = 'public/fotos/fenster-geschlossen-1600.jpg'
 
+/*
+ * DREI WORTGRUPPEN, KEINE SAETZE. Hier standen zu jedem Punkt noch zwei
+ * Zeilen Erklaerung - richtig gesagt, aber auf einem Bild, das jemand im
+ * Chat als Vorschaubild sieht, unlesbar. Wer mehr wissen will, tippt auf
+ * den Link; dieses Blatt hat eine einzige Aufgabe, und die ist, dass man
+ * es im Vorbeiscrollen versteht.
+ */
 const PUNKTE = [
-  ['Nach Mass gefertigt', 'Jedes Fenster wird ausgemessen, jedes Netz dafür gebaut.'],
-  ['Meist ohne Bohren', 'Der Rahmen klemmt im Fensterrahmen. Für Mietwohnungen gemacht.'],
-  ['Bleibt das ganze Jahr', 'Zum Auf- und Zuziehen wie eine Jalousie. Kein Ein- und Ausbauen.'],
+  'Nach Mass gefertigt',
+  'Meist ohne Bohren',
+  'Bleibt das ganze Jahr',
 ]
 
 const alsDaten = (pfad, typ) =>
@@ -79,45 +86,44 @@ const html = `<!doctype html>
     -webkit-font-smoothing: antialiased;
   }
 
-  .bild { position: relative; height: 650px; overflow: hidden; }
+  .bild { position: relative; height: 462px; overflow: hidden; }
   .bild img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 42%; display: block; }
   /* Der Verlauf naeht Foto und Flaeche zusammen, damit keine harte Kante bleibt. */
   .bild::after {
-    content: ''; position: absolute; inset: auto 0 0 0; height: 180px;
+    content: ''; position: absolute; inset: auto 0 0 0; height: 150px;
     background: linear-gradient(to bottom, rgba(16,48,43,0), #10302b);
   }
 
   .inhalt {
-    padding: 0 64px 52px;
+    padding: 0 68px 56px;
     /* ueber dem Foto, sonst verschwindet der Markenname hinter dessen Kante */
     position: relative; z-index: 1;
   }
 
-  .marke { display: flex; align-items: center; gap: 16px; margin-top: -20px; }
-  .marke img { width: 62px; height: 62px; border-radius: 14px; }
-  .marke-name { font-family: 'Fraunces', serif; font-size: 30px; font-weight: 700; line-height: 1; }
+  .marke { display: flex; align-items: center; gap: 19px; margin-top: -24px; }
+  .marke img { width: 74px; height: 74px; border-radius: 17px; }
+  .marke-name { font-family: 'Fraunces', serif; font-size: 37px; font-weight: 700; line-height: 1; }
   .marke-zusatz {
-    font-size: 15px; font-weight: 600; letter-spacing: 0.26em;
-    text-transform: uppercase; color: #7ee0c4; margin-top: 5px;
+    font-size: 18px; font-weight: 700; letter-spacing: 0.3em;
+    text-transform: uppercase; color: #7ee0c4; margin-top: 6px;
   }
 
   h1 {
-    font-family: 'Fraunces', serif; font-size: 72px; font-weight: 700;
-    line-height: 0.98; letter-spacing: -0.025em; margin-top: 28px;
+    font-family: 'Fraunces', serif; font-size: 108px; font-weight: 700;
+    line-height: 0.95; letter-spacing: -0.035em; margin-top: 36px;
   }
   h1 .akzent { color: #7ee0c4; }
 
-  .lead { margin-top: 18px; font-size: 23px; line-height: 1.45; color: #cfe3dc; }
+  .lead { margin-top: 26px; font-size: 32px; font-weight: 500; line-height: 1.38; color: #cfe3dc; }
 
-  .punkte { margin-top: 26px; display: flex; flex-direction: column; gap: 15px; }
-  .punkt { display: flex; gap: 17px; align-items: flex-start; }
+  .punkte { margin-top: 34px; display: flex; flex-direction: column; gap: 20px; }
+  .punkt { display: flex; gap: 20px; align-items: center; }
   .haken {
-    flex: none; width: 29px; height: 29px; margin-top: 3px; border-radius: 50%;
+    flex: none; width: 40px; height: 40px; border-radius: 50%;
     background: #7ee0c4; color: #10302b;
-    font-size: 17px; font-weight: 700; line-height: 29px; text-align: center;
+    font-size: 23px; font-weight: 700; line-height: 40px; text-align: center;
   }
-  .punkt-titel { font-size: 23px; font-weight: 700; line-height: 1.25; }
-  .punkt-text { font-size: 19px; line-height: 1.35; color: #a9c7bd; margin-top: 2px; }
+  .punkt-titel { font-size: 36px; font-weight: 700; line-height: 1.15; }
 
   /*
    * FESTER ABSTAND, KEIN margin-top: auto. Mit auto schob der Fuss sich an
@@ -126,14 +132,14 @@ const html = `<!doctype html>
    * das nur daran, dass sie fehlte: Auf dunklem Grund sieht ein zu kurzes
    * Blatt nicht falsch aus, sondern bloss leer.
    */
-  .fuss { margin-top: 34px; padding-top: 24px; border-top: 1px solid rgba(126,224,196,0.28); }
-  .preis { font-size: 20px; line-height: 1.5; color: #a9c7bd; }
+  .fuss { margin-top: 40px; padding-top: 30px; border-top: 1px solid rgba(126,224,196,0.28); }
+  .preis { font-size: 27px; line-height: 1.4; color: #a9c7bd; }
   .preis strong { color: #f7fbf9; font-weight: 600; }
   .adresse {
-    margin-top: 14px; display: flex; align-items: baseline; justify-content: space-between; gap: 24px;
+    margin-top: 20px; display: flex; align-items: baseline; justify-content: space-between; gap: 24px;
   }
-  .web { font-family: 'Fraunces', serif; font-size: 32px; font-weight: 700; color: #7ee0c4; }
-  .ort { font-size: 18px; line-height: 1.35; color: #a9c7bd; text-align: right; }
+  .web { font-family: 'Fraunces', serif; font-size: 48px; font-weight: 700; color: #7ee0c4; letter-spacing: -0.015em; }
+  .ort { font-size: 22px; line-height: 1.35; color: #a9c7bd; text-align: right; }
 </style></head><body>
   <div class="bild"><img src="${alsDaten(FOTO, 'image/jpeg')}" alt=""></div>
 
@@ -149,25 +155,22 @@ const html = `<!doctype html>
     <h1>Fenster auf.<br><span class="akzent">Mücken draussen.</span></h1>
 
     <p class="lead">
-      Insektenschutz-Plissee nach Mass – ein Netz, das in Falten in einer schmalen
-      Schiene liegt. Von Freunden und Nachbarn für Freunde und Nachbarn.
+      Insektenschutz-Plissee nach Mass.<br>
+      Von Freunden und Nachbarn für Freunde und Nachbarn.
     </p>
 
     <div class="punkte">
-      ${PUNKTE.map(([titel, text]) => `
+      ${PUNKTE.map((titel) => `
       <div class="punkt">
         <span class="haken">✓</span>
-        <div>
-          <div class="punkt-titel">${titel}</div>
-          <div class="punkt-text">${text}</div>
-        </div>
+        <span class="punkt-titel">${titel}</span>
       </div>`).join('')}
     </div>
 
     <div class="fuss">
       <p class="preis">
-        Richtwert <strong>CHF ${priceRange.minChf}–${priceRange.maxChf} pro Fenster</strong>.
-        Ausmessen kostet nichts, Montage CHF ${shopConfig.montageChf} je Netz.
+        Richtwert <strong>CHF ${priceRange.minChf}–${priceRange.maxChf} pro Fenster</strong><br>
+        Ausmessen gratis · Montage CHF ${shopConfig.montageChf} je Netz
       </p>
       <div class="adresse">
         <span class="web">${site.adresse.replace('https://', '')}</span>
