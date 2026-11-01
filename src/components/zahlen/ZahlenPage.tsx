@@ -12,7 +12,7 @@ import { formatChf } from '../../lib/format'
 import {
   abrechnungEntwurf, abrechnungJePosten, abrechnungZahlen, abschnitte,
   ausgeglicheneSchulden, forecast, kennzahlen, naechsteAbrechnungsnummer,
-  abgerechneteAuslagen, freiePosten, offeneEinnahmen, offeneForderungen, offeneSchulden,
+  abgerechneteAuslagen, freiePosten, kostenNachAbrechnung, offeneEinnahmen, offeneForderungen, offeneSchulden,
   postenSchluessel,
   postenSummeFuer, warenkosten, zaehltPhase, zahlenFuer,
   type Periode, type SchuldPosten,
@@ -174,17 +174,17 @@ function ZahlenMaske({ onBack }: Props) {
   const zeilen = bestellungen.filter(zaehltPhase).map((b) => ({ b, z: zahlenFuer(b) }))
   const gerechnet = zeilen.filter((x) => !x.b.ausserRechnung)
   const perioden = abschnitte(bestellungen, auslagen, periode)
-  const k = kennzahlen(bestellungen, auslagen)
+  const k = kennzahlen(bestellungen, auslagen, abrechnungen)
   const aussicht = forecast(bestellungen)
   const forderungen = offeneForderungen(bestellungen)
-  const schulden = offeneSchulden(bestellungen, auslagen)
+  const schulden = offeneSchulden(bestellungen, auslagen, abrechnungen)
   const netzkosten = warenkosten(bestellungen)
   const entwurf = abrechnungen.find((a) => !a.erledigtAm)
   const erledigte = abrechnungen.filter((a) => a.erledigtAm)
   const einnahmen = offeneEinnahmen(bestellungen, abrechnungen)
   /* Die Posten, die an keinem Auftrag haengen - sie fahren nie von selbst mit. */
   const frei = freiePosten(schulden)
-  const ausgeglichen = ausgeglicheneSchulden(bestellungen, auslagen)
+  const ausgeglichen = ausgeglicheneSchulden(bestellungen, auslagen, abrechnungen)
   const inAbrechnung = abrechnungJePosten(abrechnungen)
 
   /* Sendungen: die Pakete, wie sie zu Bora gegangen sind. */
@@ -260,29 +260,38 @@ function ZahlenMaske({ onBack }: Props) {
     setSendet(true)
     setFehler(null)
     try {
+      /*
+       * EIN SCHREIBVORGANG JE AUFTRAG, NICHT JE POSTEN.
+       *
+       * Hier lief eine Schleife ueber die Posten, und jeder Durchgang baute
+       * seine Kostenliste aus demselben alten `b.kosten` - dem Stand vor
+       * dem ersten Schreiben. Bei einem Auftrag mit Netzen, Fracht und Zoll
+       * schrieb der zweite Durchgang also den ersten wieder weg, der dritte
+       * den zweiten. Von drei abgerechneten Posten blieb genau einer auf
+       * bezahlt; die anderen standen weiter als Schuld bei Bora, obwohl er
+       * sein Geld hatte. Wer danach noch einmal abrechnet, zahlt doppelt.
+       *
+       * Jetzt werden die Posten erst nach Auftrag gebuendelt und dann in
+       * einem Zug geschrieben.
+       */
+      const jeAuftrag = new Map<string, Parameters<typeof kostenNachAbrechnung>[1]>()
       for (const p of a.posten) {
         if (p.auslageId) {
           const neu = await aendereAuslage(p.auslageId, { bezahlt: true })
           setAuslagen((l) => l.map((x) => (x.id === p.auslageId ? neu : x)))
           continue
         }
-        const b = bestellungen.find((x) => x.id === p.bestellungId)
-        if (!b || p.art === 'auslage') continue
-        const vorhanden = (b.kosten ?? []).some((k) => k.id === p.postenId)
-        const kosten: KostenPosten[] = vorhanden
-          ? (b.kosten ?? []).map((k) => (k.id === p.postenId ? { ...k, bezahlt: true } : k))
-          : [
-              ...(b.kosten ?? []),
-              {
-                id: p.postenId,
-                art: p.art,
-                betragChf: p.betragChf,
-                traeger: p.traeger,
-                bezahlt: true,
-                erfasstAm: new Date().toISOString(),
-              },
-            ]
-        await kostenSpeichern(b.id, kosten)
+        if (!p.bestellungId || p.art === 'auslage') continue
+        const liste = jeAuftrag.get(p.bestellungId) ?? []
+        liste.push({ postenId: p.postenId, art: p.art, betragChf: p.betragChf, traeger: p.traeger })
+        jeAuftrag.set(p.bestellungId, liste)
+      }
+
+      for (const [bestellungId, posten] of jeAuftrag) {
+        const b = bestellungen.find((x) => x.id === bestellungId)
+        if (!b) continue
+        /* Gerechnet wird in pl.ts, damit ein Test darauf zeigen kann. */
+        await kostenSpeichern(b.id, kostenNachAbrechnung(b.kosten ?? [], posten))
       }
       const fertig = await aendereAbrechnung(a.id, { erledigt: true })
       setAbrechnungen((l) => l.map((x) => (x.id === a.id ? fertig : x)))

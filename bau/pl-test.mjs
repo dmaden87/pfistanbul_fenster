@@ -13,6 +13,7 @@ import {
   abrechnungZahlen, offeneEinnahmen, naechsteAbrechnungsnummer,
   abrechnungEntwurf, postenSchluessel, postenSummeFuer,
   ausgeglicheneSchulden, abrechnungJePosten, freiePosten, abgerechneteAuslagen, istErledigt,
+  ausbezahltePosten, kostenNachAbrechnung,
 } from '../src/lib/pl.ts'
 import { herstellungChf } from '../src/lib/kosten.ts'
 /*
@@ -112,7 +113,7 @@ pruefe('ein ausgenommener Auftrag faellt aus allen Auswertungen', () => {
     kosten: [{ id: 'k', art: 'herstellung', betragChf: 30, traeger: 'bora', erfasstAm: 'x' }] })
   assert.equal(abschnitte([b], [], 'total').length, 0, 'keine Periode')
   assert.equal(offeneForderungen([b]).length, 0)
-  assert.equal(offeneSchulden([b], []).length, 0)
+  assert.equal(offeneSchulden([b], [], []).length, 0)
   assert.equal(offeneEinnahmen([b], []).length, 0)
 })
 
@@ -361,7 +362,7 @@ pruefe('Total Erloes teilt sich in Cashed, Debit und In Arbeit', () => {
   const bezahlt = best({ id: 'c', ausgeliefertAm: '2026-03-01', bezahltAm: '2026-03-02' })
   const offen = best({ id: 'd', ausgeliefertAm: '2026-03-01' })
   const arbeit = best({ id: 'f', status: 'bora', zusageAm: '2026-03-01' })
-  const k = kennzahlen([bezahlt, offen, arbeit], [])
+  const k = kennzahlen([bezahlt, offen, arbeit], [], [])
   assert.equal(k.erloesChf, 450)
   assert.equal(k.cashedChf, 150)
   assert.equal(k.debitChf, 150)
@@ -372,7 +373,7 @@ pruefe('Total Erloes teilt sich in Cashed, Debit und In Arbeit', () => {
 pruefe('der Funnel steht NEBEN dem Total Erloes, nicht darin', () => {
   const fest = best({ id: 'a', status: 'bora', zusageAm: '2026-03-01' })
   const anfrage = best({ id: 'b', status: 'offerte' })
-  const k = kennzahlen([fest, anfrage], [])
+  const k = kennzahlen([fest, anfrage], [], [])
   assert.equal(k.erloesChf, 150, 'nur der feste Auftrag')
   assert.equal(k.funnelChf, 150, 'die Anfrage steht im Funnel')
   assert.equal(k.warenkostenChf > 0, true)
@@ -382,7 +383,7 @@ pruefe('das Betriebsergebnis ist Erloes minus Waren- und Betriebskosten', () => 
   const b = best({ ausgeliefertAm: '2026-03-01',
     kosten: [{ id: 'k', art: 'herstellung', betragChf: 30, traeger: 'bora', erfasstAm: 'x' },
              { id: 'k2', art: 'mwst', betragChf: 2.43, traeger: 'bora', erfasstAm: 'x' }] })
-  const k = kennzahlen([b], [auslage({ betragChf: 20 })])
+  const k = kennzahlen([b], [auslage({ betragChf: 20 })], [])
   assert.equal(k.warenkostenChf, 32.43)
   assert.equal(k.betriebskostenChf, 20)
   assert.equal(k.kostenChf, 52.43)
@@ -399,14 +400,14 @@ pruefe('das REALE Ergebnis rechnet nur mit geflossenem Geld', () => {
   const b = best({ ausgeliefertAm: '2026-03-01', bezahltAm: '2026-03-02',
     kosten: [{ id: 'k', art: 'herstellung', betragChf: 30, traeger: 'bora', bezahlt: true, erfasstAm: 'x' },
              { id: 'k2', art: 'mwst', betragChf: 2.43, traeger: 'bora', erfasstAm: 'x' }] })
-  const k = kennzahlen([b], [auslage({ betragChf: 20 })])
+  const k = kennzahlen([b], [auslage({ betragChf: 20 })], [])
   assert.equal(k.realErgebnisChf, 120)
   assert.ok(k.realErgebnisChf !== k.betriebsergebnisChf, 'die zwei Sichten unterscheiden sich')
 })
 
 pruefe('ein nicht einkassierter Auftrag traegt nichts zum realen Ergebnis bei', () => {
   const b = best({ ausgeliefertAm: '2026-03-01' })
-  assert.equal(kennzahlen([b], []).realErgebnisChf, 0)
+  assert.equal(kennzahlen([b], [], []).realErgebnisChf, 0)
 })
 
 pruefe('Total Kosten zeigt, wie viel davon noch zu bezahlen ist', () => {
@@ -414,7 +415,7 @@ pruefe('Total Kosten zeigt, wie viel davon noch zu bezahlen ist', () => {
     kosten: [{ id: 'k', art: 'herstellung', betragChf: 30, traeger: 'bora', erfasstAm: 'x' },
              { id: 'k2', art: 'lieferung', betragChf: 10, traeger: 'bora', bezahlt: true, erfasstAm: 'x' },
              { id: 'k3', art: 'mwst', betragChf: 0, traeger: 'bora', erfasstAm: 'x' }] })
-  const k = kennzahlen([b], [auslage({ betragChf: 20, traeger: 'deniz' })])
+  const k = kennzahlen([b], [auslage({ betragChf: 20, traeger: 'deniz' })], [])
   assert.equal(k.kostenChf, 60, '40 Ware plus 20 Betrieb')
   assert.equal(k.creditChf, 50, '30 Ware offen plus 20 Auslage offen')
   assert.equal(k.bezahltKostenChf, 10)
@@ -436,7 +437,7 @@ pruefe('bezahlt und offen ergeben zusammen die Gesamtkosten', () => {
              { id: 'k2', art: 'mwst', betragChf: 2.43, traeger: 'bora', erfasstAm: 'x' }] })
   /* Dieser hat gar keine Posten – seine Kosten kommen aus der Formel. */
   const gerechnet = best({ id: 'g', status: 'bora', zusageAm: '2026-03-01' })
-  const k = kennzahlen([erfasst, gerechnet], [auslage({ betragChf: 20 }), auslage({ id: 'a2', betragChf: 15, bezahlt: true })])
+  const k = kennzahlen([erfasst, gerechnet], [auslage({ betragChf: 20 }), auslage({ id: 'a2', betragChf: 15, bezahlt: true })], [])
 
   assert.equal(runde(k.bezahltKostenChf + k.creditChf), k.kostenChf,
     `${k.bezahltKostenChf} + ${k.creditChf} ist nicht ${k.kostenChf}`)
@@ -447,7 +448,7 @@ pruefe('bezahlt und offen ergeben zusammen die Gesamtkosten', () => {
 
 pruefe('der Funnel steht in Stueck und Geld in den Kennzahlen', () => {
   const kommt = best({ status: 'zusage', positionen: [netz(100, 100, 150), netz(80, 60, 130)] })
-  const k = kennzahlen([kommt], [])
+  const k = kennzahlen([kommt], [], [])
   assert.equal(k.funnelAnzahl, 1)
   assert.equal(k.funnelNetze, 2)
   assert.equal(k.funnelChf, 280)
@@ -528,7 +529,7 @@ pruefe('die Warenkosten stimmen mit der Kennzahl ueberein', () => {
     best({ id: 'b', status: 'ausliefern', ausgeliefertAm: '2026-03-01',
       positionen: [netz(128, 96, 180), netz(64, 96, 120)] }),
   ]
-  assert.equal(warenkosten(liste).summeChf, kennzahlen(liste, []).warenkostenChf)
+  assert.equal(warenkosten(liste).summeChf, kennzahlen(liste, [], []).warenkostenChf)
 })
 
 pruefe('Netze und Auftraege stehen in Stueck da, fest und im Funnel getrennt', () => {
@@ -536,7 +537,7 @@ pruefe('Netze und Auftraege stehen in Stueck da, fest und im Funnel getrennt', (
     best({ id: 'f', status: 'bora', zusageAm: '2026-02-01', positionen: [netz(100, 100, 150), netz(80, 60, 130)] }),
     best({ id: 'n', status: 'offerte', positionen: [netz(100, 100, 150)] }),
   ]
-  const k = kennzahlen(liste, [])
+  const k = kennzahlen(liste, [], [])
   assert.equal(k.auftraegeAnzahl, 1)
   assert.equal(k.auftraegeNetze, 2)
   assert.equal(k.funnelAnzahl, 1)
@@ -560,8 +561,8 @@ pruefe('ein erfasster Posten schreibt den gerechneten fest, ohne die Summe zu be
     })),
   })
   assert.equal(zahlenFuer(nachher).kostenChf, zahlenFuer(vorher).kostenChf, 'gleiche Summe')
-  assert.equal(offeneSchulden([vorher], []).length, 1)
-  assert.equal(offeneSchulden([nachher], []).length, 0, 'abgehakt, also nicht mehr offen')
+  assert.equal(offeneSchulden([vorher], [], []).length, 1)
+  assert.equal(offeneSchulden([nachher], [], []).length, 0, 'abgehakt, also nicht mehr offen')
   assert.equal(zahlenFuer(nachher).geschaetzt, false, 'jetzt steht ein Beleg dahinter')
 })
 
@@ -594,7 +595,7 @@ pruefe('wem wir was schulden, je Traeger zusammengefasst', () => {
       { id: 'k3', art: 'weiteres', bezeichnung: 'Dübel', betragChf: 7, traeger: 'deniz', erfasstAm: 'x', am: '2026-02-03' },
     ],
   })
-  const liste = offeneSchulden([b], [auslage({ betragChf: 40, traeger: 'deniz' })])
+  const liste = offeneSchulden([b], [auslage({ betragChf: 40, traeger: 'deniz' })], [])
   assert.equal(liste.length, 2)
   assert.equal(liste[0].traeger, 'bora')
   /* 60 Herstellung, 20 Lieferung und die gerechnete Einfuhrsteuer auf die 60. */
@@ -614,7 +615,7 @@ pruefe('gerechnete Kosten schulden wir auch, ohne dass sie erfasst sind', () => 
    * Auftrag, und bis jemand "ausgeglichen" setzt, stehen sie offen.
    */
   const b = best({ status: 'bora', zusageAm: '2026-02-01', positionen: [netz(100, 100, 150)] })
-  const liste = offeneSchulden([b], [])
+  const liste = offeneSchulden([b], [], [])
   assert.equal(liste.length, 1)
   assert.equal(liste[0].traeger, 'bora', 'Netze und Fracht legt Bora aus')
   const ware = herstellungChf(100, 100)
@@ -636,7 +637,7 @@ pruefe('jeder Posten hat seine eigene Kennung, auch mehrere "Weiteres"', () => {
       { id: 'w2', art: 'weiteres', bezeichnung: 'Fahrt', betragChf: 9, traeger: 'deniz', erfasstAm: 'x' },
     ],
   })
-  const [s] = offeneSchulden([b], []).filter((x) => x.traeger === 'deniz')
+  const [s] = offeneSchulden([b], [], []).filter((x) => x.traeger === 'deniz')
   assert.deepEqual(s.posten.map((p) => p.postenId), ['w1', 'w2'])
 })
 
@@ -650,12 +651,12 @@ pruefe('bezahlte Posten schulden wir nicht mehr', () => {
     { id: 'k1', art: 'herstellung', betragChf: 60, traeger: 'bora', bezahlt: true, erfasstAm: 'x' },
     { id: 'k2', art: 'mwst', betragChf: 4.86, traeger: 'bora', bezahlt: true, erfasstAm: 'x' },
   ] })
-  assert.equal(offeneSchulden([b], []).length, 0)
+  assert.equal(offeneSchulden([b], [], []).length, 0)
 })
 
 pruefe('Kosten einer Bestellung vor der Zusage schulden wir noch nicht', () => {
   const b = best({ status: 'klaerung', kosten: [{ id: 'k1', art: 'herstellung', betragChf: 60, traeger: 'bora', erfasstAm: 'x' }] })
-  assert.equal(offeneSchulden([b], []).length, 0)
+  assert.equal(offeneSchulden([b], [], []).length, 0)
 })
 
 /* --- Abrechnung ------------------------------------------------------------ */
@@ -752,7 +753,7 @@ pruefe('Montage und Anfahrt stehen bei Ufuk und Deniz offen, haelftig', () => {
    * sucht.
    */
   const b = best({ status: 'ausliefern', ausgeliefertAm: '2026-03-01', montageChf: 30, anfahrtChf: 20 })
-  const liste = offeneSchulden([b], [])
+  const liste = offeneSchulden([b], [], [])
   const ufuk = liste.find((s) => s.traeger === 'ufuk')
   const deniz = liste.find((s) => s.traeger === 'deniz')
   const m = (s) => s.posten.filter((p) => p.art === 'montage')
@@ -763,14 +764,14 @@ pruefe('Montage und Anfahrt stehen bei Ufuk und Deniz offen, haelftig', () => {
 
 pruefe('Ohne Montage und ohne Anfahrt steht nichts da', () => {
   const b = best({ status: 'ausliefern', ausgeliefertAm: '2026-03-01' })
-  const alle = offeneSchulden([b], []).flatMap((s) => s.posten)
+  const alle = offeneSchulden([b], [], []).flatMap((s) => s.posten)
   assert.equal(alle.filter((p) => p.art === 'montage').length, 0)
 })
 
 pruefe('Eine abgeschaltete Anfahrt zaehlt nicht, auch mit Betrag', () => {
   const b = best({ status: 'ausliefern', ausgeliefertAm: '2026-03-01',
     montageChf: 30, anfahrt: false, anfahrtChf: 20 })
-  const ufuk = offeneSchulden([b], []).find((s) => s.traeger === 'ufuk')
+  const ufuk = offeneSchulden([b], [], []).find((s) => s.traeger === 'ufuk')
   assert.equal(ufuk.posten.find((p) => p.art === 'montage').betragChf, 15, 'nur die Montage')
 })
 
@@ -839,7 +840,7 @@ pruefe('Bezahlt und offen ergeben weiter die Gesamtkosten', () => {
    * Rechnung von selbst auf.
    */
   const b = best({ status: 'ausliefern', ausgeliefertAm: '2026-03-01', montageChf: 30, anfahrtChf: 20 })
-  const k = kennzahlen([b], [])
+  const k = kennzahlen([b], [], [])
   assert.equal(runde(k.bezahltKostenChf + k.creditChf), k.kostenChf)
 })
 
@@ -883,7 +884,7 @@ pruefe('Eine abgerechnete Montage steht nicht noch einmal offen', () => {
     auftraege: [],
     posten: [{ bestellungId: 'b1', postenId: 'b1-montage-ufuk', art: 'montage', betragChf: 15, traeger: 'ufuk' }],
   }
-  const liste = offeneSchulden([b], [], [fertig])
+  const liste = offeneSchulden([b], [], [fertig], [])
   const alle = liste.flatMap((s) => s.posten).filter((p) => p.art === 'montage')
   assert.deepEqual(alle.map((p) => p.postenId), ['b1-montage-deniz'], 'nur die noch offene Haelfte')
 })
@@ -896,7 +897,7 @@ pruefe('Eine bezahlte Montage steht nicht mehr offen', () => {
    * `bezahlt` wie ueberall sonst.
    */
   const offen = best({ id: 'b1', status: 'ausliefern', ausgeliefertAm: '2026-03-01', montageChf: 30 })
-  assert.equal(offeneSchulden([offen], []).flatMap((s) => s.posten)
+  assert.equal(offeneSchulden([offen], [], []).flatMap((s) => s.posten)
     .filter((p) => p.art === 'montage').length, 2)
 
   const quitt = best({ id: 'b1', status: 'ausliefern', ausgeliefertAm: '2026-03-01', montageChf: 30,
@@ -904,7 +905,7 @@ pruefe('Eine bezahlte Montage steht nicht mehr offen', () => {
       { id: 'b1-montage-ufuk', art: 'montage', betragChf: 15, traeger: 'ufuk', bezahlt: true, erfasstAm: 'x' },
       { id: 'b1-montage-deniz', art: 'montage', betragChf: 15, traeger: 'deniz', bezahlt: true, erfasstAm: 'x' },
     ] })
-  assert.equal(offeneSchulden([quitt], []).flatMap((s) => s.posten)
+  assert.equal(offeneSchulden([quitt], [], []).flatMap((s) => s.posten)
     .filter((p) => p.art === 'montage').length, 0)
   /* Koste bleibt sie trotzdem - bezahlt heisst nicht gratis. */
   assert.equal(zahlenFuer(quitt).montageKostenChf, 30)
@@ -993,8 +994,8 @@ pruefe('Beglichene Posten stehen in einer eigenen Liste, nicht im Nichts', () =>
     { id: 'k1', art: 'herstellung', betragChf: 60, traeger: 'bora', bezahlt: true, erfasstAm: 'x' },
     { id: 'k2', art: 'kargo', betragChf: 15, traeger: 'bora', erfasstAm: 'x' },
   ] })
-  const offen = offeneSchulden([b], []).flatMap((s) => s.posten).map((p) => p.postenId)
-  const quitt = ausgeglicheneSchulden([b], []).flatMap((s) => s.posten).map((p) => p.postenId)
+  const offen = offeneSchulden([b], [], []).flatMap((s) => s.posten).map((p) => p.postenId)
+  const quitt = ausgeglicheneSchulden([b], [], []).flatMap((s) => s.posten).map((p) => p.postenId)
   assert.ok(!offen.includes('k1'), 'beglichen steht nicht mehr offen')
   assert.ok(quitt.includes('k1'), 'aber es steht irgendwo')
   assert.ok(!quitt.includes('k2'), 'und das Offene nicht doppelt')
@@ -1007,14 +1008,14 @@ pruefe('Beide Listen zusammen ergeben alle Kosten des Auftrags', () => {
   ] })
   const summe = (liste) => runde(liste.reduce((n, s) => n + s.betragChf, 0))
   assert.equal(
-    runde(summe(offeneSchulden([b], [])) + summe(ausgeglicheneSchulden([b], []))),
+    runde(summe(offeneSchulden([b], [], [])) + summe(ausgeglicheneSchulden([b], [], []))),
     zahlenFuer(b).kostenChf,
   )
 })
 
 pruefe('Eine bezahlte Auslage steht auch dort', () => {
   const l = auslage({ id: 'al1', betragChf: 95, traeger: 'ufuk', bezahlt: true })
-  const quitt = ausgeglicheneSchulden([], [l])
+  const quitt = ausgeglicheneSchulden([], [l], [])
   assert.equal(quitt.length, 1)
   assert.equal(quitt[0].traeger, 'ufuk')
   assert.equal(quitt[0].posten[0].auslageId, 'al1')
@@ -1047,7 +1048,7 @@ pruefe('Mit dem Auftrag gehen seine Kosten mit, ungefragt', () => {
   const b = best({ id: 'b1', status: 'ausliefern', ausgeliefertAm: '2026-03-01',
     bezahltAm: '2026-03-02', montageChf: 30 })
   const einnahmen = offeneEinnahmen([b], [])
-  const schulden = offeneSchulden([b], [])
+  const schulden = offeneSchulden([b], [], [])
 
   /* Nur den Auftrag angekreuzt, keinen einzigen Posten. */
   const e = abrechnungEntwurf(einnahmen, schulden, ['b1'], [])
@@ -1068,7 +1069,7 @@ pruefe('Was zu keinem gewaehlten Auftrag gehoert, bleibt draussen', () => {
   const daneben = best({ id: 'b2', status: 'ausliefern', ausgeliefertAm: '2026-03-01', montageChf: 30 })
   const e = abrechnungEntwurf(
     offeneEinnahmen([dabei, daneben], []),
-    offeneSchulden([dabei, daneben], []),
+    offeneSchulden([dabei, daneben], [], []),
     ['b1'], [],
   )
   assert.ok(e.posten.every((p) => p.bestellungId === 'b1'), 'nur die des gewaehlten Auftrags')
@@ -1081,7 +1082,7 @@ pruefe('Auslagen ohne Auftrag lassen sich weiter einzeln waehlen', () => {
    */
   const b = best({ id: 'b1', status: 'ausliefern', ausgeliefertAm: '2026-03-01', bezahltAm: '2026-03-02' })
   const l = auslage({ id: 'al1', betragChf: 40, traeger: 'deniz' })
-  const schulden = offeneSchulden([b], [l])
+  const schulden = offeneSchulden([b], [l], [])
   const e = abrechnungEntwurf(offeneEinnahmen([b], []), schulden, [], ['al1:al1'])
   assert.equal(e.auftraege.length, 0)
   assert.deepEqual(e.posten.map((p) => p.auslageId), ['al1'])
@@ -1090,7 +1091,7 @@ pruefe('Auslagen ohne Auftrag lassen sich weiter einzeln waehlen', () => {
 pruefe('Ein einzeln gewaehlter Posten kommt nicht doppelt mit', () => {
   const b = best({ id: 'b1', status: 'ausliefern', ausgeliefertAm: '2026-03-01',
     bezahltAm: '2026-03-02', montageChf: 30 })
-  const schulden = offeneSchulden([b], [])
+  const schulden = offeneSchulden([b], [], [])
   const alle = schulden.flatMap((s) => s.posten).map((p) => postenSchluessel(p))
   const e = abrechnungEntwurf(offeneEinnahmen([b], []), schulden, ['b1'], alle)
   const kennungen = e.posten.map((p) => postenSchluessel(p))
@@ -1101,7 +1102,7 @@ pruefe('Die Kostensumme eines Auftrags laesst sich einzeln lesen', () => {
   /* Fuer die Spalte "Kosten" neben dem Erloes. */
   const b = best({ id: 'b1', status: 'ausliefern', ausgeliefertAm: '2026-03-01',
     bezahltAm: '2026-03-02', montageChf: 30 })
-  const schulden = offeneSchulden([b], [auslage({ id: 'al1', betragChf: 40 })])
+  const schulden = offeneSchulden([b], [auslage({ id: 'al1', betragChf: 40 })], [])
   const summe = postenSummeFuer(schulden, 'b1')
   assert.equal(summe, zahlenFuer(b).kostenChf, 'alles, was am Auftrag offen ist')
   assert.ok(summe > 0)
@@ -1245,6 +1246,117 @@ pruefe('offen und in keinem Beleg bleibt offen', () => {
  */
 pruefe('ein offener Entwurf erledigt nichts', () => {
   assert.ok(!istErledigt(auslage({ id: 'al-1' }), abgerechneteAuslagen([mitBeleg(false)])))
+})
+
+/* --- Was abgerechnet ist, schuldet niemand mehr ---------------------------- */
+
+/*
+ * DER TEUERSTE FEHLER DIESES PROJEKTS BISHER, und er hatte zwei Ursachen,
+ * die sich gegenseitig gedeckt haben:
+ *
+ *   1. Die Oberflaeche schrieb beim Abschliessen je Posten einmal und ging
+ *      dabei jedes Mal von derselben alten Kostenliste aus. Von drei Posten
+ *      eines Auftrags blieb einer auf bezahlt, die anderen zwei fielen
+ *      zurueck.
+ *   2. offeneSchulden() haette das auffangen koennen - der Filter dafuer
+ *      war gebaut und getestet. Nur rief die Zahlenseite die Funktion ohne
+ *      das Argument auf, und ein `= []` in der Signatur liess das
+ *      durchgehen.
+ *
+ * Ergebnis: Netze, Fracht und Zoll standen weiter als Schuld bei Bora,
+ * obwohl er bezahlt war. Wer danach ein zweites Mal abrechnet, zahlt
+ * doppelt.
+ */
+
+const mitPosten = (...ids) => ({
+  erledigtAm: '2026-04-01',
+  auftraege: ['b1'],
+  posten: ids.map((id) => ({
+    bestellungId: 'b1', postenId: id, art: 'herstellung', betragChf: 10, traeger: 'bora',
+  })),
+})
+
+const dreiPosten = () => best({
+  id: 'b1', status: 'ausliefern', ausgeliefertAm: '2026-03-01',
+  kosten: [
+    { id: 'k-netze', art: 'herstellung', betragChf: 60, traeger: 'bora', erfasstAm: 'x' },
+    { id: 'k-fracht', art: 'lieferung', betragChf: 26, traeger: 'bora', erfasstAm: 'x' },
+    { id: 'k-zoll', art: 'mwst', betragChf: 5, traeger: 'bora', erfasstAm: 'x' },
+  ],
+})
+
+pruefe('Ein abgerechneter Posten ohne Haekchen schuldet niemand mehr', () => {
+  const offen = offeneSchulden([dreiPosten()], [], [mitPosten('k-netze', 'k-fracht', 'k-zoll')])
+  assert.deepEqual(offen.flatMap((x) => x.posten).map((p) => p.postenId), [])
+})
+
+pruefe('Er steht dafuer unter den ausgeglichenen', () => {
+  const aus = ausgeglicheneSchulden([dreiPosten()], [], [mitPosten('k-netze', 'k-fracht', 'k-zoll')])
+  assert.deepEqual(
+    aus.flatMap((x) => x.posten).map((p) => p.postenId).sort(),
+    ['k-fracht', 'k-netze', 'k-zoll'],
+  )
+})
+
+pruefe('Auch mit Abrechnung ergeben beide Listen zusammen alle Kosten', () => {
+  const b = dreiPosten()
+  const ab = [mitPosten('k-netze')]
+  const summe = (liste) => runde(liste.reduce((n, s) => n + s.betragChf, 0))
+  assert.equal(
+    runde(summe(offeneSchulden([b], [], ab)) + summe(ausgeglicheneSchulden([b], [], ab))),
+    zahlenFuer(b).kostenChf,
+  )
+})
+
+pruefe('Ein offener Entwurf begleicht nichts', () => {
+  const entwurf = { ...mitPosten('k-netze'), erledigtAm: undefined }
+  const offen = offeneSchulden([dreiPosten()], [], [entwurf])
+  assert.ok(offen.flatMap((x) => x.posten).some((p) => p.postenId === 'k-netze'))
+})
+
+pruefe('ausbezahltePosten kennt nur abgeschlossene Abrechnungen', () => {
+  assert.equal(ausbezahltePosten([mitPosten('k-netze')]).size, 1)
+  assert.equal(ausbezahltePosten([{ ...mitPosten('k-netze'), erledigtAm: undefined }]).size, 0)
+})
+
+pruefe('Die Kennzahlen zaehlen einen abgerechneten Posten als bezahlt', () => {
+  const ab = [mitPosten('k-netze', 'k-fracht', 'k-zoll')]
+  const k = kennzahlen([dreiPosten()], [], ab)
+  assert.equal(k.creditChf, 0, 'nichts mehr offen')
+  assert.equal(k.bezahltKostenChf, k.kostenChf, 'alles bezahlt')
+})
+
+/* --- Und die Ursache selbst ----------------------------------------------- */
+
+/*
+ * DREI POSTEN, EIN SCHREIBVORGANG. Die alte Schleife schrieb dreimal und
+ * baute jedes Mal aus demselben Ausgangsstand - hier faellt genau das auf.
+ */
+pruefe('Alle abgerechneten Posten eines Auftrags werden bezahlt', () => {
+  const vorher = dreiPosten().kosten
+  const nachher = kostenNachAbrechnung(vorher, [
+    { postenId: 'k-netze', art: 'herstellung', betragChf: 60, traeger: 'bora' },
+    { postenId: 'k-fracht', art: 'lieferung', betragChf: 26, traeger: 'bora' },
+    { postenId: 'k-zoll', art: 'mwst', betragChf: 5, traeger: 'bora' },
+  ])
+  assert.deepEqual(nachher.filter((k) => k.bezahlt).map((k) => k.id), ['k-netze', 'k-fracht', 'k-zoll'])
+})
+
+pruefe('Ein gerechneter Posten ohne Datensatz kommt dazu', () => {
+  const nachher = kostenNachAbrechnung([], [
+    { postenId: 'b1-montage-ufuk', art: 'montage', betragChf: 15, traeger: 'ufuk' },
+  ], '2026-04-01T00:00:00.000Z')
+  assert.deepEqual(nachher, [{
+    id: 'b1-montage-ufuk', art: 'montage', betragChf: 15, traeger: 'ufuk',
+    bezahlt: true, erfasstAm: '2026-04-01T00:00:00.000Z',
+  }])
+})
+
+pruefe('Was nicht abgerechnet wurde, bleibt unberuehrt', () => {
+  const nachher = kostenNachAbrechnung(dreiPosten().kosten, [
+    { postenId: 'k-netze', art: 'herstellung', betragChf: 60, traeger: 'bora' },
+  ])
+  assert.deepEqual(nachher.map((k) => k.bezahlt === true), [true, false, false])
 })
 
 console.log(`\n${bestanden}/${bestanden + fehler.length} bestanden`)

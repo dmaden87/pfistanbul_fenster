@@ -555,7 +555,13 @@ export interface Kennzahlen {
  * Kennzahl, die nur in einer Komponente entsteht, faellt bei jedem Umbau der
  * Komponente mit – und niemand merkt, dass sie seither etwas anderes misst.
  */
-export function kennzahlen(bestellungen: Bestellung[], auslagen: Auslage[]): Kennzahlen {
+export function kennzahlen(
+  bestellungen: Bestellung[],
+  auslagen: Auslage[],
+  /* Wofuer: siehe ausbezahltePosten(). Der Beleg zaehlt mit, nicht nur das Haekchen. */
+  abrechnungen: Abrechnung[],
+): Kennzahlen {
+  const ausbezahlt = ausbezahltePosten(abrechnungen)
   let erloesChf = 0, cashedChf = 0, debitChf = 0, inArbeitChf = 0, warenkostenChf = 0
   let auftraegeAnzahl = 0, auftraegeNetze = 0
   let realErloesChf = 0, realWarenkostenChf = 0, ohneBelegChf = 0
@@ -596,14 +602,17 @@ export function kennzahlen(bestellungen: Bestellung[], auslagen: Auslage[]): Ken
      * nicht erfassten Posten, um die es dabei geht.
      */
     for (const k of kostenPosten(b)) {
-      if (k.bezahlt) realWarenkostenChf = runde2(realWarenkostenChf + k.betragChf)
+      if (k.bezahlt || ausbezahlt.has(`${b.id}:${k.id}`)) {
+        realWarenkostenChf = runde2(realWarenkostenChf + k.betragChf)
+      }
       if (!k.erfasst) ohneBelegChf = runde2(ohneBelegChf + k.betragChf)
     }
   }
 
   const betriebskostenChf = runde2(auslagen.reduce((s, l) => s + l.betragChf, 0))
   const realBetriebskostenChf = runde2(
-    auslagen.filter((l) => l.bezahlt).reduce((s, l) => s + l.betragChf, 0))
+    auslagen.filter((l) => l.bezahlt || ausbezahlt.has(`${l.id}:${l.id}`))
+      .reduce((s, l) => s + l.betragChf, 0))
 
   /*
    * CREDIT IST WIEDER DIE GANZE SUMME. Eine Weile musste die Montage hier
@@ -611,7 +620,7 @@ export function kennzahlen(bestellungen: Bestellung[], auslagen: Auslage[]): Ken
    * sein - bezahlt und offen gaben zusammen mehr als die Gesamtkosten. Seit
    * sie Aufwand ist, geht die Rechnung von selbst auf.
    */
-  const schulden = offeneSchulden(bestellungen, auslagen)
+  const schulden = offeneSchulden(bestellungen, auslagen, abrechnungen)
   const creditChf = runde2(schulden.reduce((s, x) => s + x.betragChf, 0))
 
   const kostenChf = runde2(warenkostenChf + betriebskostenChf)
@@ -828,17 +837,65 @@ export interface Schuld {
  * zurueckbekommen hat – aus den Bestellungen und aus den Auslagen.
  */
 /**
- * Die Kennungen aller Posten, die in einer Abrechnung stecken.
+ * Die Kostenliste eines Auftrags, nachdem eine Abrechnung ihn beglichen hat.
  *
- * FUER DIE MONTAGE-SCHULD. Bei den Kostenposten sagt `bezahlt`, dass sie
- * erledigt sind - die Montage-Schuld hat aber keinen Datensatz, in den sich
- * das schreiben liesse: Sie ergibt sich aus dem Auftrag. Erledigt ist sie
- * deshalb genau dann, wenn sie in einer Abrechnung steht.
+ * ALLE POSTEN DES AUFTRAGS AUF EINMAL, und genau darum gibt es diese
+ * Funktion. In der Oberflaeche stand dafuer eine Schleife ueber die Posten,
+ * die je Durchgang schrieb - und jeder Durchgang ging von der alten
+ * Kostenliste aus und machte den vorigen rueckgaengig. Bei einem Auftrag
+ * mit Netzen, Fracht und Zoll blieb am Ende einer von dreien auf bezahlt.
+ *
+ * Wer schon dasteht, bekommt sein Haekchen; wer fehlt, kommt dazu. Was der
+ * Abrechnung nicht angehoert, bleibt unberuehrt - auch ein Posten, der
+ * laengst bezahlt war.
  */
-export function abgerechnetePosten(abrechnungen: Abrechnung[]): Set<string> {
+export function kostenNachAbrechnung(
+  vorhandene: KostenPosten[],
+  posten: { postenId: string; art: KostenArt; betragChf: number; traeger: Beteiligter }[],
+  jetzt = new Date().toISOString(),
+): KostenPosten[] {
+  const raus: KostenPosten[] = vorhandene.map((k) =>
+    posten.some((p) => p.postenId === k.id) ? { ...k, bezahlt: true } : k)
+  for (const p of posten) {
+    if (raus.some((k) => k.id === p.postenId)) continue
+    raus.push({
+      id: p.postenId,
+      art: p.art,
+      betragChf: p.betragChf,
+      traeger: p.traeger,
+      bezahlt: true,
+      erfasstAm: jetzt,
+    })
+  }
+  return raus
+}
+
+/**
+ * Die Kennungen aller Posten, die in einer ABGESCHLOSSENEN Abrechnung
+ * stehen - also ausbezahlt sind, egal was sonst wo vermerkt ist.
+ *
+ * DER BELEG IST DIE WAHRHEIT, NICHT DAS HAEKCHEN. Beim Abschliessen setzt
+ * die Oberflaeche an jedem beteiligten Posten `bezahlt`. Dieser Schreibweg
+ * kann misslingen - er ist ein Dutzend einzelner Anfragen, und genau da hat
+ * er auch schon versagt: Von drei Posten desselben Auftrags blieb nur der
+ * letzte stehen, weil jede Anfrage von derselben alten Kostenliste ausging
+ * und die vorige ueberschrieb. Im Buch standen danach Netze, Fracht und
+ * Zoll weiter offen, obwohl Bora sein Geld laengst hatte - und wer das
+ * nicht nachrechnet, zahlt ein zweites Mal.
+ *
+ * Deshalb entscheidet hier der Beleg mit. Steht ein Posten in einer
+ * abgeschlossenen Abrechnung, ist er erledigt, auch wenn sein Haekchen
+ * fehlt. Das repariert nebenbei die Datensaetze, die der alte Fehler
+ * hinterlassen hat, ohne dass jemand von Hand nachbessert.
+ *
+ * NUR ABGESCHLOSSENE. Ein offener Entwurf laesst sich verwerfen; was in ihm
+ * steht, ist noch niemandem ausbezahlt.
+ */
+export function ausbezahltePosten(abrechnungen: Abrechnung[]): Set<string> {
   const raus = new Set<string>()
   for (const a of abrechnungen) {
-    for (const p of a.posten) raus.add(`${p.bestellungId ?? p.auslageId ?? ''}:${p.postenId}`)
+    if (!a.erledigtAm) continue
+    for (const p of a.posten) raus.add(postenSchluessel(p))
   }
   return raus
 }
@@ -892,9 +949,16 @@ export function abgerechneteAuslagen(abrechnungen: Abrechnung[]): Set<string> {
 export function offeneSchulden(
   bestellungen: Bestellung[],
   auslagen: Auslage[],
-  abrechnungen: Abrechnung[] = [],
+  /*
+   * OHNE VORGABEWERT, UND DAS IST DER PUNKT. Hier stand `= []`, und genau
+   * eine Stelle rief die Funktion ohne dieses Argument auf: die
+   * Zahlenseite. Der Filter lief also nie, die Tests dazu waren gruen, und
+   * abgerechnete Posten standen weiter als Schuld da. Wer das Argument
+   * jetzt vergisst, bekommt es vom Compiler gesagt.
+   */
+  abrechnungen: Abrechnung[],
 ): Schuld[] {
-  const schon = abgerechnetePosten(abrechnungen)
+  const schon = ausbezahltePosten(abrechnungen)
   const karte = new Map<Beteiligter, Schuld>()
   const hole = (t: Beteiligter): Schuld => {
     let s = karte.get(t)
@@ -982,7 +1046,18 @@ export function abrechnungJePosten(abrechnungen: Abrechnung[]): Map<string, stri
  * Eine Einbahnstrasse darf das nicht sein. Hier steht, was als erledigt
  * gilt, damit man es sehen und zuruecknehmen kann.
  */
-export function ausgeglicheneSchulden(bestellungen: Bestellung[], auslagen: Auslage[]): Schuld[] {
+export function ausgeglicheneSchulden(
+  bestellungen: Bestellung[],
+  auslagen: Auslage[],
+  /*
+   * DIESELBE WAHRHEIT WIE IN offeneSchulden. Zaehlte hier nur `bezahlt`,
+   * fiele ein abgerechneter Posten ohne Haekchen aus beiden Listen heraus -
+   * und die Probe "beide zusammen ergeben alle Kosten" ginge nicht mehr
+   * auf. Ein Posten gehoert in genau eine der beiden Listen.
+   */
+  abrechnungen: Abrechnung[],
+): Schuld[] {
+  const ausbezahlt = ausbezahltePosten(abrechnungen)
   const karte = new Map<Beteiligter, Schuld>()
   const hole = (t: Beteiligter): Schuld => {
     let s = karte.get(t)
@@ -993,7 +1068,7 @@ export function ausgeglicheneSchulden(bestellungen: Bestellung[], auslagen: Ausl
   for (const b of bestellungen) {
     if (!inRechnung(b)) continue
     for (const k of kostenPosten(b)) {
-      if (!k.bezahlt) continue
+      if (!k.bezahlt && !ausbezahlt.has(`${b.id}:${k.id}`)) continue
       const s = hole(k.traeger)
       s.betragChf = runde2(s.betragChf + k.betragChf)
       s.posten.push({
@@ -1009,7 +1084,7 @@ export function ausgeglicheneSchulden(bestellungen: Bestellung[], auslagen: Ausl
     }
   }
   for (const l of auslagen) {
-    if (!l.bezahlt) continue
+    if (!l.bezahlt && !ausbezahlt.has(`${l.id}:${l.id}`)) continue
     const s = hole(l.traeger)
     s.betragChf = runde2(s.betragChf + l.betragChf)
     s.posten.push({
