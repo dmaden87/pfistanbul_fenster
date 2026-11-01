@@ -12,7 +12,7 @@ import {
   kostenPosten, warenkosten, offeneForderungen, offeneSchulden,
   abrechnungZahlen, offeneEinnahmen, naechsteAbrechnungsnummer,
   abrechnungEntwurf, postenSchluessel, postenSummeFuer,
-  ausgeglicheneSchulden, abrechnungJePosten, freiePosten, abgerechneteAuslagen,
+  ausgeglicheneSchulden, abrechnungJePosten, freiePosten, abgerechneteAuslagen, istErledigt,
 } from '../src/lib/pl.ts'
 import { herstellungChf } from '../src/lib/kosten.ts'
 /*
@@ -1206,14 +1206,45 @@ pruefe('ohne Abrechnungen bleibt alles stehen', () => {
 })
 
 /*
- * VON HAND ABGEHAKTE BLEIBEN SICHTBAR. Sie stehen in keinem Beleg; wer sie
- * ausblendete, loeschte die einzige Spur. Das entscheidet die Liste, nicht
- * diese Funktion - hier wird nur festgehalten, dass `bezahlt` allein kein
- * Grund ist.
+ * abgerechneteAuslagen() KENNT NUR DEN EINEN WEG - das ist ihre Aufgabe.
+ * Ob eine Auslage aus dem Buch gehoert, beantwortet istErledigt().
  */
-pruefe('ein blosses Haekchen reicht nicht zum Ausblenden', () => {
+pruefe('ein blosses Haekchen steht in keiner Abrechnung', () => {
   const nurAbgehakt = auslage({ id: 'al-9', bezahlt: true })
   assert.ok(!abgerechneteAuslagen([mitBeleg(true)]).has(nurAbgehakt.id))
+})
+
+/* --- istErledigt: die beiden Wege aus dem Buch ----------------------------- */
+
+/*
+ * HIER IST DIE ERSTE FASSUNG GESCHEITERT. Sie blendete nur aus, was in
+ * einer abgeschlossenen Abrechnung stand - und im Buch blieben elf Zeilen
+ * mit blauem Haken stehen, weil sie von Hand abgehakt worden waren, bevor
+ * es die erste Abrechnung ueberhaupt gab. Beide Wege zaehlen, und das
+ * Abschliessen einer Abrechnung setzt `bezahlt` NICHT.
+ */
+pruefe('von Hand abgehakt heisst erledigt', () => {
+  assert.ok(istErledigt(auslage({ id: 'al-9', bezahlt: true }), new Set()))
+})
+
+pruefe('in einer abgeschlossenen Abrechnung heisst erledigt', () => {
+  assert.ok(istErledigt(auslage({ id: 'al-1' }), abgerechneteAuslagen([mitBeleg(true)])))
+})
+
+pruefe('beides zusammen bleibt erledigt', () => {
+  assert.ok(istErledigt(auslage({ id: 'al-1', bezahlt: true }), abgerechneteAuslagen([mitBeleg(true)])))
+})
+
+pruefe('offen und in keinem Beleg bleibt offen', () => {
+  assert.ok(!istErledigt(auslage({ id: 'al-9' }), abgerechneteAuslagen([mitBeleg(true)])))
+})
+
+/*
+ * EIN OFFENER ENTWURF ERLEDIGT NICHTS. Er laesst sich verwerfen, und die
+ * Auslage stuende dann nirgends mehr - weder im Buch noch in einem Beleg.
+ */
+pruefe('ein offener Entwurf erledigt nichts', () => {
+  assert.ok(!istErledigt(auslage({ id: 'al-1' }), abgerechneteAuslagen([mitBeleg(false)])))
 })
 
 console.log(`\n${bestanden}/${bestanden + fehler.length} bestanden`)

@@ -856,6 +856,30 @@ export function abgerechnetePosten(abrechnungen: Abrechnung[]): Set<string> {
  * laesst sich verwerfen, und dann stuende die Auslage nirgends mehr -
  * weder im Buch noch in einem Beleg.
  */
+/**
+ * Ist diese Auslage erledigt - also aus dem Buch heraus?
+ *
+ * ZWEI WEGE FUEHREN DAHIN, und sie haben nichts miteinander zu tun:
+ *
+ *   1. Sie steht in einer abgeschlossenen Abrechnung. Dann ist sie
+ *      ausbezahlt und der Beleg sagt, an wen und wann.
+ *   2. Jemand hat das Haekchen "zurueckbezahlt" von Hand gesetzt. So lief
+ *      es, bevor es Abrechnungen gab, und so laeuft es weiter, wenn jemand
+ *      einen Zwanziger ueber den Gartenzaun zurueckgibt.
+ *
+ * Das Abschliessen einer Abrechnung setzt `bezahlt` NICHT - die beiden
+ * Wege wissen nichts voneinander, und genau daran ist die erste Fassung
+ * dieser Regel gescheitert: Sie kannte nur den ersten. Im Buch standen
+ * danach weiter elf Zeilen mit blauem Haken, weil sie alle von Hand
+ * abgehakt worden waren, bevor es die erste Abrechnung gab.
+ */
+export function istErledigt(
+  auslage: { id: string; bezahlt?: boolean },
+  abgerechnet: Set<string>,
+): boolean {
+  return auslage.bezahlt === true || abgerechnet.has(auslage.id)
+}
+
 export function abgerechneteAuslagen(abrechnungen: Abrechnung[]): Set<string> {
   const raus = new Set<string>()
   for (const a of abrechnungen) {

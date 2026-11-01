@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Auslage, AuslagenKategorie, Beteiligter } from '../../types'
 import { beteiligte } from '../../data/kostenConfig'
 import { betragOderNull, formatChf } from '../../lib/format'
+import { istErledigt } from '../../lib/pl'
 import type { Warenkosten } from '../../lib/pl'
 import { fuelle, useSprache } from '../admin/sprache'
 
@@ -70,22 +71,26 @@ export function AuslagenListe({
   const offen = auslagen.filter((a) => !a.bezahlt).reduce((s, a) => s + a.betragChf, 0)
 
   /*
-   * WAS ABGERECHNET IST, STEHT NICHT MEHR HIER.
+   * WAS ERLEDIGT IST, STEHT NICHT MEHR HIER.
    *
    * Es trug nur noch ein gesetztes Haekchen und sagte damit niemandem mehr
-   * etwas; die Einzelheiten stehen im Beleg, mit Betrag, Traeger und Datum.
-   * Zwei Listen fuer dieselbe Sache, und die kuerzere ist die
-   * vollstaendigere.
+   * etwas. Zwei Listen fuer dieselbe Sache, und die kuerzere ist die
+   * vollstaendigere: Diese hier beantwortet die einzige Frage, die sich
+   * taeglich stellt - was ist noch offen?
    *
-   * Nebenbei schliesst das eine Luecke: Das Haekchen hier war die einzige
-   * Stelle, an der sich eine abgerechnete Auslage wieder auf "offen" setzen
-   * liess - der Beleg sagte dann "ausbezahlt", das Buch "steht noch aus".
+   * ZUERST GALT DAS NUR FUER ABGERECHNETE, und das ging an der Wirklichkeit
+   * vorbei: Die elf Posten im Buch waren alle von Hand abgehakt worden,
+   * bevor es die erste Abrechnung gab. Sie blieben stehen, und es sah aus,
+   * als haette die Aenderung nie stattgefunden.
    *
-   * Von Hand abgehakte Auslagen bleiben stehen: Sie stehen in keinem Beleg,
-   * und wer sie ausblendete, loeschte die einzige Spur.
+   * GELOESCHT WIRD NICHTS. Ein Knopf holt die erledigten Zeilen zurueck -
+   * eine von Hand abgehakte Auslage steht in keinem Beleg, und wer sie
+   * ohne Rueckweg ausblendete, naehme ihr die einzige Spur.
    */
-  const sichtbar = auslagen.filter((a) => !abgerechnet.has(a.id))
-  const versteckt = auslagen.length - sichtbar.length
+  const [zeigeErledigte, setZeigeErledigte] = useState(false)
+  const erledigt = (a: Auslage) => istErledigt(a, abgerechnet)
+  const sichtbar = zeigeErledigte ? auslagen : auslagen.filter((a) => !erledigt(a))
+  const versteckt = auslagen.filter(erledigt).length
 
   return (
     <div className="zahlen__block">
@@ -198,7 +203,11 @@ export function AuslagenListe({
       */}
       {versteckt > 0 && (
         <p className="zahlen__hinweis">
-          {fuelle(versteckt === 1 ? t.zAusgeblendetEine : t.zAusgeblendet, { n: versteckt })}
+          {fuelle(versteckt === 1 ? t.zAusgeblendetEine : t.zAusgeblendet, { n: versteckt })}{' '}
+          <button type="button" className="btn btn--quiet btn--sm"
+            onClick={() => setZeigeErledigte((v) => !v)}>
+            {zeigeErledigte ? t.zErledigteVerbergen : t.zErledigteZeigen}
+          </button>
         </p>
       )}
 
@@ -217,16 +226,24 @@ export function AuslagenListe({
           </thead>
           <tbody>
             {sichtbar.map((a) => (
-              <tr key={a.id}>
+              <tr key={a.id} className={erledigt(a) ? 'zahlen__zeile--erledigt' : undefined}>
                 <td data-titel={t.zDatum}>{a.am}</td>
                 <td data-titel={t.zWofuer}>{a.bezeichnung}</td>
                 <td data-titel={t.zKategorie}>{TITEL[a.kategorie]}</td>
                 <td data-titel={t.zBetrag} className="zahlen__zahl">{formatChf(a.betragChf)}</td>
                 <td data-titel={t.zAusgelegtVon}>{beteiligte[a.traeger]}</td>
                 <td data-titel={t.zZurueckbezahlt}>
+                  {/*
+                    EIN ABGERECHNETER POSTEN LAESST SICH HIER NICHT MEHR
+                    UMSTELLEN. Der Beleg sagte sonst "ausbezahlt" und das
+                    Buch "steht noch aus" - und keiner von beiden haette
+                    unrecht.
+                  */}
                   <input
                     type="checkbox"
-                    checked={a.bezahlt === true}
+                    checked={a.bezahlt === true || abgerechnet.has(a.id)}
+                    disabled={abgerechnet.has(a.id)}
+                    title={abgerechnet.has(a.id) ? t.zAbgerechnetFest : undefined}
                     onChange={(e) => void onAendern(a.id, { bezahlt: e.target.checked })}
                   />
                 </td>

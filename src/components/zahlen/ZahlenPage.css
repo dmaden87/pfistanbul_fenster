@@ -483,3 +483,14 @@
   padding-top: var(--space-3);
   border-top: 1px solid var(--border);
 }
+
+/*
+ * Eine erledigte Zeile, die jemand zurueckgeholt hat.
+ *
+ * Sie steht blasser da, weil sie nichts mehr verlangt - sie ist nur noch
+ * zum Nachsehen da. Ohne den Unterschied liest sich die Liste wieder als
+ * eine einzige Menge offener Posten, und genau das war der Fehler.
+ */
+.zahlen__zeile--erledigt {
+  opacity: 0.55;
+}

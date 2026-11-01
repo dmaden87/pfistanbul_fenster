@@ -712,12 +712,18 @@ const PAARE = {
     'Açık masraf yok. Yenisini yukarıda „İşletme giderleri“ altına girersin.',
   ],
   zAusgeblendet: [
-    '{n} abgerechnete Posten stehen nicht mehr in dieser Liste – sie sind in ihrer Abrechnung festgehalten.',
-    '{n} hesaplaşması yapılmış kalem bu listede görünmüyor – ilgili hesaplaşmada kayıtlılar.',
+    '{n} erledigte Posten sind ausgeblendet – zurückbezahlt oder abgerechnet.',
+    '{n} tamamlanmış kalem gizli – geri ödendi ya da hesaplaşması yapıldı.',
   ],
   zAusgeblendetEine: [
-    'Ein abgerechneter Posten steht nicht mehr in dieser Liste – er ist in seiner Abrechnung festgehalten.',
-    'Hesaplaşması yapılmış bir kalem bu listede görünmüyor – ilgili hesaplaşmada kayıtlı.',
+    'Ein erledigter Posten ist ausgeblendet – zurückbezahlt oder abgerechnet.',
+    'Tamamlanmış bir kalem gizli – geri ödendi ya da hesaplaşması yapıldı.',
+  ],
+  zErledigteZeigen: ['Anzeigen', 'Göster'],
+  zErledigteVerbergen: ['Wieder ausblenden', 'Tekrar gizle'],
+  zAbgerechnetFest: [
+    'In einer abgeschlossenen Abrechnung – der Beleg sagt, wann und an wen.',
+    'Tamamlanmış bir hesaplaşmada – belge ne zaman ve kime ödendiğini söylüyor.',
   ],
   zAbrechnenKnopf: ['Abrechnen', 'Hesaplaşmayı başlat'],
   /*
