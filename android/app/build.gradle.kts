@@ -23,7 +23,7 @@ android {
 
     defaultConfig {
         applicationId = "ch.pfistanbul.admin"
-        minSdk = 23
+        minSdk = 24
         targetSdk = 35
         versionCode = (System.getenv("PF_VERSION_CODE") ?: "1").toInt()
         versionName = System.getenv("PF_VERSION_NAME") ?: "1.0"
