@@ -22,7 +22,7 @@ import { AdminPage } from './components/admin/AdminPage'
 import { ZahlenPage } from './components/zahlen/ZahlenPage'
 import { Siedlungen } from './components/sections/Siedlungen'
 import { Analytics } from '@vercel/analytics/react'
-import { pfadFuerSeite, seiteAusPfad, setzeKopfdaten } from './lib/adresse'
+import { ADMIN_PFAD, ZAHLEN_PFAD, istAdminPfad, pfadFuerSeite, seiteAusPfad, setzeKopfdaten } from './lib/adresse'
 import type { LegalKey } from './data/site'
 import { useCart } from './hooks/useCart'
 import './App.css'
@@ -46,6 +46,8 @@ type View =
  * Rechtsseite ist, laeuft unter "/" - siehe lib/adresse.ts.
  */
 function ansichtAusAdresse(): View {
+  const pfad = window.location.pathname
+  if (istAdminPfad(pfad)) return pfad.startsWith(ZAHLEN_PFAD) ? { name: 'zahlen' } : { name: 'admin' }
   const seite = seiteAusPfad(window.location.pathname)
   if (!seite) return { name: 'shop' }
   return seite === 'siedlungen' ? { name: 'siedlungen' } : { name: 'legal', page: seite }
@@ -55,6 +57,8 @@ function ansichtAusAdresse(): View {
 function adresseFuer(ansicht: View): string {
   if (ansicht.name === 'legal') return pfadFuerSeite(ansicht.page)
   if (ansicht.name === 'siedlungen') return pfadFuerSeite('siedlungen')
+  if (ansicht.name === 'admin') return ADMIN_PFAD
+  if (ansicht.name === 'zahlen') return ZAHLEN_PFAD
   return '/'
 }
 
@@ -141,6 +145,21 @@ export default function App() {
 
   const goToSiedlungen = useCallback(() => gehe({ name: 'siedlungen' }), [gehe])
 
+  /*
+   * Der Adminbereich steht fuer sich - ohne Kopf, Fuss und Warenkorb der
+   * Verkaufsseite. In der Android-App (public/admin.webmanifest) waere das
+   * Menue des Shops nur im Weg, und ein Tipp darauf fuehrte aus der App
+   * hinaus.
+   */
+  if (view.name === 'admin' || view.name === 'zahlen') {
+    return (
+      <main id="main">
+        {view.name === 'admin' && <AdminPage onBack={goToShop} onOpenZahlen={() => gehe({ name: 'zahlen' })} />}
+        {view.name === 'zahlen' && <ZahlenPage onBack={() => gehe({ name: 'admin' })} />}
+      </main>
+    )
+  }
+
   return (
     <>
       <a className="skip-link" href="#main">
@@ -225,9 +244,6 @@ export default function App() {
             onSondermassClick={() => goToAnchor('anfrage')}
           />
         )}
-
-        {view.name === 'admin' && <AdminPage onBack={goToShop} onOpenZahlen={() => gehe({ name: 'zahlen' })} />}
-        {view.name === 'zahlen' && <ZahlenPage onBack={() => gehe({ name: 'admin' })} />}
       </main>
 
       <Footer

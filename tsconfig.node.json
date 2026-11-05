@@ -18,5 +18,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["vite.config.ts", "api", "bau/maschinenlesbar.ts"]
+  "include": ["vite.config.ts", "api", "bau/maschinenlesbar.ts", "bau/admin-app.ts"]
 }

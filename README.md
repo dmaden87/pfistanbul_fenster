@@ -306,6 +306,48 @@ heikel, wenn man sie zuspitzt:
   Gnitzen und Thripse noch das Gewicht einer Katze. Beides steht deshalb
   ausdrücklich auf der Seite.
 
+## Admin als Android-App
+
+Der Adminbereich hat eine eigene Adresse, **`/admin`** (Zahlen unter
+`/admin/zahlen`), und lässt sich auf Android als App installieren: eigenes
+Symbol im App-Drawer, Vollbild ohne Adresszeile, eigener Eintrag in der
+App-Übersicht. Chrome erzeugt dabei eine echte WebAPK. Es gibt keinen zweiten
+Codestand: Die App ist derselbe Adminbereich, dieselbe Anmeldung, dieselbe API.
+
+**Installieren:** Auf dem Handy in Chrome `https://pfistanbul.ch/admin`
+öffnen → Menü ⋮ → **«App installieren»** (bzw. «Zum Startbildschirm
+hinzufügen»). Danach startet «PF Admin» direkt in den Adminbereich.
+
+Was dazugehört:
+
+| Datei | Zweck |
+| --- | --- |
+| `public/admin.webmanifest` | Name, Startadresse, Bereich (`scope: /admin`), Farben, Symbole |
+| `bau/admin-app.ts` | erzeugt beim Build `dist/admin.html` – nur diese Seite verweist auf das Manifest |
+| `bau/favicon.mjs` | erzeugt auch `public/admin-192.png`, `admin-512.png`, `admin-maskable-512.png` |
+| `vercel.json` | `/admin/*` → `admin.html`, dazu `X-Robots-Tag: noindex` |
+
+Bewusst so:
+
+- **Das Manifest hängt nur an `/admin`.** Hinge es an der Startseite, böte
+  Chrome jeder Kundin an, «Pfistanbul Admin» zu installieren.
+- **Der Bereich der App ist `/admin`, nicht die ganze Seite.** Sonst öffnete
+  sich jeder Link auf pfistanbul.ch in der Admin-App.
+- **Kein Service Worker, kein Offline-Modus.** Chrome braucht für die
+  Installation keinen mehr, und ein Zwischenspeicher könnte veraltete
+  Bestelldaten zeigen. Ohne Netz zeigt die App eine Fehlermeldung.
+- **Im Adminbereich fehlen Kopf, Fuss und Warenkorb des Shops** – auch im
+  Browser. «Zurück zur Seite» führt weiterhin auf die Startseite.
+- `/admin` ist dreifach für Suchmaschinen gesperrt: `robots.txt`,
+  `X-Robots-Tag` und `<meta name="robots" content="noindex">`.
+
+Die Anmeldung gilt wie bisher 12 Stunden; danach fragt auch die App wieder nach
+dem Passwort.
+
+Wer statt der installierten Web-App eine echte APK-Datei bzw. einen Eintrag im
+Play Store will, kann diese Seite mit einer *Trusted Web Activity* (Bubblewrap)
+verpacken – das Manifest ist dafür schon die Grundlage.
+
 ## Aufbau
 
 ```

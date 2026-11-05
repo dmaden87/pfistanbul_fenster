@@ -301,6 +301,9 @@ Allow: /
 # Zahlungsmeldungen von Stripe. Dort gibt es nichts zu lesen.
 Disallow: /api/
 
+# Der Adminbereich ist hinter einer Anmeldung. Zu lesen gibt es dort nichts.
+Disallow: /admin
+
 Sitemap: ${absolut('/sitemap.xml')}
 `
 }
