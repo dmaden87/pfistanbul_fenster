@@ -19,7 +19,7 @@ val keystorePasswort: String? = System.getenv("PF_KEYSTORE_PASSWORT")
 
 android {
     namespace = "ch.pfistanbul.admin"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "ch.pfistanbul.admin"
