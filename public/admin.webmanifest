@@ -1,0 +1,18 @@
+{
+  "id": "/admin",
+  "name": "Pfistanbul Admin",
+  "short_name": "PF Admin",
+  "description": "Bestellungen, Produktion und Zahlen von Pfistanbul Fenster.",
+  "lang": "de-CH",
+  "start_url": "/admin",
+  "scope": "/admin",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#0f3b34",
+  "background_color": "#f7fbf9",
+  "icons": [
+    { "src": "/admin-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/admin-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/admin-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

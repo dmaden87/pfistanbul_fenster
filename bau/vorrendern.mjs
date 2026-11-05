@@ -21,7 +21,7 @@
  * bau/vorgerendert.ts, das auch prueft, ob die Kopie noch zum Build passt.
  */
 import { execFileSync, spawn } from 'node:child_process'
-import { closeSync, openSync } from 'node:fs'
+import { closeSync, existsSync, openSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -29,7 +29,15 @@ import { join, normalize } from 'node:path'
 import { absolut, kopfdatenFuer, seiten } from '../src/data/site.ts'
 import { quellstand } from './quellstand.mjs'
 
-const CHROMIUM = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
+// Der Pfad wechselt mit jeder Playwright-Fassung. /opt/pw-browsers/chromium
+// ist ein Verweis, der immer auf die installierte zeigt; mit CHROMIUM=...
+// laesst sich ein anderer Browser angeben.
+const CHROMIUM = process.env.CHROMIUM
+  ?? [
+    '/opt/pw-browsers/chromium',
+    '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  ].find((pfad) => existsSync(pfad))
+  ?? '/opt/pw-browsers/chromium'
 const DIST = 'dist'
 const ZIEL = 'vorgerendert'
 
@@ -151,8 +159,12 @@ function starteBrowser(adresse, zieldatei) {
       { stdio: ['ignore', kanal, 'ignore'] },
     )
     const wecker = setTimeout(() => browser.kill('SIGKILL'), 180000)
+    // 'error' und 'close' koennen beide kommen - der Kanal darf nur einmal zu.
+    let zu = false
     const schliessen = () => {
       clearTimeout(wecker)
+      if (zu) return
+      zu = true
       closeSync(kanal)
     }
     browser.on('error', (fehler) => {

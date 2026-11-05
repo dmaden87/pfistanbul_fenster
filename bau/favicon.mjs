@@ -59,3 +59,30 @@ const eintraege = groessen.map((groesse, i) => {
 
 await writeFile('public/favicon.ico', Buffer.concat([kopf, ...eintraege, ...bilder]))
 console.log(`public/favicon.ico              ${groessen.join(', ')} px`)
+
+/*
+ * Symbole fuer die Admin-App (public/admin.webmanifest). Android verlangt
+ * 192 und 512 Pixel. Dazu eine "maskable" Fassung: Android schneidet App-
+ * Symbole je nach Hersteller rund, eckig oder als Tropfen zu und nimmt dabei
+ * bis zu 20 % vom Rand weg. Die normale Datei hat schon abgerundete Ecken und
+ * eine schmale Kante - zugeschnitten saehe das aus wie ein Symbol im Symbol.
+ * Die maskable Fassung fuellt deshalb die ganze Flaeche und haelt das Fenster
+ * kleiner in der Mitte, in der sicheren Zone.
+ */
+for (const groesse of [192, 512]) {
+  await writeFile(`public/admin-${groesse}.png`, await png(groesse))
+  console.log(`${`public/admin-${groesse}.png`.padEnd(32)} ${groesse}×${groesse}`)
+}
+
+const maskierbar = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" fill="#0f3b34"/>
+  <g transform="translate(16 16) scale(0.62) translate(-16 -16)" stroke="#f7fbf9" stroke-linecap="round" fill="none">
+    <rect x="7.5" y="7.5" width="17" height="17" rx="2.5" stroke-width="2.6"/>
+    <path d="M7.5 16h17M16 7.5v17" stroke-width="2.2"/>
+  </g>
+</svg>`)
+await writeFile(
+  'public/admin-maskable-512.png',
+  await sharp(maskierbar, { density: 1536 }).resize(512, 512).png({ compressionLevel: 9 }).toBuffer(),
+)
+console.log('public/admin-maskable-512.png    512×512 (maskable)')

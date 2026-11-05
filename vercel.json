@@ -8,5 +8,31 @@
       "destination": "https://g.page/r/CUgM6MbeGFs2EAE/review",
       "permanent": false
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/admin/:pfad*",
+      "destination": "/admin"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/admin(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/admin.webmanifest",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/manifest+json"
+        }
+      ]
+    }
   ]
 }

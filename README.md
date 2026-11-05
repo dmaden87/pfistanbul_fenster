@@ -306,6 +306,78 @@ heikel, wenn man sie zuspitzt:
   Gnitzen und Thripse noch das Gewicht einer Katze. Beides steht deshalb
   ausdrücklich auf der Seite.
 
+## Admin als Android-App
+
+Der Adminbereich hat eine eigene Adresse, **`/admin`** (Zahlen unter
+`/admin/zahlen`), und lässt sich auf Android als App installieren: eigenes
+Symbol im App-Drawer, Vollbild ohne Adresszeile, eigener Eintrag in der
+App-Übersicht. Chrome erzeugt dabei eine echte WebAPK. Es gibt keinen zweiten
+Codestand: Die App ist derselbe Adminbereich, dieselbe Anmeldung, dieselbe API.
+
+**Installieren:** Auf dem Handy in Chrome `https://pfistanbul.ch/admin`
+öffnen → Menü ⋮ → **«App installieren»** (bzw. «Zum Startbildschirm
+hinzufügen»). Danach startet «PF Admin» direkt in den Adminbereich.
+
+Was dazugehört:
+
+| Datei | Zweck |
+| --- | --- |
+| `public/admin.webmanifest` | Name, Startadresse, Bereich (`scope: /admin`), Farben, Symbole |
+| `bau/admin-app.ts` | erzeugt beim Build `dist/admin.html` – nur diese Seite verweist auf das Manifest |
+| `bau/favicon.mjs` | erzeugt auch `public/admin-192.png`, `admin-512.png`, `admin-maskable-512.png` |
+| `vercel.json` | `/admin/*` → `admin.html`, dazu `X-Robots-Tag: noindex` |
+
+Bewusst so:
+
+- **Das Manifest hängt nur an `/admin`.** Hinge es an der Startseite, böte
+  Chrome jeder Kundin an, «Pfistanbul Admin» zu installieren.
+- **Der Bereich der App ist `/admin`, nicht die ganze Seite.** Sonst öffnete
+  sich jeder Link auf pfistanbul.ch in der Admin-App.
+- **Kein Service Worker, kein Offline-Modus.** Chrome braucht für die
+  Installation keinen mehr, und ein Zwischenspeicher könnte veraltete
+  Bestelldaten zeigen. Ohne Netz zeigt die App eine Fehlermeldung.
+- **Im Adminbereich fehlen Kopf, Fuss und Warenkorb des Shops** – auch im
+  Browser. «Zurück zur Seite» führt weiterhin auf die Startseite.
+- `/admin` ist dreifach für Suchmaschinen gesperrt: `robots.txt`,
+  `X-Robots-Tag` und `<meta name="robots" content="noindex">`.
+
+Die Anmeldung gilt wie bisher 12 Stunden; danach fragt auch die App wieder nach
+dem Passwort.
+
+### Als APK zum Herunterladen
+
+`android/` enthält dieselbe App als richtiges APK – eine *Trusted Web
+Activity*: eine kleine Hülle, die `https://pfistanbul.ch/admin` in Chrome
+öffnet, im Vollbild und mit eigenem Symbol. Der Adminbereich bleibt die
+Webseite; neue Funktionen kommen mit dem nächsten Deploy, ohne neues APK.
+
+Gebaut wird auf GitHub (`.github/workflows/admin-apk.yml`), bei jeder Änderung
+unter `android/` oder von Hand unter *Actions → Admin-App (APK) → Run
+workflow*. Das fertige APK liegt danach unter **Releases** als
+`pf-admin-1.0.<n>.apk`.
+
+**Installieren:** Auf dem Handy die Release-Seite öffnen, das APK antippen,
+beim ersten Mal «Installation aus dieser Quelle erlauben» bestätigen.
+
+**Signaturschlüssel:** Der Build braucht zwei Repository-Secrets
+(*Settings → Secrets and variables → Actions*):
+
+| Secret | Inhalt |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | der Schlüssel, base64-kodiert |
+| `ANDROID_KEYSTORE_PASSWORT` | sein Passwort |
+
+Der Schlüssel liegt **nicht** im Repository (es ist öffentlich). Er muss
+immer derselbe bleiben – sonst lässt sich ein neues APK nicht über das alte
+installieren, und er passt nicht mehr zum Fingerabdruck in
+`public/.well-known/assetlinks.json`. Über diese Datei erkennt Chrome, dass
+App und Webseite zusammengehören, und blendet die Adresszeile aus. Sie muss
+also deployt sein, bevor die App ohne Adresszeile läuft. Der Build prüft,
+ob Schlüssel und Datei zusammenpassen. Fehlen die Secrets, entsteht nur ein
+Probe-APK (Debug) als Actions-Artefakt, kein Release.
+
+Symbole neu erzeugen: `node bau/android-symbole.mjs`.
+
 ## Aufbau
 
 ```

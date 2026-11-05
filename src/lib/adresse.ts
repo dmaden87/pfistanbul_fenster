@@ -13,7 +13,25 @@ import { absolut, kopfdatenFuer, unterseiten, type SeitenSchluessel } from '../d
  * von Stripe. Jede weitere Adresse waere ein weiterer Weg, auf dem der
  * funktionierende Bestellablauf kaputtgehen kann, und zu holen gibt es dort
  * fuer eine Suchmaschine ohnehin nichts. Sie laufen weiter unter "/".
+ *
+ * NACHTRAG ADMIN-APP: Der Adminbereich hat inzwischen doch eine eigene
+ * Adresse, `/admin` (Zahlen unter `/admin/zahlen`). Grund ist die Android-App:
+ * Eine installierbare Web-App braucht eine Startadresse und einen Bereich
+ * (scope), in dem sie lebt - und der darf nicht die ganze Seite sein, sonst
+ * oeffnete sich jeder Link auf pfistanbul.ch in der Admin-App. Warenkorb und
+ * Bestellablauf bleiben unter "/"; an ihnen aendert sich nichts. Gesperrt
+ * fuer Suchmaschinen ist /admin dreifach: robots.txt, X-Robots-Tag in
+ * vercel.json und ein noindex in admin.html (bau/admin-app.ts).
  */
+
+/** Wo der Adminbereich wohnt. Muss zu public/admin.webmanifest passen. */
+export const ADMIN_PFAD = '/admin'
+export const ZAHLEN_PFAD = '/admin/zahlen'
+
+/** Gehoert die Adresse zum Adminbereich? `/administrator` zaehlt nicht. */
+export function istAdminPfad(pfad: string): boolean {
+  return pfad === ADMIN_PFAD || pfad.startsWith(`${ADMIN_PFAD}/`)
+}
 
 /** Zu welcher Unterseite eine Adresse gehoert - oder zu keiner. */
 export function seiteAusPfad(pfad: string): SeitenSchluessel | null {
@@ -65,6 +83,13 @@ function kopfeintrag(auswahl: string, erzeugen: () => HTMLElement, feld: string,
  * Anwendung laeuft.
  */
 export function setzeKopfdaten(rohpfad: string) {
+  // Der Adminbereich bekommt keinen canonical-Verweis und keine Angaben fuer
+  // geteilte Links - nur einen Titel, der in der App-Uebersicht von Android
+  // erkennbar ist.
+  if (istAdminPfad(rohpfad)) {
+    document.title = 'Pfistanbul Admin'
+    return
+  }
   const pfad = pfadNormalisiert(rohpfad)
   const { titel, beschreibung } = kopfdatenFuer(pfad)
   const adresse = absolut(pfad)
