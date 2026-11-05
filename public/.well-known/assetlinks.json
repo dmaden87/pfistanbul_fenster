@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "ch.pfistanbul.admin",
+      "sha256_cert_fingerprints": [
+        "8C:A5:9A:60:F1:31:BA:22:90:66:76:40:43:1A:32:E6:3E:42:57:6E:76:97:8C:B9:B3:07:82:82:BA:CD:EF:16"
+      ]
+    }
+  }
+]
