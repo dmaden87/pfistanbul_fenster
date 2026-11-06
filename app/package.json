@@ -24,7 +24,7 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit -p tsconfig.pruefen.json",
     "bundle:android": "expo export --platform android --output-dir dist-check",
     "symbole": "node ../bau/app-symbole.mjs"
   },

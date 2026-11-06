@@ -34,7 +34,7 @@ Die Webseite ist in `README.md` ausführlich beschrieben, die App in
 npm run lint && npm test && npm run pruefen
 
 # App (in app/)
-npx tsc --noEmit
+npm run typecheck          # tsconfig.pruefen.json, wie auf GitHub
 npm run bundle:android      # bündelt den JS-Teil – findet kaputte Importe
 ```
 
