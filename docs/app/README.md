@@ -45,24 +45,42 @@ Klickbarer Entwurf der Auftragsverwaltung:
 https://claude.ai/artifact/9CFe97yyA7WuErDt2zHgi3
 
 - Liste statt Kacheln, Phasen als Reiter, «Heute zu tun» oben
-  (Nachfassen nach **5 Tagen**, neue Eingänge, Termine).
+  (Nachfassen **5 Tage** nach dem Versand der Offerte, neue Eingänge, Termine).
 - Ein Auftrag = ein Bildschirm, jeder Block mit eigenem Stift; Phase direkt
   antippen; Kosten und Preise überall bearbeitbar.
 - «Nächster Schritt» als grosser Knopf, je nach Phase.
 
+### Die Phasen
+
+Namen wie im Web-Admin (`src/components/admin/sprache.ts`) – die App liest
+sie von dort.
+
+| Status | Name | Bedeutet |
+| --- | --- | --- |
+| `neu` | Neu | eingegangen, annehmen oder absagen |
+| `klaerung` | Auftrag klären | Termin, ausmessen, Netze erfassen |
+| `offerte` | Angebot erstellen | Preise prüfen, Offerte verschicken |
+| `zusage` | Warten auf Zusage | Offerte liegt beim Kunden – hier wird nachgefasst |
+| `bestellen` | Bereit zum Bestellen | zugesagt, wartet aufs nächste Paket |
+| `bora` | Bei Bora | bestellt, in Produktion oder unterwegs |
+| `ausliefern` | Ausliefern | Termin, übergeben, kassieren |
+
 ### Die Vorlagen
 
-| | Vorlage | Phase | Anhang |
-| --- | --- | --- | --- |
-| A | Eingang bestätigen | Neu | |
-| B | Offerte senden | Klärung | Offerte |
-| C | Nachfassen | Offerte, ab 5 Tagen | |
-| D | Angepasste Offerte | Klärung, Offerte | Offerte |
-| E | Beim Lieferanten bestellt | Bestellen | |
-| F | Netze unterwegs | Bei Bora | |
-| G | Netze eingetroffen | Bei Bora | |
-| H | Montagetermin anfragen | Ausliefern | |
-| I | Abschluss & Bewertung | Ausliefern | Quittung |
+| | Vorlage | Phase | Anhang | Danach |
+| --- | --- | --- | --- | --- |
+| A | Eingang bestätigen | Neu | | → Auftrag klären |
+| B | Offerte senden | Angebot erstellen | Offerte | → Warten auf Zusage |
+| C | Nachfassen | Warten auf Zusage, ab 5 Tagen | | |
+| D | Angepasste Offerte | Angebot erstellen, Warten auf Zusage | Offerte | → Warten auf Zusage |
+| E | Beim Lieferanten bestellt | Bereit zum Bestellen | | → Bei Bora |
+| F | Netze unterwegs | Bei Bora | | |
+| G | Netze eingetroffen | Bei Bora | | → Ausliefern |
+| H | Montagetermin anfragen | Ausliefern | | |
+| I | Abschluss & Bewertung | Ausliefern | Quittung | |
+
+Der klickbare Entwurf verwendet noch kurze Phasennamen und setzt
+«Offerte» mit «Offerte verschickt» gleich; massgeblich ist diese Tabelle.
 
 ## Aufbau von `app/`
 

@@ -1,3 +1,4 @@
+import { texteFuer } from '@pf/components/admin/sprache'
 import { abschnittFuer, PHASEN, tageSeit, type Phase } from '@pf/lib/phasen'
 import type { Bestellung, BestellQuelle } from '@pf/types'
 
@@ -11,14 +12,22 @@ import type { Bestellung, BestellQuelle } from '@pf/types'
  */
 export { PHASEN, type Phase }
 
+/**
+ * Die Namen der Phasen – dieselben wie im Web-Admin, aus dessen Texten
+ * (src/components/admin/sprache.ts). Frueher standen hier eigene, kurze
+ * Namen; "Zusage" hiess dann in der App, was im Web "Warten auf Zusage"
+ * heisst, und ein Auftrag schien in einer anderen Phase zu stehen.
+ * Die tuerkische Fassung liegt dort schon bereit.
+ */
+const TEXTE = texteFuer('deutsch')
 export const PHASE_LABEL: Record<Phase, string> = {
-  neu: 'Neu',
-  klaerung: 'Klärung',
-  offerte: 'Offerte',
-  zusage: 'Zusage',
-  bestellen: 'Bestellen',
-  bora: 'Bei Bora',
-  ausliefern: 'Ausliefern',
+  neu: TEXTE.phaseNeu,
+  klaerung: TEXTE.phaseKlaerung,
+  offerte: TEXTE.phaseOfferte,
+  zusage: TEXTE.phaseZusage,
+  bestellen: TEXTE.phaseBestellen,
+  bora: TEXTE.phaseBora,
+  ausliefern: TEXTE.phaseAusliefern,
 }
 
 const QUELLE_LABEL: Record<BestellQuelle, string> = {
@@ -54,8 +63,22 @@ export function preisOffen(b: Bestellung): boolean {
   return b.positionen.length === 0 || b.positionen.some((p) => !(p.preisChf > 0))
 }
 
+/**
+ * Wann die Offerte rausging. `offerteAm` setzt der Web-Admin beim Versand;
+ * fehlt es (aeltere Eintraege), zaehlt der Eintritt in die Phase.
+ */
+function offerteSeit(b: Bestellung): number {
+  return tageSeit(b.offerteAm ?? b.phaseSeit ?? b.geaendert) ?? 0
+}
+
+/**
+ * Nachfassen, wenn die Offerte beim Kunden liegt ("Warten auf Zusage",
+ * Status `zusage`) und seit NACHFASSEN_NACH_TAGEN keine Antwort kam.
+ * Nicht in "Angebot erstellen" (`offerte`): Dort ist die Offerte noch gar
+ * nicht verschickt.
+ */
 export function mussNachfassen(b: Bestellung): boolean {
-  return b.status === 'offerte' && (tageSeit(b.offerteAm ?? b.phaseSeit ?? b.geaendert) ?? 0) >= NACHFASSEN_NACH_TAGEN
+  return b.status === 'zusage' && offerteSeit(b) >= NACHFASSEN_NACH_TAGEN
 }
 
 export interface Aufgabe {
@@ -86,7 +109,7 @@ function terminText(termin: string): string {
 /**
  * "Heute zu tun": was die App von sich aus vorschlaegt.
  *  - neue Eingaenge (bestaetigen, Ausmessen planen)
- *  - Offerten, die seit NACHFASSEN_NACH_TAGEN ohne Antwort sind
+ *  - verschickte Offerten, die seit NACHFASSEN_NACH_TAGEN ohne Antwort sind
  *  - Ausmess- und Montagetermine heute und in den naechsten zwei Tagen
  */
 export function heuteZuTun(bestellungen: Bestellung[], jetzt = Date.now()): Aufgabe[] {
@@ -96,7 +119,7 @@ export function heuteZuTun(bestellungen: Bestellung[], jetzt = Date.now()): Aufg
 
   for (const b of bestellungen.filter(aktiv)) {
     if (mussNachfassen(b)) {
-      const tage = tageSeit(b.offerteAm ?? b.phaseSeit ?? b.geaendert) ?? 0
+      const tage = offerteSeit(b)
       aufgaben.push({ id: `${b.id}-nach`, bestellungId: b.id, titel: `Nachfassen: ${b.kunde.name}`, text: `Offerte seit ${tage} Tagen ohne Antwort` })
     }
     if (b.status === 'neu') {
