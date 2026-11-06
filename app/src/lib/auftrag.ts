@@ -4,7 +4,7 @@ import type { Bestellung, BestellQuelle } from '@pf/types'
 
 /**
  * Was die App ueber einen Auftrag wissen will, das die Webseite so nicht
- * braucht: kurze Bezeichnungen, "Heute zu tun", Kontakt-Links.
+ * braucht: Phasennamen, "Bald fällig", Kontakt-Links.
  *
  * Die Regeln selbst – Phasen, was abgeschlossen ist, wie alt etwas ist –
  * kommen aus der gemeinsamen Logik (`@pf/lib/phasen`). Hier wird nichts davon
@@ -67,8 +67,8 @@ export function preisOffen(b: Bestellung): boolean {
  * Wann die Offerte rausging. `offerteAm` setzt der Web-Admin beim Versand;
  * fehlt es (aeltere Eintraege), zaehlt der Eintritt in die Phase.
  */
-function offerteSeit(b: Bestellung): number {
-  return tageSeit(b.offerteAm ?? b.phaseSeit ?? b.geaendert) ?? 0
+function offerteSeit(b: Bestellung, jetzt = Date.now()): number {
+  return tageSeit(b.offerteAm ?? b.phaseSeit ?? b.geaendert, jetzt) ?? 0
 }
 
 /**
@@ -81,11 +81,18 @@ export function mussNachfassen(b: Bestellung): boolean {
   return b.status === 'zusage' && offerteSeit(b) >= NACHFASSEN_NACH_TAGEN
 }
 
+/** Wie weit "Bald fällig" vorausschaut. */
+export const VORSCHAU_TAGE = 10
+
 export interface Aufgabe {
   id: string
   bestellungId: string
   titel: string
   text: string
+  /** Wann es faellig ist (ms). Ueberfaelliges liegt in der Vergangenheit. */
+  faellig: number
+  /** Heute faellig oder schon ueberfaellig - wird hervorgehoben. */
+  dringend: boolean
 }
 
 /** Ein Termin als Datum; reine Daten ("2026-11-20") gelten ab Mitternacht. */
@@ -93,47 +100,67 @@ function zeitpunkt(termin: string): number {
   return Date.parse(termin.length === 10 ? `${termin}T00:00` : termin)
 }
 
-function terminText(termin: string): string {
-  const t = new Date(zeitpunkt(termin))
-  const heute = new Date()
+function tagText(t: Date, jetzt: number): string {
+  const heute = new Date(jetzt)
   const morgen = new Date(heute.getFullYear(), heute.getMonth(), heute.getDate() + 1)
-  const tag =
-    t.toDateString() === heute.toDateString()
-      ? 'Heute'
-      : t.toDateString() === morgen.toDateString()
-        ? 'Morgen'
-        : t.toLocaleDateString('de-CH', { weekday: 'short', day: 'numeric', month: 'numeric' })
+  if (t.toDateString() === heute.toDateString()) return 'Heute'
+  if (t.toDateString() === morgen.toDateString()) return 'Morgen'
+  return t.toLocaleDateString('de-CH', { weekday: 'short', day: 'numeric', month: 'numeric' })
+}
+
+function terminText(termin: string, jetzt = Date.now()): string {
+  const t = new Date(zeitpunkt(termin))
+  const tag = tagText(t, jetzt)
   return termin.length === 10 ? tag : `${tag}, ${t.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' })}`
 }
 
+const TAG = 86_400_000
+
 /**
- * "Heute zu tun": was die App von sich aus vorschlaegt.
- *  - neue Eingaenge (bestaetigen, Ausmessen planen)
- *  - verschickte Offerten, die seit NACHFASSEN_NACH_TAGEN ohne Antwort sind
- *  - Ausmess- und Montagetermine heute und in den naechsten zwei Tagen
+ * "Bald fällig": was in den naechsten VORSCHAU_TAGE ansteht, nach Datum
+ * sortiert, Ueberfaelliges zuoberst.
+ *  - neue Eingaenge (bestaetigen, Ausmessen planen) – sofort faellig
+ *  - Nachfassen: NACHFASSEN_NACH_TAGEN nach dem Versand der Offerte, auch
+ *    wenn das erst in ein paar Tagen ist
+ *  - Ausmess- und Montagetermine
  */
-export function heuteZuTun(bestellungen: Bestellung[], jetzt = Date.now()): Aufgabe[] {
+export function baldFaellig(bestellungen: Bestellung[], jetzt = Date.now()): Aufgabe[] {
   const aufgaben: Aufgabe[] = []
-  const bis = jetzt + 2 * 86_400_000
-  const ab = new Date(new Date(jetzt).toDateString()).getTime()
+  const heuteAb = new Date(new Date(jetzt).toDateString()).getTime()
+  const morgenAb = heuteAb + TAG
+  const bis = heuteAb + (VORSCHAU_TAGE + 1) * TAG
+
+  const dazu = (a: Omit<Aufgabe, 'dringend'>) => {
+    if (a.faellig < bis) aufgaben.push({ ...a, dringend: a.faellig < morgenAb })
+  }
 
   for (const b of bestellungen.filter(aktiv)) {
-    if (mussNachfassen(b)) {
-      const tage = offerteSeit(b)
-      aufgaben.push({ id: `${b.id}-nach`, bestellungId: b.id, titel: `Nachfassen: ${b.kunde.name}`, text: `Offerte seit ${tage} Tagen ohne Antwort` })
+    if (b.status === 'zusage') {
+      const versandt = Date.parse(b.offerteAm ?? b.phaseSeit ?? b.geaendert)
+      if (!Number.isNaN(versandt)) {
+        const faellig = versandt + NACHFASSEN_NACH_TAGEN * TAG
+        const tage = offerteSeit(b, jetzt)
+        dazu({
+          id: `${b.id}-nach`, bestellungId: b.id, faellig,
+          titel: `Nachfassen: ${b.kunde.name}`,
+          text: faellig < morgenAb
+            ? `Offerte seit ${tage} Tagen ohne Antwort`
+            : `${tagText(new Date(faellig), jetzt)} · Offerte seit ${tage} ${tage === 1 ? 'Tag' : 'Tagen'} draussen`,
+        })
+      }
     }
     if (b.status === 'neu') {
-      aufgaben.push({ id: `${b.id}-neu`, bestellungId: b.id, titel: `Neu: ${b.kunde.name}`, text: 'Eingang bestätigen, Ausmessen planen' })
+      dazu({ id: `${b.id}-neu`, bestellungId: b.id, faellig: Date.parse(b.eingang) || jetzt, titel: `Neu: ${b.kunde.name}`, text: 'Eingang bestätigen, Ausmessen planen' })
     }
     for (const [art, termin] of [['Ausmessen', b.klaerungTermin], ['Montage', b.montageTermin]] as const) {
       if (!termin) continue
       const t = zeitpunkt(termin)
-      if (t >= ab && t <= bis) {
-        aufgaben.push({ id: `${b.id}-${art}`, bestellungId: b.id, titel: `${art}: ${b.kunde.name}`, text: `${terminText(termin)} · ${b.kunde.strasse || b.kunde.ort}` })
-      }
+      // Vergangene Termine sind erledigt (oder gehoeren nachgetragen) - kein "faellig".
+      if (Number.isNaN(t) || t < heuteAb) continue
+      dazu({ id: `${b.id}-${art}`, bestellungId: b.id, faellig: t, titel: `${art}: ${b.kunde.name}`, text: `${terminText(termin, jetzt)} · ${b.kunde.strasse || b.kunde.ort}` })
     }
   }
-  return aufgaben
+  return aufgaben.sort((a, b) => a.faellig - b.faellig)
 }
 
 export function termine(b: Bestellung): { art: string; wann: string }[] {

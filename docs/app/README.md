@@ -44,8 +44,10 @@ bewusst nicht vorgesehen (Freigabe, Kosten).
 Klickbarer Entwurf der Auftragsverwaltung:
 https://claude.ai/artifact/9CFe97yyA7WuErDt2zHgi3
 
-- Liste statt Kacheln, Phasen als Reiter, «Heute zu tun» oben
-  (Nachfassen **5 Tage** nach dem Versand der Offerte, neue Eingänge, Termine).
+- Liste statt Kacheln, Phasen als Reiter, oben **«Bald fällig»** für die
+  nächsten **10 Tage**, nach Datum: Nachfassen (**5 Tage** nach dem Versand
+  der Offerte), neue Eingänge, Ausmess- und Montagetermine. Heute Fälliges
+  und Überfälliges ist orange hervorgehoben.
 - Ein Auftrag = ein Bildschirm, jeder Block mit eigenem Stift; Phase direkt
   antippen; Kosten und Preise überall bearbeitbar.
 - «Nächster Schritt» als grosser Knopf, je nach Phase.

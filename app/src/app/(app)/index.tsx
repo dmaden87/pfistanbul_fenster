@@ -8,7 +8,7 @@ import { Pfeil, Uhr } from '@/components/Symbol'
 import { useAnmeldung } from '@/lib/anmeldung'
 import {
   aktiv,
-  heuteZuTun,
+  baldFaellig,
   initialen,
   mussNachfassen,
   netzAnzahl,
@@ -18,6 +18,7 @@ import {
   tageInPhase,
   type Aufgabe,
   type Phase,
+  VORSCHAU_TAGE,
 } from '@/lib/auftrag'
 import { useBestellungen } from '@/lib/bestellungen'
 import { farben, radius, TIPPFLAECHE } from '@/theme'
@@ -25,7 +26,7 @@ import { farben, radius, TIPPFLAECHE } from '@/theme'
 type Filter = 'alle' | Phase
 
 /**
- * Die Auftragsliste: oben die Phasen als Reiter, darunter "Heute zu tun",
+ * Die Auftragsliste: oben die Phasen als Reiter, darunter "Bald fällig",
  * dann eine Zeile pro Auftrag. Herunterziehen laedt neu.
  */
 export default function Auftraege() {
@@ -42,7 +43,7 @@ export default function Auftraege() {
     for (const b of aktive) z[b.status as Phase]++
     return z
   }, [aktive])
-  const aufgaben = useMemo(() => heuteZuTun(bestellungen), [bestellungen])
+  const aufgaben = useMemo(() => baldFaellig(bestellungen), [bestellungen])
   const liste = filter === 'alle' ? aktive : aktive.filter((b) => b.status === filter)
 
   const kopf = (
@@ -83,7 +84,7 @@ export default function Auftraege() {
 
       {filter === 'alle' && aufgaben.length > 0 ? (
         <View style={s.block}>
-          <Text style={s.blockTitel} accessibilityRole="header">Heute zu tun</Text>
+          <Text style={s.blockTitel} accessibilityRole="header">{`Bald fällig · ${VORSCHAU_TAGE} Tage`}</Text>
           <View style={{ gap: 8 }}>
             {aufgaben.map((a) => <AufgabeZeile key={a.id} aufgabe={a} />)}
           </View>
@@ -122,14 +123,15 @@ function oeffne(id: string) {
 }
 
 function AufgabeZeile({ aufgabe }: { aufgabe: Aufgabe }) {
+  const d = aufgabe.dringend
   return (
-    <Pressable onPress={() => oeffne(aufgabe.bestellungId)} accessibilityRole="button" style={({ pressed }) => [s.aufgabe, pressed && s.gedrueckt]}>
-      <View style={s.aufgabeSymbol}><Uhr farbe={farben.hinweisTinte} /></View>
+    <Pressable onPress={() => oeffne(aufgabe.bestellungId)} accessibilityRole="button" style={({ pressed }) => [s.aufgabe, !d && s.aufgabeSpaeter, pressed && s.gedrueckt]}>
+      <View style={s.aufgabeSymbol}><Uhr farbe={d ? farben.hinweisTinte : farben.marke} /></View>
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={s.aufgabeTitel}>{aufgabe.titel}</Text>
-        <Text style={s.aufgabeText}>{aufgabe.text}</Text>
+        <Text style={[s.aufgabeText, !d && s.aufgabeTextSpaeter]}>{aufgabe.text}</Text>
       </View>
-      <Pfeil farbe={farben.hinweisTinte} />
+      <Pfeil farbe={d ? farben.hinweisTinte : farben.marke} />
     </Pressable>
   )
 }
@@ -179,6 +181,8 @@ const s = StyleSheet.create({
   aufgabeSymbol: { width: 36, height: 36, borderRadius: 18, backgroundColor: farben.flaeche, alignItems: 'center', justifyContent: 'center' },
   aufgabeTitel: { fontSize: 15, fontWeight: '600', color: farben.text },
   aufgabeText: { fontSize: 13, color: farben.hinweisTinte },
+  aufgabeSpaeter: { backgroundColor: farben.flaeche, borderColor: farben.rand },
+  aufgabeTextSpaeter: { color: farben.textLeise },
   gedrueckt: { opacity: 0.8 },
   zeile: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 68, paddingHorizontal: 14, paddingVertical: 10, marginHorizontal: 16, backgroundColor: farben.flaeche, borderLeftWidth: 1, borderRightWidth: 1, borderColor: farben.rand },
   zeileErste: { borderTopWidth: 1, borderTopLeftRadius: radius.gross, borderTopRightRadius: radius.gross },
