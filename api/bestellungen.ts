@@ -22,7 +22,7 @@ import {
 import { demoModus, demoSaat } from './_demo.js'
 import { PHASEN, startPhase, vereinheitlichen as phaseVereinheitlichen, type Phase, type RundenBlick } from './_phasen.js'
 import { postenVereinheitlichen, preiseVereinheitlichen } from './_preise.js'
-import { abmeldeCookie, angemeldet, anmeldeCookie, passwortGesetzt, passwortStimmt } from './_sitzung.js'
+import { abmeldeCookie, angemeldet, anmeldeCookie, appSchluessel, passwortGesetzt, passwortStimmt } from './_sitzung.js'
 
 /**
  * Bestellungen: annehmen, auflisten, Status ändern.
@@ -537,7 +537,7 @@ function nichtAngemeldet(res: VercelResponse) {
  * das Cookie mit der Unterschrift.
  */
 function darf(req: VercelRequest): boolean {
-  return demoModus || angemeldet(req.headers.cookie)
+  return demoModus || angemeldet(req.headers.cookie, req.headers.authorization)
 }
 
 /**
@@ -621,6 +621,13 @@ async function anmelden(req: VercelRequest, res: VercelResponse) {
   const koerper = (typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body) ?? {}
   if (!passwortStimmt(koerper.passwort)) {
     return res.status(401).json({ error: 'Passwort stimmt nicht.' })
+  }
+
+  // Die native App bittet um einen Schlüssel statt eines Cookies – siehe
+  // appSchluessel() in _sitzung.ts. Der Browser bekommt weiter den Cookie.
+  if (koerper.app === true) {
+    const { schluessel, ablauf } = appSchluessel()
+    return res.status(200).json({ ok: true, schluessel, gueltigBis: new Date(ablauf).toISOString() })
   }
 
   res.setHeader('Set-Cookie', anmeldeCookie())

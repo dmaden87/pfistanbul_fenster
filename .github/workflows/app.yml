@@ -1,0 +1,122 @@
+# Baut die native App «PF Admin» (app/), startet sie im Android-Emulator und
+# legt das APK - wenn es mit dem echten Schluessel signiert ist - als Release
+# ab. Von dort laesst es sich auf dem Handy herunterladen und installieren.
+#
+# Schluessel: dieselben Repository-Secrets wie die Webseiten-App
+# (ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORT). Nur mit demselben
+# Schluessel installiert sich die App als Update ueber die bisherige.
+name: PF Admin App (nativ)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'app/**'
+      - 'src/lib/**'
+      - 'src/types/**'
+      - 'src/data/**'
+      - 'api/_sitzung.ts'
+      - '.github/workflows/app.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Versionsnummer
+        # Ueber 100, damit sie hoeher ist als jede Fassung der Webseiten-App.
+        run: |
+          echo "PF_VERSION_CODE=$((100 + ${{ github.run_number }}))" >> "$GITHUB_ENV"
+          echo "PF_VERSION_NAME=2.0.${{ github.run_number }}" >> "$GITHUB_ENV"
+
+      - name: Pakete
+        run: npm ci --no-audit --no-fund
+
+      - name: Typpruefung
+        run: npx tsc --noEmit
+
+      - name: Signaturschluessel bereitlegen
+        id: schluessel
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORT: ${{ secrets.ANDROID_KEYSTORE_PASSWORT }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORT" ]; then
+            echo "::warning::Secrets fehlen - das APK wird mit dem Debug-Schluessel signiert und nicht veroeffentlicht."
+            echo "signiert=nein" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/pfadmin.keystore"
+          ABDRUCK=$(keytool -list -v -keystore "$RUNNER_TEMP/pfadmin.keystore" -storepass "$KEYSTORE_PASSWORT" \
+            | grep 'SHA256:' | head -1 | awk '{print $2}')
+          if ! grep -q "$ABDRUCK" ../public/.well-known/assetlinks.json; then
+            echo "::error::Der Schluessel ($ABDRUCK) ist nicht der von PF Admin."
+            exit 1
+          fi
+          echo "PF_KEYSTORE=$RUNNER_TEMP/pfadmin.keystore" >> "$GITHUB_ENV"
+          echo "signiert=ja" >> "$GITHUB_OUTPUT"
+
+      - name: Android-Projekt erzeugen
+        run: npx expo prebuild --platform android --no-install
+
+      - name: APK bauen
+        env:
+          PF_KEYSTORE_PASSWORT: ${{ secrets.ANDROID_KEYSTORE_PASSWORT }}
+        run: |
+          cd android
+          ./gradlew assembleRelease --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk "../pf-admin-$PF_VERSION_NAME.apk"
+
+      - name: KVM freischalten
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Starttest im Emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          working-directory: app
+          script: bash scripts/starttest.sh pf-admin-${{ env.PF_VERSION_NAME }}.apk
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pf-admin-app
+          path: |
+            app/pf-admin-*.apk
+            app/bildschirm.png
+          if-no-files-found: warn
+
+      - name: Als Release veroeffentlichen
+        if: steps.schluessel.outputs.signiert == 'ja'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "app-$PF_VERSION_NAME" "pf-admin-$PF_VERSION_NAME.apk" \
+            --target "${{ github.sha }}" \
+            --title "PF Admin $PF_VERSION_NAME (native App)" \
+            --latest=false \
+            --notes "Native App fuer den Adminbereich. Auf dem Handy herunterladen, oeffnen und installieren – sie ersetzt die bisherige PF Admin als Update."

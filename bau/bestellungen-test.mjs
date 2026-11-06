@@ -91,9 +91,9 @@ function antwortAttrappe() {
   return antwort
 }
 
-async function ruf({ method = 'GET', aktion = '', body, cookie }) {
+async function ruf({ method = 'GET', aktion = '', body, cookie, authorization }) {
   const antwort = antwortAttrappe()
-  await handler({ method, query: aktion ? { aktion } : {}, body, headers: { cookie } }, antwort)
+  await handler({ method, query: aktion ? { aktion } : {}, body, headers: { cookie, authorization } }, antwort)
   return antwort
 }
 
@@ -128,6 +128,41 @@ await pruefe('Anmeldung mit richtigem Passwort setzt einen Cookie', async () => 
 await pruefe('Anmeldung mit falschem Passwort scheitert', async () => {
   const a = await ruf({ method: 'POST', aktion: 'anmelden', body: { passwort: 'daneben!' } })
   assert.equal(a.code, 401)
+})
+
+/* --- Anmeldung der App: Schluessel statt Cookie ----------------------------- */
+
+let appSchluessel
+await pruefe('Die App bekommt bei richtigem Passwort einen Schluessel und keinen Cookie', async () => {
+  const a = await ruf({ method: 'POST', aktion: 'anmelden', body: { passwort: 'testpasswort', app: true } })
+  assert.equal(a.code, 200)
+  assert.match(a.daten.schluessel, /^\d+\.[0-9a-f]{64}$/)
+  assert.ok(Date.parse(a.daten.gueltigBis) > Date.now() + 29 * 24 * 3600 * 1000, 'gilt rund 30 Tage')
+  assert.equal(a.koepfe['Set-Cookie'], undefined)
+  appSchluessel = a.daten.schluessel
+})
+
+await pruefe('Mit dem Schluessel liest die App die Bestellungen', async () => {
+  const a = await ruf({ method: 'GET', authorization: `Bearer ${appSchluessel}` })
+  assert.equal(a.code, 200)
+  assert.ok(Array.isArray(a.daten.bestellungen))
+})
+
+await pruefe('Ein gefaelschter Schluessel wird abgewiesen', async () => {
+  const [ablauf] = appSchluessel.split('.')
+  const a = await ruf({ method: 'GET', authorization: `Bearer ${ablauf}.${'0'.repeat(64)}` })
+  assert.equal(a.code, 401)
+})
+
+await pruefe('Ein abgelaufener Schluessel wird abgewiesen, auch mit passender Form', async () => {
+  const a = await ruf({ method: 'GET', authorization: `Bearer 1000.${'a'.repeat(64)}` })
+  assert.equal(a.code, 401)
+})
+
+await pruefe('Die App bekommt bei falschem Passwort keinen Schluessel', async () => {
+  const a = await ruf({ method: 'POST', aktion: 'anmelden', body: { passwort: 'daneben!', app: true } })
+  assert.equal(a.code, 401)
+  assert.equal(a.daten.schluessel, undefined)
 })
 
 /* --- Der offene Weg: das Bestellformular ------------------------------------ */

@@ -172,7 +172,7 @@ function posten(wert: unknown): AbrechnungPosten[] {
 }
 
 function darf(req: VercelRequest): boolean {
-  return demoModus || angemeldet(req.headers.cookie)
+  return demoModus || angemeldet(req.headers.cookie, req.headers.authorization)
 }
 
 function ausKoerper(k: Record<string, unknown>): Abrechnung | string {
