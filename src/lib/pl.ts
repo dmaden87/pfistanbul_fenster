@@ -766,6 +766,57 @@ export function forecast(bestellungen: Bestellung[]): ForecastZeile[] {
   return [...karte.values()].filter((z) => z.anzahl > 0)
 }
 
+/* --- Pro Sendung ------------------------------------------------------------ */
+
+export interface Sendung {
+  /** Das Paket-Etikett, wie es zu Bora ging. */
+  paket: string
+  anzahl: number
+  netze: number
+  erloesChf: number
+  kostenChf: number
+  margeChf: number
+  margeProzent: number | null
+  /** Marge je Netz – der Vergleich zwischen Sendungen. */
+  jeNetzChf: number | null
+  /** Ein einziger Auftrag ohne erfasste Kosten macht die ganze Sendung zur Schaetzung. */
+  geschaetzt: boolean
+}
+
+/**
+ * Die Pakete, wie sie zu Bora gegangen sind, mit Erloes, Kosten und Marge.
+ *
+ * Stand zuerst in ZahlenPage.tsx. Hier, weil die App dieselbe Tabelle zeigt
+ * und nicht nachrechnen soll. Gezaehlt wird, was in der Rechnung ist
+ * (inRechnung): Abgesagtes und von Hand Ausgenommenes nicht.
+ */
+export function sendungen(bestellungen: Bestellung[]): Sendung[] {
+  const karte = new Map<string, Sendung>()
+  for (const b of bestellungen) {
+    if (!b.paket || !zaehltPhase(b) || b.ausserRechnung) continue
+    const z = zahlenFuer(b)
+    const s = karte.get(b.paket) ?? {
+      paket: b.paket, anzahl: 0, netze: 0, erloesChf: 0, kostenChf: 0,
+      margeChf: 0, margeProzent: null, jeNetzChf: null, geschaetzt: false,
+    }
+    s.anzahl += 1
+    s.netze += z.netzZahl
+    s.erloesChf = runde2(s.erloesChf + z.erloesChf)
+    s.kostenChf = runde2(s.kostenChf + z.kostenChf)
+    if (z.geschaetzt) s.geschaetzt = true
+    karte.set(b.paket, s)
+  }
+  return [...karte.values()].map((s) => {
+    const marge = runde2(s.erloesChf - s.kostenChf)
+    return {
+      ...s,
+      margeChf: marge,
+      margeProzent: s.erloesChf > 0 ? Math.round((marge / s.erloesChf) * 1000) / 10 : null,
+      jeNetzChf: s.netze > 0 ? runde2(marge / s.netze) : null,
+    }
+  })
+}
+
 /* --- Offene Posten in beide Richtungen ------------------------------------- */
 
 export interface Forderung {

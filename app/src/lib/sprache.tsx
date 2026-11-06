@@ -178,6 +178,30 @@ const APP = {
   kostenIntern: ['Kosten (intern)', 'Maliyetler (dahili)'],
   postenEntfernen: ['Posten entfernen', 'Kalemi sil'],
 
+  /* --- Zahlen ---------------------------------------------------------- */
+  zOffenTitel: ['Offen', 'Açık'],
+  zAuswertung: ['Auswertung', 'Değerlendirme'],
+  zJahre: ['Jahre', 'Yıllar'],
+  zAnzahlAuftraege: ['{n} Aufträge', '{n} sipariş'],
+  zAnzahlPosten: ['{n} Posten', '{n} kalem'],
+  zAnzahlSendungen: ['{n} Sendungen', '{n} sevkiyat'],
+  zKostenUnter: ['Ware {ware} · Betrieb {betrieb}', 'Mal {ware} · İşletme {betrieb}'],
+  zErloesUnter: ['cashed {cashed} · debit {debit} · in Arbeit {arbeit}', 'tahsil {cashed} · alacak {debit} · işlemde {arbeit}'],
+  zRentabilitaetUnter: ['Rentabilität {r} · real {real}', 'Kârlılık {r} · gerçek {real}'],
+  zBezahltMarkieren: ['Als bezahlt markieren', 'Ödendi olarak işaretle'],
+  zBezahltFrageSatz: ['{kunde}: {betrag} eingegangen?', '{kunde}: {betrag} tahsil edildi mi?'],
+  zJaEingegangen: ['Ja, eingegangen', 'Evet, tahsil edildi'],
+  zGeliefertAm: ['geliefert · seit {datum}', 'teslim edildi · {datum} tarihinden beri'],
+  zNichtGeliefert: ['noch nicht geliefert · seit {datum}', 'henüz teslim edilmedi · {datum} tarihinden beri'],
+  zAuftragUnter: ['{ref} · Erlös {erloes} · Kosten {kosten}', '{ref} · Gelir {erloes} · Maliyet {kosten}'],
+  zSendungUnter: ['{a} Aufträge · {n} Netze · Erlös {erloes} · Kosten {kosten}', '{a} sipariş · {n} sineklik · Gelir {erloes} · Maliyet {kosten}'],
+  zJeNetzUnter: ['{betrag} je Netz', 'sineklik başına {betrag}'],
+  zForecastUnter: ['{a} Anfragen · {n} Netze · Erlös {erloes} · Kosten {kosten}', '{a} talep · {n} sineklik · Gelir {erloes} · Maliyet {kosten}'],
+  zJahrUnter: ['{a} Aufträge · {n} Netze', '{a} sipariş · {n} sineklik'],
+  zForderungenSatz: ['Feste Aufträge, deren Geld noch nicht da ist – geliefert oder noch in Arbeit. Antippen, wenn das Geld eingegangen ist.', 'Parası henüz gelmemiş kesin siparişler – teslim edilmiş ya da hâlâ işlemde. Para geldiğinde dokun.'],
+  zMargeTippen: ['Antippen öffnet die Kosten des Auftrags.', 'Dokunmak siparişin maliyetlerini açar.'],
+  zSpaeterAbrechnen: ['Abrechnen und Betriebskosten erfassen: im Web-Admin unter Zahlen.', 'Hesaplaşma ve işletme giderleri: web yönetiminde Rakamlar altında.'],
+
   /* --- Einstellungen ---------------------------------------------------- */
   spracheWechseln: ['Sprache: Deutsch', 'Dil: Türkçe'],
 } as const satisfies Record<string, Paar>

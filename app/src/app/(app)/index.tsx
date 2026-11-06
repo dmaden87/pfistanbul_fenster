@@ -21,6 +21,7 @@ import {
   VORSCHAU_TAGE,
 } from '@/lib/auftrag'
 import { useBestellungen } from '@/lib/bestellungen'
+import { Hauptleiste } from '@/components/Hauptleiste'
 import { SprachSchalter } from '@/components/SprachSchalter'
 import { fuelle, useSprache } from '@/lib/sprache'
 import { farben, radius, TIPPFLAECHE } from '@/theme'
@@ -118,8 +119,9 @@ export default function Auftraege() {
           )
         }
         refreshControl={<RefreshControl refreshing={laedt && bestellungen.length > 0} onRefresh={neuLaden} tintColor={farben.marke} colors={[farben.marke]} />}
-        contentContainerStyle={{ paddingBottom: 48 }}
+        contentContainerStyle={{ paddingBottom: 24 }}
       />
+      <Hauptleiste aktiv="auftraege" />
     </SafeAreaView>
   )
 }

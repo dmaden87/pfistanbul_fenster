@@ -1,7 +1,7 @@
-import type { BestellAenderung, Bestellung } from '@pf/types'
+import type { Abrechnung, Auslage, BestellAenderung, Bestellung } from '@pf/types'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { offerteLink } from '@pf/lib/nachrichten'
-import { aendereBestellung, holeOfferteGeheimnis, ladeBestellungen, NichtAngemeldet } from './api'
+import { aendereBestellung, holeOfferteGeheimnis, ladeAbrechnungen, ladeAuslagen, ladeBestellungen, NichtAngemeldet } from './api'
 import { useAnmeldung } from './anmeldung'
 
 /**
@@ -13,6 +13,9 @@ import { useAnmeldung } from './anmeldung'
  */
 interface Kontext {
   bestellungen: Bestellung[]
+  /** Betriebskosten und Abrechnungen – fuer die Zahlen (src/lib/pl.ts). */
+  auslagen: Auslage[]
+  abrechnungen: Abrechnung[]
   laedt: boolean
   fehler: string | null
   neuLaden: () => Promise<void>
@@ -27,6 +30,8 @@ const BestellungenKontext = createContext<Kontext | null>(null)
 export function BestellungenProvider({ children }: { children: ReactNode }) {
   const { schluessel, abmelden } = useAnmeldung()
   const [bestellungen, setBestellungen] = useState<Bestellung[]>([])
+  const [auslagen, setAuslagen] = useState<Auslage[]>([])
+  const [abrechnungen, setAbrechnungen] = useState<Abrechnung[]>([])
   const [laedt, setLaedt] = useState(true)
   const [fehler, setFehler] = useState<string | null>(null)
 
@@ -34,7 +39,13 @@ export function BestellungenProvider({ children }: { children: ReactNode }) {
     if (!schluessel) return
     setLaedt(true)
     try {
-      setBestellungen(await ladeBestellungen(schluessel))
+      // Alles auf einmal: Die Zahlen rechnen aus allen drei, und ein Stand,
+      // in dem die Bestellungen neu sind und die Abrechnungen alt, rechnet
+      // bereits Bezahltes noch einmal als offen.
+      const [b, a, ab] = await Promise.all([ladeBestellungen(schluessel), ladeAuslagen(schluessel), ladeAbrechnungen(schluessel)])
+      setBestellungen(b)
+      setAuslagen(a)
+      setAbrechnungen(ab)
       setFehler(null)
     } catch (f) {
       if (f instanceof NichtAngemeldet) {
@@ -82,8 +93,8 @@ export function BestellungenProvider({ children }: { children: ReactNode }) {
   )
 
   const wert = useMemo(
-    () => ({ bestellungen, laedt, fehler, neuLaden, aendern, offerteLinkFuer }),
-    [bestellungen, laedt, fehler, neuLaden, aendern, offerteLinkFuer],
+    () => ({ bestellungen, auslagen, abrechnungen, laedt, fehler, neuLaden, aendern, offerteLinkFuer }),
+    [bestellungen, auslagen, abrechnungen, laedt, fehler, neuLaden, aendern, offerteLinkFuer],
   )
   return <BestellungenKontext.Provider value={wert}>{children}</BestellungenKontext.Provider>
 }

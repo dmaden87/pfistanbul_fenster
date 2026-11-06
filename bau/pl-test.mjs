@@ -13,7 +13,7 @@ import {
   abrechnungZahlen, offeneEinnahmen, naechsteAbrechnungsnummer,
   abrechnungEntwurf, postenSchluessel, postenSummeFuer,
   ausgeglicheneSchulden, abrechnungJePosten, freiePosten, abgerechneteAuslagen, istErledigt,
-  ausbezahltePosten, kostenNachAbrechnung,
+  ausbezahltePosten, kostenNachAbrechnung, sendungen,
 } from '../src/lib/pl.ts'
 import { herstellungChf } from '../src/lib/kosten.ts'
 /*
@@ -1357,6 +1357,32 @@ pruefe('Was nicht abgerechnet wurde, bleibt unberuehrt', () => {
     { postenId: 'k-netze', art: 'herstellung', betragChf: 60, traeger: 'bora' },
   ])
   assert.deepEqual(nachher.map((k) => k.bezahlt === true), [true, false, false])
+})
+
+/* --- Pro Sendung -------------------------------------------------------------- */
+
+pruefe('Sendungen: je Paket summiert, Marge je Netz, ohne Paket und Abgesagtes nicht', () => {
+  const kosten = [{ id: 'k1', art: 'herstellung', betragChf: 50, traeger: 'bora' }, { id: 'k2', art: 'lieferung', betragChf: 10, traeger: 'bora' },
+    { id: 'k3', art: 'mwst', betragChf: 0, traeger: 'bora' }, { id: 'k4', art: 'montage', betragChf: 0, traeger: 'deniz' }]
+  const liste = [
+    best({ id: 'a', paket: 'P-1', kosten }),
+    best({ id: 'b', paket: 'P-1', positionen: [netz(100, 100, 150, 2)], kosten }),
+    best({ id: 'c' }),
+    best({ id: 'd', paket: 'P-1', status: 'abgesagt' }),
+    best({ id: 'e', paket: 'P-2', status: 'zusage' }),
+  ]
+  const s = sendungen(liste)
+  assert.equal(s.length, 1)
+  const p = s[0]
+  assert.equal(p.paket, 'P-1')
+  assert.equal(p.anzahl, 2)
+  assert.equal(p.netze, 3)
+  const za = zahlenFuer(liste[0])
+  const zb = zahlenFuer(liste[1])
+  assert.equal(p.erloesChf, za.erloesChf + zb.erloesChf)
+  assert.equal(p.kostenChf, za.kostenChf + zb.kostenChf)
+  assert.equal(p.margeChf, Math.round((p.erloesChf - p.kostenChf) * 100) / 100)
+  assert.equal(p.jeNetzChf, Math.round((p.margeChf / 3) * 100) / 100)
 })
 
 console.log(`\n${bestanden}/${bestanden + fehler.length} bestanden`)

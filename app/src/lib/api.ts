@@ -1,4 +1,4 @@
-import type { BestellAenderung, Bestellung } from '@pf/types'
+import type { Abrechnung, Auslage, BestellAenderung, Bestellung } from '@pf/types'
 
 /**
  * Zugriff auf den Server von pfistanbul.ch – dieselben Endpunkte wie der
@@ -96,4 +96,18 @@ export async function holeOfferteGeheimnis(schluessel: string, id: string): Prom
   const daten = await antwort<{ geheim?: string }>(res)
   if (!daten.geheim) throw new Error('Der Server kennt den Offerte-Link noch nicht. Ist die neue Fassung deployt?')
   return daten.geheim
+}
+
+/**
+ * Betriebskosten (Auslagen) und Abrechnungen – fuer die Zahlen. Dieselben
+ * Wege wie der Web-Admin (src/lib/adminApi.ts), mit Schluessel statt Cookie.
+ */
+export async function ladeAuslagen(schluessel: string): Promise<Auslage[]> {
+  const res = await abrufen('/api/auslagen', { headers: { Authorization: `Bearer ${schluessel}` } })
+  return (await antwort<{ auslagen: Auslage[] }>(res)).auslagen
+}
+
+export async function ladeAbrechnungen(schluessel: string): Promise<Abrechnung[]> {
+  const res = await abrufen('/api/abrechnungen', { headers: { Authorization: `Bearer ${schluessel}` } })
+  return (await antwort<{ abrechnungen: Abrechnung[] }>(res)).abrechnungen
 }

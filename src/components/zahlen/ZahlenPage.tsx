@@ -14,7 +14,7 @@ import {
   ausgeglicheneSchulden, forecast, kennzahlen, naechsteAbrechnungsnummer,
   abgerechneteAuslagen, freiePosten, kostenNachAbrechnung, offeneEinnahmen, offeneForderungen, offeneSchulden,
   postenSchluessel,
-  postenSummeFuer, warenkosten, zaehltPhase, zahlenFuer,
+  postenSummeFuer, sendungen, warenkosten, zaehltPhase, zahlenFuer,
   type Periode, type SchuldPosten,
 } from '../../lib/pl'
 import { AbrechnungBlatt } from './AbrechnungBlatt'
@@ -172,7 +172,6 @@ function ZahlenMaske({ onBack }: Props) {
    * nicht diese Liste.
    */
   const zeilen = bestellungen.filter(zaehltPhase).map((b) => ({ b, z: zahlenFuer(b) }))
-  const gerechnet = zeilen.filter((x) => !x.b.ausserRechnung)
   const perioden = abschnitte(bestellungen, auslagen, periode)
   const k = kennzahlen(bestellungen, auslagen, abrechnungen)
   const aussicht = forecast(bestellungen)
@@ -187,21 +186,8 @@ function ZahlenMaske({ onBack }: Props) {
   const ausgeglichen = ausgeglicheneSchulden(bestellungen, auslagen, abrechnungen)
   const inAbrechnung = abrechnungJePosten(abrechnungen)
 
-  /* Sendungen: die Pakete, wie sie zu Bora gegangen sind. */
-  const pakete = new Map<string, {
-    anzahl: number; netze: number; erloes: number; kosten: number; geschaetzt: boolean
-  }>()
-  for (const { b, z } of gerechnet) {
-    if (!b.paket) continue
-    const p = pakete.get(b.paket) ?? { anzahl: 0, netze: 0, erloes: 0, kosten: 0, geschaetzt: false }
-    p.anzahl += 1
-    p.netze += z.netzZahl
-    p.erloes += z.erloesChf
-    p.kosten += z.kostenChf
-    /* Ein einziger Auftrag ohne erfasste Kosten macht die ganze Sendung zur Schaetzung. */
-    if (z.geschaetzt) p.geschaetzt = true
-    pakete.set(b.paket, p)
-  }
+  /* Sendungen: die Pakete, wie sie zu Bora gegangen sind - gerechnet in pl.ts. */
+  const pakete = sendungen(bestellungen)
 
   /*
    * ABGERECHNET WIRD PRO AUFTRAG: Wer einen Auftrag ankreuzt, nimmt seine
@@ -659,7 +645,7 @@ function ZahlenMaske({ onBack }: Props) {
         </div>
 
         {/* --- Pro Sendung --------------------------------------------------- */}
-        {pakete.size > 0 && (
+        {pakete.length > 0 && (
           <div className="zahlen__block">
             <h2>{t.zProSendung}</h2>
             <div className="zahlen__rollen"><table className="zahlen__tabelle">
@@ -675,26 +661,22 @@ function ZahlenMaske({ onBack }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {[...pakete.entries()].map(([name, p]) => (
-                  <tr key={name}>
-                    <td data-titel={t.paketMarke}>{name}</td>
+                {pakete.map((p) => (
+                  <tr key={p.paket}>
+                    <td data-titel={t.paketMarke}>{p.paket}</td>
                     <td data-titel={t.zAuftraege} className="zahlen__zahl">{p.anzahl}</td>
                     <td data-titel={t.netzeMehrzahl} className="zahlen__zahl">{p.netze}</td>
-                    <td data-titel={t.zErloes} className="zahlen__zahl">{formatChf(p.erloes)}</td>
+                    <td data-titel={t.zErloes} className="zahlen__zahl">{formatChf(p.erloesChf)}</td>
                     <td data-titel={t.zKosten} className="zahlen__zahl">
-                      {formatChf(p.kosten)}
+                      {formatChf(p.kostenChf)}
                       {p.geschaetzt && <span className="kosten__marke">{t.zGeschaetzt}</span>}
                     </td>
                     <td data-titel={t.zMarge} className="zahlen__zahl">
-                      <strong>{formatChf(p.erloes - p.kosten)}</strong>
-                      {p.erloes > 0 && (
-                        <span className="zahlen__klein">
-                          {Math.round(((p.erloes - p.kosten) / p.erloes) * 1000) / 10} %
-                        </span>
-                      )}
+                      <strong>{formatChf(p.margeChf)}</strong>
+                      {p.margeProzent !== null && <span className="zahlen__klein">{p.margeProzent} %</span>}
                     </td>
                     <td data-titel={t.zJeNetz} className="zahlen__zahl">
-                      {p.netze > 0 ? formatChf((p.erloes - p.kosten) / p.netze) : '–'}
+                      {p.jeNetzChf !== null ? formatChf(p.jeNetzChf) : '–'}
                     </td>
                   </tr>
                 ))}
