@@ -1,8 +1,17 @@
 import { useState } from 'react'
-import type { BestellAenderung, Bestellung, BestellPosition } from '../../types'
+import type { BestellAenderung, Bestellung } from '../../types'
 import { shopConfig } from '../../data/shopConfig'
-import { betragOderNull, formatChf } from '../../lib/format'
-import { gerechneterPreis, montageBetrag, positionDetail, vorschlagFuer } from './hilfen'
+import { formatChf } from '../../lib/format'
+import { positionDetail, vorschlagFuer } from './hilfen'
+import {
+  abweichendeStempel,
+  angebotAenderung,
+  angebotRechnung,
+  angebotStart,
+  preiseAusVorschlaegen,
+  preiseNeuGerechnet,
+  schluesselFuer,
+} from '../../lib/angebot'
 import { fuelle, useSprache } from './sprache'
 
 /**
@@ -46,55 +55,21 @@ interface AngebotProps {
  */
 const { montageChf: MONTAGE_PRO_NETZ, anfahrtspauschaleChf: ANFAHRT_PAUSCHALE, serviceArea: LIEFERGEBIET } = shopConfig
 
-/*
- * Liest auch die Schweizer Schreibweise mit Apostroph - siehe
- * betragAusText() in src/lib/format.ts. Hier stand `Number(w.replace(',','.'))`,
- * und das machte aus "1'234.50" lautlos eine Null.
- */
-const zahl = betragOderNull
-
 const runde2 = (n: number) => Math.round(n * 100) / 100
 
 export function Angebot({ bestellung: b, onSpeichern, onAbbrechen }: AngebotProps) {
   const { t } = useSprache()
-  const schluessel = (p: BestellPosition, i: number) => p.id ?? `#${i}`
-  const netzZahl = b.positionen.reduce((n, p) => n + p.menge, 0)
-
-  /*
-   * Vorbelegung der Preisfelder: der festgelegte Verkaufspreis, sonst der
-   * Vorschlag. So steht beim Oeffnen eine arbeitsfaehige Zahl im Feld und
-   * niemand muss den Vorschlag abtippen, den er gerade daneben liest.
-   */
-  const [preise, setPreise] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
-      b.positionen.map((p, i) => {
-        const vorschlag = vorschlagFuer(p)
-        const start = p.preisChf > 0 ? p.preisChf : (vorschlag ?? 0)
-        return [schluessel(p, i), start > 0 ? String(start) : '']
-      }),
-    ),
-  )
-  const [montage, setMontage] = useState(b.montage === true || montageBetrag(b) > 0)
-  const [montageChf, setMontageChf] = useState(() => {
-    const betrag = montageBetrag(b)
-    return betrag > 0 ? String(betrag) : String(runde2(netzZahl * MONTAGE_PRO_NETZ))
-  })
-  /*
-   * Die Anfahrt ist beim ERSTEN Zusammenstellen eingeschaltet, mit 0.00: Der
-   * Regelfall liegt im Liefergebiet, dort kostet sie nichts, und genau das
-   * soll auf der Offerte stehen. Spaeter gilt, was gespeichert ist – wer sie
-   * abgeschaltet hat, hat das so gemeint.
-   *
-   * Woran "zum ersten Mal" zu erkennen ist: Solange niemand das Angebot
-   * festgelegt hat, stehen ueberall Vorschlaege. Danach steht eine
-   * Entscheidung da, und Vorschlaege haetten nichts mehr zu sagen.
-   */
-  const erstmals = !b.preiseFestgelegtAm
-  const [anfahrt, setAnfahrt] = useState(erstmals || b.anfahrt === true)
-  const [anfahrtChf, setAnfahrtChf] = useState(b.anfahrtChf !== undefined ? String(b.anfahrtChf) : '0')
-  const [rabatt, setRabatt] = useState(b.rabatt === true || (b.rabattChf ?? 0) > 0)
-  const [rabattChf, setRabattChf] = useState(b.rabattChf ? String(b.rabattChf) : '')
-  const [rabattText, setRabattText] = useState(b.rabattText ?? '')
+  const schluessel = schluesselFuer
+  // Vorbelegung: src/lib/angebot.ts, `angebotStart` (Begruendung dort und oben).
+  const [start] = useState(() => angebotStart(b))
+  const [preise, setPreise] = useState<Record<string, string>>(start.preise)
+  const [montage, setMontage] = useState(start.montage)
+  const [montageChf, setMontageChf] = useState(start.montageChf)
+  const [anfahrt, setAnfahrt] = useState(start.anfahrt)
+  const [anfahrtChf, setAnfahrtChf] = useState(start.anfahrtChf)
+  const [rabatt, setRabatt] = useState(start.rabatt)
+  const [rabattChf, setRabattChf] = useState(start.rabattChf)
+  const [rabattText, setRabattText] = useState(start.rabattText)
   const [sendet, setSendet] = useState(false)
   const [fehler, setFehler] = useState<string | null>(null)
   /*
@@ -106,58 +81,16 @@ export function Angebot({ bestellung: b, onSpeichern, onAbbrechen }: AngebotProp
    */
   const [stempelErsetzen, setStempelErsetzen] = useState(false)
 
-  /*
-   * Wo weicht der Stempel von dem ab, was der Rechner HEUTE sagt? Bei einem
-   * von Hand erfassten Auftrag steht als Stempel der getippte Preis - er
-   * vergleicht sich mit sich selbst, und die Abweichungsspalte zeigt stur
-   * null, egal was wir verlangen.
-   */
-  const abweichendeStempel = b.positionen.filter((p) => {
-    const gerechnet = gerechneterPreis(p.breiteCm, p.hoeheCm, p.rahmendicke, p.netzart)
-    return gerechnet !== null && typeof p.richtpreisChf === 'number' && p.richtpreisChf !== gerechnet
-  }).length
+  const entwurf = { preise, montage, montageChf, anfahrt, anfahrtChf, rabatt, rabattChf, rabattText }
+  const abweichend = abweichendeStempel(b)
+  const { verkauf, netzeChf, montageSumme, anfahrtSumme, rabattSumme, totalChf, unvollstaendig } = angebotRechnung(b, entwurf)
 
-  const verkauf = (p: BestellPosition, i: number) => zahl(preise[schluessel(p, i)] ?? '')
-  const netzeChf = runde2(b.positionen.reduce((s, p, i) => s + verkauf(p, i) * p.menge, 0))
-  const montageSumme = montage ? zahl(montageChf) : 0
-  const anfahrtSumme = anfahrt ? zahl(anfahrtChf) : 0
-  // Nie mehr Rabatt als da ist – sonst stuende ein negatives Total auf einem
-  // verbindlichen Angebot. Der Server deckelt ebenso; hier sieht man es.
-  const rabattSumme = rabatt ? Math.min(zahl(rabattChf), runde2(netzeChf + montageSumme + anfahrtSumme)) : 0
-  const totalChf = runde2(netzeChf + montageSumme + anfahrtSumme - rabattSumme)
-  const unvollstaendig = b.positionen.some((p, i) => verkauf(p, i) <= 0)
-
-  /**
-   * Den Stempel verwerfen und mit dem Rechner neu belegen.
-   *
-   * FUER AUFTRAEGE, DIE NIE EINE ZAHL GEZEIGT HABEN. Was per WhatsApp
-   * hereinkommt oder aus einer leeren Anfrage von Hand erfasst wird, bekommt
-   * bei der Geburt den getippten Preis als Richtpreis gestempelt. Danach
-   * zeigt der Vorschlag diesen Preis - und nicht, was unser Rechner sagt.
-   */
   const neuRechnen = () => {
     setStempelErsetzen(true)
-    setPreise(
-      Object.fromEntries(
-        b.positionen.map((p, i) => {
-          const gerechnet = gerechneterPreis(p.breiteCm, p.hoeheCm, p.rahmendicke, p.netzart)
-          return [schluessel(p, i), gerechnet ? String(gerechnet) : (preise[schluessel(p, i)] ?? '')]
-        }),
-      ),
-    )
+    setPreise(preiseNeuGerechnet(b, preise))
   }
 
-  /** Alle Felder auf den Vorschlag zuruecksetzen – der haeufige Fall. */
-  const vorschlaegeUebernehmen = () => {
-    setPreise(
-      Object.fromEntries(
-        b.positionen.map((p, i) => {
-          const vorschlag = vorschlagFuer(p)
-          return [schluessel(p, i), vorschlag ? String(vorschlag) : (preise[schluessel(p, i)] ?? '')]
-        }),
-      ),
-    )
-  }
+  const vorschlaegeUebernehmen = () => setPreise(preiseAusVorschlaegen(b, preise))
 
   const speichern = async () => {
     if (unvollstaendig) {
@@ -173,33 +106,7 @@ export function Angebot({ bestellung: b, onSpeichern, onAbbrechen }: AngebotProp
        * Richtpreis. Und der Vorschlag geht mit: Steht er noch nicht im
        * Datensatz, wird er hier zum ersten Mal gestempelt.
        */
-      await onSpeichern({
-        positionen: b.positionen.map((p, i) => {
-          const zeile: BestellPosition = { ...p, preisChf: verkauf(p, i) }
-          const gerechnet = gerechneterPreis(p.breiteCm, p.hoeheCm, p.rahmendicke, p.netzart)
-          if (stempelErsetzen) {
-            /*
-             * Neu stempeln heisst: die Rechnung von heute, nicht der Preis,
-             * den wir gerade verlangen. Sonst waere der Vergleichswert wieder
-             * der Verkaufspreis selbst, und die Abweichung bliebe null.
-             */
-            if (gerechnet !== null) zeile.richtpreisChf = gerechnet
-          } else {
-            const vorschlag = vorschlagFuer(p)
-            if (zeile.richtpreisChf === undefined && vorschlag !== null) zeile.richtpreisChf = vorschlag
-          }
-          return zeile
-        }),
-        ...(stempelErsetzen ? { richtpreiseNeu: true } : {}),
-        montage,
-        montageChf: montageSumme,
-        anfahrt,
-        anfahrtChf: anfahrtSumme,
-        rabatt,
-        rabattChf: rabattSumme,
-        rabattText: rabattSumme > 0 ? rabattText.trim() : '',
-        preiseFestgelegt: true,
-      })
+      await onSpeichern(angebotAenderung(b, entwurf, stempelErsetzen))
     } catch (f) {
       setFehler(f instanceof Error ? f.message : 'Fehler')
     } finally {
@@ -303,9 +210,9 @@ export function Angebot({ bestellung: b, onSpeichern, onAbbrechen }: AngebotProp
       {stempelErsetzen ? (
         <p className="admin__detail">{t.richtpreiseNeuAktiv}</p>
       ) : (
-        abweichendeStempel > 0 && (
+        abweichend > 0 && (
           <p className="admin__detail">
-            {fuelle(t.richtpreiseAbweichendSatz, { n: abweichendeStempel })}
+            {fuelle(t.richtpreiseAbweichendSatz, { n: abweichend })}
           </p>
         )
       )}

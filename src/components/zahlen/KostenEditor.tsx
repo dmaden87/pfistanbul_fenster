@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import type { Beteiligter, Bestellung, KostenArt, KostenPosten } from '../../types'
 import { beteiligte } from '../../data/kostenConfig'
-import { einfuhrsteuerChf, herstellungFuer } from '../../lib/kosten'
-import { betragOderNull, formatChf } from '../../lib/format'
+import { formatChf } from '../../lib/format'
+import { kostenBetrag, kostenStart, kostenZumSpeichern, KOSTEN_TRAEGER, weitererKostenposten } from '../../lib/kostenentwurf'
 import { zahlenFuer } from '../../lib/pl'
 import { fuelle, useSprache } from '../admin/sprache'
 import './KostenEditor.css'
@@ -18,18 +18,10 @@ import './KostenEditor.css'
  * geschaetzt – und das soll man sehen koennen.
  */
 
-const ARTEN: KostenArt[] = ['herstellung', 'lieferung', 'mwst']
-
-const TRAEGER: Beteiligter[] = ['bora', 'ufuk', 'deniz']
-
 interface Props {
   bestellung: Bestellung
   onSpeichern: (kosten: KostenPosten[]) => Promise<void>
   onSchliessen: () => void
-}
-
-function neueId(): string {
-  return `k-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
 }
 
 export function KostenEditor({ bestellung, onSpeichern, onSchliessen }: Props) {
@@ -42,8 +34,6 @@ export function KostenEditor({ bestellung, onSpeichern, onSchliessen }: Props) {
     montage: t.zMontageSchuld,
     weiteres: t.zWeitereKosten,
   }
-  const geschaetzteHerstellung = herstellungFuer(bestellung.positionen)
-  const vorhanden = bestellung.kosten ?? []
 
   /*
    * Fehlt ein fester Posten, wird er mit dem Vorschlag angelegt – aber mit
@@ -61,26 +51,15 @@ export function KostenEditor({ bestellung, onSpeichern, onSchliessen }: Props) {
    * er geschrieben hat. Gerechnet wird mit betragAusText(); erst beim
    * Speichern wird daraus eine Zahl.
    */
-  const start: (KostenPosten & { neu?: boolean; betragText: string })[] = []
-  const mitText = (k: KostenPosten) => ({ ...k, betragText: String(k.betragChf) })
-  for (const art of ARTEN) {
-    const treffer = vorhanden.filter((k) => k.art === art)
-    if (treffer.length > 0) { start.push(...treffer.map(mitText)); continue }
-    const betrag = art === 'herstellung' ? geschaetzteHerstellung
-      : art === 'mwst' ? einfuhrsteuerChf(geschaetzteHerstellung)
-      : 0
-    start.push({ id: neueId(), art, betragChf: betrag, betragText: betrag > 0 ? String(betrag) : '', traeger: 'bora', erfasstAm: '', neu: true })
-  }
-  start.push(...vorhanden.filter((k) => k.art === 'weiteres').map(mitText))
-
-  const [posten, setPosten] = useState(start)
+  // Vorbelegung: src/lib/kostenentwurf.ts, `kostenStart`.
+  const [posten, setPosten] = useState(() => kostenStart(bestellung))
   const [sendet, setSendet] = useState(false)
   const [fehler, setFehler] = useState<string | null>(null)
 
   const aendere = (id: string, teil: Partial<KostenPosten & { betragText: string }>) =>
     setPosten((liste) => liste.map((k) => (k.id === id ? { ...k, ...teil } : k)))
 
-  const betrag = (k: { betragText: string }) => betragOderNull(k.betragText)
+  const betrag = kostenBetrag
   const summe = posten.reduce((s, k) => s + betrag(k), 0)
   const z = zahlenFuer(bestellung)
 
@@ -96,18 +75,7 @@ export function KostenEditor({ bestellung, onSpeichern, onSchliessen }: Props) {
        * `neu` ist nur eine Markierung fuer die Anzeige und gehoert nicht in
        * den Datensatz; deshalb wird jeder Posten neu aufgebaut statt kopiert.
        */
-      await onSpeichern(posten
-        .filter((k) => betrag(k) > 0 || k.art === 'herstellung')
-        .map((k) => ({
-          id: k.id,
-          art: k.art,
-          ...(k.bezeichnung ? { bezeichnung: k.bezeichnung } : {}),
-          betragChf: betrag(k),
-          traeger: k.traeger,
-          ...(k.bezahlt ? { bezahlt: true } : {}),
-          ...(k.am ? { am: k.am } : {}),
-          erfasstAm: k.erfasstAm,
-        })))
+      await onSpeichern(kostenZumSpeichern(posten))
       onSchliessen()
     } catch (f) {
       setFehler(f instanceof Error ? f.message : t.zSpeichernSchiefgelaufen)
@@ -160,7 +128,7 @@ export function KostenEditor({ bestellung, onSpeichern, onSchliessen }: Props) {
                   value={k.traeger}
                   onChange={(e) => aendere(k.id, { traeger: e.target.value as Beteiligter })}
                 >
-                  {TRAEGER.map((t) => <option key={t} value={t}>{beteiligte[t]}</option>)}
+                  {KOSTEN_TRAEGER.map((t) => <option key={t} value={t}>{beteiligte[t]}</option>)}
                 </select>
               </td>
               <td data-titel={t.zZurueckbezahlt}>
@@ -185,8 +153,7 @@ export function KostenEditor({ bestellung, onSpeichern, onSchliessen }: Props) {
 
       <div className="kosten__fuss">
         <button type="button" className="btn btn--ghost btn--sm"
-          onClick={() => setPosten((l) => [...l,
-            { id: neueId(), art: 'weiteres', bezeichnung: '', betragChf: 0, betragText: '', traeger: 'deniz', erfasstAm: '' }])}>
+          onClick={() => setPosten((l) => [...l, weitererKostenposten()])}>
           {t.zWeitereKosten}
         </button>
         <p className="kosten__summe">

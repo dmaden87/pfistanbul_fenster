@@ -8,16 +8,25 @@ import {
   RAHMENDICKEN,
   RAHMENFARBEN,
   RAHMENFARBEN_WAHL,
-  STANDARD,
   type Mechanismus,
   type Netzart,
   type Netzfarbe,
   type Rahmenfarbe,
 } from '../../data/produktion'
-import { betragOderNull, formatChf, formatSize } from '../../lib/format'
-import { netSets, netsInSet, setById, typeById, windowTypes } from '../../data/catalog'
-import { gerechneterPreis, positionenSumme, verkaufspreisFuer } from './hilfen'
+import { formatChf, formatSize } from '../../lib/format'
+import { netSets, netsInSet, windowTypes } from '../../data/catalog'
+import { positionenSumme } from './hilfen'
 import { fuelle, useSprache } from './sprache'
+import {
+  ausKatalog,
+  betragAusFeld,
+  katalogWert,
+  leer,
+  netzeMitPreis,
+  netzeZumSpeichern,
+  zuEntwurf,
+  type Entwurf,
+} from '../../lib/netzentwurf'
 
 /**
  * Die Netze einer Bestellung bearbeiten: ergaenzen, aendern, entfernen.
@@ -55,30 +64,6 @@ import { fuelle, useSprache } from './sprache'
  * gibt.
  */
 
-interface Entwurf {
-  menge: string
-  bezeichnung: string
-  breiteCm: string
-  hoeheCm: string
-  preisChf: string
-  rahmendicke: string
-  rahmenfarbe: Rahmenfarbe
-  netzfarbe: Netzfarbe
-  netzart: Netzart
-  mechanismus: Mechanismus
-  oeffnung: OpeningDirection | ''
-  typId?: string
-  setId?: string
-  /**
-   * Die Kennung MUSS mit. Ohne sie vergibt der Server beim Speichern neue
-   * Kennungen, und damit reisst alles ab, was an der alten haengt: die
-   * eingefrorenen Zeilen der Lieferrunde (herkunft.positionId) und Boras
-   * Einkaufspreis, den der Server nur je Kennung wiederfindet. Ein
-   * korrigierter Verkaufspreis loeschte so die ganze Marge – still.
-   */
-  id?: string
-}
-
 interface NetzEditorProps {
   positionen: BestellPosition[]
   montageChf: number
@@ -96,123 +81,6 @@ interface NetzEditorProps {
    * sonst hiesse "Bestellung" nur noch, dass jemand die Felder anders fuellt.
    */
   katalog?: boolean
-}
-
-/** Der Wert des Katalog-Dropdowns: Typ oder Set. */
-function katalogWert(e: Entwurf): string {
-  return e.setId ? `set:${e.setId}` : e.typId ? `typ:${e.typId}` : ''
-}
-
-/** Fuellt einen Entwurf aus dem Katalog. Leer, wenn nichts gewaehlt ist. */
-function ausKatalog(wert: string, vorher: Entwurf): Entwurf {
-  const [art, id] = wert.split(':')
-  if (art === 'typ') {
-    const typ = typeById(id)
-    if (!typ) return { ...leer(), menge: vorher.menge }
-    return {
-      ...leer(),
-      menge: vorher.menge,
-      id: vorher.id,
-      typId: typ.id,
-      bezeichnung: typ.label,
-      breiteCm: String(typ.widthCm),
-      hoeheCm: String(typ.heightCm),
-      preisChf: String(typ.priceChf),
-      rahmendicke: typ.rahmendicke,
-      oeffnung: typ.opening,
-    }
-  }
-  if (art === 'set') {
-    const set = setById(id)
-    if (!set) return { ...leer(), menge: vorher.menge }
-    return { ...leer(), menge: vorher.menge, id: vorher.id, setId: set.id, bezeichnung: set.label, preisChf: String(set.priceChf) }
-  }
-  return { ...leer(), menge: vorher.menge, id: vorher.id }
-}
-
-function zuEntwurf(p: BestellPosition): Entwurf {
-  return {
-    id: p.id,
-    menge: String(p.menge),
-    bezeichnung: p.bezeichnung,
-    breiteCm: p.breiteCm ? String(p.breiteCm) : '',
-    hoeheCm: p.hoeheCm ? String(p.hoeheCm) : '',
-    preisChf: String(p.preisChf),
-    rahmendicke: p.rahmendicke ?? STANDARD.rahmendicke,
-    rahmenfarbe: p.rahmenfarbe ?? STANDARD.rahmenfarbe,
-    netzfarbe: p.netzfarbe ?? STANDARD.netzfarbe,
-    netzart: p.netzart ?? STANDARD.netzart,
-    mechanismus: p.mechanismus ?? STANDARD.mechanismus,
-    // Die Oeffnungsrichtung wird NICHT vorbelegt. Sie sieht man nur am
-    // Fenster, und ein falsch geratener Standard liefert die halbe Runde
-    // spiegelverkehrt.
-    oeffnung: p.oeffnung ?? '',
-    typId: p.typId,
-    setId: p.setId,
-  }
-}
-
-function leer(): Entwurf {
-  return {
-    menge: '1',
-    bezeichnung: '',
-    breiteCm: '',
-    hoeheCm: '',
-    preisChf: '',
-    rahmendicke: STANDARD.rahmendicke,
-    rahmenfarbe: STANDARD.rahmenfarbe,
-    netzfarbe: STANDARD.netzfarbe,
-    netzart: STANDARD.netzart,
-    mechanismus: STANDARD.mechanismus,
-    oeffnung: '',
-  }
-}
-
-/*
- * Masse und Mengen lesen dieselbe Schreibweise wie die Betraege: Wer
- * "1'234" tippt, meint tausendzweihundertvierunddreissig - bei Millimetern
- * genauso wie bei Franken. Hier stand `Number(w.replace(',','.'))`, und das
- * machte aus einem Apostroph lautlos eine Null.
- */
-const zahl = betragOderNull
-
-/** Auf den Millimeter, nicht auf den Zentimeter: 128.6 gerundet passt nicht. */
-function masszahl(wert: string): number | undefined {
-  const n = zahl(wert)
-  return n > 0 ? Math.min(600, Math.round(n * 10) / 10) : undefined
-}
-
-function ausEntwurf(e: Entwurf): BestellPosition {
-  const position: BestellPosition = {
-    menge: Math.min(99, Math.max(1, Math.round(zahl(e.menge)) || 1)),
-    bezeichnung: e.bezeichnung.trim(),
-    detail: '',
-    preisChf: Math.round(zahl(e.preisChf) * 100) / 100,
-    rahmendicke: e.rahmendicke.trim() || undefined,
-    rahmenfarbe: e.rahmenfarbe,
-    netzfarbe: e.netzfarbe,
-    netzart: e.netzart,
-    mechanismus: e.mechanismus,
-  }
-  const breite = masszahl(e.breiteCm)
-  const hoehe = masszahl(e.hoeheCm)
-  if (breite !== undefined) position.breiteCm = breite
-  if (hoehe !== undefined) position.hoeheCm = hoehe
-  if (e.oeffnung) position.oeffnung = e.oeffnung
-  if (e.typId) position.typId = e.typId
-  if (e.setId) {
-    position.setId = e.setId
-    // Wie im Warenkorb: Das Set ist eine Preiszeile, sein Inhalt steht als Text.
-    const set = setById(e.setId)
-    if (set) {
-      const inhalt = set.items.map((i) => `${i.count}× ${typeById(i.typeId)?.label ?? i.typeId}`).join(', ')
-      position.detail = `${netsInSet(set)} Netze: ${inhalt}`
-    }
-  } else if (e.typId && breite && hoehe) {
-    position.detail = formatSize(breite, hoehe)
-  }
-  if (e.id) position.id = e.id
-  return position
 }
 
 export function NetzEditor({
@@ -237,49 +105,22 @@ export function NetzEditor({
     setEntwuerfe((liste) => liste.map((e, i) => (i === index ? { ...e, ...teil } : e)))
   }
 
-  /** Die Netze, wie sie vorher im Datensatz standen – zum Vergleich der Masse. */
-  const vorher = new Map(positionen.filter((p) => p.id).map((p) => [p.id as string, p]))
-
-  /**
-   * Der Preis, der gespeichert wird.
-   *
-   * Katalogware: aus dem Katalog, unangetastet. Sondermass: der gerechnete
-   * Vorschlag – ausser es stand schon ein Preis da UND die Masse sind
-   * dieselben. Dann hat ihn jemand im Angebot festgelegt, und der gilt.
-   */
-  const mitPreis = (e: Entwurf, position: BestellPosition): BestellPosition => {
-    if (katalog) return position
-    const vorschlag = gerechneterPreis(position.breiteCm, position.hoeheCm, position.rahmendicke, position.netzart)
-    const alt = e.id ? vorher.get(e.id) : undefined
-    return {
-      ...position,
-      preisChf: verkaufspreisFuer(alt, position, vorschlag),
-      ...(vorschlag !== null ? { richtpreisChf: vorschlag } : {}),
-    }
-  }
-
-  const netze = entwuerfe.map((e) => mitPreis(e, ausEntwurf(e)))
+  // Preisregel und Richtpreis: src/lib/netzentwurf.ts, `netzeMitPreis`.
+  const netze = netzeMitPreis(entwuerfe, positionen, katalog)
   const summeNetze = positionenSumme(netze)
-  const summe = Math.round((summeNetze + zahl(montage)) * 100) / 100
+  const summe = Math.round((summeNetze + betragAusFeld(montage)) * 100) / 100
 
   const speichern = async () => {
-    // Katalog: Nur, was aus dem Katalog kommt, zaehlt. Eine leere Zeile mit
-    // "— waehlen —" ist kein Netz, aber auch kein Fehler – sie faellt weg.
-    const gefuellt = katalog
-      ? netze.filter((p) => p.typId || p.setId)
-      : netze.filter((p) => p.bezeichnung || p.preisChf > 0 || p.breiteCm || p.hoeheCm)
-    if (katalog && gefuellt.length === 0 && netze.length > 0) {
-      setFehler(t.katalogFehlt)
+    const pruefung = netzeZumSpeichern(netze, katalog)
+    if (pruefung.fehler) {
+      setFehler(t[pruefung.fehler])
       return
     }
-    if (gefuellt.some((p) => !p.bezeichnung)) {
-      setFehler(t.bezeichnungFehlt)
-      return
-    }
+    const gefuellt = pruefung.netze
     setFehler(null)
     setSendet(true)
     try {
-      await onSpeichern(gefuellt, Math.round(zahl(montage) * 100) / 100)
+      await onSpeichern(gefuellt, betragAusFeld(montage))
     } catch (f) {
       setFehler(f instanceof Error ? f.message : 'Fehler')
       setSendet(false)
@@ -504,7 +345,7 @@ export function NetzEditor({
       <p className="netze__summe">
         <span>
           {t.netzeSumme} {formatChf(summeNetze)}
-          {zahl(montage) > 0 && ` · ${t.montageSumme} ${formatChf(zahl(montage))}`}
+          {betragAusFeld(montage) > 0 && ` · ${t.montageSumme} ${formatChf(betragAusFeld(montage))}`}
         </span>
         <strong>{formatChf(summe)}</strong>
       </p>
