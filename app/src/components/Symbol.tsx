@@ -2,9 +2,9 @@ import { StyleSheet, View } from 'react-native'
 
 /**
  * Ein paar einfache Symbole, aus Flaechen gebaut statt aus einer
- * Symbolschrift. V1.0 braucht nur diese; mit V1.1 kommt eine richtige
- * Symbol-Bibliothek dazu (@expo/vector-icons oder SF Symbols / Material
- * Symbols nativ).
+ * Symbolschrift. Solange es bei diesen wenigen bleibt, braucht es keine
+ * Symbol-Bibliothek (@expo/vector-icons oder SF Symbols / Material
+ * Symbols nativ) - und kein Paket mehr im APK.
  */
 export function Pfeil({ farbe, richtung = 'rechts' }: { farbe: string; richtung?: 'rechts' | 'links' }) {
   return (

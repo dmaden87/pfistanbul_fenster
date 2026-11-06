@@ -1,4 +1,4 @@
-import type { BestellAenderung, Bestellung } from '@pf/types'
+import type { Abrechnung, AbrechnungAenderung, Auslage, BestellAenderung, Bestellung } from '@pf/types'
 
 /**
  * Zugriff auf den Server von pfistanbul.ch – dieselben Endpunkte wie der
@@ -96,4 +96,53 @@ export async function holeOfferteGeheimnis(schluessel: string, id: string): Prom
   const daten = await antwort<{ geheim?: string }>(res)
   if (!daten.geheim) throw new Error('Der Server kennt den Offerte-Link noch nicht. Ist die neue Fassung deployt?')
   return daten.geheim
+}
+
+/**
+ * Betriebskosten (Auslagen) und Abrechnungen – fuer die Zahlen. Dieselben
+ * Wege wie der Web-Admin (src/lib/adminApi.ts), mit Schluessel statt Cookie.
+ */
+export async function ladeAuslagen(schluessel: string): Promise<Auslage[]> {
+  const res = await abrufen('/api/auslagen', { headers: { Authorization: `Bearer ${schluessel}` } })
+  return (await antwort<{ auslagen: Auslage[] }>(res)).auslagen
+}
+
+export async function ladeAbrechnungen(schluessel: string): Promise<Abrechnung[]> {
+  const res = await abrufen('/api/abrechnungen', { headers: { Authorization: `Bearer ${schluessel}` } })
+  return (await antwort<{ abrechnungen: Abrechnung[] }>(res)).abrechnungen
+}
+
+/** Ein Aufruf mit Schluessel und JSON-Koerper – fuer Auslagen und Abrechnungen. */
+async function schicke<T>(schluessel: string, pfad: string, method: 'POST' | 'PATCH' | 'DELETE', koerper: unknown): Promise<T> {
+  const res = await abrufen(pfad, {
+    method,
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${schluessel}` },
+    body: JSON.stringify(koerper),
+  })
+  return antwort<T>(res)
+}
+
+export async function legeAuslageAn(schluessel: string, auslage: Omit<Auslage, 'id' | 'erfasstAm'>): Promise<Auslage> {
+  return (await schicke<{ auslage: Auslage }>(schluessel, '/api/auslagen', 'POST', auslage)).auslage
+}
+
+export async function aendereAuslage(schluessel: string, id: string, aenderung: Partial<Auslage>): Promise<Auslage> {
+  return (await schicke<{ auslage: Auslage }>(schluessel, '/api/auslagen', 'PATCH', { ...aenderung, id })).auslage
+}
+
+export async function entferneAuslage(schluessel: string, id: string): Promise<void> {
+  await schicke(schluessel, '/api/auslagen', 'DELETE', { id })
+}
+
+/** Legt eine Abrechnung als Entwurf an – fertig gerechnet in src/lib/pl.ts, der Server legt nur ab. */
+export async function legeAbrechnungAn(schluessel: string, abrechnung: Omit<Abrechnung, 'id' | 'erstelltAm' | 'erledigtAm'>): Promise<Abrechnung> {
+  return (await schicke<{ abrechnung: Abrechnung }>(schluessel, '/api/abrechnungen', 'POST', abrechnung)).abrechnung
+}
+
+export async function aendereAbrechnung(schluessel: string, id: string, aenderung: AbrechnungAenderung): Promise<Abrechnung> {
+  return (await schicke<{ abrechnung: Abrechnung }>(schluessel, '/api/abrechnungen', 'PATCH', { ...aenderung, id })).abrechnung
+}
+
+export async function entferneAbrechnung(schluessel: string, id: string): Promise<void> {
+  await schicke(schluessel, '/api/abrechnungen', 'DELETE', { id })
 }

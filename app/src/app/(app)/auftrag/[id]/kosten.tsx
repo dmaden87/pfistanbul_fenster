@@ -1,4 +1,3 @@
-import { fuelle } from '@pf/components/admin/sprache'
 import { beteiligte } from '@pf/data/kostenConfig'
 import { formatChf } from '@pf/lib/format'
 import { kostenBetrag, kostenStart, kostenZumSpeichern, KOSTEN_TRAEGER, weitererKostenposten, type KostenZeile } from '@pf/lib/kostenentwurf'
@@ -10,18 +9,18 @@ import { Alert, Pressable, Switch, Text, View } from 'react-native'
 import { Feld } from '@/components/Feld'
 import { Abschnitt, BearbeitenRahmen, rahmenStile as r } from '@/components/Rahmen'
 import { Wahl } from '@/components/Wahl'
-import { TEXTE as t } from '@/lib/auftrag'
+import { fuelle, useSprache, type Texte } from '@/lib/sprache'
 import { useBestellungen } from '@/lib/bestellungen'
 import { farben } from '@/theme'
 
-const TITEL: Record<KostenArt, string> = {
+const titelFuer = (t: Texte): Record<KostenArt, string> => ({
   herstellung: t.zHerstellung,
   lieferung: t.zLieferkosten,
   mwst: t.zEinfuhrsteuer,
   kargo: t.zKargoMwst,
   montage: t.zMontageSchuld,
   weiteres: t.zWeitereKosten,
-}
+})
 
 /**
  * Die Kosten eines Auftrags – intern, nie fuer die Kundschaft.
@@ -36,6 +35,8 @@ export default function KostenErfassen() {
   const b = bestellungen.find((x) => x.id === id)
   const [zeilen, setZeilen] = useState<KostenZeile[]>(() => (b ? kostenStart(b) : []))
   const [laeuft, setLaeuft] = useState(false)
+  const { t } = useSprache()
+  const TITEL = titelFuer(t)
 
   if (!b) return null
   const aendere = (kid: string, teil: Partial<KostenZeile>) => setZeilen((l) => l.map((k) => (k.id === kid ? { ...k, ...teil, neu: false } : k)))
@@ -48,14 +49,14 @@ export default function KostenErfassen() {
       await aendern(b!.id, { kosten: kostenZumSpeichern(zeilen) })
       router.back()
     } catch (f) {
-      Alert.alert('Nicht gespeichert', f instanceof Error ? f.message : String(f))
+      Alert.alert(t.nichtGespeichert, f instanceof Error ? f.message : String(f))
     } finally {
       setLaeuft(false)
     }
   }
 
   return (
-    <BearbeitenRahmen titel="Kosten (intern)" unterzeile={`${b.kunde.name} · ${b.referenz}`} speichernText={t.zKostenSpeichern} onSpeichern={speichern} laeuft={laeuft}>
+    <BearbeitenRahmen titel={t.kostenIntern} unterzeile={`${b.kunde.name} · ${b.referenz}`} speichernText={t.zKostenSpeichern} onSpeichern={speichern} laeuft={laeuft}>
       <Abschnitt>
         <Text style={r.zeilenText}>
           {fuelle(t.zKostenZusammenzug, { kosten: formatChf(summe), erloes: formatChf(erloes), marge: formatChf(erloes - summe) })}
@@ -68,7 +69,7 @@ export default function KostenErfassen() {
           titel={TITEL[k.art]}
           rechts={
             k.art === 'weiteres' ? (
-              <Pressable onPress={() => setZeilen((l) => l.filter((x) => x.id !== k.id))} accessibilityRole="button" accessibilityLabel="Posten entfernen" hitSlop={10}>
+              <Pressable onPress={() => setZeilen((l) => l.filter((x) => x.id !== k.id))} accessibilityRole="button" accessibilityLabel={t.postenEntfernen} hitSlop={10}>
                 <Text style={r.gefahrLink}>{t.zWeg}</Text>
               </Pressable>
             ) : k.neu ? (

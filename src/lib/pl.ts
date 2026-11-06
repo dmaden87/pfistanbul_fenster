@@ -766,6 +766,57 @@ export function forecast(bestellungen: Bestellung[]): ForecastZeile[] {
   return [...karte.values()].filter((z) => z.anzahl > 0)
 }
 
+/* --- Pro Sendung ------------------------------------------------------------ */
+
+export interface Sendung {
+  /** Das Paket-Etikett, wie es zu Bora ging. */
+  paket: string
+  anzahl: number
+  netze: number
+  erloesChf: number
+  kostenChf: number
+  margeChf: number
+  margeProzent: number | null
+  /** Marge je Netz – der Vergleich zwischen Sendungen. */
+  jeNetzChf: number | null
+  /** Ein einziger Auftrag ohne erfasste Kosten macht die ganze Sendung zur Schaetzung. */
+  geschaetzt: boolean
+}
+
+/**
+ * Die Pakete, wie sie zu Bora gegangen sind, mit Erloes, Kosten und Marge.
+ *
+ * Stand zuerst in ZahlenPage.tsx. Hier, weil die App dieselbe Tabelle zeigt
+ * und nicht nachrechnen soll. Gezaehlt wird, was in der Rechnung ist
+ * (inRechnung): Abgesagtes und von Hand Ausgenommenes nicht.
+ */
+export function sendungen(bestellungen: Bestellung[]): Sendung[] {
+  const karte = new Map<string, Sendung>()
+  for (const b of bestellungen) {
+    if (!b.paket || !zaehltPhase(b) || b.ausserRechnung) continue
+    const z = zahlenFuer(b)
+    const s = karte.get(b.paket) ?? {
+      paket: b.paket, anzahl: 0, netze: 0, erloesChf: 0, kostenChf: 0,
+      margeChf: 0, margeProzent: null, jeNetzChf: null, geschaetzt: false,
+    }
+    s.anzahl += 1
+    s.netze += z.netzZahl
+    s.erloesChf = runde2(s.erloesChf + z.erloesChf)
+    s.kostenChf = runde2(s.kostenChf + z.kostenChf)
+    if (z.geschaetzt) s.geschaetzt = true
+    karte.set(b.paket, s)
+  }
+  return [...karte.values()].map((s) => {
+    const marge = runde2(s.erloesChf - s.kostenChf)
+    return {
+      ...s,
+      margeChf: marge,
+      margeProzent: s.erloesChf > 0 ? Math.round((marge / s.erloesChf) * 1000) / 10 : null,
+      jeNetzChf: s.netze > 0 ? runde2(marge / s.netze) : null,
+    }
+  })
+}
+
 /* --- Offene Posten in beide Richtungen ------------------------------------- */
 
 export interface Forderung {
@@ -868,6 +919,48 @@ export function kostenNachAbrechnung(
     })
   }
   return raus
+}
+
+/**
+ * Was beim Abschluss einer Abrechnung geschrieben werden muss.
+ *
+ * Stand zuerst in ZahlenPage.tsx (erledigen). Hier, weil die App dieselbe
+ * Abrechnung abschliesst und es nicht zwei Fassungen davon geben darf: Ein
+ * Fehler hier heisst, dass jemand sein Geld doppelt bekommt oder gar nicht.
+ *
+ * EIN SCHREIBVORGANG JE AUFTRAG, NICHT JE POSTEN. Eine Schleife ueber die
+ * Posten baute jede Kostenliste aus demselben alten Stand - der zweite
+ * Durchgang schrieb den ersten wieder weg (siehe Kommentar in ZahlenPage).
+ * Darum werden die Posten hier nach Auftrag gebuendelt.
+ *
+ * Reihenfolge beim Ausfuehren: erst Auslagen und Kosten, dann die
+ * Abrechnung als erledigt. Geht dazwischen etwas schief, steht die
+ * Abrechnung noch offen und laesst sich nochmals abschliessen.
+ */
+export function abschlussSchritte(
+  a: Abrechnung,
+  bestellungen: Bestellung[],
+  jetzt = new Date().toISOString(),
+): { auslagen: string[]; kosten: { bestellungId: string; kosten: KostenPosten[] }[] } {
+  const auslagen: string[] = []
+  const jeAuftrag = new Map<string, { postenId: string; art: KostenArt; betragChf: number; traeger: Beteiligter }[]>()
+  for (const p of a.posten) {
+    if (p.auslageId) {
+      auslagen.push(p.auslageId)
+      continue
+    }
+    if (!p.bestellungId || p.art === 'auslage') continue
+    const liste = jeAuftrag.get(p.bestellungId) ?? []
+    liste.push({ postenId: p.postenId, art: p.art, betragChf: p.betragChf, traeger: p.traeger })
+    jeAuftrag.set(p.bestellungId, liste)
+  }
+  const kosten: { bestellungId: string; kosten: KostenPosten[] }[] = []
+  for (const [bestellungId, posten] of jeAuftrag) {
+    const b = bestellungen.find((x) => x.id === bestellungId)
+    if (!b) continue
+    kosten.push({ bestellungId, kosten: kostenNachAbrechnung(b.kosten ?? [], posten, jetzt) })
+  }
+  return { auslagen, kosten }
 }
 
 /**

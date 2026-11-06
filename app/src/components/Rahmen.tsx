@@ -4,6 +4,7 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollVie
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Knopf } from '@/components/Blatt'
 import { Pfeil } from '@/components/Symbol'
+import { useSprache } from '@/lib/sprache'
 import { farben, radius, TIPPFLAECHE } from '@/theme'
 
 /**
@@ -25,10 +26,11 @@ export function BearbeitenRahmen({
   onSpeichern: () => void
   laeuft: boolean
 }) {
+  const { t } = useSprache()
   return (
     <SafeAreaView style={s.seite} edges={['top', 'bottom']}>
       <View style={s.kopf}>
-        <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Abbrechen, zurück zum Auftrag" style={s.zurueck}>
+        <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel={t.zurueckZuAuftrag} style={s.zurueck}>
           <Pfeil farbe={farben.text} richtung="links" />
         </Pressable>
         <View style={{ flex: 1 }}>

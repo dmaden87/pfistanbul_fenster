@@ -1,4 +1,5 @@
-import { mailLink, nachricht, vorlagenFuer, whatsappLink, type VorlagenId } from '@pf/lib/nachrichten'
+import { mailLink, nachricht, NACHFASSEN_NACH_TAGEN, vorlagenFuer, whatsappLink, type Nachricht, type VorlagenId } from '@pf/lib/nachrichten'
+import type { Bestellung } from '@pf/types'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native'
@@ -6,11 +7,32 @@ import { Knopf } from '@/components/Blatt'
 import { Feld } from '@/components/Feld'
 import { Abschnitt, BearbeitenRahmen, rahmenStile as r } from '@/components/Rahmen'
 import { Wahl } from '@/components/Wahl'
-import { whatsappNummer } from '@/lib/auftrag'
+import { phasenNamen, whatsappNummer, type Phase } from '@/lib/auftrag'
+import { fuelle, useSprache, type Texte } from '@/lib/sprache'
 import { useBestellungen } from '@/lib/bestellungen'
 import { farben, radius } from '@/theme'
 
 type Weg = 'whatsapp' | 'mail'
+
+/*
+ * Was "Gesendet?" ueber den naechsten Schritt sagt – in der Sprache der
+ * Maske. Die Vorlage selbst (src/lib/nachrichten.ts) hat einen deutschen
+ * Satz dafuer; hier wird er aus dem Schritt abgeleitet, damit Ufuk ihn
+ * tuerkisch liest. Die Nachricht an die Kundschaft bleibt Deutsch.
+ */
+function danachHinweis(n: Nachricht, b: Bestellung, t: Texte): string | undefined {
+  const d = n.danach
+  if (!d) return undefined
+  if (d.status && d.status !== b.status && d.status !== 'abgesagt') return fuelle(t.wechseltZu, { phase: phasenNamen(t)[d.status as Phase] })
+  if (d.nachgefasst) return fuelle(t.nachfassenWieder, { n: NACHFASSEN_NACH_TAGEN })
+  if (d.offerteVersendet) return t.fristNeu
+  return undefined
+}
+
+/** Warum eine Vorlage gerade nicht geht – in der Sprache der Maske. */
+function sperrGrund(id: VorlagenId, t: Texte): string {
+  return id === 'I' ? t.sperreQuittung : t.sperrePreise
+}
 
 /**
  * Eine Nachricht an die Kundschaft – Vorlagen A bis I aus
@@ -35,6 +57,8 @@ export default function NachrichtSenden() {
   const [text, setText] = useState('')
   const [geoeffnet, setGeoeffnet] = useState<Weg | null>(null)
   const [laeuft, setLaeuft] = useState(false)
+  const { t } = useSprache()
+  const titel = (id: VorlagenId) => t[`vorlage${id}`]
 
   const vorlageJetzt = b && vid ? nachricht(b, vid) : null
   const brauchtLink = Boolean(vorlageJetzt?.mitLink)
@@ -67,8 +91,8 @@ export default function NachrichtSenden() {
 
   if (!vid || !vorlageJetzt) {
     return (
-      <BearbeitenRahmen titel="Nachricht" unterzeile={`${b.kunde.name} · ${b.referenz}`} speichernText="Zurück" onSpeichern={() => router.back()} laeuft={false}>
-        <Text style={r.satz}>In dieser Phase gibt es keine Vorlage.</Text>
+      <BearbeitenRahmen titel={t.nachricht} unterzeile={`${b.kunde.name} · ${b.referenz}`} speichernText={t.zurueck} onSpeichern={() => router.back()} laeuft={false}>
+        <Text style={r.satz}>{t.keineVorlage}</Text>
       </BearbeitenRahmen>
     )
   }
@@ -79,13 +103,13 @@ export default function NachrichtSenden() {
 
   async function oeffne(weg: Weg) {
     const url = weg === 'whatsapp' ? wa : mail
-    if (!url) return Alert.alert(weg === 'whatsapp' ? 'WhatsApp' : 'Mail', weg === 'whatsapp' ? 'Keine Handynummer hinterlegt.' : 'Keine Mailadresse hinterlegt.')
-    if (linkFehlt) return Alert.alert('Link fehlt', linkFehler ?? 'Der Link zur Offerte wird noch geholt.')
+    if (!url) return Alert.alert(weg === 'whatsapp' ? 'WhatsApp' : t.mail, weg === 'whatsapp' ? t.keineHandynummer : t.keineMailadresse)
+    if (linkFehlt) return Alert.alert(t.linkFehlt, linkFehler ?? t.linkWirdGeholt)
     try {
       await Linking.openURL(url)
       setGeoeffnet(weg)
     } catch {
-      Alert.alert('Nicht geöffnet', 'Dafür ist keine App installiert.')
+      Alert.alert(t.nichtGeoeffnet, t.keineApp)
     }
   }
 
@@ -97,7 +121,7 @@ export default function NachrichtSenden() {
       await aendern(b!.id, danach)
       router.back()
     } catch (f) {
-      Alert.alert('Nicht gespeichert', f instanceof Error ? f.message : String(f))
+      Alert.alert(t.nichtGespeichert, f instanceof Error ? f.message : String(f))
     } finally {
       setLaeuft(false)
     }
@@ -105,31 +129,31 @@ export default function NachrichtSenden() {
 
   return (
     <BearbeitenRahmen
-      titel="Nachricht"
+      titel={t.nachricht}
       unterzeile={`${b.kunde.name} · ${b.referenz}`}
-      speichernText={wa ? 'In WhatsApp öffnen' : 'Per Mail öffnen'}
+      speichernText={wa ? t.inWhatsappOeffnen : t.perMailOeffnen}
       onSpeichern={() => void oeffne(wa ? 'whatsapp' : 'mail')}
       laeuft={laeuft}
     >
       {geoeffnet ? (
         <View style={s.gesendet} accessibilityLiveRegion="polite">
-          <Text style={s.gesendetTitel}>{`Gesendet${geoeffnet === 'whatsapp' ? ' in WhatsApp' : ' per Mail'}?`}</Text>
-          {vorlageJetzt.danachText ? <Text style={r.satz}>{vorlageJetzt.danachText}</Text> : null}
+          <Text style={s.gesendetTitel}>{geoeffnet === 'whatsapp' ? t.gesendetWhatsapp : t.gesendetMail}</Text>
+          {danachHinweis(vorlageJetzt, b, t) ? <Text style={r.satz}>{danachHinweis(vorlageJetzt, b, t)}</Text> : null}
           <View style={{ flexDirection: 'row', gap: 10 }}>
             <View style={{ flex: 1 }}>
-              <Knopf text="Ja, gesendet" onPress={() => void gesendet()} />
+              <Knopf text={t.jaGesendet} onPress={() => void gesendet()} />
             </View>
             <View style={{ flex: 1 }}>
-              <Knopf still text="Noch nicht" onPress={() => setGeoeffnet(null)} />
+              <Knopf still text={t.nochNicht} onPress={() => setGeoeffnet(null)} />
             </View>
           </View>
         </View>
       ) : null}
 
-      <Abschnitt titel="Vorlage">
+      <Abschnitt titel={t.vorlage}>
         <Wahl<VorlagenId>
-          label="Was soll raus?"
-          optionen={wahl.filter((v) => !v.gesperrt).map((v) => ({ wert: v.id, text: `${v.id} · ${v.titel}` }))}
+          label={t.wasSollRaus}
+          optionen={wahl.filter((v) => !v.gesperrt).map((v) => ({ wert: v.id, text: `${v.id} · ${titel(v.id)}` }))}
           wert={vid}
           onWahl={(w) => {
             setVid(w)
@@ -139,35 +163,35 @@ export default function NachrichtSenden() {
         {wahl
           .filter((v) => v.gesperrt)
           .map((v) => (
-            <Text key={v.id} style={r.satz}>{`${v.id} · ${v.titel}: ${v.gesperrt}`}</Text>
+            <Text key={v.id} style={r.satz}>{`${v.id} · ${titel(v.id)}: ${sperrGrund(v.id, t)}`}</Text>
           ))}
       </Abschnitt>
 
-      <Abschnitt titel="Text">
+      <Abschnitt titel={t.text}>
         {brauchtLink ? (
           <View style={r.zeile}>
             {link ? (
               <>
                 <Text style={[r.satz, { flex: 1 }]} numberOfLines={1}>{link}</Text>
                 <Pressable onPress={() => void Linking.openURL(link)} accessibilityRole="link" hitSlop={8}>
-                  <Text style={r.link}>Ansehen</Text>
+                  <Text style={r.link}>{t.ansehen}</Text>
                 </Pressable>
               </>
             ) : linkFehler ? (
-              <Text style={[r.satz, { color: farben.gefahr }]}>{`Link nicht erhalten: ${linkFehler}`}</Text>
+              <Text style={[r.satz, { color: farben.gefahr }]}>{fuelle(t.linkNichtErhalten, { fehler: linkFehler })}</Text>
             ) : (
               <ActivityIndicator color={farben.marke} />
             )}
           </View>
         ) : null}
-        {mail ? <Feld id="betreff" label="Betreff (nur Mail)" value={betreff} onChangeText={setBetreff} /> : null}
-        <Feld id="text" label="Nachricht" value={text} onChangeText={setText} mehrzeilig style={{ minHeight: 260 }} />
-        <Text style={r.satz}>Der Text lässt sich hier und in WhatsApp noch ändern.</Text>
+        {mail ? <Feld id="betreff" label={t.betreffNurMail} value={betreff} onChangeText={setBetreff} /> : null}
+        <Feld id="text" label={t.nachricht} value={text} onChangeText={setText} mehrzeilig style={{ minHeight: 260 }} />
+        <Text style={r.satz}>{t.textAendern}</Text>
       </Abschnitt>
 
       {wa && mail ? (
         <Pressable onPress={() => void oeffne('mail')} accessibilityRole="button" style={[r.zeile, { justifyContent: 'center' }]}>
-          <Text style={r.link}>Stattdessen per Mail öffnen</Text>
+          <Text style={r.link}>{t.stattdessenMail}</Text>
         </Pressable>
       ) : null}
     </BearbeitenRahmen>

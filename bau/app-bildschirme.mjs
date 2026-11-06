@@ -3,7 +3,8 @@
  * den Testserver (bau/app-testserver.mjs). Telefongroesse wie ein Pixel.
  *
  * Aufruf: node bau/app-bildschirme.mjs <zielordner> [schritt ...]
- * Ohne Schritte: Anmelden, Liste, ein Auftrag je Phase, die Unterseiten.
+ * Schritte: "tippe|Text|foto" (Teiltext), "genau|Text|foto" (ganzer Text),
+ * "fuelle|Feldname=Text|foto", "rolle|Pixel|foto", "url|/pfad|foto", "zurueck||foto".
  */
 import { createRequire } from 'node:module'
 
@@ -42,6 +43,8 @@ for (const schritt of process.argv.slice(3)) {
   const [aktion, wert, name] = schritt.split('|')
   try {
     if (aktion === 'tippe') await seite.getByText(wert, { exact: false }).first().click({ timeout: 4000 })
+    if (aktion === 'genau') await seite.getByText(wert, { exact: true }).first().click({ timeout: 4000 })
+    if (aktion === 'fuelle') { const [feld, text] = wert.split('='); await seite.getByLabel(feld, { exact: true }).first().fill(text, { timeout: 4000 }) }
     if (aktion === 'rolle') await seite.mouse.wheel(0, Number(wert))
     if (aktion === 'url') await seite.goto(`${basis}${wert}`)
     if (aktion === 'zurueck') await seite.goBack()

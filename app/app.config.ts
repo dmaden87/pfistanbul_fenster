@@ -12,7 +12,7 @@ import type { ExpoConfig } from 'expo/config'
  * (dort hoechstens um 10). Deshalb beginnt die native App bei 100.
  */
 const versionCode = Number(process.env.PF_VERSION_CODE ?? 100)
-const version = process.env.PF_VERSION_NAME ?? '2.0.0'
+const version = process.env.PF_VERSION_NAME ?? '3.0.0'
 
 const config: ExpoConfig = {
   name: 'PF Admin',

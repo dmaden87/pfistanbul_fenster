@@ -38,10 +38,14 @@ jobs:
           java-version: '17'
 
       - name: Versionsnummer
-        # Ueber 100, damit sie hoeher ist als jede Fassung der Webseiten-App.
+        # versionCode: ueber 100, damit hoeher als jede Fassung der Webseiten-
+        # App, und mit jedem Lauf steigend - sonst nimmt Android das Update nicht.
+        # versionName: Haupt- und Nebennummer aus app/package.json (3.0 = Zahlen),
+        # dahinter die Laufnummer: 3.0.14, 3.0.15 ...
         run: |
+          STUFE=$(node -p "require('./package.json').version.split('.').slice(0, 2).join('.')")
           echo "PF_VERSION_CODE=$((100 + ${{ github.run_number }}))" >> "$GITHUB_ENV"
-          echo "PF_VERSION_NAME=2.0.${{ github.run_number }}" >> "$GITHUB_ENV"
+          echo "PF_VERSION_NAME=$STUFE.${{ github.run_number }}" >> "$GITHUB_ENV"
 
       - name: Pakete
         run: npm ci --no-audit --no-fund

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useSprache } from '@/lib/sprache'
 import { farben, radius, TIPPFLAECHE } from '@/theme'
 
 /**
@@ -9,10 +10,11 @@ import { farben, radius, TIPPFLAECHE } from '@/theme'
  */
 export function Blatt({ offen, titel, onSchliessen, children }: { offen: boolean; titel: string; onSchliessen: () => void; children: ReactNode }) {
   const abstand = useSafeAreaInsets()
+  const { t } = useSprache()
   return (
     <Modal visible={offen} transparent animationType="slide" onRequestClose={onSchliessen} statusBarTranslucent>
       <KeyboardAvoidingView style={s.huelle} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <Pressable style={s.daneben} onPress={onSchliessen} accessibilityLabel="Schliessen" accessibilityRole="button" />
+        <Pressable style={s.daneben} onPress={onSchliessen} accessibilityLabel={t.schliessen} accessibilityRole="button" />
         <View style={[s.blatt, { paddingBottom: Math.max(abstand.bottom, 16) + 8 }]}>
           <View style={s.griff} />
           <Text style={s.titel} accessibilityRole="header">{titel}</Text>
