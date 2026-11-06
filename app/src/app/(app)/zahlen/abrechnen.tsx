@@ -7,6 +7,7 @@ import {
 import { router } from 'expo-router'
 import { useState } from 'react'
 import { Alert, Pressable, Text } from 'react-native'
+import { Feld } from '@/components/Feld'
 import { AbrechnungAnsicht } from '@/components/AbrechnungAnsicht'
 import { BearbeitenRahmen, rahmenStile as r } from '@/components/Rahmen'
 import { HakenZeile, Hinweis, ZahlenKarte, ZahlZeile } from '@/components/Zahlen'
@@ -29,16 +30,18 @@ import { postenTitel } from '@/lib/zahlen'
  * Web (abrechnungEntwurf, abrechnungZahlen, abschlussSchritte).
  */
 export default function Abrechnen() {
-  const { bestellungen, auslagen, abrechnungen, abrechnungAnlegen, abrechnungAbschliessen, abrechnungVerwerfen } = useBestellungen()
+  const { bestellungen, auslagen, abrechnungen, abrechnungAnlegen, abrechnungAbschliessen, abrechnungVerwerfen, abrechnungAendern } = useBestellungen()
   const { t, datumsform } = useSprache()
   const [auftraege, setAuftraege] = useState<string[]>([])
   const [posten, setPosten] = useState<string[]>([])
   const [laeuft, setLaeuft] = useState(false)
+  const [notiz, setNotiz] = useState<string | null>(null)
 
   const entwurf = abrechnungen.find((a) => !a.erledigtAm)
   const einnahmen = offeneEinnahmen(bestellungen, abrechnungen)
   const schulden = offeneSchulden(bestellungen, auslagen, abrechnungen)
   const frei = freiePosten(schulden)
+  const erledigte = abrechnungen.filter((a) => a.erledigtAm).length
 
   const fehler = (f: unknown) => Alert.alert(t.nichtGespeichert, f instanceof Error ? f.message : String(f))
 
@@ -66,6 +69,7 @@ export default function Abrechnen() {
         onPress: async () => {
           setLaeuft(true)
           try {
+            if (notiz !== null && notiz !== (entwurf.notiz ?? '')) await abrechnungAendern(entwurf.id, { notiz })
             await abrechnungAbschliessen(entwurf)
             router.back()
           } catch (f) {
@@ -91,6 +95,18 @@ export default function Abrechnen() {
       <BearbeitenRahmen titel={`${t.zAbrechnung} ${entwurf.nummer}`} unterzeile={t.zEntwurf} speichernText={t.zErledigtKnopf} onSpeichern={abschliessen} laeuft={laeuft}>
         <Hinweis>{t.zEntwurfSatz}</Hinweis>
         <AbrechnungAnsicht a={entwurf} />
+        {/* Die Notiz geht mit in den Beleg – z. B. "Bar an Ufuk am 12.11.". Gespeichert beim Verlassen des Felds. */}
+        <Feld
+          id="abrechnung-notiz"
+          label={t.notiz}
+          value={notiz ?? entwurf.notiz ?? ''}
+          onChangeText={setNotiz}
+          onBlur={() => {
+            if (notiz !== null && notiz !== (entwurf.notiz ?? '')) void abrechnungAendern(entwurf.id, { notiz }).catch(fehler)
+          }}
+          mehrzeilig
+          maxLength={300}
+        />
         <Pressable onPress={verwerfen} accessibilityRole="button" style={[r.zeile, { justifyContent: 'center' }]}>
           <Text style={r.gefahrLink}>{t.zVerwerfenKnopf}</Text>
         </Pressable>
@@ -146,6 +162,11 @@ export default function Abrechnen() {
         ))}
       </ZahlenKarte>
       <Hinweis>{t.zProAuftragSatz2}</Hinweis>
+      {erledigte > 0 ? (
+        <ZahlenKarte>
+          <ZahlZeile erste titel={fuelle(t.zFruehereAnzahl, { n: erledigte })} onPress={() => router.push('/zahlen/historie')} />
+        </ZahlenKarte>
+      ) : null}
     </BearbeitenRahmen>
   )
 }
