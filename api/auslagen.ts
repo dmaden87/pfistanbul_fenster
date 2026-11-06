@@ -101,7 +101,7 @@ function tag(wert: unknown): string {
 }
 
 function darf(req: VercelRequest): boolean {
-  return demoModus || angemeldet(req.headers.cookie)
+  return demoModus || angemeldet(req.headers.cookie, req.headers.authorization)
 }
 
 function nichtAngemeldet(res: VercelResponse) {
