@@ -1,4 +1,5 @@
 import { ABSAGE_GRUENDE, knoepfe, type KartenKnopf } from '@pf/lib/aktionen'
+import { auftragAufbauen } from '@pf/lib/bestellauftrag'
 import { formatChf } from '@pf/lib/format'
 import { abschnittFuer } from '@pf/lib/phasen'
 import { grundText, positionDetail } from '@pf/components/admin/hilfen'
@@ -53,6 +54,23 @@ export default function Auftrag() {
       setLaeuft(false)
     }
   }
+
+  /*
+   * Was dem Bestellschein fuer Bora noch fehlt, je Netz – aus derselben
+   * Pruefung, die im Web-Admin den Schritt zum Angebot sperrt. Nur "2 Angaben
+   * fehlen" zu melden, hilft unterwegs nicht: man muss wissen, welche.
+   */
+  // Der Bestellschein fuehrt jedes Stueck einzeln; hier zaehlen gleiche Netze
+  // mit gleichen Luecken als eine Zeile ("2× Sondermass Küche: …").
+  const luecken = Object.values(
+    (b.positionen.length === 0 ? [] : auftragAufbauen([b]).luecken).reduce<Record<string, { text: string; n: number }>>((acc, l) => {
+      const text = `${l.netz}: ${l.fehlt.join(', ')}`
+      acc[text] = { text, n: (acc[text]?.n ?? 0) + 1 }
+      return acc
+    }, {}),
+  ).map(({ text, n }) => (n > 1 ? `${n}× ${text}` : text))
+  const lueckenText = b.positionen.length === 0 ? 'Es sind noch keine Netze erfasst.' : luecken.map((l) => `• ${l}`).join('\n')
+  const zeigeLuecken = (titel: string) => Alert.alert(titel, `Für den Bestellschein fehlt noch:\n\n${lueckenText}`)
 
   const abschnitt = abschnittFuer(b)
   const alleKnoepfe = knoepfe(b, abschnitt, t, false)
@@ -137,9 +155,16 @@ export default function Auftrag() {
           {weitere.length ? (
             <View style={s.weitere}>
               {weitere.map((k) => (
-                <Pressable key={k.text} onPress={() => druecke(k)} accessibilityRole="button" disabled={!!k.gesperrt || laeuft} style={s.weitererSchritt}>
+                <Pressable
+                  key={k.text}
+                  onPress={() => (k.gesperrt ? zeigeLuecken(k.gesperrt) : druecke(k))}
+                  accessibilityRole="button"
+                  accessibilityHint={k.gesperrt ? 'Zeigt, was fehlt' : undefined}
+                  disabled={laeuft}
+                  style={s.weitererSchritt}
+                >
                   <Text style={[s.weitererText, k.gesperrt && { color: farben.textSchwach }]}>{k.text}</Text>
-                  {k.gesperrt ? <Text style={s.leise}>{k.gesperrt}</Text> : <Pfeil farbe={farben.marke} />}
+                  {k.gesperrt ? <Text style={s.fehltLink}>{`${k.gesperrt} · welche?`}</Text> : <Pfeil farbe={farben.marke} />}
                 </Pressable>
               ))}
             </View>
@@ -194,6 +219,14 @@ export default function Auftrag() {
             <Text style={[s.zeilenText, { fontWeight: '700' }]}>Total</Text>
             <Text style={[s.preis, { fontWeight: '700' }]}>{formatChf(b.summeChf)}</Text>
           </View>
+          {luecken.length > 0 ? (
+            <View style={s.fehltBox}>
+              <Text style={s.fehltTitel}>Für den Bestellschein fehlt noch</Text>
+              {luecken.map((l) => (
+                <Text key={l} style={s.fehltText}>{l}</Text>
+              ))}
+            </View>
+          ) : null}
           <Text style={s.leise}>Netze und Preise bearbeiten kommt mit dem nächsten Update.</Text>
         </Karte>
 
@@ -211,7 +244,11 @@ export default function Auftrag() {
 
       {hauptKnopf ? (
         <View style={s.fuss}>
-          {hauptKnopf.gesperrt ? <Text style={[s.leise, { textAlign: 'center', marginBottom: 6 }]}>{hauptKnopf.gesperrt}</Text> : null}
+          {hauptKnopf.gesperrt ? (
+            <Pressable onPress={() => zeigeLuecken(hauptKnopf.gesperrt!)} accessibilityRole="button" style={s.fehltZeile}>
+              <Text style={s.fehltLink}>{`${hauptKnopf.gesperrt} · welche?`}</Text>
+            </Pressable>
+          ) : null}
           {laeuft ? (
             <ActivityIndicator color={farben.marke} style={{ height: TIPPFLAECHE + 6 }} />
           ) : (
@@ -420,4 +457,9 @@ const s = StyleSheet.create({
   absagenText: { color: farben.gefahr, fontWeight: '600', fontSize: 15 },
   fuss: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 6, borderTopWidth: 1, borderTopColor: farben.rand, backgroundColor: farben.grund },
   leer: { textAlign: 'center', color: farben.textSchwach, marginTop: 32, fontSize: 15 },
+  fehltLink: { fontSize: 13, fontWeight: '600', color: farben.hinweisTinte, textDecorationLine: 'underline' },
+  fehltZeile: { minHeight: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  fehltBox: { marginTop: 6, padding: 12, borderRadius: radius.mittel, backgroundColor: farben.hinweisWeich, borderWidth: 1, borderColor: farben.hinweisRand, gap: 4 },
+  fehltTitel: { fontSize: 13, fontWeight: '700', color: farben.hinweisTinte },
+  fehltText: { fontSize: 14, color: farben.text },
 })
