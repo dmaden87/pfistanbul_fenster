@@ -1,4 +1,4 @@
-import type { Bestellung } from '@pf/types'
+import type { BestellAenderung, Bestellung } from '@pf/types'
 
 /**
  * Zugriff auf den Server von pfistanbul.ch – dieselben Endpunkte wie der
@@ -66,4 +66,19 @@ export async function ladeBestellungen(schluessel: string): Promise<Bestellung[]
   })
   const daten = await antwort<{ bestellungen: Bestellung[] }>(res)
   return daten.bestellungen
+}
+
+/**
+ * Aendert eine Bestellung – derselbe Weg wie der Web-Admin
+ * (src/lib/adminApi.ts, `aendereBestellung`). Der Server nimmt nur, was in
+ * `BestellAenderung` steht, prueft es und gibt den neuen Stand zurueck.
+ */
+export async function aendereBestellung(schluessel: string, id: string, aenderung: BestellAenderung): Promise<Bestellung> {
+  const res = await abrufen('/api/bestellungen', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${schluessel}` },
+    body: JSON.stringify({ id, ...aenderung }),
+  })
+  const daten = await antwort<{ bestellung: Bestellung }>(res)
+  return daten.bestellung
 }

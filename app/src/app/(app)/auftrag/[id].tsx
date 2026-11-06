@@ -1,24 +1,35 @@
-import { formatChf, formatSize } from '@pf/lib/format'
-import type { Bestellung } from '@pf/types'
+import { ABSAGE_GRUENDE, knoepfe, type KartenKnopf } from '@pf/lib/aktionen'
+import { formatChf } from '@pf/lib/format'
+import { abschnittFuer } from '@pf/lib/phasen'
+import { grundText, positionDetail } from '@pf/components/admin/hilfen'
+import type { AbsageGrund, BestellAenderung, Bestellung } from '@pf/types'
+import { DateTimePickerAndroid } from '@react-native-community/datetimepicker'
 import { router, useLocalSearchParams } from 'expo-router'
-import type { ReactNode } from 'react'
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useState, type ReactNode } from 'react'
+import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { Blatt, Knopf } from '@/components/Blatt'
+import { Feld } from '@/components/Feld'
 import { Pfeil } from '@/components/Symbol'
-import { netzAnzahl, PHASE_LABEL, PHASEN, preisOffen, quelleLabel, tageInPhase, termine, whatsappNummer, type Phase } from '@/lib/auftrag'
+import { netzAnzahl, PHASE_LABEL, PHASEN, preisOffen, quelleLabel, tageInPhase, TEXTE, whatsappNummer, type Phase } from '@/lib/auftrag'
 import { useBestellungen } from '@/lib/bestellungen'
 import { farben, radius, TIPPFLAECHE } from '@/theme'
 
+const t = TEXTE
+
 /**
- * Ein Auftrag auf einem Bildschirm. In V1.0 zum Ansehen und um die
- * Kundschaft zu erreichen (Anrufen, WhatsApp, Mail, Karte); Bearbeiten,
- * Phase umstellen und Vorlagen senden kommen mit V1.1 – siehe
- * docs/app/README.md.
+ * Ein Auftrag auf einem Bildschirm.
+ *
+ * V1.1a: Phase weiterschalten (dieselben Schritte wie im Web-Admin, aus
+ * src/lib/aktionen.ts), Kontakt, Termine, Notiz, Absagen. Netze, Preise und
+ * Kosten folgen mit V1.1b, Nachrichten mit V1.2 – docs/app/README.md.
  */
 export default function Auftrag() {
   const { id } = useLocalSearchParams<{ id: string }>()
-  const { bestellungen } = useBestellungen()
+  const { bestellungen, aendern } = useBestellungen()
   const b = bestellungen.find((x) => x.id === id)
+  const [blatt, setBlatt] = useState<null | 'kontakt' | 'notiz' | 'absagen'>(null)
+  const [laeuft, setLaeuft] = useState(false)
 
   if (!b) {
     return (
@@ -27,6 +38,64 @@ export default function Auftrag() {
         <Text style={s.leer}>Diesen Auftrag gibt es nicht mehr.</Text>
       </SafeAreaView>
     )
+  }
+
+  /** Jede Aenderung laeuft hierueber: Sperre, Fehler als Hinweis. */
+  async function speichere(aenderung: BestellAenderung, ziel: Bestellung = b!): Promise<boolean> {
+    setLaeuft(true)
+    try {
+      await aendern(ziel.id, aenderung)
+      return true
+    } catch (f) {
+      Alert.alert('Nicht gespeichert', f instanceof Error ? f.message : String(f))
+      return false
+    } finally {
+      setLaeuft(false)
+    }
+  }
+
+  const abschnitt = abschnittFuer(b)
+  const alleKnoepfe = knoepfe(b, abschnitt, t, false)
+  const hauptKnopf = alleKnoepfe.find((k) => k.art === 'haupt')
+  const weitere = alleKnoepfe.filter((k) => k !== hauptKnopf && k.tat !== 'absagen')
+  const kannAbsagen = alleKnoepfe.some((k) => k.tat === 'absagen')
+
+  /** Was ein Knopf aus der gemeinsamen Tabelle in der App tut. */
+  function druecke(k: KartenKnopf) {
+    if (k.gesperrt) return
+    if (k.tat === 'absagen') return setBlatt('absagen')
+    if (k.tat === 'offerte' || k.tat === 'anfrageBlatt' || k.tat === 'bestellBlatt') {
+      return Alert.alert(k.text, 'Offerten und Bestellscheine kommen mit V1.2 in die App. Bis dahin im Web-Admin.')
+    }
+    if (k.tat === 'boraBestellt') {
+      // Wie im Web-Admin: ein Paket geht als Ganzes zu Bora.
+      const paket = b!.paket ? bestellungen.filter((x) => x.paket === b!.paket && x.status === 'bestellen') : [b!]
+      const frage = paket.length > 1 ? `Alle ${paket.length} Aufträge im Paket «${b!.paket}» als bestellt markieren?` : 'Als bei Bora bestellt markieren?'
+      return Alert.alert(k.text, frage, [
+        { text: 'Abbrechen', style: 'cancel' },
+        {
+          text: 'Ja, bestellt',
+          onPress: async () => {
+            for (const x of paket) if (!(await speichere({ status: 'bora', bestellt: true }, x))) return
+          },
+        },
+      ])
+    }
+    void speichere(k.tat)
+  }
+
+  /**
+   * Eine Phase direkt antippen. Gibt es dafuer einen Schritt in der Tabelle,
+   * wird der genommen – er setzt die richtigen Stempel (Zusage, Versand).
+   * Sonst nur der Status, nach Rueckfrage.
+   */
+  function setzePhase(ziel: Phase) {
+    if (b!.status === ziel) return
+    const schritt = alleKnoepfe.find((k) => typeof k.tat === 'object' && k.tat.status === ziel && !k.gesperrt)
+    Alert.alert('Phase umstellen', `Auf «${PHASE_LABEL[ziel]}» setzen?`, [
+      { text: 'Abbrechen', style: 'cancel' },
+      { text: 'Umstellen', onPress: () => void speichere(schritt ? (schritt.tat as BestellAenderung) : { status: ziel }) },
+    ])
   }
 
   const phase = b.status === 'abgesagt' ? null : (b.status as Phase)
@@ -42,34 +111,65 @@ export default function Auftrag() {
           {[b.kunde.ort, `${netzAnzahl(b)} Netze`, preisOffen(b) ? 'Preis offen' : formatChf(b.summeChf)].filter(Boolean).join(' · ')}
         </Text>
 
-        <Karte titel="Phase">
+        <Karte titel="Phase" hinweis={phase ? 'Antippen zum Umstellen' : undefined}>
           <View style={s.phasenBalken}>
             {PHASEN.map((p, i) => (
               <View key={p} style={[s.balken, { backgroundColor: i < idx ? farben.marke : i === idx ? farben.hinweis : farben.rand }]} />
             ))}
           </View>
-          <Text style={s.phaseText}>{phase ? PHASE_LABEL[phase] : 'Abgesagt'}</Text>
+          {phase ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.phasenReihe}>
+              {PHASEN.map((p, i) => (
+                <Pressable
+                  key={p}
+                  onPress={() => setzePhase(p)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: i === idx }}
+                  style={[s.phaseChip, i < idx && s.phaseChipErledigt, i === idx && s.phaseChipAktiv]}
+                >
+                  <Text style={[s.phaseChipText, i < idx && { color: farben.marke }, i === idx && { color: '#ffffff' }]}>{PHASE_LABEL[p]}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          ) : (
+            <Text style={s.phaseText}>{`Abgesagt · ${grundText(b.absageGrund, t)}`}</Text>
+          )}
+          {weitere.length ? (
+            <View style={s.weitere}>
+              {weitere.map((k) => (
+                <Pressable key={k.text} onPress={() => druecke(k)} accessibilityRole="button" disabled={!!k.gesperrt || laeuft} style={s.weitererSchritt}>
+                  <Text style={[s.weitererText, k.gesperrt && { color: farben.textSchwach }]}>{k.text}</Text>
+                  {k.gesperrt ? <Text style={s.leise}>{k.gesperrt}</Text> : <Pfeil farbe={farben.marke} />}
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
         </Karte>
 
         <Aktionen b={b} />
 
-        <Karte titel="Kontakt">
+        <Karte titel="Kontakt" stift={() => setBlatt('kontakt')} stiftLabel="Kontakt bearbeiten">
           <Text style={s.zeilenText}>{b.kunde.telefon || '— keine Telefonnummer —'}</Text>
           <Text style={s.zeilenText}>{b.kunde.email || '— keine Mail —'}</Text>
-          <Text style={s.leise}>{[b.kunde.strasse, [b.kunde.plz, b.kunde.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ')}</Text>
+          <Text style={s.leise}>{[b.kunde.strasse, [b.kunde.plz, b.kunde.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ') || '— keine Adresse —'}</Text>
         </Karte>
 
         <Karte titel="Termine">
-          {termine(b).length ? (
-            termine(b).map((t) => (
-              <View key={t.art} style={s.paar}>
-                <Text style={s.zeilenText}>{t.art}</Text>
-                <Text style={[s.zeilenText, { fontWeight: '600' }]}>{t.wann}</Text>
-              </View>
-            ))
-          ) : (
-            <Text style={s.leise}>Noch kein Termin.</Text>
-          )}
+          <TerminZeile art="Ausmessen" wert={b.klaerungTermin} onSpeichern={(w) => speichere({ klaerungTermin: w })} />
+          <TerminZeile art="Montage" wert={b.montageTermin} onSpeichern={(w) => speichere({ montageTermin: w })} />
+          <View style={[s.paar, s.trenner, { paddingTop: 8 }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={s.zeilenText}>Ausgemessen</Text>
+              {b.ausgemessenAm ? <Text style={s.leise}>{new Date(b.ausgemessenAm).toLocaleDateString('de-CH')}</Text> : null}
+            </View>
+            <Switch
+              value={Boolean(b.ausgemessenAm)}
+              onValueChange={(an) => void speichere({ ausgemessen: an })}
+              disabled={laeuft}
+              trackColor={{ true: farben.marke, false: farben.randStark }}
+              accessibilityLabel="Ausgemessen"
+            />
+          </View>
         </Karte>
 
         <Karte titel="Netze & Preise">
@@ -78,9 +178,7 @@ export default function Auftrag() {
               <Text style={s.menge}>{p.menge}×</Text>
               <View style={{ flex: 1 }}>
                 <Text style={s.zeilenText}>{p.bezeichnung}</Text>
-                <Text style={s.leise}>
-                  {p.breiteCm && p.hoeheCm ? formatSize(p.breiteCm, p.hoeheCm) : p.detail || ' '}
-                </Text>
+                <Text style={s.leise}>{positionDetail(p) || ' '}</Text>
               </View>
               <Text style={s.preis}>{p.preisChf > 0 ? formatChf(p.preisChf) : 'Preis?'}</Text>
             </View>
@@ -96,18 +194,131 @@ export default function Auftrag() {
             <Text style={[s.zeilenText, { fontWeight: '700' }]}>Total</Text>
             <Text style={[s.preis, { fontWeight: '700' }]}>{formatChf(b.summeChf)}</Text>
           </View>
+          <Text style={s.leise}>Netze und Preise bearbeiten kommt mit dem nächsten Update.</Text>
         </Karte>
 
-        {b.kunde.bemerkung || b.notiz ? (
-          <Karte titel="Notizen">
-            {b.kunde.bemerkung ? <Text style={s.zeilenText}>{`Kundschaft: ${b.kunde.bemerkung}`}</Text> : null}
-            {b.notiz ? <Text style={s.zeilenText}>{b.notiz}</Text> : null}
-          </Karte>
-        ) : null}
+        <Karte titel="Notiz" stift={() => setBlatt('notiz')} stiftLabel="Notiz bearbeiten">
+          {b.kunde.bemerkung ? <Text style={s.zeilenText}>{`Kundschaft: ${b.kunde.bemerkung}`}</Text> : null}
+          <Text style={b.notiz ? s.zeilenText : s.leise}>{b.notiz || 'Noch keine Notiz.'}</Text>
+        </Karte>
 
-        <Text style={s.hinweis}>Bearbeiten, Phase umstellen und Nachrichten senden kommen mit dem nächsten Update.</Text>
+        {kannAbsagen ? (
+          <Pressable onPress={() => setBlatt('absagen')} accessibilityRole="button" style={s.absagen}>
+            <Text style={s.absagenText}>{t.knopfAbsagen}</Text>
+          </Pressable>
+        ) : null}
       </ScrollView>
+
+      {hauptKnopf ? (
+        <View style={s.fuss}>
+          {hauptKnopf.gesperrt ? <Text style={[s.leise, { textAlign: 'center', marginBottom: 6 }]}>{hauptKnopf.gesperrt}</Text> : null}
+          {laeuft ? (
+            <ActivityIndicator color={farben.marke} style={{ height: TIPPFLAECHE + 6 }} />
+          ) : (
+            <Knopf text={hauptKnopf.text} onPress={() => druecke(hauptKnopf)} gesperrt={!!hauptKnopf.gesperrt} />
+          )}
+        </View>
+      ) : null}
+
+      <KontaktBlatt b={b} offen={blatt === 'kontakt'} onSchliessen={() => setBlatt(null)} speichere={speichere} />
+      <NotizBlatt b={b} offen={blatt === 'notiz'} onSchliessen={() => setBlatt(null)} speichere={speichere} />
+      <Blatt offen={blatt === 'absagen'} titel={t.knopfAbsagen} onSchliessen={() => setBlatt(null)}>
+        <Text style={s.leise}>Warum wird nichts daraus? Der Auftrag kommt ins Archiv und lässt sich wieder öffnen.</Text>
+        {ABSAGE_GRUENDE.map((g: AbsageGrund) => (
+          <Knopf
+            key={g}
+            still
+            text={grundText(g, t)}
+            onPress={async () => {
+              if (await speichere({ status: 'abgesagt', absageGrund: g })) setBlatt(null)
+            }}
+          />
+        ))}
+      </Blatt>
     </SafeAreaView>
+  )
+}
+
+type Speichere = (aenderung: BestellAenderung) => Promise<boolean>
+
+function KontaktBlatt({ b, offen, onSchliessen, speichere }: { b: Bestellung; offen: boolean; onSchliessen: () => void; speichere: Speichere }) {
+  const [k, setK] = useState(b.kunde)
+  const [vorher, setVorher] = useState(offen)
+  // Beim Oeffnen den aktuellen Stand uebernehmen, nicht den vom letzten Mal.
+  if (offen !== vorher) {
+    setVorher(offen)
+    if (offen) setK(b.kunde)
+  }
+  const feld = (name: keyof typeof k) => ({ value: k[name], onChangeText: (v: string) => setK({ ...k, [name]: v }) })
+  return (
+    <Blatt offen={offen} titel="Kontakt bearbeiten" onSchliessen={onSchliessen}>
+      <Feld id="k-name" label="Name" {...feld('name')} autoCapitalize="words" />
+      <Feld id="k-tel" label="Telefon" {...feld('telefon')} keyboardType="phone-pad" />
+      <Feld id="k-mail" label="Mail" {...feld('email')} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
+      <Feld id="k-strasse" label="Strasse" {...feld('strasse')} />
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <View style={{ width: 96 }}><Feld id="k-plz" label="PLZ" {...feld('plz')} keyboardType="number-pad" /></View>
+        <View style={{ flex: 1 }}><Feld id="k-ort" label="Ort" {...feld('ort')} /></View>
+      </View>
+      <Knopf
+        text="Speichern"
+        onPress={async () => {
+          const { name, telefon, email, strasse, plz, ort } = k
+          if (await speichere({ kunde: { name, telefon, email, strasse, plz, ort } })) onSchliessen()
+        }}
+      />
+    </Blatt>
+  )
+}
+
+function NotizBlatt({ b, offen, onSchliessen, speichere }: { b: Bestellung; offen: boolean; onSchliessen: () => void; speichere: Speichere }) {
+  const [notiz, setNotiz] = useState(b.notiz ?? '')
+  const [vorher, setVorher] = useState(offen)
+  if (offen !== vorher) {
+    setVorher(offen)
+    if (offen) setNotiz(b.notiz ?? '')
+  }
+  return (
+    <Blatt offen={offen} titel="Notiz" onSchliessen={onSchliessen}>
+      <Feld id="notiz" label="Nur für uns, nicht für die Kundschaft" value={notiz} onChangeText={setNotiz} mehrzeilig maxLength={1200} />
+      <Knopf text="Speichern" onPress={async () => { if (await speichere({ notiz })) onSchliessen() }} />
+    </Blatt>
+  )
+}
+
+/** ISO-Datum (JJJJ-MM-TT) in Ortszeit – so speichert der Web-Admin Termine. */
+function isoTag(d: Date): string {
+  const z = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`
+}
+
+function TerminZeile({ art, wert, onSpeichern }: { art: string; wert?: string; onSpeichern: (wert: string) => Promise<boolean> }) {
+  const datum = wert ? new Date(wert.length === 10 ? `${wert}T00:00` : wert) : null
+  function waehle() {
+    if (Platform.OS !== 'android') {
+      // iOS folgt mit V2: dort ist der Datumswaehler ein eingebettetes Element.
+      return Alert.alert(art, 'Termine eintragen geht vorerst nur auf Android.')
+    }
+    DateTimePickerAndroid.open({
+      value: datum ?? new Date(),
+      mode: 'date',
+      title: `${art}: Datum wählen`,
+      onValueChange: (_e, d) => void onSpeichern(isoTag(d)),
+    })
+  }
+  return (
+    <View style={[s.paar, { alignItems: 'center', minHeight: TIPPFLAECHE }]}>
+      <Text style={[s.zeilenText, { flex: 1 }]}>{art}</Text>
+      {datum ? (
+        <Pressable onLongPress={() => Alert.alert(art, 'Termin entfernen?', [{ text: 'Abbrechen', style: 'cancel' }, { text: 'Entfernen', style: 'destructive', onPress: () => void onSpeichern('') }])} onPress={waehle} accessibilityRole="button" accessibilityHint="Lange drücken zum Entfernen" style={s.terminWert}>
+          <Text style={s.terminText}>{datum.toLocaleDateString('de-CH', { weekday: 'short', day: 'numeric', month: 'numeric', year: 'numeric' })}</Text>
+        </Pressable>
+      ) : (
+        <Pressable onPress={waehle} accessibilityRole="button" style={s.terminWert}>
+          <Text style={[s.terminText, { color: farben.marke }]}>Eintragen</Text>
+        </Pressable>
+      )}
+    </View>
   )
 }
 
@@ -122,10 +333,18 @@ function Kopf({ children }: { children: string }) {
   )
 }
 
-function Karte({ titel, children }: { titel: string; children: ReactNode }) {
+function Karte({ titel, hinweis, stift, stiftLabel, children }: { titel: string; hinweis?: string; stift?: () => void; stiftLabel?: string; children: ReactNode }) {
   return (
     <View style={s.karte}>
-      <Text style={s.karteTitel} accessibilityRole="header">{titel}</Text>
+      <View style={s.karteKopf}>
+        <Text style={s.karteTitel} accessibilityRole="header">{titel}</Text>
+        {hinweis ? <Text style={s.karteHinweis}>{hinweis}</Text> : null}
+        {stift ? (
+          <Pressable onPress={stift} accessibilityRole="button" accessibilityLabel={stiftLabel} style={s.stift} hitSlop={8}>
+            <Text style={s.stiftText}>Bearbeiten</Text>
+          </Pressable>
+        ) : null}
+      </View>
       {children}
     </View>
   )
@@ -167,10 +386,22 @@ const s = StyleSheet.create({
   name: { fontSize: 28, fontWeight: '700', color: farben.marke, marginHorizontal: 4, marginTop: 4 },
   unterzeile: { fontSize: 15, color: farben.textLeise, marginHorizontal: 4, marginBottom: 4 },
   karte: { backgroundColor: farben.flaeche, borderWidth: 1, borderColor: farben.rand, borderRadius: radius.gross, padding: 14, gap: 6 },
-  karteTitel: { fontSize: 13, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase', color: farben.textLeise, marginBottom: 2 },
+  karteKopf: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 28 },
+  karteTitel: { flex: 1, fontSize: 13, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase', color: farben.textLeise },
+  karteHinweis: { fontSize: 12, color: farben.textSchwach },
+  stift: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 4 },
+  stiftText: { color: farben.marke, fontWeight: '700', fontSize: 14 },
   phasenBalken: { flexDirection: 'row', gap: 4 },
   balken: { flex: 1, height: 6, borderRadius: 3 },
+  phasenReihe: { gap: 6, paddingTop: 6 },
+  phaseChip: { minHeight: 40, paddingHorizontal: 12, borderRadius: radius.rund, borderWidth: 1, borderColor: farben.rand, backgroundColor: farben.flaeche, justifyContent: 'center' },
+  phaseChipErledigt: { backgroundColor: farben.markeWeich, borderColor: farben.markeWeich },
+  phaseChipAktiv: { backgroundColor: farben.hinweis, borderColor: farben.hinweis },
+  phaseChipText: { fontSize: 13, fontWeight: '600', color: farben.textLeise },
   phaseText: { fontSize: 16, fontWeight: '600', color: farben.marke, marginTop: 4 },
+  weitere: { marginTop: 6, borderTopWidth: 1, borderTopColor: farben.linie },
+  weitererSchritt: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: TIPPFLAECHE, borderBottomWidth: 1, borderBottomColor: farben.linie },
+  weitererText: { flex: 1, fontSize: 15, color: farben.marke, fontWeight: '600' },
   aktionen: { flexDirection: 'row', gap: 8 },
   aktion: { flex: 1, minHeight: 56, borderRadius: radius.mittel, borderWidth: 1, borderColor: farben.rand, backgroundColor: farben.flaeche, alignItems: 'center', justifyContent: 'center' },
   aktionAus: { backgroundColor: farben.grundAlt },
@@ -183,6 +414,10 @@ const s = StyleSheet.create({
   menge: { width: 28, fontWeight: '600', color: farben.marke, fontSize: 15 },
   preis: { fontSize: 15, color: farben.text, fontVariant: ['tabular-nums'] },
   summe: { borderTopWidth: 1, borderTopColor: farben.rand, paddingTop: 8, marginTop: 2 },
-  hinweis: { fontSize: 13, color: farben.textSchwach, textAlign: 'center', marginTop: 8 },
+  terminWert: { minHeight: TIPPFLAECHE, justifyContent: 'center', paddingHorizontal: 4 },
+  terminText: { fontSize: 15, fontWeight: '600', color: farben.text },
+  absagen: { minHeight: TIPPFLAECHE, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
+  absagenText: { color: farben.gefahr, fontWeight: '600', fontSize: 15 },
+  fuss: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 6, borderTopWidth: 1, borderTopColor: farben.rand, backgroundColor: farben.grund },
   leer: { textAlign: 'center', color: farben.textSchwach, marginTop: 32, fontSize: 15 },
 })
