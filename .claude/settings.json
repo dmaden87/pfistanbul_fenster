@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh api repos/dmaden87/pfistanbul_fenster/releases*)",
+      "Bash(gh api -X DELETE repos/dmaden87/pfistanbul_fenster/releases/*)",
+      "Bash(gh api -X DELETE repos/dmaden87/pfistanbul_fenster/git/refs/tags/admin-app-*)"
+    ]
+  }
+}
