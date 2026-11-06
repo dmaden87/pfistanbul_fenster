@@ -9,8 +9,8 @@ ist und was als Nächstes kommt.
 | Stufe | Inhalt | Stand |
 | --- | --- | --- |
 | MVP | Adminbereich der Webseite als App (TWA, `android/`) | ✅ |
-| **V1.0** | Fundament: Expo-Projekt, Login, Auftragsliste, Auftrag ansehen, Build auf GitHub | **in Arbeit** |
-| V1.1 | Auftrag bearbeiten: Kontakt, Termine, Netze & Preise, Kosten, Phase umstellen | |
+| V1.0 | Fundament: Expo-Projekt, Login, Auftragsliste, Auftrag ansehen, Build auf GitHub | ✅ |
+| V1.1 | Auftrag bearbeiten: Kontakt, Termine, Netze & Preise, Kosten, Phase umstellen | ✅ (a: Phase, Kontakt, Termine; b: Netze, Angebot, Kosten) |
 | V1.2 | Nachrichten senden: Vorlagen A–I, WhatsApp/Mail, Offerte als Link und PDF | |
 | V1.3 | Zahlen: Buchhaltung mit Übersicht → Detail | |
 | V2 | iOS (TestFlight) + Benutzerverwaltung (eigene Logins) | |
@@ -84,6 +84,18 @@ sie von dort.
 Der klickbare Entwurf verwendet noch kurze Phasennamen und setzt
 «Offerte» mit «Offerte verschickt» gleich; massgeblich ist diese Tabelle.
 
+### Geteilte Regeln
+
+Was Web-Admin und App gleich tun müssen, steht in `src/lib` und ist getestet:
+
+| Datei | Regeln | Test |
+| --- | --- | --- |
+| `aktionen.ts` | welcher Knopf in welcher Phase was tut | `bau/aktionen-test.mjs` |
+| `netzentwurf.ts` | Netz-Entwurf ↔ Position, Preisregel, Richtpreis | `bau/preisregeln-test.mjs` |
+| `angebot.ts` | Vorbelegung, Summen, Rabattdeckel, Festlegen | `bau/preisregeln-test.mjs` |
+| `kostenentwurf.ts` | Kosten vorbelegen und speichern | `bau/preisregeln-test.mjs` |
+| `phasen.ts`, `bestellauftrag.ts` | Phasen, Archiv, fehlende Angaben für Bora | bestehende Tests |
+
 ## Aufbau von `app/`
 
 ```
@@ -98,7 +110,11 @@ app/
     │   ├── anmelden.tsx
     │   └── (app)/         nur angemeldet
     │       ├── index.tsx          Auftragsliste
-    │       └── auftrag/[id].tsx   ein Auftrag
+    │       └── auftrag/[id]/
+    │           ├── index.tsx      ein Auftrag
+    │           ├── netze.tsx      Netze bearbeiten
+    │           ├── angebot.tsx    Angebot festlegen
+    │           └── kosten.tsx     Kosten (intern)
     ├── lib/               API, Anmeldung, geladene Bestellungen, Hilfen
     ├── components/
     └── theme.ts           Farben (= Webseite)
