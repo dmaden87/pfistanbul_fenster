@@ -1,0 +1,40 @@
+# Schnelle Pruefung der App bei jedem Push: Typen und JS-Buendel (findet
+# kaputte Importe aus src/). Kein APK – das baut app.yml auf Knopfdruck.
+name: PF Admin App pruefen
+
+on:
+  push:
+    paths:
+      - 'app/**'
+      - 'src/lib/**'
+      - 'src/types/**'
+      - 'src/data/**'
+      - 'src/components/admin/**'
+      - 'api/_sitzung.ts'
+      - '.github/workflows/app-pruefen.yml'
+  pull_request:
+    paths:
+      - 'app/**'
+      - 'src/**'
+
+permissions:
+  contents: read
+
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Typpruefung
+        run: npm run typecheck
+      - name: JS-Buendel
+        run: npm run bundle:android

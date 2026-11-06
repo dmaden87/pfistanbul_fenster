@@ -84,8 +84,11 @@ export default function Auftrag() {
   function druecke(k: KartenKnopf) {
     if (k.gesperrt) return
     if (k.tat === 'absagen') return setBlatt('absagen')
-    if (k.tat === 'offerte' || k.tat === 'anfrageBlatt' || k.tat === 'bestellBlatt') {
-      return Alert.alert(k.text, 'Offerten und Bestellscheine kommen mit V1.2 in die App. Bis dahin im Web-Admin.')
+    if (k.tat === 'anfrageBlatt' || k.tat === 'bestellBlatt') {
+      return router.push({ pathname: '/auftrag/[id]/blatt', params: { id: b!.id, art: k.tat === 'anfrageBlatt' ? 'anfrage' : 'bestellung' } })
+    }
+    if (k.tat === 'offerte') {
+      return Alert.alert(k.text, 'Die Offerte als Link kommt mit V1.2 in die App. Bis dahin im Web-Admin.')
     }
     if (k.tat === 'boraBestellt') {
       // Wie im Web-Admin: ein Paket geht als Ganzes zu Bora.
