@@ -1,6 +1,7 @@
+import { quelleText, whatsappNummer } from '@pf/components/admin/hilfen'
 import { texteFuer } from '@pf/components/admin/sprache'
 import { abschnittFuer, PHASEN, tageSeit, type Phase } from '@pf/lib/phasen'
-import type { Bestellung, BestellQuelle } from '@pf/types'
+import type { Bestellung } from '@pf/types'
 
 /**
  * Was die App ueber einen Auftrag wissen will, das die Webseite so nicht
@@ -19,7 +20,7 @@ export { PHASEN, type Phase }
  * heisst, und ein Auftrag schien in einer anderen Phase zu stehen.
  * Die tuerkische Fassung liegt dort schon bereit.
  */
-const TEXTE = texteFuer('deutsch')
+export const TEXTE = texteFuer('deutsch')
 export const PHASE_LABEL: Record<Phase, string> = {
   neu: TEXTE.phaseNeu,
   klaerung: TEXTE.phaseKlaerung,
@@ -30,19 +31,11 @@ export const PHASE_LABEL: Record<Phase, string> = {
   ausliefern: TEXTE.phaseAusliefern,
 }
 
-const QUELLE_LABEL: Record<BestellQuelle, string> = {
-  web: 'Web',
-  whatsapp: 'WhatsApp',
-  instagram: 'Instagram',
-  telefon: 'Telefon',
-  persoenlich: 'Persönlich',
-}
-
 /** Nach so vielen Tagen ohne Antwort auf eine Offerte heisst es "nachfassen". */
 export const NACHFASSEN_NACH_TAGEN = 5
 
 export function quelleLabel(b: Bestellung): string {
-  return b.quelle ? QUELLE_LABEL[b.quelle] : 'Web'
+  return quelleText(b.quelle ?? 'web', TEXTE)
 }
 
 /** Aktiv = weder abgesagt noch abgeschlossen. */
@@ -170,20 +163,8 @@ export function termine(b: Bestellung): { art: string; wann: string }[] {
   return liste
 }
 
-/**
- * Schweizer Handynummer fuer WhatsApp: nur Ziffern, mit Landesvorwahl.
- * "079 412 33 18" → "41794123318", "+49 170 …" → "49170…". Null, wenn es
- * keine brauchbare Nummer ist.
- */
-export function whatsappNummer(telefon: string): string | null {
-  const ziffern = telefon.replace(/[^\d+]/g, '')
-  if (!ziffern) return null
-  let n = ziffern.startsWith('+') ? ziffern.slice(1) : ziffern
-  if (n.startsWith('00')) n = n.slice(2)
-  else if (n.startsWith('0')) n = `41${n.slice(1)}`
-  n = n.replace(/\D/g, '')
-  return n.length >= 9 ? n : null
-}
+/** Aus dem Web-Admin (src/components/admin/hilfen.ts), damit beide dieselbe Nummer waehlen. */
+export { whatsappNummer }
 
 /** Name zu zwei Initialen, fuer den Kreis in der Liste. */
 export function initialen(name: string): string {
