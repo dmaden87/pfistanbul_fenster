@@ -51,7 +51,7 @@ jobs:
         run: npm ci --no-audit --no-fund
 
       - name: Typpruefung
-        run: npx tsc --noEmit
+        run: npm run typecheck
 
       - name: Signaturschluessel bereitlegen
         id: schluessel

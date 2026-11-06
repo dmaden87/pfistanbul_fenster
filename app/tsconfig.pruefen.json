@@ -1,0 +1,20 @@
+{
+  "//": "Fuer die Typpruefung (npm run typecheck, GitHub). Die geteilten Dateien in ../src importieren React; dort gibt es auf GitHub kein node_modules. Hier zeigt 'react' auf die Typen der App. NICHT in tsconfig.json: Metro liest dessen paths und wuerde React dann aus den Typen laden.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@pf/*": [
+        "../src/*"
+      ],
+      "react": [
+        "./node_modules/@types/react"
+      ],
+      "react/*": [
+        "./node_modules/@types/react/*"
+      ]
+    }
+  }
+}
