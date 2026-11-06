@@ -1,5 +1,6 @@
 import { quelleText, whatsappNummer } from '@pf/components/admin/hilfen'
 import { texteFuer } from '@pf/components/admin/sprache'
+import { nachfassenAb, nachfassenFaellig, NACHFASSEN_NACH_TAGEN } from '@pf/lib/nachrichten'
 import { abschnittFuer, PHASEN, tageSeit, type Phase } from '@pf/lib/phasen'
 import type { Bestellung } from '@pf/types'
 
@@ -31,8 +32,8 @@ export const PHASE_LABEL: Record<Phase, string> = {
   ausliefern: TEXTE.phaseAusliefern,
 }
 
-/** Nach so vielen Tagen ohne Antwort auf eine Offerte heisst es "nachfassen". */
-export const NACHFASSEN_NACH_TAGEN = 5
+/** Nachfassen: Frist und Regel aus src/lib/nachrichten.ts (Vorlage C). */
+export { NACHFASSEN_NACH_TAGEN }
 
 export function quelleLabel(b: Bestellung): string {
   return quelleText(b.quelle ?? 'web', TEXTE)
@@ -56,22 +57,18 @@ export function preisOffen(b: Bestellung): boolean {
   return b.positionen.length === 0 || b.positionen.some((p) => !(p.preisChf > 0))
 }
 
-/**
- * Wann die Offerte rausging. `offerteAm` setzt der Web-Admin beim Versand;
- * fehlt es (aeltere Eintraege), zaehlt der Eintritt in die Phase.
- */
+/** Tage seit dem Versand der Offerte bzw. dem letzten Nachfassen. */
 function offerteSeit(b: Bestellung, jetzt = Date.now()): number {
-  return tageSeit(b.offerteAm ?? b.phaseSeit ?? b.geaendert, jetzt) ?? 0
+  return tageSeit(nachfassenAb(b), jetzt) ?? 0
 }
 
 /**
- * Nachfassen, wenn die Offerte beim Kunden liegt ("Warten auf Zusage",
- * Status `zusage`) und seit NACHFASSEN_NACH_TAGEN keine Antwort kam.
- * Nicht in "Angebot erstellen" (`offerte`): Dort ist die Offerte noch gar
- * nicht verschickt.
+ * Nachfassen, wenn die Offerte beim Kunden liegt ("Warten auf Zusage") und
+ * seit NACHFASSEN_NACH_TAGEN keine Antwort kam – gerechnet ab dem letzten
+ * Nachfassen, wenn es eines gab.
  */
 export function mussNachfassen(b: Bestellung): boolean {
-  return b.status === 'zusage' && offerteSeit(b) >= NACHFASSEN_NACH_TAGEN
+  return nachfassenFaellig(b)
 }
 
 /** Wie weit "Bald fällig" vorausschaut. */
@@ -129,16 +126,14 @@ export function baldFaellig(bestellungen: Bestellung[], jetzt = Date.now()): Auf
 
   for (const b of bestellungen.filter(aktiv)) {
     if (b.status === 'zusage') {
-      const versandt = Date.parse(b.offerteAm ?? b.phaseSeit ?? b.geaendert)
+      const versandt = Date.parse(nachfassenAb(b))
       if (!Number.isNaN(versandt)) {
         const faellig = versandt + NACHFASSEN_NACH_TAGEN * TAG
         const tage = offerteSeit(b, jetzt)
         dazu({
           id: `${b.id}-nach`, bestellungId: b.id, faellig,
           titel: `Nachfassen: ${b.kunde.name}`,
-          text: faellig < morgenAb
-            ? `Offerte seit ${tage} Tagen ohne Antwort`
-            : `${tagText(new Date(faellig), jetzt)} · Offerte seit ${tage} ${tage === 1 ? 'Tag' : 'Tagen'} draussen`,
+          text: `${faellig < morgenAb ? '' : `${tagText(new Date(faellig), jetzt)} · `}${b.nachgefasstAm ? 'nachgefasst' : 'Offerte raus'} vor ${tage} ${tage === 1 ? 'Tag' : 'Tagen'}`,
         })
       }
     }

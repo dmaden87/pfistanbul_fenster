@@ -1,6 +1,7 @@
 import { ABSAGE_GRUENDE, knoepfe, type KartenKnopf } from '@pf/lib/aktionen'
 import { auftragAufbauen } from '@pf/lib/bestellauftrag'
 import { formatChf } from '@pf/lib/format'
+import { vorlagenFuer } from '@pf/lib/nachrichten'
 import { abschnittFuer, preisAenderbar } from '@pf/lib/phasen'
 import { grundText, positionDetail } from '@pf/components/admin/hilfen'
 import type { AbsageGrund, BestellAenderung, Bestellung } from '@pf/types'
@@ -28,7 +29,7 @@ const t = TEXTE
  */
 export default function Auftrag() {
   const { id } = useLocalSearchParams<{ id: string }>()
-  const { bestellungen, aendern } = useBestellungen()
+  const { bestellungen, aendern, offerteLinkFuer } = useBestellungen()
   const b = bestellungen.find((x) => x.id === id)
   const [blatt, setBlatt] = useState<null | 'kontakt' | 'notiz' | 'absagen'>(null)
   const [laeuft, setLaeuft] = useState(false)
@@ -88,7 +89,11 @@ export default function Auftrag() {
       return router.push({ pathname: '/auftrag/[id]/blatt', params: { id: b!.id, art: k.tat === 'anfrageBlatt' ? 'anfrage' : 'bestellung' } })
     }
     if (k.tat === 'offerte') {
-      return Alert.alert(k.text, 'Die Offerte als Link kommt mit V1.2 in die App. Bis dahin im Web-Admin.')
+      // Die Offerte so, wie die Kundschaft sie unter ihrem Link sieht.
+      if (!b!.preiseFestgelegtAm) return Alert.alert(k.text, 'Erst das Angebot festlegen – davor stehen nur Vorschläge drin.')
+      return void offerteLinkFuer(b!.id)
+        .then((link) => Linking.openURL(link))
+        .catch((f) => Alert.alert(k.text, f instanceof Error ? f.message : String(f)))
     }
     if (k.tat === 'boraBestellt') {
       // Wie im Web-Admin: ein Paket geht als Ganzes zu Bora.
@@ -177,6 +182,8 @@ export default function Auftrag() {
         </Karte>
 
         <Aktionen b={b} />
+
+        <NachrichtKarte b={b} />
 
         <Karte titel="Kontakt" stift={() => setBlatt('kontakt')} stiftLabel="Kontakt bearbeiten">
           <Text style={s.zeilenText}>{b.kunde.telefon || '— keine Telefonnummer —'}</Text>
@@ -406,6 +413,28 @@ function Karte({ titel, hinweis, stift, stiftLabel, children }: { titel: string;
       </View>
       {children}
     </View>
+  )
+}
+
+/**
+ * Die Nachricht, die in dieser Phase naheliegt – ein Tipp, und WhatsApp oder
+ * Mail oeffnet sich vorausgefuellt. Die anderen Vorlagen eine Ebene tiefer.
+ */
+function NachrichtKarte({ b }: { b: Bestellung }) {
+  const wahl = vorlagenFuer(b)
+  if (wahl.length === 0) return null
+  const empfohlen = wahl.find((v) => v.empfohlen)
+  const oeffne = (vorlage?: string) => router.push({ pathname: '/auftrag/[id]/nachricht', params: vorlage ? { id: b.id, vorlage } : { id: b.id } })
+  return (
+    <Karte titel="Nachricht an die Kundschaft">
+      {empfohlen ? (
+        <Knopf text={`${empfohlen.titel} senden`} onPress={() => oeffne(empfohlen.id)} still />
+      ) : null}
+      <Pressable onPress={() => oeffne()} accessibilityRole="button" style={s.weitererSchritt}>
+        <Text style={s.weitererText}>{empfohlen ? 'Andere Vorlage' : 'Nachricht schreiben'}</Text>
+        <Pfeil farbe={farben.marke} />
+      </Pressable>
+    </Karte>
   )
 }
 

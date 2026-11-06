@@ -22,7 +22,8 @@ import { AdminPage } from './components/admin/AdminPage'
 import { ZahlenPage } from './components/zahlen/ZahlenPage'
 import { Siedlungen } from './components/sections/Siedlungen'
 import { Analytics } from '@vercel/analytics/react'
-import { ADMIN_PFAD, ZAHLEN_PFAD, istAdminPfad, pfadFuerSeite, seiteAusPfad, setzeKopfdaten } from './lib/adresse'
+import { ADMIN_PFAD, ZAHLEN_PFAD, istAdminPfad, offerteGeheimAusPfad, pfadFuerSeite, seiteAusPfad, setzeKopfdaten } from './lib/adresse'
+import { OffertePage } from './components/offerte/OffertePage'
 import type { LegalKey } from './data/site'
 import { useCart } from './hooks/useCart'
 import './App.css'
@@ -33,6 +34,7 @@ type View =
   | { name: 'checkout' }
   | { name: 'admin' }
   | { name: 'zahlen' }
+  | { name: 'offerte'; geheim: string }
   | { name: 'legal'; page: LegalKey }
   | { name: 'zahlung'; status: 'ok' | 'abbruch'; reference: string }
 
@@ -48,6 +50,8 @@ type View =
 function ansichtAusAdresse(): View {
   const pfad = window.location.pathname
   if (istAdminPfad(pfad)) return pfad.startsWith(ZAHLEN_PFAD) ? { name: 'zahlen' } : { name: 'admin' }
+  const geheim = offerteGeheimAusPfad(pfad)
+  if (geheim) return { name: 'offerte', geheim }
   const seite = seiteAusPfad(window.location.pathname)
   if (!seite) return { name: 'shop' }
   return seite === 'siedlungen' ? { name: 'siedlungen' } : { name: 'legal', page: seite }
@@ -59,6 +63,7 @@ function adresseFuer(ansicht: View): string {
   if (ansicht.name === 'siedlungen') return pfadFuerSeite('siedlungen')
   if (ansicht.name === 'admin') return ADMIN_PFAD
   if (ansicht.name === 'zahlen') return ZAHLEN_PFAD
+  if (ansicht.name === 'offerte') return `/offerte/${ansicht.geheim}`
   return '/'
 }
 
@@ -151,6 +156,13 @@ export default function App() {
    * Menue des Shops nur im Weg, und ein Tipp darauf fuehrte aus der App
    * hinaus.
    */
+  /*
+   * Die Offerte unter ihrem Link: ein Brief, keine Seite des Shops – ohne
+   * Kopf, Menue und Warenkorb, damit sie sich ausdrucken laesst wie im
+   * Adminbereich.
+   */
+  if (view.name === 'offerte') return <OffertePage geheim={view.geheim} />
+
   if (view.name === 'admin' || view.name === 'zahlen') {
     return (
       <main id="main">

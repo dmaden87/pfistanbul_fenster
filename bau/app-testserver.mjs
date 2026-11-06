@@ -12,9 +12,10 @@
  * durchklicken und fotografieren (bau/app-bildschirme.mjs), und gebaut wird
  * gesammelt fuer ein Release.
  *
- * Aufruf (im Hauptordner):
- *   (cd app && EXPO_PUBLIC_API_BASIS=http://localhost:8090 npx expo export --platform web --output-dir dist-web)
- *   node --import ./bau/ts-aufloeser.mjs bau/app-testserver.mjs
+ * Aufruf:
+ *   cd app && npm run web:bauen && npm run testserver
+ * Fuer den Offerte-Link (/offerte/<geheim>) zusaetzlich im Hauptordner
+ * `npx vite build` – der Server nimmt die Seite aus dist/.
  *
  * Nicht dasselbe wie das Telefon: PDF teilen, WhatsApp und der Datumswaehler
  * gibt es im Browser nicht. Was davon abhaengt, prueft der Emulator-Test
@@ -106,10 +107,15 @@ function vercelAntwort(res) {
 
 const TYPEN = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.ico': 'image/x-icon', '.ttf': 'font/ttf', '.svg': 'image/svg+xml' }
 const WEB = new URL('../app/dist-web/', import.meta.url).pathname
+// Die Webseite (npm run build) – fuer den Offerte-Link /offerte/<geheim>.
+const SEITE = new URL('../dist/', import.meta.url).pathname
 
 async function datei(pfad, res) {
   const sicher = normalize(pfad).replace(/^(\.\.[/\\])+/, '')
-  for (const kandidat of [join(WEB, sicher), join(WEB, `${sicher}.html`), join(WEB, 'index.html')]) {
+  const kandidaten = sicher.startsWith('/offerte/')
+    ? [join(SEITE, 'offerte.html')]
+    : [join(WEB, sicher), join(SEITE, sicher), join(WEB, `${sicher}.html`), join(WEB, 'index.html')]
+  for (const kandidat of kandidaten) {
     try {
       if ((await stat(kandidat)).isFile()) {
         res.setHeader('Content-Type', TYPEN[extname(kandidat)] ?? 'application/octet-stream')

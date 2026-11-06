@@ -2,13 +2,13 @@ import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-na
 import { farben, radius } from '@/theme'
 
 /** Ein beschriftetes Eingabefeld. Die Beschriftung ist mit dem Feld verbunden (Bildschirmleser). */
-export function Feld({ label, id, mehrzeilig, ...rest }: { label: string; id: string; mehrzeilig?: boolean } & TextInputProps) {
+export function Feld({ label, id, mehrzeilig, style, ...rest }: { label: string; id: string; mehrzeilig?: boolean } & TextInputProps) {
   return (
     <View style={s.feld}>
       <Text style={s.label} nativeID={id}>{label}</Text>
       <TextInput
         accessibilityLabelledBy={id}
-        style={[s.eingabe, mehrzeilig && s.mehrzeilig]}
+        style={[s.eingabe, mehrzeilig && s.mehrzeilig, style]}
         multiline={mehrzeilig}
         textAlignVertical={mehrzeilig ? 'top' : 'center'}
         placeholderTextColor={farben.textSchwach}

@@ -5,6 +5,7 @@ import { shopConfig } from '../../data/shopConfig'
 import { formatChf } from '../../lib/format'
 import { netzeAusBestellung } from '../../lib/bestellauftrag'
 import { montageFuerOfferte } from './hilfen'
+import { OFFERTE_GUELTIG_TAGE } from '../../lib/nachrichten'
 import { useDokumentName, useSeitenformat } from './seitenformat'
 import './Offerte.css'
 
@@ -49,17 +50,24 @@ import './Offerte.css'
 
 interface OfferteProps {
   bestellung: Bestellung
-  onZurueck: () => void
+  /** Fehlt auf dem Offerte-Link der Kundschaft – dort gibt es kein Zurueck. */
+  onZurueck?: () => void
+  /**
+   * Das Datum der Offerte. Im Adminbereich heute (gedruckt wird jetzt);
+   * auf dem Link der Tag, an dem die Preise festgelegt wurden – sonst
+   * verschoebe sich "gueltig bis" bei jedem Oeffnen.
+   */
+  stand?: string
 }
 
-/** Wie lange wir uns an die Offerte halten. */
-const GUELTIG_TAGE = 30
+/** Wie lange wir uns an die Offerte halten – steht auch in der Nachricht (Vorlage B). */
+const GUELTIG_TAGE = OFFERTE_GUELTIG_TAGE
 
 function datum(d: Date): string {
   return d.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-export function Offerte({ bestellung: b, onZurueck }: OfferteProps) {
+export function Offerte({ bestellung: b, onZurueck, stand }: OfferteProps) {
   useSeitenformat('hoch', 14)
   useDokumentName(`pfistanbul_offerte_${(b.referenz || b.id).replace(/[^A-Za-z0-9-]/g, '') || 'entwurf'}`)
 
@@ -79,7 +87,7 @@ export function Offerte({ bestellung: b, onZurueck }: OfferteProps) {
   const montageChf = montageFuerOfferte(b, anzahl, shopConfig.montageChf)
   const mitMontage = montageChf > 0
   const totalChf = runde2(netzeChf - rabattChf + anfahrtChf + montageChf)
-  const heute = new Date()
+  const heute = stand ? new Date(stand) : new Date()
   const bis = new Date(heute.getTime() + GUELTIG_TAGE * 86_400_000)
   const ausgemessen = b.ausgemessenAm ? new Date(b.ausgemessenAm) : null
 
@@ -135,9 +143,11 @@ export function Offerte({ bestellung: b, onZurueck }: OfferteProps) {
           <button type="button" className="btn" onClick={() => window.print()}>
             Drucken / als PDF sichern
           </button>
-          <button type="button" className="btn btn--quiet" onClick={onZurueck}>
-            Zurück
-          </button>
+          {onZurueck && (
+            <button type="button" className="btn btn--quiet" onClick={onZurueck}>
+              Zurück
+            </button>
+          )}
         </div>
       </div>
 
