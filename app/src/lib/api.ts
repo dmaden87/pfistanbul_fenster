@@ -82,3 +82,18 @@ export async function aendereBestellung(schluessel: string, id: string, aenderun
   const daten = await antwort<{ bestellung: Bestellung }>(res)
   return daten.bestellung
 }
+
+/**
+ * Das Geheimnis fuer den Offerte-Link (pfistanbul.ch/offerte/<geheim>). Der
+ * Server legt es beim ersten Mal an und gibt danach immer dasselbe zurueck.
+ */
+export async function holeOfferteGeheimnis(schluessel: string, id: string): Promise<string> {
+  const res = await abrufen('/api/bestellungen?aktion=offerte-link', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${schluessel}` },
+    body: JSON.stringify({ id }),
+  })
+  const daten = await antwort<{ geheim?: string }>(res)
+  if (!daten.geheim) throw new Error('Der Server kennt den Offerte-Link noch nicht. Ist die neue Fassung deployt?')
+  return daten.geheim
+}

@@ -11,7 +11,7 @@ ist und was als Nächstes kommt.
 | MVP | Adminbereich der Webseite als App (TWA, `android/`) | ✅ |
 | V1.0 | Fundament: Expo-Projekt, Login, Auftragsliste, Auftrag ansehen, Build auf GitHub | ✅ |
 | V1.1 | Auftrag bearbeiten: Kontakt, Termine, Netze & Preise, Kosten, Phase umstellen | ✅ (a: Phase, Kontakt, Termine; b: Netze, Angebot, Kosten) |
-| V1.2 | Nachrichten senden: Vorlagen A–I, WhatsApp/Mail, Offerte als Link und PDF | |
+| V1.2 | Nachrichten senden: Vorlagen A–I, WhatsApp/Mail, Offerte als Link; Bestelltalon als PDF | ✅ |
 | V1.3 | Zahlen: Buchhaltung mit Übersicht → Detail | |
 | V2 | iOS (TestFlight) + Benutzerverwaltung (eigene Logins) | |
 | V3 | offen | |
@@ -94,6 +94,8 @@ Was Web-Admin und App gleich tun müssen, steht in `src/lib` und ist getestet:
 | `netzentwurf.ts` | Netz-Entwurf ↔ Position, Preisregel, Richtpreis | `bau/preisregeln-test.mjs` |
 | `angebot.ts` | Vorbelegung, Summen, Rabattdeckel, Festlegen | `bau/preisregeln-test.mjs` |
 | `kostenentwurf.ts` | Kosten vorbelegen und speichern | `bau/preisregeln-test.mjs` |
+| `nachrichten.ts` | Vorlagen A–I: wann, Text, Schritt nach «Gesendet?», Nachfassen | `bau/nachrichten-test.mjs` |
+| `bestellblatt.ts` | Preisanfrage und Bestelltalon an Bora als HTML (→ PDF) | `bau/bestellblatt-test.mjs` |
 | `phasen.ts`, `bestellauftrag.ts` | Phasen, Archiv, fehlende Angaben für Bora | bestehende Tests |
 
 ## Aufbau von `app/`
@@ -114,11 +116,52 @@ app/
     │           ├── index.tsx      ein Auftrag
     │           ├── netze.tsx      Netze bearbeiten
     │           ├── angebot.tsx    Angebot festlegen
-    │           └── kosten.tsx     Kosten (intern)
+    │           ├── kosten.tsx     Kosten (intern)
+    │           ├── nachricht.tsx  Nachricht senden (Vorlagen A–I)
+    │           └── blatt.tsx      Preisanfrage / Bestelltalon als PDF
     ├── lib/               API, Anmeldung, geladene Bestellungen, Hilfen
     ├── components/
     └── theme.ts           Farben (= Webseite)
 ```
+
+## Offerte als Link
+
+`pfistanbul.ch/offerte/<geheim>` zeigt der Kundschaft ihre Offerte – dasselbe
+Blatt wie im Web-Admin (`Offerte.tsx`), am Handy als Karten. Ist der Auftrag
+übergeben und bezahlt, steht unter demselben Link die Quittung (Vorlage I).
+
+- Das Geheimnis (18 Zufallsbytes) legt der Server beim ersten Senden an
+  (`POST /api/bestellungen?aktion=offerte-link`) und behält es: Ein
+  angepasstes Angebot (Vorlage D) gilt unter demselben Link.
+- Öffentlich (`GET ?aktion=offerte&g=…`) kommt nur, was auf der Offerte
+  steht (`kundenfassung` in `api/bestellungen.ts`): kein Telefon, keine
+  Mail, keine Kosten, keine Notiz. Erst mit festgelegten Preisen; nach einer
+  Absage «nicht mehr gültig».
+- Die Seite ist `noindex` und hat eine eigene Hülle (`dist/offerte.html`).
+
+## Testen ohne Handy
+
+Die App läuft als Web-Fassung gegen die echten API-Handler im Demo-Modus –
+mit den Beispielaufträgen aus `api/_demo.ts` und einem Speicher im
+Arbeitsspeicher statt Upstash:
+
+```bash
+npx vite build                 # nur für den Offerte-Link
+cd app && npm run web:bauen     # App als Web-Fassung (dist-web)
+npm run testserver              # http://localhost:8090, Passwort testpasswort
+npm run bildschirme -- <ordner> "tippe|Marlène|01-auftrag"   # Fotos mit Playwright
+```
+
+Was es im Browser nicht gibt – PDF teilen, WhatsApp, Datumswähler, der
+geschützte Speicher (dort `tresor.web.ts`) –, prüft erst das Handy.
+
+## Release
+
+Ein APK entsteht **nur auf Knopfdruck**, gesammelt für ein Release:
+GitHub → Actions → «PF Admin App (nativ)» → Run workflow (Branch wählen).
+Bei jedem Push läuft nur die schnelle Prüfung (`app-pruefen.yml`: Typen,
+Bündel). Den Link zum Release erst weitergeben, wenn Tag und Commit
+geprüft sind.
 
 ## Ausprobieren
 

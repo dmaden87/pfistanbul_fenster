@@ -13,6 +13,10 @@
     {
       "source": "/admin/:pfad*",
       "destination": "/admin"
+    },
+    {
+      "source": "/offerte/:geheim",
+      "destination": "/offerte"
     }
   ],
   "headers": [
@@ -22,6 +26,19 @@
         {
           "key": "X-Robots-Tag",
           "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/offerte(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
         }
       ]
     },

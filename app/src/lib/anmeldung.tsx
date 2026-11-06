@@ -1,4 +1,4 @@
-import * as SecureStore from 'expo-secure-store'
+import { tresor } from '@/lib/tresor'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { anmelden as serverAnmelden, type Anmeldung } from './api'
 
@@ -31,7 +31,7 @@ export function AnmeldungProvider({ children }: { children: ReactNode }) {
   const [geladen, setGeladen] = useState(false)
 
   useEffect(() => {
-    SecureStore.getItemAsync(SPEICHER)
+    tresor.lesen(SPEICHER)
       .then((roh) => {
         const gespeichert = roh ? (JSON.parse(roh) as Anmeldung) : null
         if (gueltig(gespeichert)) setAnmeldung(gespeichert)
@@ -42,12 +42,12 @@ export function AnmeldungProvider({ children }: { children: ReactNode }) {
 
   const anmelden = useCallback(async (passwort: string) => {
     const neu = await serverAnmelden(passwort)
-    await SecureStore.setItemAsync(SPEICHER, JSON.stringify(neu))
+    await tresor.schreiben(SPEICHER, JSON.stringify(neu))
     setAnmeldung(neu)
   }, [])
 
   const abmelden = useCallback(async () => {
-    await SecureStore.deleteItemAsync(SPEICHER).catch(() => {})
+    await tresor.loeschen(SPEICHER).catch(() => {})
     setAnmeldung(null)
   }, [])
 

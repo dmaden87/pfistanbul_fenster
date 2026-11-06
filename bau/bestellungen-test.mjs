@@ -91,9 +91,9 @@ function antwortAttrappe() {
   return antwort
 }
 
-async function ruf({ method = 'GET', aktion = '', body, cookie, authorization }) {
+async function ruf({ method = 'GET', aktion = '', query = {}, body, cookie, authorization }) {
   const antwort = antwortAttrappe()
-  await handler({ method, query: aktion ? { aktion } : {}, body, headers: { cookie, authorization } }, antwort)
+  await handler({ method, query: aktion ? { aktion, ...query } : query, body, headers: { cookie, authorization } }, antwort)
   return antwort
 }
 
@@ -1229,6 +1229,59 @@ await pruefe('Ohne Anmeldung aendert niemand eine Adresse', async () => {
   assert.equal(n.code, 401)
 })
 
+/* --- Offerte als Link ------------------------------------------------------- */
+
+await pruefe('Offerte-Link: nur angemeldet, ein Geheimnis je Auftrag, das bleibt', async () => {
+  const b = await anfrageMitNetzen('A-OFF1')
+  assert.equal((await ruf({ method: 'POST', aktion: 'offerte-link', body: { id: b.id } })).code, 401)
+  const erst = await ruf({ method: 'POST', aktion: 'offerte-link', cookie, body: { id: b.id } })
+  assert.equal(erst.code, 200)
+  assert.match(erst.daten.geheim, /^[A-Za-z0-9_-]{24}$/)
+  const zweit = await ruf({ method: 'POST', aktion: 'offerte-link', cookie, body: { id: b.id } })
+  assert.equal(zweit.daten.geheim, erst.daten.geheim)
+})
+
+await pruefe('Offerte-Link: erst mit festgelegten Preisen, dann nur was auf der Offerte steht', async () => {
+  const b = await anfrageMitNetzen('A-OFF2')
+  await ruf({ method: 'PATCH', cookie, body: { id: b.id, notiz: 'intern: Kunde knausrig' } })
+  const { geheim } = (await ruf({ method: 'POST', aktion: 'offerte-link', cookie, body: { id: b.id } })).daten
+  const vorher = await ruf({ aktion: 'offerte', query: { g: geheim } })
+  assert.equal(vorher.code, 404, 'Vorschlaege sind keine Offerte')
+
+  await ruf({ method: 'PATCH', cookie, body: { id: b.id, preiseFestgelegt: true } })
+  const a = await ruf({ aktion: 'offerte', query: { g: geheim } })
+  assert.equal(a.code, 200)
+  assert.equal(a.koepfe['X-Robots-Tag'], 'noindex, nofollow')
+  const o = a.daten.bestellung
+  assert.equal(o.kunde.name, b.kunde.name)
+  assert.ok(o.preiseFestgelegtAm)
+  const text = JSON.stringify(o)
+  for (const verboten of ['email', 'telefon', 'notiz', 'knausrig', 'kosten', 'einkaufChf', 'richtpreisChf', 'offerteGeheim', b.id]) {
+    assert.ok(!text.includes(verboten), `${verboten} gehoert nicht auf den Link`)
+  }
+})
+
+await pruefe('Offerte-Link: falsches oder leeres Geheimnis zeigt nichts', async () => {
+  assert.equal((await ruf({ aktion: 'offerte', query: { g: 'x'.repeat(24) } })).code, 404)
+  assert.equal((await ruf({ aktion: 'offerte', query: { g: '' } })).code, 404)
+  assert.equal((await ruf({ aktion: 'offerte' })).code, 404)
+})
+
+await pruefe('Offerte-Link: nach der Absage nicht mehr gueltig', async () => {
+  const b = await anfrageMitNetzen('A-OFF3')
+  await ruf({ method: 'PATCH', cookie, body: { id: b.id, preiseFestgelegt: true } })
+  const { geheim } = (await ruf({ method: 'POST', aktion: 'offerte-link', cookie, body: { id: b.id } })).daten
+  await ruf({ method: 'PATCH', cookie, body: { id: b.id, status: 'abgesagt' } })
+  assert.equal((await ruf({ aktion: 'offerte', query: { g: geheim } })).code, 410)
+})
+
+await pruefe('Nachgefasst stempelt nachgefasstAm, false loescht', async () => {
+  const b = await anfrageMitNetzen('A-NACH1')
+  let a = await ruf({ method: 'PATCH', cookie, body: { id: b.id, nachgefasst: true } })
+  assert.ok(Date.parse(a.daten.bestellung.nachgefasstAm) > Date.now() - 5000)
+  a = await ruf({ method: 'PATCH', cookie, body: { id: b.id, nachgefasst: false } })
+  assert.equal(a.daten.bestellung.nachgefasstAm, undefined)
+})
 
 /* --- Ergebnis ---------------------------------------------------------------- */
 

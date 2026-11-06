@@ -2,6 +2,10 @@
 # legt das APK - wenn es mit dem echten Schluessel signiert ist - als Release
 # ab. Von dort laesst es sich auf dem Handy herunterladen und installieren.
 #
+# Laeuft nur auf Knopfdruck (Actions → «PF Admin App (nativ)» → Run workflow,
+# Branch waehlen): APKs entstehen gesammelt fuer ein Release, nicht bei jedem
+# Push oder Merge. Die schnelle Pruefung bei jedem Push steht in app-pruefen.yml.
+#
 # Schluessel: dieselben Repository-Secrets wie die Webseiten-App
 # (ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORT). Nur mit demselben
 # Schluessel installiert sich die App als Update ueber die bisherige.
@@ -9,14 +13,6 @@ name: PF Admin App (nativ)
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'app/**'
-      - 'src/lib/**'
-      - 'src/types/**'
-      - 'src/data/**'
-      - 'api/_sitzung.ts'
-      - '.github/workflows/app.yml'
 
 permissions:
   contents: write

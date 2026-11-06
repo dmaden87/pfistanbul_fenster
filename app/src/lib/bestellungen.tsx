@@ -1,6 +1,7 @@
 import type { BestellAenderung, Bestellung } from '@pf/types'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { aendereBestellung, ladeBestellungen, NichtAngemeldet } from './api'
+import { offerteLink } from '@pf/lib/nachrichten'
+import { aendereBestellung, holeOfferteGeheimnis, ladeBestellungen, NichtAngemeldet } from './api'
 import { useAnmeldung } from './anmeldung'
 
 /**
@@ -17,6 +18,8 @@ interface Kontext {
   neuLaden: () => Promise<void>
   /** Wirft bei einem Fehler; die Meldung ist fuer Menschen geschrieben. */
   aendern: (id: string, aenderung: BestellAenderung) => Promise<Bestellung>
+  /** Der Link zu Offerte bzw. Quittung – wird beim ersten Mal angelegt. */
+  offerteLinkFuer: (id: string) => Promise<string>
 }
 
 const BestellungenKontext = createContext<Kontext | null>(null)
@@ -63,7 +66,25 @@ export function BestellungenProvider({ children }: { children: ReactNode }) {
     [schluessel, abmelden],
   )
 
-  const wert = useMemo(() => ({ bestellungen, laedt, fehler, neuLaden, aendern }), [bestellungen, laedt, fehler, neuLaden, aendern])
+  const offerteLinkFuer = useCallback(
+    async (id: string) => {
+      if (!schluessel) throw new NichtAngemeldet()
+      try {
+        const geheim = await holeOfferteGeheimnis(schluessel, id)
+        setBestellungen((alt) => alt.map((b) => (b.id === id ? { ...b, offerteGeheim: geheim } : b)))
+        return offerteLink(geheim)
+      } catch (f) {
+        if (f instanceof NichtAngemeldet) await abmelden()
+        throw f
+      }
+    },
+    [schluessel, abmelden],
+  )
+
+  const wert = useMemo(
+    () => ({ bestellungen, laedt, fehler, neuLaden, aendern, offerteLinkFuer }),
+    [bestellungen, laedt, fehler, neuLaden, aendern, offerteLinkFuer],
+  )
   return <BestellungenKontext.Provider value={wert}>{children}</BestellungenKontext.Provider>
 }
 

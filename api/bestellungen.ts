@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { randomBytes } from 'node:crypto'
 /*
  * Die Endung .js gehoert hier hin, obwohl die Dateien .ts heissen. Das
  * Projekt ist ein ES-Modul ("type": "module"), und Node loest relative
@@ -182,6 +183,8 @@ interface Bestellung {
   phaseSeit?: string
   klaerungTermin?: string
   zusageAm?: string
+  /** Zuletzt nachgefasst (Vorlage C) – siehe src/types/index.ts. */
+  nachgefasstAm?: string
   montageTermin?: string
   bestelltAm?: string
   versandAm?: string
@@ -197,6 +200,11 @@ interface Bestellung {
   einkaufAm?: string
   /** Interne Notiz. Sieht die Kundschaft nie. */
   notiz?: string
+  /**
+   * Das Geheimnis im Offerte-Link (pfistanbul.ch/offerte/<geheim>). Wer es
+   * kennt, sieht die Offerte – sonst nichts. Siehe offerteLink().
+   */
+  offerteGeheim?: string
   /**
    * Setzt allein stripe-webhook.ts, nachdem Stripe den Ausgang der Zahlung
    * gemeldet hat. Beim Anlegen fehlt das Feld - eine Bestellung gilt erst
@@ -585,6 +593,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ ok: true })
     }
     if (req.method === 'POST' && aktion === 'erfassen') return await erfassen(req, res)
+    if (req.method === 'POST' && aktion === 'offerte-link') return await offerteLink(req, res)
+    if (req.method === 'GET' && aktion === 'offerte') return await offerteOeffentlich(req, res)
     if (req.method === 'POST') return await anlegen(req, res)
     if (req.method === 'GET') return await auflisten(req, res)
     if (req.method === 'PATCH') return await aendern(req, res)
@@ -660,6 +670,123 @@ async function erfassen(req: VercelRequest, res: VercelResponse) {
 
   await hSet(TABELLE, bestellung.id, JSON.stringify(bestellung))
   return res.status(201).json({ ok: true, bestellung })
+}
+
+/* --- Die Offerte als Link -------------------------------------------------- */
+
+/**
+ * Gibt den Link zur Offerte einer Bestellung – und legt sein Geheimnis an,
+ * wenn es noch keines gibt.
+ *
+ * WARUM EIN LINK. Die Offerte geht per WhatsApp oder Mail raus. Ein PDF
+ * laesst sich in WhatsApp nicht vorausfuellen, ein Link schon – und der
+ * Link zeigt immer den aktuellen Stand: Wird das Angebot angepasst
+ * (Vorlage D), gilt derselbe Link mit den neuen Preisen.
+ *
+ * DAS GEHEIMNIS BLEIBT. Einmal vergeben, aendert es sich nicht: Die
+ * Kundschaft hat den Link vielleicht schon weitergeleitet, an den Partner
+ * oder die Verwaltung. 18 Zufallsbytes sind nicht zu erraten.
+ */
+async function offerteLink(req: VercelRequest, res: VercelResponse) {
+  if (!darf(req)) return nichtAngemeldet(res)
+  const koerper = (typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body) ?? {}
+  const id = text(koerper.id, 40)
+  if (!id) return res.status(400).json({ error: 'Id fehlt.' })
+
+  const vorhanden = await hGet(TABELLE, id)
+  if (!vorhanden) return res.status(404).json({ error: 'Bestellung nicht gefunden.' })
+  const bestellung = JSON.parse(vorhanden) as Bestellung
+  if (!bestellung.offerteGeheim) {
+    bestellung.offerteGeheim = randomBytes(18).toString('base64url')
+    await hSet(TABELLE, id, JSON.stringify(bestellung))
+  }
+  return res.status(200).json({ ok: true, geheim: bestellung.offerteGeheim })
+}
+
+/**
+ * Was die Kundschaft unter dem Link sieht – ohne Anmeldung.
+ *
+ * NUR WAS AUF DER OFFERTE STEHT, aufgezaehlt statt weggestrichen: Kommt am
+ * Datensatz ein Feld dazu (Kosten, Einkauf, Notiz), erscheint es hier erst,
+ * wenn jemand es ausdruecklich hineinschreibt. Kein Telefon, keine Mail,
+ * keine Einkaufspreise, keine interne Notiz.
+ *
+ * ERST WENN DIE PREISE FESTGELEGT SIND. Davor stehen Vorschlaege des
+ * Rechners drin, und die sind keine Offerte. Abgesagte Auftraege zeigen
+ * nichts mehr. Ist der Auftrag uebergeben und bezahlt, zeigt die Seite die
+ * Quittung statt der Offerte.
+ */
+export function kundenfassung(b: Bestellung) {
+  return {
+    id: '',
+    referenz: b.referenz,
+    kunde: { name: b.kunde.name, strasse: b.kunde.strasse, plz: b.kunde.plz, ort: b.kunde.ort },
+    positionen: b.positionen.map((p) => ({
+      menge: p.menge,
+      bezeichnung: p.bezeichnung,
+      preisChf: p.preisChf,
+      breiteCm: p.breiteCm,
+      hoeheCm: p.hoeheCm,
+      rahmendicke: p.rahmendicke,
+      rahmenfarbe: p.rahmenfarbe,
+      netzfarbe: p.netzfarbe,
+      netzart: p.netzart,
+      mechanismus: p.mechanismus,
+      oeffnung: p.oeffnung,
+    })),
+    montage: b.montage,
+    montageChf: b.montageChf,
+    anfahrt: b.anfahrt,
+    anfahrtChf: b.anfahrtChf,
+    rabatt: b.rabatt,
+    rabattChf: b.rabattChf,
+    rabattText: b.rabattText,
+    summeChf: b.summeChf,
+    ausgemessenAm: b.ausgemessenAm,
+    preiseFestgelegtAm: b.preiseFestgelegtAm,
+    // Fuer die Quittung (Vorlage I): Derselbe Link zeigt sie nach Uebergabe
+    // und Zahlung. Von der Onlinezahlung nur Stand, Betrag und Zeitpunkt –
+    // die Stripe-Sitzung bleibt hier.
+    zahlung: b.zahlung,
+    ausgeliefertAm: b.ausgeliefertAm,
+    bezahltAm: b.bezahltAm,
+    bezahlung: b.bezahlung
+      ? { status: b.bezahlung.status, betragChf: b.bezahlung.betragChf, zeitpunkt: b.bezahlung.zeitpunkt }
+      : undefined,
+  }
+}
+
+/** Uebergeben und bezahlt – dann gibt es eine Quittung, auch ohne Offerte (Webshop). */
+function abgeschlossen(b: Bestellung): boolean {
+  return Boolean(b.ausgeliefertAm && (b.bezahltAm || b.bezahlung?.status === 'bezahlt'))
+}
+
+async function offerteOeffentlich(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Cache-Control', 'no-store')
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow')
+  const geheim = typeof req.query.g === 'string' ? req.query.g : ''
+  // Kein Geheimnis, kein Suchlauf: Ein leerer Wert passte auf jeden Auftrag ohne.
+  if (!/^[A-Za-z0-9_-]{20,40}$/.test(geheim)) return res.status(404).json({ error: 'Diese Offerte gibt es nicht.' })
+
+  await demoFuellen(true)
+  const [alle, runden] = await Promise.all([hGetAll(TABELLE), rundenBlick()])
+  for (const wert of Object.values(alle)) {
+    let b: Bestellung
+    try {
+      b = JSON.parse(wert) as Bestellung
+      if (b.offerteGeheim !== geheim) continue
+      // Erst jetzt vereinheitlichen: Alteintraege (Status, Montage) wie ueberall.
+      b = vereinheitlichen(b, runden)
+    } catch {
+      continue
+    }
+    if (b.status === 'abgesagt') {
+      return res.status(410).json({ error: 'Diese Offerte ist nicht mehr gültig. Bei Fragen melden Sie sich gerne bei uns.' })
+    }
+    if (!b.preiseFestgelegtAm && !abgeschlossen(b)) return res.status(404).json({ error: 'Diese Offerte ist noch in Arbeit.' })
+    return res.status(200).json({ bestellung: kundenfassung(b) })
+  }
+  return res.status(404).json({ error: 'Diese Offerte gibt es nicht.' })
 }
 
 async function auflisten(req: VercelRequest, res: VercelResponse) {
@@ -810,6 +937,10 @@ async function aendern(req: VercelRequest, res: VercelResponse) {
   }
   if (koerper.zusage !== undefined) {
     bestellung.zusageAm = koerper.zusage === true ? jetzt : undefined
+    geaendert = true
+  }
+  if (koerper.nachgefasst !== undefined) {
+    bestellung.nachgefasstAm = koerper.nachgefasst === true ? jetzt : undefined
     geaendert = true
   }
   if (koerper.bestellt !== undefined) {

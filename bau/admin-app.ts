@@ -63,6 +63,33 @@ export function adminApp(): Plugin {
 </html>
 `
       this.emitFile({ type: 'asset', fileName: 'admin.html', source: admin })
+
+      /*
+       * Dieselbe Huelle fuer den Offerte-Link (/offerte/<geheim>), aber ohne
+       * Manifest und App-Angaben: Die Seite liest die Kundschaft, nicht wir.
+       * Aus demselben Grund wie oben nicht index.html - dort stuende fuer
+       * einen Augenblick die Verkaufsseite, und eine Offerte ist kein
+       * Einstieg, den Suchmaschinen kennen sollen.
+       */
+      const offerte = `<!doctype html>
+<html lang="de-CH">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="theme-color" content="#0f3b34" />
+    <title>Offerte – Pfistanbul Fenster</title>
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    ${uebernehmen.join('\n    ')}
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
+`
+      this.emitFile({ type: 'asset', fileName: 'offerte.html', source: offerte })
     },
   }
 }

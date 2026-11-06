@@ -27,6 +27,13 @@ import { absolut, kopfdatenFuer, unterseiten, type SeitenSchluessel } from '../d
 /** Wo der Adminbereich wohnt. Muss zu public/admin.webmanifest passen. */
 export const ADMIN_PFAD = '/admin'
 export const ZAHLEN_PFAD = '/admin/zahlen'
+/** Der Link, unter dem die Kundschaft ihre Offerte sieht: /offerte/<geheim>. */
+export const OFFERTE_PFAD = '/offerte/'
+
+/** Das Geheimnis aus einer Offerte-Adresse – oder null, wenn es keine ist. */
+export function offerteGeheimAusPfad(pfad: string): string | null {
+  return pfad.match(/^\/offerte\/([A-Za-z0-9_-]{20,40})\/?$/)?.[1] ?? null
+}
 
 /** Gehoert die Adresse zum Adminbereich? `/administrator` zaehlt nicht. */
 export function istAdminPfad(pfad: string): boolean {
@@ -88,6 +95,11 @@ export function setzeKopfdaten(rohpfad: string) {
   // erkennbar ist.
   if (istAdminPfad(rohpfad)) {
     document.title = 'Pfistanbul Admin'
+    return
+  }
+  // Die Offerte ist ein Brief an eine Person, keine Seite fuer Suchmaschinen.
+  if (rohpfad.startsWith(OFFERTE_PFAD)) {
+    document.title = 'Offerte – Pfistanbul Fenster'
     return
   }
   const pfad = pfadNormalisiert(rohpfad)

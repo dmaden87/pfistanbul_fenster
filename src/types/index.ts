@@ -397,6 +397,12 @@ export interface Bestellung {
   klaerungTermin?: string
   /** Phase 4→5: wann der Kunde zugesagt hat. Rechtlich der Vertragsschluss. */
   zusageAm?: string
+  /**
+   * Wann zuletzt nachgefasst wurde (Vorlage C). Ab hier laeuft die Frist
+   * fuers naechste Nachfassen neu – sonst stuende der Auftrag nach dem
+   * ersten Nachfassen fuer immer unter "Bald faellig".
+   */
+  nachgefasstAm?: string
   /** Phase 6: der vereinbarte Liefer-/Montagetermin. ISO-Datum. */
   montageTermin?: string
   /**
@@ -446,6 +452,12 @@ export interface Bestellung {
   einkaufAm?: string
   /** Interne Notiz aus dem Adminbereich. Sieht die Kundschaft nie. */
   notiz?: string
+  /**
+   * Das Geheimnis im Offerte-Link (pfistanbul.ch/offerte/<geheim>). Vergibt
+   * allein der Server (api/bestellungen.ts, offerteLink) – und einmal
+   * vergeben, bleibt es, auch wenn das Angebot angepasst wird.
+   */
+  offerteGeheim?: string
 
   /* --- Buchhaltung ------------------------------------------------------ */
 
@@ -691,6 +703,8 @@ export interface BestellAenderung {
   montageTermin?: string
   /** true stempelt jetzt, false loescht. */
   zusage?: boolean
+  /** Vorlage C ist raus: stempelt nachgefasstAm. */
+  nachgefasst?: boolean
   bestellt?: boolean
   versand?: boolean
   /** Die Sendungsnummer; ein leerer String nimmt sie weg. */

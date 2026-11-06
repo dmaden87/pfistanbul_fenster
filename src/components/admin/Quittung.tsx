@@ -48,7 +48,8 @@ import './Quittung.css'
 
 interface QuittungProps {
   bestellung: Bestellung
-  onZurueck: () => void
+  /** Fehlt auf dem Link der Kundschaft (/offerte/<geheim>). */
+  onZurueck?: () => void
 }
 
 function datum(d: Date): string {
@@ -102,9 +103,11 @@ export function Quittung({ bestellung: b, onZurueck }: QuittungProps) {
           <button type="button" className="btn" onClick={() => window.print()}>
             Drucken / als PDF sichern
           </button>
-          <button type="button" className="btn btn--quiet" onClick={onZurueck}>
-            Zurück
-          </button>
+          {onZurueck && (
+            <button type="button" className="btn btn--quiet" onClick={onZurueck}>
+              Zurück
+            </button>
+          )}
         </div>
       </div>
 

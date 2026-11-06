@@ -42,7 +42,11 @@ npm run bundle:android      # bündelt den JS-Teil – findet kaputte Importe
 `CHROMIUM=<pfad zu chrome-headless-shell> npm run vorrendern`.
 
 APK-Build, Emulator-Starttest und Release laufen auf GitHub
-(`.github/workflows/app.yml`), weil das Android-SDK hier nicht verfügbar ist.
+(`.github/workflows/app.yml`), weil das Android-SDK hier nicht verfügbar ist –
+**nur auf Knopfdruck**, gesammelt für ein Release. Zwischendurch wird mit der
+Web-Fassung gegen Demo-Daten getestet (`cd app && npm run web:bauen && npm run
+testserver`, Fotos mit `npm run bildschirme`; siehe `docs/app/README.md`).
+Release-Links erst weitergeben, wenn Tag und Commit geprüft sind.
 
 ## Regeln für die App (`app/`)
 

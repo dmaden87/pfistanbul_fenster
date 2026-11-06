@@ -42,4 +42,5 @@ yarn-error.*
 
 # Probe-Buendel von `npm run bundle:android`
 dist-check/
+dist-web/
 *.keystore
