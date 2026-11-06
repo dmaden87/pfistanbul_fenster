@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { SprachSchalter } from '@/components/SprachSchalter'
 import { useAnmeldung } from '@/lib/anmeldung'
+import { useSprache } from '@/lib/sprache'
 import { farben, radius, TIPPFLAECHE } from '@/theme'
 
 /** Anmeldung mit demselben Passwort wie im Adminbereich der Webseite. */
 export default function Anmelden() {
   const { anmelden } = useAnmeldung()
+  const { t } = useSprache()
   const [passwort, setPasswort] = useState('')
   const [laeuft, setLaeuft] = useState(false)
   const [fehler, setFehler] = useState<string | null>(null)
@@ -25,6 +28,9 @@ export default function Anmelden() {
 
   return (
     <SafeAreaView style={s.seite}>
+      <View style={{ alignItems: 'flex-end', paddingHorizontal: 24, paddingTop: 8 }}>
+        <SprachSchalter />
+      </View>
       <KeyboardAvoidingView style={s.mitte} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={s.zeichen} accessible accessibilityLabel="Pfistanbul Fenster">
           <View style={s.fenster}>
@@ -33,9 +39,9 @@ export default function Anmelden() {
           </View>
         </View>
         <Text style={s.titel} accessibilityRole="header">PF Admin</Text>
-        <Text style={s.satz}>Aufträge und Zahlen von Pfistanbul Fenster.</Text>
+        <Text style={s.satz}>{t.anmeldeSatz}</Text>
 
-        <Text style={s.label} nativeID="passwortLabel">Passwort</Text>
+        <Text style={s.label} nativeID="passwortLabel">{t.passwort}</Text>
         <TextInput
           style={s.eingabe}
           value={passwort}
@@ -57,7 +63,7 @@ export default function Anmelden() {
           accessibilityRole="button"
           style={({ pressed }) => [s.knopf, (!passwort || laeuft) && s.knopfAus, pressed && s.gedrueckt]}
         >
-          {laeuft ? <ActivityIndicator color={farben.aufMarke} /> : <Text style={s.knopfText}>Anmelden</Text>}
+          {laeuft ? <ActivityIndicator color={farben.aufMarke} /> : <Text style={s.knopfText}>{t.anmelden}</Text>}
         </Pressable>
       </KeyboardAvoidingView>
     </SafeAreaView>

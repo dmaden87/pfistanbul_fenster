@@ -6,15 +6,16 @@ ist und was als Nächstes kommt.
 
 ## Fahrplan
 
-| Stufe | Inhalt | Stand |
+Die Stufen heissen wie die App-Version, die sie ausliefert: Version 2.0.x
+ist die Auftragsverwaltung, 3.x die Zahlen. Die Nebennummer steht in
+`app/package.json`, die letzte Stelle ist die Laufnummer des Builds.
+
+| Version | Inhalt | Stand |
 | --- | --- | --- |
-| MVP | Adminbereich der Webseite als App (TWA, `android/`) | ✅ |
-| V1.0 | Fundament: Expo-Projekt, Login, Auftragsliste, Auftrag ansehen, Build auf GitHub | ✅ |
-| V1.1 | Auftrag bearbeiten: Kontakt, Termine, Netze & Preise, Kosten, Phase umstellen | ✅ (a: Phase, Kontakt, Termine; b: Netze, Angebot, Kosten) |
-| V1.2 | Nachrichten senden: Vorlagen A–I, WhatsApp/Mail, Offerte als Link; Bestelltalon als PDF | ✅ |
-| V1.3 | Zahlen: Buchhaltung mit Übersicht → Detail | |
-| V2 | iOS (TestFlight) + Benutzerverwaltung (eigene Logins) | |
-| V3 | offen | |
+| 1.x | MVP: Adminbereich der Webseite als App (TWA, `android/`) | ✅ |
+| 2.0 | Native App: Fundament, Auftrag bearbeiten (Kontakt, Termine, Netze, Angebot, Kosten, Phase), Nachrichten A–I, Offerte als Link, Bestelltalon als PDF | ✅ (2.0.12) |
+| 3.0 | Zahlen: Buchhaltung mit Übersicht → Detail; Bedienung auch auf Türkisch | in Arbeit |
+| 4.x | iOS (TestFlight) + Benutzerverwaltung (eigene Logins) | |
 
 ## Entscheidungen
 
@@ -30,7 +31,7 @@ Schlüssel, Versionsnummern ab 100: Die native App installiert sich als Update
 **Anmeldung mit Schlüssel statt Cookie.** Ein Passwort wie bisher; der Server
 gibt der App einen Schlüssel, 30 Tage gültig, im geschützten Speicher des
 Geräts. Wer das Passwort ändert, macht alle Schlüssel sofort ungültig. Die
-Grundlage für eigene Logins in V2.
+Grundlage für eigene Logins (Version 4).
 
 **Senden heisst: vorbereitet übergeben.** Die App öffnet WhatsApp bzw. das
 Mailprogramm mit Empfänger und Text; gesendet wird dort. Danach fragt die App
@@ -38,6 +39,12 @@ Mailprogramm mit Empfänger und Text; gesendet wird dort. Danach fragt die App
 als **Link** (`pfistanbul.ch/offerte/<geheim>`) – so ist auch WhatsApp mit
 Offerte vollständig vorausgefüllt. Direktes Senden über WhatsApp Business ist
 bewusst nicht vorgesehen (Freigabe, Kosten).
+
+**Bedienung Deutsch oder Türkisch, Kundentexte immer Deutsch.** Damit Ufuk
+die App bedienen kann, schaltet `DE | TR` (Liste, Anmeldung) Menüs, Knöpfe,
+Phasen und Hinweise um (`app/src/lib/sprache.tsx`, Wörter zuerst aus dem
+Web-Admin). Nachrichten an die Kundschaft, Offerte und Quittung bleiben
+Deutsch; das Blatt an Bora hat seine eigene Sprachwahl.
 
 ## Design
 

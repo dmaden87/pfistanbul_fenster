@@ -8,7 +8,7 @@ import { Alert, Platform, Pressable, Text, View } from 'react-native'
 import { Feld } from '@/components/Feld'
 import { Abschnitt, BearbeitenRahmen, rahmenStile as r } from '@/components/Rahmen'
 import { Wahl } from '@/components/Wahl'
-import { TEXTE as t } from '@/lib/auftrag'
+import { fuelle, useSprache } from '@/lib/sprache'
 import { useBestellungen } from '@/lib/bestellungen'
 
 /* A4 quer in Punkten (72 je Zoll) – elf Spalten passen hochkant nicht. */
@@ -34,13 +34,14 @@ export default function Blatt() {
   const [termin, setTermin] = useState('')
   const [bemerkung, setBemerkung] = useState('')
   const [laeuft, setLaeuft] = useState(false)
+  const { t, angabe } = useSprache()
 
   if (!b) return null
   // Wie im Web-Admin: Die Bestellung geht fuer das ganze Paket, die Anfrage je Auftrag.
   const drauf = art === 'bestellung' && b.paket ? bestellungen.filter((x) => x.paket === b.paket) : [b]
   const nummer = art === 'bestellung' ? (b.paket ?? (b.referenz || b.id)) : b.referenz || b.id
   const ergebnis = bestellblatt(drauf, { art, nummer, sprache, termin, bemerkung })
-  const titel = art === 'anfrage' ? 'Preisanfrage an Bora' : 'Bestelltalon an Bora'
+  const titel = art === 'anfrage' ? t.blattAnfrage : t.blattBestellung
 
   async function teilen() {
     if (!('html' in ergebnis)) return
@@ -60,7 +61,7 @@ export default function Blatt() {
       await Sharing.shareAsync(ziel.uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: titel })
       nachfragen()
     } catch (f) {
-      Alert.alert('PDF nicht erstellt', f instanceof Error ? f.message : String(f))
+      Alert.alert(t.pdfNichtErstellt, f instanceof Error ? f.message : String(f))
     } finally {
       setLaeuft(false)
     }
@@ -70,17 +71,17 @@ export default function Blatt() {
   function nachfragen() {
     const offen = drauf.filter((x) => x.status === 'bestellen')
     if (art !== 'bestellung' || offen.length === 0) return
-    const frage = offen.length > 1 ? `Alle ${offen.length} Aufträge als bei Bora bestellt markieren?` : 'Als bei Bora bestellt markieren?'
-    Alert.alert('An Bora gesendet?', frage, [
-      { text: 'Noch nicht', style: 'cancel' },
+    const frage = offen.length > 1 ? fuelle(t.alleBestellt, { n: offen.length }) : t.alsBestellt
+    Alert.alert(t.anBoraGesendet, frage, [
+      { text: t.nochNicht, style: 'cancel' },
       {
-        text: 'Ja, bestellt',
+        text: t.jaBestellt,
         onPress: async () => {
           try {
             for (const x of offen) await aendern(x.id, { status: 'bora', bestellt: true })
             router.back()
           } catch (f) {
-            Alert.alert('Nicht gespeichert', f instanceof Error ? f.message : String(f))
+            Alert.alert(t.nichtGespeichert, f instanceof Error ? f.message : String(f))
           }
         },
       },
@@ -99,49 +100,49 @@ export default function Blatt() {
   return (
     <BearbeitenRahmen
       titel={titel}
-      unterzeile={`${drauf.length > 1 ? `Paket ${nummer} · ${drauf.length} Aufträge` : `${b.kunde.name} · ${b.referenz}`}`}
-      speichernText={'html' in ergebnis ? `PDF teilen (${ergebnis.anzahl} ${ergebnis.anzahl === 1 ? 'Netz' : 'Netze'})` : 'Angaben fehlen'}
+      unterzeile={drauf.length > 1 ? fuelle(t.paketAuftraege, { nummer, n: drauf.length }) : `${b.kunde.name} · ${b.referenz}`}
+      speichernText={'html' in ergebnis ? fuelle(t.pdfTeilen, { n: ergebnis.anzahl, netze: ergebnis.anzahl === 1 ? t.netz : t.netze }) : t.angabenFehlen}
       onSpeichern={'html' in ergebnis ? teilen : () => router.back()}
       laeuft={laeuft}
     >
       {'luecken' in ergebnis ? (
-        <Abschnitt titel="So kann das Blatt nicht raus">
-          <Text style={r.satz}>Es fehlen Angaben – eine Lieferung aus der Türkei, die nicht passt, kostet Wochen:</Text>
+        <Abschnitt titel={t.blattNichtRaus}>
+          <Text style={r.satz}>{t.blattNichtRausSatz}</Text>
           {ergebnis.luecken.map((l, i) => (
-            <Text key={i} style={r.zeilenText}>{`• ${drauf.length > 1 ? `${l.kennung}, ` : ''}${l.netz}: ${l.fehlt.join(', ')}`}</Text>
+            <Text key={i} style={r.zeilenText}>{`• ${drauf.length > 1 ? `${l.kennung}, ` : ''}${l.netz}: ${l.fehlt.map(angabe).join(', ')}`}</Text>
           ))}
           {drauf.length === 1 ? (
             <Pressable onPress={() => router.replace({ pathname: '/auftrag/[id]/netze', params: { id: b.id } })} accessibilityRole="button" hitSlop={8}>
-              <Text style={r.link}>Netze bearbeiten</Text>
+              <Text style={r.link}>{t.netzeBearbeiten}</Text>
             </Pressable>
           ) : null}
         </Abschnitt>
       ) : (
         <>
-          <Abschnitt titel="Blatt">
+          <Abschnitt titel={t.blatt}>
             <Wahl<BlattSprache>
-              label="Sprache"
+              label={t.blattSprache}
               optionen={[
                 { wert: 'tuerkisch', text: 'Türkçe' },
-                { wert: 'deutsch', text: 'Deutsch (nur prüfen)' },
+                { wert: 'deutsch', text: t.deutschPruefen },
               ]}
               wert={sprache}
               onWahl={setSprache}
             />
-            {art === 'bestellung' ? <Feld id="termin" label={t.terminFuersBlatt} value={termin} onChangeText={setTermin} placeholder="z. B. Ende November" /> : null}
+            {art === 'bestellung' ? <Feld id="termin" label={t.terminFuersBlatt} value={termin} onChangeText={setTermin} placeholder={t.beispielTermin} /> : null}
             <Feld id="bemerkung" label={t.bemerkungFuersBlatt} value={bemerkung} onChangeText={setBemerkung} mehrzeilig />
           </Abschnitt>
           <Abschnitt>
             <Text style={r.satz}>
               {art === 'anfrage'
-                ? 'Mit leerer Preisspalte – Bora trägt den Stückpreis je Zeile ein.'
-                : 'Verbindlicher Auftrag, ohne Preise. Jede Zeile ist ein Stück und trägt die Bündelkennung.'}
-              {drauf.some((x) => x.notiz?.trim()) ? ' Die Notiz des Auftrags geht als Bemerkung mit.' : ''}
+                ? t.blattAnfrageSatz
+                : t.blattBestellungSatz}
+              {drauf.some((x) => x.notiz?.trim()) ? t.notizGehtMit : ''}
             </Text>
             {Platform.OS !== 'web' ? (
               <View style={r.zeile}>
                 <Pressable onPress={vorschau} accessibilityRole="button" hitSlop={8}>
-                  <Text style={r.link}>Vorschau / drucken</Text>
+                  <Text style={r.link}>{t.vorschauDrucken}</Text>
                 </Pressable>
               </View>
             ) : null}

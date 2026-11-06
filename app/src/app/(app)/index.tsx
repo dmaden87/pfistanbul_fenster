@@ -12,8 +12,8 @@ import {
   initialen,
   mussNachfassen,
   netzAnzahl,
-  PHASE_LABEL,
   PHASEN,
+  phasenNamen,
   preisOffen,
   tageInPhase,
   type Aufgabe,
@@ -21,6 +21,8 @@ import {
   VORSCHAU_TAGE,
 } from '@/lib/auftrag'
 import { useBestellungen } from '@/lib/bestellungen'
+import { SprachSchalter } from '@/components/SprachSchalter'
+import { fuelle, useSprache } from '@/lib/sprache'
 import { farben, radius, TIPPFLAECHE } from '@/theme'
 
 type Filter = 'alle' | Phase
@@ -33,6 +35,9 @@ export default function Auftraege() {
   const { bestellungen, laedt, fehler, neuLaden } = useBestellungen()
   const { abmelden } = useAnmeldung()
   const [filter, setFilter] = useState<Filter>('alle')
+  const sprachform = useSprache()
+  const { t } = sprachform
+  const PHASE_LABEL = phasenNamen(t)
 
   const aktive = useMemo(
     () => bestellungen.filter(aktiv).sort((a, b) => Date.parse(b.geaendert) - Date.parse(a.geaendert)),
@@ -43,15 +48,16 @@ export default function Auftraege() {
     for (const b of aktive) z[b.status as Phase]++
     return z
   }, [aktive])
-  const aufgaben = useMemo(() => baldFaellig(bestellungen), [bestellungen])
+  const aufgaben = useMemo(() => baldFaellig(bestellungen, sprachform), [bestellungen, sprachform])
   const liste = filter === 'alle' ? aktive : aktive.filter((b) => b.status === filter)
 
   const kopf = (
     <View>
       <View style={s.kopf}>
-        <Text style={s.titel} accessibilityRole="header">Aufträge</Text>
+        <Text style={s.titel} accessibilityRole="header">{t.auftraege}</Text>
+        <SprachSchalter />
         <Pressable onPress={abmelden} accessibilityRole="button" style={s.abmelden} hitSlop={8}>
-          <Text style={s.abmeldenText}>Abmelden</Text>
+          <Text style={s.abmeldenText}>{t.abmelden}</Text>
         </Pressable>
       </View>
 
@@ -66,7 +72,7 @@ export default function Auftraege() {
               accessibilityState={{ selected: an }}
               style={[s.chip, an && s.chipAn]}
             >
-              <Text style={[s.chipText, an && s.chipTextAn]}>{f === 'alle' ? 'Alle' : PHASE_LABEL[f]}</Text>
+              <Text style={[s.chipText, an && s.chipTextAn]}>{f === 'alle' ? t.alle : PHASE_LABEL[f]}</Text>
               <Text style={[s.chipZahl, an && s.chipZahlAn]}>{f === 'alle' ? aktive.length : anzahl[f]}</Text>
             </Pressable>
           )
@@ -77,14 +83,14 @@ export default function Auftraege() {
         <View style={s.fehlerBox}>
           <Text style={s.fehlerText}>{fehler}</Text>
           <Pressable onPress={neuLaden} accessibilityRole="button" style={s.nochmals}>
-            <Text style={s.nochmalsText}>Nochmals versuchen</Text>
+            <Text style={s.nochmalsText}>{t.nochmalsVersuchen}</Text>
           </Pressable>
         </View>
       ) : null}
 
       {filter === 'alle' && aufgaben.length > 0 ? (
         <View style={s.block}>
-          <Text style={s.blockTitel} accessibilityRole="header">{`Bald fällig · ${VORSCHAU_TAGE} Tage`}</Text>
+          <Text style={s.blockTitel} accessibilityRole="header">{fuelle(t.baldFaellig, { n: VORSCHAU_TAGE })}</Text>
           <View style={{ gap: 8 }}>
             {aufgaben.map((a) => <AufgabeZeile key={a.id} aufgabe={a} />)}
           </View>
@@ -92,7 +98,7 @@ export default function Auftraege() {
       ) : null}
 
       <Text style={[s.blockTitel, { marginHorizontal: 20 }]} accessibilityRole="header">
-        {filter === 'alle' ? 'Alle aktiven Aufträge' : PHASE_LABEL[filter]}
+        {filter === 'alle' ? t.alleAktiven : PHASE_LABEL[filter]}
       </Text>
     </View>
   )
@@ -108,7 +114,7 @@ export default function Auftraege() {
           laedt ? (
             <ActivityIndicator style={{ marginTop: 32 }} color={farben.marke} />
           ) : (
-            <Text style={s.leer}>{filter === 'alle' ? 'Keine aktiven Aufträge.' : `Nichts in «${PHASE_LABEL[filter]}».`}</Text>
+            <Text style={s.leer}>{filter === 'alle' ? t.keineAktiven : fuelle(t.nichtsIn, { phase: PHASE_LABEL[filter] })}</Text>
           )
         }
         refreshControl={<RefreshControl refreshing={laedt && bestellungen.length > 0} onRefresh={neuLaden} tintColor={farben.marke} colors={[farben.marke]} />}
@@ -137,6 +143,7 @@ function AufgabeZeile({ aufgabe }: { aufgabe: Aufgabe }) {
 }
 
 function Zeile({ b, erste, letzte }: { b: Bestellung; erste: boolean; letzte: boolean }) {
+  const { t } = useSprache()
   const tage = tageInPhase(b)
   const nachfassen = mussNachfassen(b)
   return (
@@ -149,13 +156,13 @@ function Zeile({ b, erste, letzte }: { b: Bestellung; erste: boolean; letzte: bo
       <View style={{ flex: 1, gap: 3 }}>
         <View style={s.zeileOben}>
           <Text style={s.name} numberOfLines={1}>{b.kunde.name}</Text>
-          <Text style={s.betrag}>{preisOffen(b) ? 'offen' : formatChf(b.summeChf)}</Text>
+          <Text style={s.betrag}>{preisOffen(b) ? t.offen : formatChf(b.summeChf)}</Text>
         </View>
         <View style={s.zeileUnten}>
           <Text style={s.meta} numberOfLines={1}>
-            {[b.kunde.ort, `${netzAnzahl(b)} Netze`, tage === 0 ? 'heute' : `seit ${tage} T`].filter(Boolean).join(' · ')}
+            {[b.kunde.ort, fuelle(t.netzeAnzahl, { n: netzAnzahl(b) }), tage === 0 ? t.heute : fuelle(t.seitTagenKurz, { n: tage })].filter(Boolean).join(' · ')}
           </Text>
-          <Text style={[s.marke, nachfassen && s.markeWarn]}>{PHASE_LABEL[b.status as Phase]}</Text>
+          <Text style={[s.marke, nachfassen && s.markeWarn]}>{phasenNamen(t)[b.status as Phase]}</Text>
         </View>
       </View>
     </Pressable>
@@ -164,7 +171,7 @@ function Zeile({ b, erste, letzte }: { b: Bestellung; erste: boolean; letzte: bo
 
 const s = StyleSheet.create({
   seite: { flex: 1, backgroundColor: farben.grund },
-  kopf: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 },
+  kopf: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 },
   titel: { flex: 1, fontSize: 30, fontWeight: '700', color: farben.marke },
   abmelden: { minHeight: TIPPFLAECHE, justifyContent: 'center', paddingHorizontal: 8 },
   abmeldenText: { color: farben.textLeise, fontSize: 15, fontWeight: '600' },

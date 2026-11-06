@@ -1,8 +1,8 @@
 import { quelleText, whatsappNummer } from '@pf/components/admin/hilfen'
-import { texteFuer } from '@pf/components/admin/sprache'
 import { nachfassenAb, nachfassenFaellig, NACHFASSEN_NACH_TAGEN } from '@pf/lib/nachrichten'
 import { abschnittFuer, PHASEN, tageSeit, type Phase } from '@pf/lib/phasen'
 import type { Bestellung } from '@pf/types'
+import { fuelle, type Texte } from '@/lib/sprache'
 
 /**
  * Was die App ueber einen Auftrag wissen will, das die Webseite so nicht
@@ -14,29 +14,24 @@ import type { Bestellung } from '@pf/types'
  */
 export { PHASEN, type Phase }
 
-/**
- * Die Namen der Phasen – dieselben wie im Web-Admin, aus dessen Texten
- * (src/components/admin/sprache.ts). Frueher standen hier eigene, kurze
- * Namen; "Zusage" hiess dann in der App, was im Web "Warten auf Zusage"
- * heisst, und ein Auftrag schien in einer anderen Phase zu stehen.
- * Die tuerkische Fassung liegt dort schon bereit.
- */
-export const TEXTE = texteFuer('deutsch')
-export const PHASE_LABEL: Record<Phase, string> = {
-  neu: TEXTE.phaseNeu,
-  klaerung: TEXTE.phaseKlaerung,
-  offerte: TEXTE.phaseOfferte,
-  zusage: TEXTE.phaseZusage,
-  bestellen: TEXTE.phaseBestellen,
-  bora: TEXTE.phaseBora,
-  ausliefern: TEXTE.phaseAusliefern,
+/** Die Namen der Phasen – dieselben wie im Web-Admin, in der Sprache der Maske. */
+export function phasenNamen(t: Texte): Record<Phase, string> {
+  return {
+    neu: t.phaseNeu,
+    klaerung: t.phaseKlaerung,
+    offerte: t.phaseOfferte,
+    zusage: t.phaseZusage,
+    bestellen: t.phaseBestellen,
+    bora: t.phaseBora,
+    ausliefern: t.phaseAusliefern,
+  }
 }
 
 /** Nachfassen: Frist und Regel aus src/lib/nachrichten.ts (Vorlage C). */
 export { NACHFASSEN_NACH_TAGEN }
 
-export function quelleLabel(b: Bestellung): string {
-  return quelleText(b.quelle ?? 'web', TEXTE)
+export function quelleLabel(b: Bestellung, t: Texte): string {
+  return quelleText(b.quelle ?? 'web', t)
 }
 
 /** Aktiv = weder abgesagt noch abgeschlossen. */
@@ -90,18 +85,24 @@ function zeitpunkt(termin: string): number {
   return Date.parse(termin.length === 10 ? `${termin}T00:00` : termin)
 }
 
-function tagText(t: Date, jetzt: number): string {
-  const heute = new Date(jetzt)
-  const morgen = new Date(heute.getFullYear(), heute.getMonth(), heute.getDate() + 1)
-  if (t.toDateString() === heute.toDateString()) return 'Heute'
-  if (t.toDateString() === morgen.toDateString()) return 'Morgen'
-  return t.toLocaleDateString('de-CH', { weekday: 'short', day: 'numeric', month: 'numeric' })
+/** Wie Daten geschrieben werden: Woerter und Datumsform der Maske. */
+export interface Sprachform {
+  t: Texte
+  datumsform: string
 }
 
-function terminText(termin: string, jetzt = Date.now()): string {
-  const t = new Date(zeitpunkt(termin))
-  const tag = tagText(t, jetzt)
-  return termin.length === 10 ? tag : `${tag}, ${t.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' })}`
+function tagText(d: Date, jetzt: number, f: Sprachform): string {
+  const heute = new Date(jetzt)
+  const morgen = new Date(heute.getFullYear(), heute.getMonth(), heute.getDate() + 1)
+  if (d.toDateString() === heute.toDateString()) return f.t.heuteGross
+  if (d.toDateString() === morgen.toDateString()) return f.t.morgen
+  return d.toLocaleDateString(f.datumsform, { weekday: 'short', day: 'numeric', month: 'numeric' })
+}
+
+function terminText(termin: string, f: Sprachform, jetzt = Date.now()): string {
+  const d = new Date(zeitpunkt(termin))
+  const tag = tagText(d, jetzt, f)
+  return termin.length === 10 ? tag : `${tag}, ${d.toLocaleTimeString(f.datumsform, { hour: '2-digit', minute: '2-digit' })}`
 }
 
 const TAG = 86_400_000
@@ -114,7 +115,8 @@ const TAG = 86_400_000
  *    wenn das erst in ein paar Tagen ist
  *  - Ausmess- und Montagetermine
  */
-export function baldFaellig(bestellungen: Bestellung[], jetzt = Date.now()): Aufgabe[] {
+export function baldFaellig(bestellungen: Bestellung[], f: Sprachform, jetzt = Date.now()): Aufgabe[] {
+  const { t } = f
   const aufgaben: Aufgabe[] = []
   const heuteAb = new Date(new Date(jetzt).toDateString()).getTime()
   const morgenAb = heuteAb + TAG
@@ -132,30 +134,23 @@ export function baldFaellig(bestellungen: Bestellung[], jetzt = Date.now()): Auf
         const tage = offerteSeit(b, jetzt)
         dazu({
           id: `${b.id}-nach`, bestellungId: b.id, faellig,
-          titel: `Nachfassen: ${b.kunde.name}`,
-          text: `${faellig < morgenAb ? '' : `${tagText(new Date(faellig), jetzt)} · `}${b.nachgefasstAm ? 'nachgefasst' : 'Offerte raus'} vor ${tage} ${tage === 1 ? 'Tag' : 'Tagen'}`,
+          titel: fuelle(t.aufgabeNachfassen, { name: b.kunde.name }),
+          text: `${faellig < morgenAb ? '' : `${tagText(new Date(faellig), jetzt, f)} · `}${fuelle(b.nachgefasstAm ? t.nachgefasstVor : t.offerteRausVor, { n: tage, tage: tage === 1 ? t.tag : t.tage })}`,
         })
       }
     }
     if (b.status === 'neu') {
-      dazu({ id: `${b.id}-neu`, bestellungId: b.id, faellig: Date.parse(b.eingang) || jetzt, titel: `Neu: ${b.kunde.name}`, text: 'Eingang bestätigen, Ausmessen planen' })
+      dazu({ id: `${b.id}-neu`, bestellungId: b.id, faellig: Date.parse(b.eingang) || jetzt, titel: fuelle(t.aufgabeNeu, { name: b.kunde.name }), text: t.aufgabeNeuText })
     }
-    for (const [art, termin] of [['Ausmessen', b.klaerungTermin], ['Montage', b.montageTermin]] as const) {
+    for (const [art, titel, termin] of [['ausmessen', t.aufgabeAusmessen, b.klaerungTermin], ['montage', t.aufgabeMontage, b.montageTermin]] as const) {
       if (!termin) continue
-      const t = zeitpunkt(termin)
+      const wann = zeitpunkt(termin)
       // Vergangene Termine sind erledigt (oder gehoeren nachgetragen) - kein "faellig".
-      if (Number.isNaN(t) || t < heuteAb) continue
-      dazu({ id: `${b.id}-${art}`, bestellungId: b.id, faellig: t, titel: `${art}: ${b.kunde.name}`, text: `${terminText(termin, jetzt)} · ${b.kunde.strasse || b.kunde.ort}` })
+      if (Number.isNaN(wann) || wann < heuteAb) continue
+      dazu({ id: `${b.id}-${art}`, bestellungId: b.id, faellig: wann, titel: fuelle(titel, { name: b.kunde.name }), text: `${terminText(termin, f, jetzt)} · ${b.kunde.strasse || b.kunde.ort}` })
     }
   }
   return aufgaben.sort((a, b) => a.faellig - b.faellig)
-}
-
-export function termine(b: Bestellung): { art: string; wann: string }[] {
-  const liste: { art: string; wann: string }[] = []
-  if (b.klaerungTermin) liste.push({ art: 'Ausmessen', wann: terminText(b.klaerungTermin) })
-  if (b.montageTermin) liste.push({ art: 'Montage', wann: terminText(b.montageTermin) })
-  return liste
 }
 
 /** Aus dem Web-Admin (src/components/admin/hilfen.ts), damit beide dieselbe Nummer waehlen. */

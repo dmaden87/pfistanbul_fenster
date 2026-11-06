@@ -1,5 +1,4 @@
 import { positionDetail, vorschlagFuer } from '@pf/components/admin/hilfen'
-import { fuelle } from '@pf/components/admin/sprache'
 import { shopConfig } from '@pf/data/shopConfig'
 import {
   abweichendeStempel,
@@ -17,7 +16,7 @@ import { useState, type ReactNode } from 'react'
 import { Alert, Pressable, Switch, Text, View } from 'react-native'
 import { Feld } from '@/components/Feld'
 import { Abschnitt, BearbeitenRahmen, rahmenStile as r } from '@/components/Rahmen'
-import { TEXTE as t } from '@/lib/auftrag'
+import { fuelle, useSprache } from '@/lib/sprache'
 import { useBestellungen } from '@/lib/bestellungen'
 import { farben } from '@/theme'
 
@@ -36,6 +35,7 @@ export default function AngebotFestlegen() {
   const [e, setE] = useState<AngebotEntwurf | null>(() => (b ? angebotStart(b) : null))
   const [stempelErsetzen, setStempelErsetzen] = useState(false)
   const [laeuft, setLaeuft] = useState(false)
+  const { t } = useSprache()
 
   if (!b || !e) return null
   const rechnung = angebotRechnung(b, e)
@@ -43,13 +43,13 @@ export default function AngebotFestlegen() {
   const setze = (teil: Partial<AngebotEntwurf>) => setE({ ...e, ...teil })
 
   async function speichern() {
-    if (rechnung.unvollstaendig) return Alert.alert('Nicht gespeichert', t.preisFehltSatz)
+    if (rechnung.unvollstaendig) return Alert.alert(t.nichtGespeichert, t.preisFehltSatz)
     setLaeuft(true)
     try {
       await aendern(b!.id, angebotAenderung(b!, e!, stempelErsetzen))
       router.back()
     } catch (f) {
-      Alert.alert('Nicht gespeichert', f instanceof Error ? f.message : String(f))
+      Alert.alert(t.nichtGespeichert, f instanceof Error ? f.message : String(f))
     } finally {
       setLaeuft(false)
     }
@@ -60,7 +60,7 @@ export default function AngebotFestlegen() {
       <Text style={r.satz}>{t.angebotSatz}</Text>
 
       <Abschnitt
-        titel="Verkaufspreise"
+        titel={t.verkaufspreise}
         rechts={
           <Pressable onPress={() => setze({ preise: preiseAusVorschlaegen(b, e.preise) })} accessibilityRole="button" hitSlop={8}>
             <Text style={r.link}>{t.richtpreiseUebernehmen}</Text>

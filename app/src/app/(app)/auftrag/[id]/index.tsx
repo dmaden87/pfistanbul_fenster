@@ -13,11 +13,10 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { Blatt, Knopf } from '@/components/Blatt'
 import { Feld } from '@/components/Feld'
 import { Pfeil } from '@/components/Symbol'
-import { netzAnzahl, PHASE_LABEL, PHASEN, preisOffen, quelleLabel, tageInPhase, TEXTE, whatsappNummer, type Phase } from '@/lib/auftrag'
+import { netzAnzahl, PHASEN, phasenNamen, preisOffen, quelleLabel, tageInPhase, whatsappNummer, type Phase } from '@/lib/auftrag'
 import { useBestellungen } from '@/lib/bestellungen'
+import { fuelle, useSprache } from '@/lib/sprache'
 import { farben, radius, TIPPFLAECHE } from '@/theme'
-
-const t = TEXTE
 
 /**
  * Ein Auftrag auf einem Bildschirm.
@@ -25,7 +24,7 @@ const t = TEXTE
  * Phase weiterschalten (dieselben Schritte wie im Web-Admin, aus
  * src/lib/aktionen.ts), Kontakt, Termine, Notiz, Absagen; Netze, Angebot
  * und Kosten auf eigenen Bildschirmen (netze.tsx, angebot.tsx, kosten.tsx).
- * Nachrichten folgen mit V1.2 – docs/app/README.md.
+ * Nachrichten auf nachricht.tsx, das Blatt an Bora auf blatt.tsx.
  */
 export default function Auftrag() {
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -33,12 +32,14 @@ export default function Auftrag() {
   const b = bestellungen.find((x) => x.id === id)
   const [blatt, setBlatt] = useState<null | 'kontakt' | 'notiz' | 'absagen'>(null)
   const [laeuft, setLaeuft] = useState(false)
+  const { t, datumsform, angabe } = useSprache()
+  const PHASE_LABEL = phasenNamen(t)
 
   if (!b) {
     return (
       <SafeAreaView style={s.seite}>
-        <Kopf>Auftrag</Kopf>
-        <Text style={s.leer}>Diesen Auftrag gibt es nicht mehr.</Text>
+        <Kopf>{t.auftrag}</Kopf>
+        <Text style={s.leer}>{t.auftragWeg}</Text>
       </SafeAreaView>
     )
   }
@@ -50,7 +51,7 @@ export default function Auftrag() {
       await aendern(ziel.id, aenderung)
       return true
     } catch (f) {
-      Alert.alert('Nicht gespeichert', f instanceof Error ? f.message : String(f))
+      Alert.alert(t.nichtGespeichert, f instanceof Error ? f.message : String(f))
       return false
     } finally {
       setLaeuft(false)
@@ -66,13 +67,13 @@ export default function Auftrag() {
   // mit gleichen Luecken als eine Zeile ("2× Sondermass Küche: …").
   const luecken = Object.values(
     (b.positionen.length === 0 ? [] : auftragAufbauen([b]).luecken).reduce<Record<string, { text: string; n: number }>>((acc, l) => {
-      const text = `${l.netz}: ${l.fehlt.join(', ')}`
+      const text = `${l.netz}: ${l.fehlt.map(angabe).join(', ')}`
       acc[text] = { text, n: (acc[text]?.n ?? 0) + 1 }
       return acc
     }, {}),
   ).map(({ text, n }) => (n > 1 ? `${n}× ${text}` : text))
-  const lueckenText = b.positionen.length === 0 ? 'Es sind noch keine Netze erfasst.' : luecken.map((l) => `• ${l}`).join('\n')
-  const zeigeLuecken = (titel: string) => Alert.alert(titel, `Für den Bestellschein fehlt noch:\n\n${lueckenText}`)
+  const lueckenText = b.positionen.length === 0 ? t.keineNetzeErfasst : luecken.map((l) => `• ${l}`).join('\n')
+  const zeigeLuecken = (titel: string) => Alert.alert(titel, `${t.fehltNochSatz}\n\n${lueckenText}`)
 
   const abschnitt = abschnittFuer(b)
   const oeffneUnter = (wohin: 'netze' | 'angebot' | 'kosten') => router.push({ pathname: `/auftrag/[id]/${wohin}`, params: { id: b!.id } })
@@ -90,7 +91,7 @@ export default function Auftrag() {
     }
     if (k.tat === 'offerte') {
       // Die Offerte so, wie die Kundschaft sie unter ihrem Link sieht.
-      if (!b!.preiseFestgelegtAm) return Alert.alert(k.text, 'Erst das Angebot festlegen – davor stehen nur Vorschläge drin.')
+      if (!b!.preiseFestgelegtAm) return Alert.alert(k.text, t.erstAngebot)
       return void offerteLinkFuer(b!.id)
         .then((link) => Linking.openURL(link))
         .catch((f) => Alert.alert(k.text, f instanceof Error ? f.message : String(f)))
@@ -98,11 +99,11 @@ export default function Auftrag() {
     if (k.tat === 'boraBestellt') {
       // Wie im Web-Admin: ein Paket geht als Ganzes zu Bora.
       const paket = b!.paket ? bestellungen.filter((x) => x.paket === b!.paket && x.status === 'bestellen') : [b!]
-      const frage = paket.length > 1 ? `Alle ${paket.length} Aufträge im Paket «${b!.paket}» als bestellt markieren?` : 'Als bei Bora bestellt markieren?'
+      const frage = paket.length > 1 ? fuelle(t.paketBestellt, { n: paket.length, paket: b!.paket ?? '' }) : t.alsBestellt
       return Alert.alert(k.text, frage, [
-        { text: 'Abbrechen', style: 'cancel' },
+        { text: t.abbrechen, style: 'cancel' },
         {
-          text: 'Ja, bestellt',
+          text: t.jaBestellt,
           onPress: async () => {
             for (const x of paket) if (!(await speichere({ status: 'bora', bestellt: true }, x))) return
           },
@@ -120,9 +121,9 @@ export default function Auftrag() {
   function setzePhase(ziel: Phase) {
     if (b!.status === ziel) return
     const schritt = alleKnoepfe.find((k) => typeof k.tat === 'object' && k.tat.status === ziel && !k.gesperrt)
-    Alert.alert('Phase umstellen', `Auf «${PHASE_LABEL[ziel]}» setzen?`, [
-      { text: 'Abbrechen', style: 'cancel' },
-      { text: 'Umstellen', onPress: () => void speichere(schritt ? (schritt.tat as BestellAenderung) : { status: ziel }) },
+    Alert.alert(t.phaseUmstellen, fuelle(t.aufPhaseSetzen, { phase: PHASE_LABEL[ziel] }), [
+      { text: t.abbrechen, style: 'cancel' },
+      { text: t.umstellen, onPress: () => void speichere(schritt ? (schritt.tat as BestellAenderung) : { status: ziel }) },
     ])
   }
 
@@ -132,14 +133,14 @@ export default function Auftrag() {
 
   return (
     <SafeAreaView style={s.seite} edges={['top', 'bottom']}>
-      <Kopf>{`${b.referenz} · ${quelleLabel(b)} · ${tage === 0 ? 'heute' : `seit ${tage} T`}`}</Kopf>
+      <Kopf>{`${b.referenz} · ${quelleLabel(b, t)} · ${tage === 0 ? t.heute : fuelle(t.seitTagenKurz, { n: tage })}`}</Kopf>
       <ScrollView contentContainerStyle={s.inhalt}>
         <Text style={s.name} accessibilityRole="header">{b.kunde.name}</Text>
         <Text style={s.unterzeile}>
-          {[b.kunde.ort, `${netzAnzahl(b)} Netze`, preisOffen(b) ? 'Preis offen' : formatChf(b.summeChf)].filter(Boolean).join(' · ')}
+          {[b.kunde.ort, fuelle(t.netzeAnzahl, { n: netzAnzahl(b) }), preisOffen(b) ? t.preisOffen : formatChf(b.summeChf)].filter(Boolean).join(' · ')}
         </Text>
 
-        <Karte titel="Phase" hinweis={phase ? 'Antippen zum Umstellen' : undefined}>
+        <Karte titel={t.phase} hinweis={phase ? t.antippenUmstellen : undefined}>
           <View style={s.phasenBalken}>
             {PHASEN.map((p, i) => (
               <View key={p} style={[s.balken, { backgroundColor: i < idx ? farben.marke : i === idx ? farben.hinweis : farben.rand }]} />
@@ -160,7 +161,7 @@ export default function Auftrag() {
               ))}
             </ScrollView>
           ) : (
-            <Text style={s.phaseText}>{`Abgesagt · ${grundText(b.absageGrund, t)}`}</Text>
+            <Text style={s.phaseText}>{`${t.abgesagt} · ${grundText(b.absageGrund, t)}`}</Text>
           )}
           {weitere.length ? (
             <View style={s.weitere}>
@@ -169,12 +170,12 @@ export default function Auftrag() {
                   key={k.text}
                   onPress={() => (k.gesperrt ? zeigeLuecken(k.gesperrt) : druecke(k))}
                   accessibilityRole="button"
-                  accessibilityHint={k.gesperrt ? 'Zeigt, was fehlt' : undefined}
+                  accessibilityHint={k.gesperrt ? t.zeigtWasFehlt : undefined}
                   disabled={laeuft}
                   style={s.weitererSchritt}
                 >
                   <Text style={[s.weitererText, k.gesperrt && { color: farben.textSchwach }]}>{k.text}</Text>
-                  {k.gesperrt ? <Text style={s.fehltLink}>{`${k.gesperrt} · welche?`}</Text> : <Pfeil farbe={farben.marke} />}
+                  {k.gesperrt ? <Text style={s.fehltLink}>{`${k.gesperrt} · ${t.welche}`}</Text> : <Pfeil farbe={farben.marke} />}
                 </Pressable>
               ))}
             </View>
@@ -185,31 +186,31 @@ export default function Auftrag() {
 
         <NachrichtKarte b={b} />
 
-        <Karte titel="Kontakt" stift={() => setBlatt('kontakt')} stiftLabel="Kontakt bearbeiten">
-          <Text style={s.zeilenText}>{b.kunde.telefon || '— keine Telefonnummer —'}</Text>
-          <Text style={s.zeilenText}>{b.kunde.email || '— keine Mail —'}</Text>
-          <Text style={s.leise}>{[b.kunde.strasse, [b.kunde.plz, b.kunde.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ') || '— keine Adresse —'}</Text>
+        <Karte titel={t.kontakt} stift={() => setBlatt('kontakt')} stiftLabel={t.kontaktAendern}>
+          <Text style={s.zeilenText}>{b.kunde.telefon || t.ohneTelefon}</Text>
+          <Text style={s.zeilenText}>{b.kunde.email || t.ohneMail}</Text>
+          <Text style={s.leise}>{[b.kunde.strasse, [b.kunde.plz, b.kunde.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ') || t.ohneAdresse}</Text>
         </Karte>
 
-        <Karte titel="Termine">
-          <TerminZeile art="Ausmessen" wert={b.klaerungTermin} onSpeichern={(w) => speichere({ klaerungTermin: w })} />
-          <TerminZeile art="Montage" wert={b.montageTermin} onSpeichern={(w) => speichere({ montageTermin: w })} />
+        <Karte titel={t.termine}>
+          <TerminZeile art={t.ausmessen} wert={b.klaerungTermin} onSpeichern={(w) => speichere({ klaerungTermin: w })} />
+          <TerminZeile art={t.montage} wert={b.montageTermin} onSpeichern={(w) => speichere({ montageTermin: w })} />
           <View style={[s.paar, s.trenner, { paddingTop: 8 }]}>
             <View style={{ flex: 1 }}>
-              <Text style={s.zeilenText}>Ausgemessen</Text>
-              {b.ausgemessenAm ? <Text style={s.leise}>{new Date(b.ausgemessenAm).toLocaleDateString('de-CH')}</Text> : null}
+              <Text style={s.zeilenText}>{t.ausgemessen}</Text>
+              {b.ausgemessenAm ? <Text style={s.leise}>{new Date(b.ausgemessenAm).toLocaleDateString(datumsform)}</Text> : null}
             </View>
             <Switch
               value={Boolean(b.ausgemessenAm)}
               onValueChange={(an) => void speichere({ ausgemessen: an })}
               disabled={laeuft}
               trackColor={{ true: farben.marke, false: farben.randStark }}
-              accessibilityLabel="Ausgemessen"
+              accessibilityLabel={t.ausgemessen}
             />
           </View>
         </Karte>
 
-        <Karte titel="Netze & Preise" stift={() => oeffneUnter('netze')} stiftLabel="Netze bearbeiten">
+        <Karte titel={t.netzePreise} stift={() => oeffneUnter('netze')} stiftLabel={t.netzeBearbeiten}>
           {b.positionen.map((p, i) => (
             <View key={p.id ?? i} style={[s.netz, i > 0 && s.trenner]}>
               <Text style={s.menge}>{p.menge}×</Text>
@@ -217,30 +218,30 @@ export default function Auftrag() {
                 <Text style={s.zeilenText}>{p.bezeichnung}</Text>
                 <Text style={s.leise}>{positionDetail(p) || ' '}</Text>
               </View>
-              <Text style={s.preis}>{p.preisChf > 0 ? formatChf(p.preisChf) : 'Preis?'}</Text>
+              <Text style={s.preis}>{p.preisChf > 0 ? formatChf(p.preisChf) : t.preisFrage}</Text>
             </View>
           ))}
           {b.montage ? (
             <View style={[s.netz, s.trenner]}>
               <Text style={s.menge} />
-              <Text style={[s.zeilenText, { flex: 1 }]}>Montage</Text>
+              <Text style={[s.zeilenText, { flex: 1 }]}>{t.montage}</Text>
               <Text style={s.preis}>{formatChf(b.montageChf ?? 0)}</Text>
             </View>
           ) : null}
           <View style={[s.paar, s.summe]}>
-            <Text style={[s.zeilenText, { fontWeight: '700' }]}>Total</Text>
+            <Text style={[s.zeilenText, { fontWeight: '700' }]}>{t.total}</Text>
             <Text style={[s.preis, { fontWeight: '700' }]}>{formatChf(b.summeChf)}</Text>
           </View>
           {luecken.length > 0 ? (
             <View style={s.fehltBox}>
-              <Text style={s.fehltTitel}>Für den Bestellschein fehlt noch</Text>
+              <Text style={s.fehltTitel}>{t.fehltNoch}</Text>
               {luecken.map((l) => (
                 <Text key={l} style={s.fehltText}>{l}</Text>
               ))}
             </View>
           ) : null}
           {b.preiseFestgelegtAm ? (
-            <Text style={s.leise}>{`${t.preiseFestgelegtAm} ${new Date(b.preiseFestgelegtAm).toLocaleDateString('de-CH')}`}</Text>
+            <Text style={s.leise}>{`${t.preiseFestgelegtAm} ${new Date(b.preiseFestgelegtAm).toLocaleDateString(datumsform)}`}</Text>
           ) : null}
           {preisAenderbar(b, abschnitt) ? (
             <View style={{ marginTop: 6 }}>
@@ -253,15 +254,15 @@ export default function Auftrag() {
             Den Auftrag zeigt man auch mal her, Boras Preise nicht. */}
         <Pressable onPress={() => oeffneUnter('kosten')} accessibilityRole="button" style={s.kostenZeile}>
           <View style={{ flex: 1 }}>
-            <Text style={s.zeilenText}>Kosten & Marge</Text>
-            <Text style={s.leise}>intern · Einkauf, Lieferung, weitere Kosten</Text>
+            <Text style={s.zeilenText}>{t.kostenMarge}</Text>
+            <Text style={s.leise}>{t.kostenMargeSatz}</Text>
           </View>
           <Pfeil farbe={farben.marke} />
         </Pressable>
 
-        <Karte titel="Notiz" stift={() => setBlatt('notiz')} stiftLabel="Notiz bearbeiten">
-          {b.kunde.bemerkung ? <Text style={s.zeilenText}>{`Kundschaft: ${b.kunde.bemerkung}`}</Text> : null}
-          <Text style={b.notiz ? s.zeilenText : s.leise}>{b.notiz || 'Noch keine Notiz.'}</Text>
+        <Karte titel={t.notiz} stift={() => setBlatt('notiz')} stiftLabel={t.notizBearbeiten}>
+          {b.kunde.bemerkung ? <Text style={s.zeilenText}>{fuelle(t.kundschaft, { text: b.kunde.bemerkung })}</Text> : null}
+          <Text style={b.notiz ? s.zeilenText : s.leise}>{b.notiz || t.keineNotiz}</Text>
         </Karte>
 
         {kannAbsagen ? (
@@ -275,7 +276,7 @@ export default function Auftrag() {
         <View style={s.fuss}>
           {hauptKnopf.gesperrt ? (
             <Pressable onPress={() => zeigeLuecken(hauptKnopf.gesperrt!)} accessibilityRole="button" style={s.fehltZeile}>
-              <Text style={s.fehltLink}>{`${hauptKnopf.gesperrt} · welche?`}</Text>
+              <Text style={s.fehltLink}>{`${hauptKnopf.gesperrt} · ${t.welche}`}</Text>
             </Pressable>
           ) : null}
           {laeuft ? (
@@ -289,7 +290,7 @@ export default function Auftrag() {
       <KontaktBlatt b={b} offen={blatt === 'kontakt'} onSchliessen={() => setBlatt(null)} speichere={speichere} />
       <NotizBlatt b={b} offen={blatt === 'notiz'} onSchliessen={() => setBlatt(null)} speichere={speichere} />
       <Blatt offen={blatt === 'absagen'} titel={t.knopfAbsagen} onSchliessen={() => setBlatt(null)}>
-        <Text style={s.leise}>Warum wird nichts daraus? Der Auftrag kommt ins Archiv und lässt sich wieder öffnen.</Text>
+        <Text style={s.leise}>{t.absagenSatz}</Text>
         {ABSAGE_GRUENDE.map((g: AbsageGrund) => (
           <Knopf
             key={g}
@@ -308,6 +309,7 @@ export default function Auftrag() {
 type Speichere = (aenderung: BestellAenderung) => Promise<boolean>
 
 function KontaktBlatt({ b, offen, onSchliessen, speichere }: { b: Bestellung; offen: boolean; onSchliessen: () => void; speichere: Speichere }) {
+  const { t } = useSprache()
   const [k, setK] = useState(b.kunde)
   const [vorher, setVorher] = useState(offen)
   // Beim Oeffnen den aktuellen Stand uebernehmen, nicht den vom letzten Mal.
@@ -317,17 +319,17 @@ function KontaktBlatt({ b, offen, onSchliessen, speichere }: { b: Bestellung; of
   }
   const feld = (name: keyof typeof k) => ({ value: k[name], onChangeText: (v: string) => setK({ ...k, [name]: v }) })
   return (
-    <Blatt offen={offen} titel="Kontakt bearbeiten" onSchliessen={onSchliessen}>
-      <Feld id="k-name" label="Name" {...feld('name')} autoCapitalize="words" />
-      <Feld id="k-tel" label="Telefon" {...feld('telefon')} keyboardType="phone-pad" />
-      <Feld id="k-mail" label="Mail" {...feld('email')} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
-      <Feld id="k-strasse" label="Strasse" {...feld('strasse')} />
+    <Blatt offen={offen} titel={t.kontaktAendern} onSchliessen={onSchliessen}>
+      <Feld id="k-name" label={t.name} {...feld('name')} autoCapitalize="words" />
+      <Feld id="k-tel" label={t.telefon} {...feld('telefon')} keyboardType="phone-pad" />
+      <Feld id="k-mail" label={t.mail} {...feld('email')} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
+      <Feld id="k-strasse" label={t.strasse} {...feld('strasse')} />
       <View style={{ flexDirection: 'row', gap: 10 }}>
-        <View style={{ width: 96 }}><Feld id="k-plz" label="PLZ" {...feld('plz')} keyboardType="number-pad" /></View>
-        <View style={{ flex: 1 }}><Feld id="k-ort" label="Ort" {...feld('ort')} /></View>
+        <View style={{ width: 110 }}><Feld id="k-plz" label={t.plz} {...feld('plz')} keyboardType="number-pad" /></View>
+        <View style={{ flex: 1 }}><Feld id="k-ort" label={t.ort} {...feld('ort')} /></View>
       </View>
       <Knopf
-        text="Speichern"
+        text={t.speichern}
         onPress={async () => {
           const { name, telefon, email, strasse, plz, ort } = k
           if (await speichere({ kunde: { name, telefon, email, strasse, plz, ort } })) onSchliessen()
@@ -338,6 +340,7 @@ function KontaktBlatt({ b, offen, onSchliessen, speichere }: { b: Bestellung; of
 }
 
 function NotizBlatt({ b, offen, onSchliessen, speichere }: { b: Bestellung; offen: boolean; onSchliessen: () => void; speichere: Speichere }) {
+  const { t } = useSprache()
   const [notiz, setNotiz] = useState(b.notiz ?? '')
   const [vorher, setVorher] = useState(offen)
   if (offen !== vorher) {
@@ -345,9 +348,9 @@ function NotizBlatt({ b, offen, onSchliessen, speichere }: { b: Bestellung; offe
     if (offen) setNotiz(b.notiz ?? '')
   }
   return (
-    <Blatt offen={offen} titel="Notiz" onSchliessen={onSchliessen}>
-      <Feld id="notiz" label="Nur für uns, nicht für die Kundschaft" value={notiz} onChangeText={setNotiz} mehrzeilig maxLength={1200} />
-      <Knopf text="Speichern" onPress={async () => { if (await speichere({ notiz })) onSchliessen() }} />
+    <Blatt offen={offen} titel={t.notiz} onSchliessen={onSchliessen}>
+      <Feld id="notiz" label={t.notizNurFuerUns} value={notiz} onChangeText={setNotiz} mehrzeilig maxLength={1200} />
+      <Knopf text={t.speichern} onPress={async () => { if (await speichere({ notiz })) onSchliessen() }} />
     </Blatt>
   )
 }
@@ -359,16 +362,17 @@ function isoTag(d: Date): string {
 }
 
 function TerminZeile({ art, wert, onSpeichern }: { art: string; wert?: string; onSpeichern: (wert: string) => Promise<boolean> }) {
+  const { t, datumsform } = useSprache()
   const datum = wert ? new Date(wert.length === 10 ? `${wert}T00:00` : wert) : null
   function waehle() {
     if (Platform.OS !== 'android') {
-      // iOS folgt mit V2: dort ist der Datumswaehler ein eingebettetes Element.
-      return Alert.alert(art, 'Termine eintragen geht vorerst nur auf Android.')
+      // iOS folgt mit Version 4: dort ist der Datumswaehler ein eingebettetes Element.
+      return Alert.alert(art, t.nurAndroid)
     }
     DateTimePickerAndroid.open({
       value: datum ?? new Date(),
       mode: 'date',
-      title: `${art}: Datum wählen`,
+      title: fuelle(t.datumWaehlen, { art }),
       onValueChange: (_e, d) => void onSpeichern(isoTag(d)),
     })
   }
@@ -376,12 +380,12 @@ function TerminZeile({ art, wert, onSpeichern }: { art: string; wert?: string; o
     <View style={[s.paar, { alignItems: 'center', minHeight: TIPPFLAECHE }]}>
       <Text style={[s.zeilenText, { flex: 1 }]}>{art}</Text>
       {datum ? (
-        <Pressable onLongPress={() => Alert.alert(art, 'Termin entfernen?', [{ text: 'Abbrechen', style: 'cancel' }, { text: 'Entfernen', style: 'destructive', onPress: () => void onSpeichern('') }])} onPress={waehle} accessibilityRole="button" accessibilityHint="Lange drücken zum Entfernen" style={s.terminWert}>
-          <Text style={s.terminText}>{datum.toLocaleDateString('de-CH', { weekday: 'short', day: 'numeric', month: 'numeric', year: 'numeric' })}</Text>
+        <Pressable onLongPress={() => Alert.alert(art, t.terminEntfernen, [{ text: t.abbrechen, style: 'cancel' }, { text: t.entfernen, style: 'destructive', onPress: () => void onSpeichern('') }])} onPress={waehle} accessibilityRole="button" accessibilityHint={t.langeDruecken} style={s.terminWert}>
+          <Text style={s.terminText}>{datum.toLocaleDateString(datumsform, { weekday: 'short', day: 'numeric', month: 'numeric', year: 'numeric' })}</Text>
         </Pressable>
       ) : (
         <Pressable onPress={waehle} accessibilityRole="button" style={s.terminWert}>
-          <Text style={[s.terminText, { color: farben.marke }]}>Eintragen</Text>
+          <Text style={[s.terminText, { color: farben.marke }]}>{t.eintragen}</Text>
         </Pressable>
       )}
     </View>
@@ -389,9 +393,10 @@ function TerminZeile({ art, wert, onSpeichern }: { art: string; wert?: string; o
 }
 
 function Kopf({ children }: { children: string }) {
+  const { t } = useSprache()
   return (
     <View style={s.kopf}>
-      <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Zurück zu den Aufträgen" style={s.zurueck}>
+      <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel={t.zurueckZuAuftraegen} style={s.zurueck}>
         <Pfeil farbe={farben.text} richtung="links" />
       </Pressable>
       <Text style={s.kopfText} numberOfLines={1}>{children}</Text>
@@ -400,6 +405,7 @@ function Kopf({ children }: { children: string }) {
 }
 
 function Karte({ titel, hinweis, stift, stiftLabel, children }: { titel: string; hinweis?: string; stift?: () => void; stiftLabel?: string; children: ReactNode }) {
+  const { t } = useSprache()
   return (
     <View style={s.karte}>
       <View style={s.karteKopf}>
@@ -407,7 +413,7 @@ function Karte({ titel, hinweis, stift, stiftLabel, children }: { titel: string;
         {hinweis ? <Text style={s.karteHinweis}>{hinweis}</Text> : null}
         {stift ? (
           <Pressable onPress={stift} accessibilityRole="button" accessibilityLabel={stiftLabel} style={s.stift} hitSlop={8}>
-            <Text style={s.stiftText}>Bearbeiten</Text>
+            <Text style={s.stiftText}>{t.bearbeiten}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -421,17 +427,18 @@ function Karte({ titel, hinweis, stift, stiftLabel, children }: { titel: string;
  * Mail oeffnet sich vorausgefuellt. Die anderen Vorlagen eine Ebene tiefer.
  */
 function NachrichtKarte({ b }: { b: Bestellung }) {
+  const { t } = useSprache()
   const wahl = vorlagenFuer(b)
   if (wahl.length === 0) return null
   const empfohlen = wahl.find((v) => v.empfohlen)
   const oeffne = (vorlage?: string) => router.push({ pathname: '/auftrag/[id]/nachricht', params: vorlage ? { id: b.id, vorlage } : { id: b.id } })
   return (
-    <Karte titel="Nachricht an die Kundschaft">
+    <Karte titel={t.nachrichtAnKundschaft}>
       {empfohlen ? (
-        <Knopf text={`${empfohlen.titel} senden`} onPress={() => oeffne(empfohlen.id)} still />
+        <Knopf text={fuelle(t.vorlageSenden, { titel: t[`vorlage${empfohlen.id}`] })} onPress={() => oeffne(empfohlen.id)} still />
       ) : null}
       <Pressable onPress={() => oeffne()} accessibilityRole="button" style={s.weitererSchritt}>
-        <Text style={s.weitererText}>{empfohlen ? 'Andere Vorlage' : 'Nachricht schreiben'}</Text>
+        <Text style={s.weitererText}>{empfohlen ? t.andereVorlage : t.nachrichtSchreiben}</Text>
         <Pfeil farbe={farben.marke} />
       </Pressable>
     </Karte>
@@ -440,13 +447,14 @@ function NachrichtKarte({ b }: { b: Bestellung }) {
 
 /** Anrufen, WhatsApp, Mail, Karte – oeffnet die jeweilige App des Telefons. */
 function Aktionen({ b }: { b: Bestellung }) {
+  const { t } = useSprache()
   const wa = whatsappNummer(b.kunde.telefon)
   const adresse = [b.kunde.strasse, b.kunde.plz, b.kunde.ort].filter(Boolean).join(' ')
   const knoepfe: { label: string; url: string | null; fehlt: string }[] = [
-    { label: 'Anrufen', url: b.kunde.telefon ? `tel:${b.kunde.telefon.replace(/\s/g, '')}` : null, fehlt: 'Keine Telefonnummer hinterlegt.' },
-    { label: 'WhatsApp', url: wa ? `https://wa.me/${wa}` : null, fehlt: 'Keine Handynummer hinterlegt.' },
-    { label: 'Mail', url: b.kunde.email ? `mailto:${b.kunde.email}` : null, fehlt: 'Keine Mailadresse hinterlegt.' },
-    { label: 'Karte', url: adresse ? `geo:0,0?q=${encodeURIComponent(adresse)}` : null, fehlt: 'Keine Adresse hinterlegt.' },
+    { label: t.anrufen, url: b.kunde.telefon ? `tel:${b.kunde.telefon.replace(/\s/g, '')}` : null, fehlt: t.keineTelefonnummer },
+    { label: 'WhatsApp', url: wa ? `https://wa.me/${wa}` : null, fehlt: t.keineHandynummer },
+    { label: t.mail, url: b.kunde.email ? `mailto:${b.kunde.email}` : null, fehlt: t.keineMailadresse },
+    { label: t.karte, url: adresse ? `geo:0,0?q=${encodeURIComponent(adresse)}` : null, fehlt: t.keineAdresse },
   ]
   return (
     <View style={s.aktionen}>
@@ -455,7 +463,7 @@ function Aktionen({ b }: { b: Bestellung }) {
           key={k.label}
           accessibilityRole="button"
           accessibilityState={{ disabled: !k.url }}
-          onPress={() => (k.url ? Linking.openURL(k.url).catch(() => Alert.alert(k.label, 'Dafür ist keine App installiert.')) : Alert.alert(k.label, k.fehlt))}
+          onPress={() => (k.url ? Linking.openURL(k.url).catch(() => Alert.alert(k.label, t.keineApp)) : Alert.alert(k.label, k.fehlt))}
           style={({ pressed }) => [s.aktion, !k.url && s.aktionAus, pressed && { opacity: 0.8 }]}
         >
           <Text style={[s.aktionText, !k.url && { color: farben.textSchwach }]}>{k.label}</Text>

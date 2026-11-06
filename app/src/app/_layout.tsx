@@ -2,6 +2,7 @@ import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { AnmeldungProvider, useAnmeldung } from '@/lib/anmeldung'
+import { SpracheProvider } from '@/lib/sprache'
 import { farben } from '@/theme'
 
 /**
@@ -13,10 +14,12 @@ import { farben } from '@/theme'
 export default function Wurzel() {
   return (
     <SafeAreaProvider>
-      <AnmeldungProvider>
-        <StatusBar style="dark" />
-        <Navigation />
-      </AnmeldungProvider>
+      <SpracheProvider>
+        <AnmeldungProvider>
+          <StatusBar style="dark" />
+          <Navigation />
+        </AnmeldungProvider>
+      </SpracheProvider>
     </SafeAreaProvider>
   )
 }
