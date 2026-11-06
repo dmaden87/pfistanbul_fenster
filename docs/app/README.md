@@ -14,7 +14,7 @@ ist die Auftragsverwaltung, 3.x die Zahlen. Die Nebennummer steht in
 | --- | --- | --- |
 | 1.x | MVP: Adminbereich der Webseite als App (TWA, `android/`) | ✅ |
 | 2.0 | Native App: Fundament, Auftrag bearbeiten (Kontakt, Termine, Netze, Angebot, Kosten, Phase), Nachrichten A–I, Offerte als Link, Bestelltalon als PDF | ✅ (2.0.12) |
-| 3.0 | Zahlen: Buchhaltung mit Übersicht → Detail; Bedienung auch auf Türkisch | in Arbeit |
+| 3.0 | Zahlen zum Arbeiten: Ausgaben erfassen, Kosten je Auftrag nachtragen, abrechnen (Entwurf → abschliessen); Auswertungen eine Ebene tiefer; Bedienung auch auf Türkisch | in Arbeit |
 | 4.x | iOS (TestFlight) + Benutzerverwaltung (eigene Logins) | |
 
 ## Entscheidungen
@@ -45,6 +45,14 @@ die App bedienen kann, schaltet `DE | TR` (Liste, Anmeldung) Menüs, Knöpfe,
 Phasen und Hinweise um (`app/src/lib/sprache.tsx`, Wörter zuerst aus dem
 Web-Admin). Nachrichten an die Kundschaft, Offerte und Quittung bleiben
 Deutsch; das Blatt an Bora hat seine eigene Sprachwahl.
+
+**Zahlen am Handy = arbeiten, nicht auswerten.** Unterwegs passieren drei
+Dinge: eine Ausgabe erfassen (Beleg in der Hand), Boras echte Kosten bei
+einem Auftrag nachtragen, abrechnen, wenn Geld eingegangen ist. Genau die
+stehen auf der Zahlen-Seite, oben drei Zahlen (Ergebnis, wer uns, wem wir
+schulden). Jahre, Sendungen und Funnel liegen unter «Auswertungen».
+Abschliessen schreibt mit `abschlussSchritte` aus `src/lib/pl.ts` – derselben
+Funktion wie der Web-Admin.
 
 ## Design
 
@@ -103,6 +111,7 @@ Was Web-Admin und App gleich tun müssen, steht in `src/lib` und ist getestet:
 | `kostenentwurf.ts` | Kosten vorbelegen und speichern | `bau/preisregeln-test.mjs` |
 | `nachrichten.ts` | Vorlagen A–I: wann, Text, Schritt nach «Gesendet?», Nachfassen | `bau/nachrichten-test.mjs` |
 | `bestellblatt.ts` | Preisanfrage und Bestelltalon an Bora als HTML (→ PDF) | `bau/bestellblatt-test.mjs` |
+| `pl.ts` | Erfolgsrechnung, offene Posten, Sendungen, Abrechnung (Entwurf, Abschluss) | `bau/pl-test.mjs` |
 | `phasen.ts`, `bestellauftrag.ts` | Phasen, Archiv, fehlende Angaben für Bora | bestehende Tests |
 
 ## Aufbau von `app/`
@@ -126,6 +135,11 @@ app/
     │           ├── kosten.tsx     Kosten (intern)
     │           ├── nachricht.tsx  Nachricht senden (Vorlagen A–I)
     │           └── blatt.tsx      Preisanfrage / Bestelltalon als PDF
+    │       └── zahlen/
+    │           ├── index.tsx      Arbeitsseite: Ausgabe, Abrechnen, Kosten, Ausgaben
+    │           ├── ausgabe.tsx    Ausgabe erfassen / ändern
+    │           ├── abrechnen.tsx  Auswahl → Entwurf → abschliessen
+    │           └── …              Auswertungen, Forderungen, Schulden, Historie
     ├── lib/               API, Anmeldung, geladene Bestellungen, Hilfen
     ├── components/
     └── theme.ts           Farben (= Webseite)
@@ -161,6 +175,8 @@ npm run bildschirme -- <ordner> "tippe|Marlène|01-auftrag"   # Fotos mit Playwr
 
 Was es im Browser nicht gibt – PDF teilen, WhatsApp, Datumswähler, der
 geschützte Speicher (dort `tresor.web.ts`) –, prüft erst das Handy.
+Rückfragen (`Alert`) werden im Browser zu `confirm()`
+(`rueckfragenImBrowser.web.ts`); OK nimmt den Schritt nach vorn.
 
 ## Release
 

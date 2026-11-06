@@ -12,7 +12,7 @@ import { formatChf } from '../../lib/format'
 import {
   abrechnungEntwurf, abrechnungJePosten, abrechnungZahlen, abschnitte,
   ausgeglicheneSchulden, forecast, kennzahlen, naechsteAbrechnungsnummer,
-  abgerechneteAuslagen, freiePosten, kostenNachAbrechnung, offeneEinnahmen, offeneForderungen, offeneSchulden,
+  abgerechneteAuslagen, abschlussSchritte, freiePosten, offeneEinnahmen, offeneForderungen, offeneSchulden,
   postenSchluessel,
   postenSummeFuer, sendungen, warenkosten, zaehltPhase, zahlenFuer,
   type Periode, type SchuldPosten,
@@ -260,24 +260,14 @@ function ZahlenMaske({ onBack }: Props) {
        * Jetzt werden die Posten erst nach Auftrag gebuendelt und dann in
        * einem Zug geschrieben.
        */
-      const jeAuftrag = new Map<string, Parameters<typeof kostenNachAbrechnung>[1]>()
-      for (const p of a.posten) {
-        if (p.auslageId) {
-          const neu = await aendereAuslage(p.auslageId, { bezahlt: true })
-          setAuslagen((l) => l.map((x) => (x.id === p.auslageId ? neu : x)))
-          continue
-        }
-        if (!p.bestellungId || p.art === 'auslage') continue
-        const liste = jeAuftrag.get(p.bestellungId) ?? []
-        liste.push({ postenId: p.postenId, art: p.art, betragChf: p.betragChf, traeger: p.traeger })
-        jeAuftrag.set(p.bestellungId, liste)
+      /* Was zu schreiben ist, rechnet pl.ts (abschlussSchritte) - dieselbe Funktion wie in der App. */
+      const schritte = abschlussSchritte(a, bestellungen)
+      for (const id of schritte.auslagen) {
+        const neu = await aendereAuslage(id, { bezahlt: true })
+        setAuslagen((l) => l.map((x) => (x.id === id ? neu : x)))
       }
-
-      for (const [bestellungId, posten] of jeAuftrag) {
-        const b = bestellungen.find((x) => x.id === bestellungId)
-        if (!b) continue
-        /* Gerechnet wird in pl.ts, damit ein Test darauf zeigen kann. */
-        await kostenSpeichern(b.id, kostenNachAbrechnung(b.kosten ?? [], posten))
+      for (const { bestellungId, kosten } of schritte.kosten) {
+        await kostenSpeichern(bestellungId, kosten)
       }
       const fertig = await aendereAbrechnung(a.id, { erledigt: true })
       setAbrechnungen((l) => l.map((x) => (x.id === a.id ? fertig : x)))

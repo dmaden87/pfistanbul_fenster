@@ -922,6 +922,48 @@ export function kostenNachAbrechnung(
 }
 
 /**
+ * Was beim Abschluss einer Abrechnung geschrieben werden muss.
+ *
+ * Stand zuerst in ZahlenPage.tsx (erledigen). Hier, weil die App dieselbe
+ * Abrechnung abschliesst und es nicht zwei Fassungen davon geben darf: Ein
+ * Fehler hier heisst, dass jemand sein Geld doppelt bekommt oder gar nicht.
+ *
+ * EIN SCHREIBVORGANG JE AUFTRAG, NICHT JE POSTEN. Eine Schleife ueber die
+ * Posten baute jede Kostenliste aus demselben alten Stand - der zweite
+ * Durchgang schrieb den ersten wieder weg (siehe Kommentar in ZahlenPage).
+ * Darum werden die Posten hier nach Auftrag gebuendelt.
+ *
+ * Reihenfolge beim Ausfuehren: erst Auslagen und Kosten, dann die
+ * Abrechnung als erledigt. Geht dazwischen etwas schief, steht die
+ * Abrechnung noch offen und laesst sich nochmals abschliessen.
+ */
+export function abschlussSchritte(
+  a: Abrechnung,
+  bestellungen: Bestellung[],
+  jetzt = new Date().toISOString(),
+): { auslagen: string[]; kosten: { bestellungId: string; kosten: KostenPosten[] }[] } {
+  const auslagen: string[] = []
+  const jeAuftrag = new Map<string, { postenId: string; art: KostenArt; betragChf: number; traeger: Beteiligter }[]>()
+  for (const p of a.posten) {
+    if (p.auslageId) {
+      auslagen.push(p.auslageId)
+      continue
+    }
+    if (!p.bestellungId || p.art === 'auslage') continue
+    const liste = jeAuftrag.get(p.bestellungId) ?? []
+    liste.push({ postenId: p.postenId, art: p.art, betragChf: p.betragChf, traeger: p.traeger })
+    jeAuftrag.set(p.bestellungId, liste)
+  }
+  const kosten: { bestellungId: string; kosten: KostenPosten[] }[] = []
+  for (const [bestellungId, posten] of jeAuftrag) {
+    const b = bestellungen.find((x) => x.id === bestellungId)
+    if (!b) continue
+    kosten.push({ bestellungId, kosten: kostenNachAbrechnung(b.kosten ?? [], posten, jetzt) })
+  }
+  return { auslagen, kosten }
+}
+
+/**
  * Die Kennungen aller Posten, die in einer ABGESCHLOSSENEN Abrechnung
  * stehen - also ausbezahlt sind, egal was sonst wo vermerkt ist.
  *

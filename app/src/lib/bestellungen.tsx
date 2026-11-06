@@ -1,6 +1,8 @@
-import type { Abrechnung, Auslage, BestellAenderung, Bestellung } from '@pf/types'
+import { abschlussSchritte } from '@pf/lib/pl'
+import type { Abrechnung, AbrechnungAenderung, Auslage, BestellAenderung, Bestellung } from '@pf/types'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { offerteLink } from '@pf/lib/nachrichten'
+import * as api from './api'
 import { aendereBestellung, holeOfferteGeheimnis, ladeAbrechnungen, ladeAuslagen, ladeBestellungen, NichtAngemeldet } from './api'
 import { useAnmeldung } from './anmeldung'
 
@@ -23,6 +25,15 @@ interface Kontext {
   aendern: (id: string, aenderung: BestellAenderung) => Promise<Bestellung>
   /** Der Link zu Offerte bzw. Quittung – wird beim ersten Mal angelegt. */
   offerteLinkFuer: (id: string) => Promise<string>
+  /** Betriebsausgaben erfassen, aendern, loeschen. */
+  auslageAnlegen: (a: Omit<Auslage, 'id' | 'erfasstAm'>) => Promise<Auslage>
+  auslageAendern: (id: string, teil: Partial<Auslage>) => Promise<Auslage>
+  auslageEntfernen: (id: string) => Promise<void>
+  /** Abrechnung: Entwurf anlegen, abschliessen (mit allem, was dazugehoert), verwerfen. */
+  abrechnungAnlegen: (a: Omit<Abrechnung, 'id' | 'erstelltAm' | 'erledigtAm'>) => Promise<Abrechnung>
+  abrechnungAbschliessen: (a: Abrechnung) => Promise<void>
+  abrechnungVerwerfen: (id: string) => Promise<void>
+  abrechnungAendern: (id: string, teil: AbrechnungAenderung) => Promise<Abrechnung>
 }
 
 const BestellungenKontext = createContext<Kontext | null>(null)
@@ -92,9 +103,100 @@ export function BestellungenProvider({ children }: { children: ReactNode }) {
     [schluessel, abmelden],
   )
 
+  /** Jeder Aufruf mit Schluessel; ein abgelaufener meldet ab. */
+  const mitSchluessel = useCallback(
+    async <T,>(lauf: (k: string) => Promise<T>): Promise<T> => {
+      if (!schluessel) throw new NichtAngemeldet()
+      try {
+        return await lauf(schluessel)
+      } catch (f) {
+        if (f instanceof NichtAngemeldet) await abmelden()
+        throw f
+      }
+    },
+    [schluessel, abmelden],
+  )
+
+  const auslageAnlegen = useCallback(
+    async (a: Omit<Auslage, 'id' | 'erfasstAm'>) => {
+      const neu = await mitSchluessel((k) => api.legeAuslageAn(k, a))
+      setAuslagen((l) => [neu, ...l])
+      return neu
+    },
+    [mitSchluessel],
+  )
+  const auslageAendern = useCallback(
+    async (id: string, teil: Partial<Auslage>) => {
+      const neu = await mitSchluessel((k) => api.aendereAuslage(k, id, teil))
+      setAuslagen((l) => l.map((x) => (x.id === id ? neu : x)))
+      return neu
+    },
+    [mitSchluessel],
+  )
+  const auslageEntfernen = useCallback(
+    async (id: string) => {
+      await mitSchluessel((k) => api.entferneAuslage(k, id))
+      setAuslagen((l) => l.filter((x) => x.id !== id))
+    },
+    [mitSchluessel],
+  )
+  const abrechnungAnlegen = useCallback(
+    async (a: Omit<Abrechnung, 'id' | 'erstelltAm' | 'erledigtAm'>) => {
+      const neu = await mitSchluessel((k) => api.legeAbrechnungAn(k, a))
+      setAbrechnungen((l) => [neu, ...l])
+      return neu
+    },
+    [mitSchluessel],
+  )
+  const abrechnungAendern = useCallback(
+    async (id: string, teil: AbrechnungAenderung) => {
+      const neu = await mitSchluessel((k) => api.aendereAbrechnung(k, id, teil))
+      setAbrechnungen((l) => l.map((x) => (x.id === id ? neu : x)))
+      return neu
+    },
+    [mitSchluessel],
+  )
+  const abrechnungVerwerfen = useCallback(
+    async (id: string) => {
+      await mitSchluessel((k) => api.entferneAbrechnung(k, id))
+      setAbrechnungen((l) => l.filter((x) => x.id !== id))
+    },
+    [mitSchluessel],
+  )
+  /*
+   * ABSCHLIESSEN: erst die Posten auf bezahlt, dann die Abrechnung erledigt –
+   * wie im Web (ZahlenPage.tsx), mit denselben Schritten aus pl.ts. Geht
+   * zwischendurch etwas schief, bleibt die Abrechnung offen und laesst sich
+   * nochmals abschliessen; das Wiederholen setzt dieselben Werte.
+   */
+  const abrechnungAbschliessen = useCallback(
+    async (a: Abrechnung) => {
+      const schritte = abschlussSchritte(a, bestellungen)
+      for (const id of schritte.auslagen) {
+        const neu = await mitSchluessel((k) => api.aendereAuslage(k, id, { bezahlt: true }))
+        setAuslagen((l) => l.map((x) => (x.id === id ? neu : x)))
+      }
+      for (const { bestellungId, kosten } of schritte.kosten) {
+        const neu = await mitSchluessel((k) => aendereBestellung(k, bestellungId, { kosten }))
+        setBestellungen((l) => l.map((x) => (x.id === bestellungId ? neu : x)))
+      }
+      const fertig = await mitSchluessel((k) => api.aendereAbrechnung(k, a.id, { erledigt: true }))
+      setAbrechnungen((l) => l.map((x) => (x.id === a.id ? fertig : x)))
+    },
+    [mitSchluessel, bestellungen],
+  )
+
   const wert = useMemo(
-    () => ({ bestellungen, auslagen, abrechnungen, laedt, fehler, neuLaden, aendern, offerteLinkFuer }),
-    [bestellungen, auslagen, abrechnungen, laedt, fehler, neuLaden, aendern, offerteLinkFuer],
+    () => ({
+      bestellungen, auslagen, abrechnungen, laedt, fehler, neuLaden, aendern, offerteLinkFuer,
+      auslageAnlegen, auslageAendern, auslageEntfernen,
+      abrechnungAnlegen, abrechnungAbschliessen, abrechnungVerwerfen, abrechnungAendern,
+    }),
+    [
+      bestellungen, auslagen, abrechnungen, laedt, fehler, neuLaden, aendern, offerteLinkFuer,
+      auslageAnlegen, auslageAendern, auslageEntfernen,
+      abrechnungAnlegen, abrechnungAbschliessen, abrechnungVerwerfen, abrechnungAendern,
+    ],
   )
   return <BestellungenKontext.Provider value={wert}>{children}</BestellungenKontext.Provider>
 }

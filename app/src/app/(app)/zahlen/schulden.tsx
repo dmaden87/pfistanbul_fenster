@@ -44,7 +44,6 @@ export default function Schulden() {
         </ZahlenKarte>
       ))}
       <Hinweis>{t.zMontageSchuldSatz}</Hinweis>
-      <Hinweis>{t.zSpaeterAbrechnen}</Hinweis>
     </ZahlenSeite>
   )
 }

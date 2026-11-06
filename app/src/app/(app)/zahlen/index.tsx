@@ -1,46 +1,63 @@
+import { beteiligte } from '@pf/data/kostenConfig'
 import { formatChf } from '@pf/lib/format'
-import { forecast, kennzahlen, offeneForderungen, offeneSchulden, sendungen, zaehltPhase } from '@pf/lib/pl'
+import { freiePosten, kennzahlen, offeneEinnahmen, offeneForderungen, offeneSchulden, zaehltPhase, zahlenFuer } from '@pf/lib/pl'
 import { router } from 'expo-router'
 import { useMemo } from 'react'
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { Knopf } from '@/components/Blatt'
 import { Hauptleiste } from '@/components/Hauptleiste'
 import { SprachSchalter } from '@/components/SprachSchalter'
-import { Hinweis, ZahlenKarte, ZahlZeile, zahlenStile as z } from '@/components/Zahlen'
+import { Streifen, ZahlenKarte, ZahlZeile } from '@/components/Zahlen'
 import { useBestellungen } from '@/lib/bestellungen'
 import { fuelle, useSprache } from '@/lib/sprache'
+import { kategorieTitel } from '@/lib/zahlen'
 import { farben, radius, TIPPFLAECHE } from '@/theme'
 
+/** Wie viele Zeilen je Block direkt hier stehen; der Rest eine Ebene tiefer. */
+const KURZ = 4
+
 /**
- * Die Zahlen auf einen Blick – und von hier eine Ebene tiefer.
+ * Die Zahlen am Telefon: zum Arbeiten, nicht zum Auswerten.
  *
- * Im Web steht alles untereinander auf einer langen Seite mit Kacheln und
- * breiten Tabellen. Hier oben das eine, was zaehlt (Betriebsergebnis), dann
- * Erloes, Kosten, Funnel als Zeilen; darunter, was offen ist, und die
- * Auswertungen. Jede Zeile fuehrt auf ihre eigene Seite.
+ * Drei Dinge passieren unterwegs, und genau die stehen hier, in dieser
+ * Reihenfolge: eine Ausgabe erfassen (Knopf ganz oben), die echten Kosten
+ * eines Auftrags nachtragen, wenn Bora sie nennt, und abrechnen, wenn
+ * Geld eingegangen ist. Die drei Zahlen oben sagen, wo man steht; die
+ * Auswertungen (Jahre, Sendungen, Funnel) liegen eine Ebene tiefer – die
+ * liest man am Schreibtisch.
  *
- * Gerechnet wird ausschliesslich in src/lib/pl.ts – dieselben Funktionen wie
- * in ZahlenPage.tsx. Die App rechnet nichts selbst.
+ * Gerechnet wird ausschliesslich in src/lib/pl.ts.
  */
 export default function Zahlen() {
   const { bestellungen, auslagen, abrechnungen, laedt, fehler, neuLaden } = useBestellungen()
-  const { t } = useSprache()
+  const { t, datumsform } = useSprache()
 
-  const daten = useMemo(() => {
+  const d = useMemo(() => {
     const k = kennzahlen(bestellungen, auslagen, abrechnungen)
-    const forderungen = offeneForderungen(bestellungen)
     const schulden = offeneSchulden(bestellungen, auslagen, abrechnungen)
+    const einnahmen = offeneEinnahmen(bestellungen, abrechnungen)
+    const geschaetzt = bestellungen
+      .filter((b) => zaehltPhase(b) && !b.ausserRechnung)
+      .map((b) => ({ b, z: zahlenFuer(b) }))
+      .filter((x) => x.z.geschaetzt)
+      .sort((x, y) => (x.z.datum < y.z.datum ? -1 : 1))
     return {
       k,
-      forderungen: { n: forderungen.length, chf: forderungen.reduce((x, f) => x + f.betragChf, 0) },
-      schulden: { n: schulden.reduce((x, s) => x + s.posten.length, 0), chf: schulden.reduce((x, s) => x + s.betragChf, 0) },
-      auftraege: bestellungen.filter(zaehltPhase).length,
-      sendungen: sendungen(bestellungen).length,
-      funnel: forecast(bestellungen).reduce((x, f) => x + f.anzahl, 0),
+      forderungenChf: offeneForderungen(bestellungen).reduce((x, f) => x + f.betragChf, 0),
+      schuldenChf: schulden.reduce((x, s) => x + s.betragChf, 0),
+      einnahmen,
+      einnahmenChf: einnahmen.reduce((x, e) => x + e.erloesChf, 0),
+      frei: freiePosten(schulden).length,
+      entwurf: abrechnungen.find((a) => !a.erledigtAm),
+      erledigt: abrechnungen.filter((a) => a.erledigtAm).length,
+      geschaetzt,
+      alleAuftraege: bestellungen.filter(zaehltPhase).length,
+      ausgaben: [...auslagen].sort((x, y) => (x.am < y.am ? 1 : -1)),
     }
   }, [bestellungen, auslagen, abrechnungen])
-  const { k } = daten
-  const geh = (wohin: string) => router.push(`/zahlen/${wohin}` as never)
+
+  const geh = (wohin: string, params?: Record<string, string>) => router.push({ pathname: `/zahlen/${wohin}` as never, params })
 
   return (
     <SafeAreaView style={s.seite} edges={['top']}>
@@ -62,53 +79,69 @@ export default function Zahlen() {
         ) : null}
         {laedt && bestellungen.length === 0 ? <ActivityIndicator color={farben.marke} style={{ marginTop: 32 }} /> : null}
 
-        <View style={s.held}>
-          <Text style={z.grossTitel}>{t.zBetriebsergebnis}</Text>
-          <Text style={[z.gross, k.betriebsergebnisChf < 0 && { color: farben.gefahr }]}>{formatChf(k.betriebsergebnisChf)}</Text>
-          <Text style={s.heldUnter}>
-            {fuelle(t.zRentabilitaetUnter, { r: k.rentabilitaet === null ? '–' : `${k.rentabilitaet} %`, real: formatChf(k.realErgebnisChf) })}
-          </Text>
-          <Text style={s.heldSatz}>{t.zBetriebsergebnisSatz}</Text>
-        </View>
+        <Streifen
+          felder={[
+            { titel: t.zErgebnisKurz, betrag: d.k.betriebsergebnisChf, onPress: () => geh('auswertung') },
+            { titel: t.zSchuldetUns, betrag: d.forderungenChf, onPress: () => geh('forderungen') },
+            { titel: t.zSchuldenWir, betrag: d.schuldenChf, onPress: () => geh('schulden') },
+          ]}
+        />
+
+        <Knopf text={`+ ${t.zAusgabeErfassen}`} onPress={() => geh('ausgabe')} />
+
+        {/* --- Abrechnen ---------------------------------------------------- */}
+        <ZahlenKarte titel={t.zAbrechnung}>
+          {d.entwurf ? (
+            <ZahlZeile erste titel={fuelle(t.zEntwurfWartet, { nummer: d.entwurf.nummer })} marke={t.zEntwurf} betrag={d.entwurf.erloesChf} onPress={() => geh('abrechnen')} />
+          ) : d.einnahmen.length + d.frei > 0 ? (
+            <ZahlZeile
+              erste
+              titel={t.zAbrechnenKnopf}
+              unter={fuelle(t.zAbrechnenBereit, { a: d.einnahmen.length, p: d.frei })}
+              betrag={d.einnahmenChf}
+              stark
+              onPress={() => geh('abrechnen')}
+            />
+          ) : (
+            <ZahlZeile erste titel={t.zNichtsAbzurechnen} />
+          )}
+          {d.erledigt > 0 ? <ZahlZeile titel={fuelle(t.zFruehereAnzahl, { n: d.erledigt })} onPress={() => geh('historie')} /> : null}
+        </ZahlenKarte>
+
+        {/* --- Kosten erfassen ---------------------------------------------- */}
+        <ZahlenKarte titel={t.zKostenErfassen}>
+          {d.geschaetzt.length === 0 ? <ZahlZeile erste titel={t.zAllesErfasst} /> : <Text style={s.satz}>{t.zKostenErfassenSatz}</Text>}
+          {d.geschaetzt.slice(0, KURZ).map(({ b, z }, i) => (
+            <ZahlZeile
+              key={b.id}
+              erste={i === 0}
+              titel={b.kunde.name}
+              unter={fuelle(t.zKostenGeschaetztUnter, { ref: b.referenz, kosten: formatChf(z.kostenChf) })}
+              onPress={() => router.push({ pathname: '/auftrag/[id]/kosten', params: { id: b.id } })}
+            />
+          ))}
+          <ZahlZeile titel={fuelle(t.zAlleKosten, { n: d.alleAuftraege })} onPress={() => geh('auftraege')} />
+        </ZahlenKarte>
+
+        {/* --- Betriebsausgaben --------------------------------------------- */}
+        <ZahlenKarte titel={t.zBetriebskosten}>
+          {d.ausgaben.length === 0 ? <ZahlZeile erste titel={t.zKeineAusgaben} /> : null}
+          {d.ausgaben.slice(0, KURZ).map((a, i) => (
+            <ZahlZeile
+              key={a.id}
+              erste={i === 0}
+              titel={a.bezeichnung}
+              unter={fuelle(t.zAusgabeUnter, { datum: new Date(a.am).toLocaleDateString(datumsform), kategorie: kategorieTitel(a.kategorie, t), wer: beteiligte[a.traeger] })}
+              betrag={a.betragChf}
+              onPress={() => geh('ausgabe', { id: a.id })}
+            />
+          ))}
+          {d.ausgaben.length > KURZ ? <ZahlZeile titel={fuelle(t.zAlleAusgaben, { n: d.ausgaben.length })} onPress={() => geh('ausgaben')} /> : null}
+        </ZahlenKarte>
 
         <ZahlenKarte>
-          <ZahlZeile
-            erste
-            titel={t.zTotalErloes}
-            betrag={k.erloesChf}
-            unter={fuelle(t.zErloesUnter, { cashed: formatChf(k.cashedChf), debit: formatChf(k.debitChf), arbeit: formatChf(k.inArbeitChf) })}
-          />
-          <ZahlZeile
-            titel={t.zTotalKosten}
-            betrag={k.kostenChf}
-            unter={fuelle(t.zKostenUnter, { ware: formatChf(k.warenkostenChf), betrieb: formatChf(k.betriebskostenChf) })}
-          />
-          <ZahlZeile titel={t.zFunnel} betrag={k.funnelChf} unter={fuelle(t.zFunnelSatz, { n: k.funnelAnzahl, m: k.funnelNetze })} onPress={() => geh('pipeline')} />
+          <ZahlZeile erste titel={t.zAuswertungen} unter={t.zAuswertungenUnter} onPress={() => geh('auswertung')} />
         </ZahlenKarte>
-
-        <ZahlenKarte titel={t.zOffenTitel}>
-          <ZahlZeile
-            erste
-            titel={t.zSchuldetUns}
-            betrag={daten.forderungen.chf}
-            unter={fuelle(t.zAnzahlAuftraege, { n: daten.forderungen.n })}
-            onPress={() => geh('forderungen')}
-          />
-          <ZahlZeile
-            titel={t.zSchuldenWir}
-            betrag={daten.schulden.chf}
-            unter={fuelle(t.zAnzahlPosten, { n: daten.schulden.n })}
-            onPress={() => geh('schulden')}
-          />
-        </ZahlenKarte>
-
-        <ZahlenKarte titel={t.zAuswertung}>
-          <ZahlZeile erste titel={t.zProAuftrag} unter={fuelle(t.zAnzahlAuftraege, { n: daten.auftraege })} onPress={() => geh('auftraege')} />
-          <ZahlZeile titel={t.zProSendung} unter={fuelle(t.zAnzahlSendungen, { n: daten.sendungen })} onPress={() => geh('sendungen')} />
-          <ZahlZeile titel={t.zAuftraegeIst} unter={t.zJahre} onPress={() => geh('jahre')} />
-        </ZahlenKarte>
-
-        <Hinweis>{t.zSpaeterAbrechnen}</Hinweis>
       </ScrollView>
       <Hauptleiste aktiv="zahlen" />
     </SafeAreaView>
@@ -117,12 +150,10 @@ export default function Zahlen() {
 
 const s = StyleSheet.create({
   seite: { flex: 1, backgroundColor: farben.grund },
-  kopf: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8, minHeight: TIPPFLAECHE },
-  titel: { flex: 1, fontSize: 30, fontWeight: '700', color: farben.marke },
-  inhalt: { paddingHorizontal: 16, paddingBottom: 32, gap: 12 },
-  held: { backgroundColor: farben.markeWeich, borderRadius: radius.gross, padding: 16, gap: 4 },
-  heldUnter: { fontSize: 15, fontWeight: '600', color: farben.marke },
-  heldSatz: { fontSize: 13, color: farben.textLeise, marginTop: 2 },
+  kopf: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 6, minHeight: TIPPFLAECHE },
+  titel: { flex: 1, fontSize: 26, fontWeight: '700', color: farben.marke },
+  inhalt: { paddingHorizontal: 12, paddingBottom: 24, gap: 10 },
+  satz: { fontSize: 13, color: farben.textLeise, paddingBottom: 4 },
   fehlerBox: { padding: 14, borderRadius: radius.mittel, backgroundColor: farben.gefahrWeich, gap: 8 },
   fehlerText: { color: farben.gefahr, fontSize: 15 },
   nochmals: { color: farben.gefahr, fontWeight: '700', fontSize: 15 },

@@ -15,13 +15,14 @@ export default function ProAuftrag() {
   const zeilen = bestellungen
     .filter(zaehltPhase)
     .map((b) => ({ b, z: zahlenFuer(b) }))
-    .sort((x, y) => (x.z.datum < y.z.datum ? 1 : -1))
+    // Erst die mit geschaetzten Kosten – dort ist noch etwas zu tun.
+    .sort((x, y) => Number(y.z.geschaetzt) - Number(x.z.geschaetzt) || (x.z.datum < y.z.datum ? 1 : -1))
 
   const stand = (b: (typeof zeilen)[number]['b'], z: (typeof zeilen)[number]['z']) =>
     b.ausserRechnung ? t.zStandNichtGerechnet : z.einkassiert ? t.zStandEinkassiert : z.realisiert ? t.zStandOffen : t.zStandErwartet
 
   return (
-    <ZahlenSeite titel={t.zProAuftrag} unterzeile={t.zMargeTippen}>
+    <ZahlenSeite titel={t.zKostenErfassen} unterzeile={t.zMargeTippen}>
       <ZahlenKarte>
         {zeilen.length === 0 ? <ZahlZeile erste titel={t.zKeineAuftraege} /> : null}
         {zeilen.map(({ b, z }, i) => (

@@ -99,6 +99,64 @@ export function ZahlZeile({
   )
 }
 
+/** Eine Zeile zum Ankreuzen – fuer die Auswahl einer Abrechnung. */
+export function HakenZeile({
+  titel,
+  unter,
+  betrag,
+  an,
+  gesperrt,
+  onWechsel,
+  erste,
+}: {
+  titel: string
+  unter?: string
+  betrag: number
+  an: boolean
+  gesperrt?: boolean
+  onWechsel: (an: boolean) => void
+  erste?: boolean
+}) {
+  return (
+    <Pressable
+      onPress={() => !gesperrt && onWechsel(!an)}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: an, disabled: !!gesperrt }}
+      style={({ pressed }) => [s.zeile, !erste && s.trenner, pressed && !gesperrt && { opacity: 0.7 }]}
+    >
+      <View style={[s.haken, an && s.hakenAn, gesperrt && { opacity: 0.5 }]}>{an ? <Text style={s.hakenZeichen}>✓</Text> : null}</View>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={s.zeilenTitel}>{titel}</Text>
+        {unter ? <Text style={s.unter}>{unter}</Text> : null}
+      </View>
+      <Text style={s.betrag}>{formatChf(betrag)}</Text>
+    </Pressable>
+  )
+}
+
+/** Drei Zahlen nebeneinander, jede antippbar – der Kopf der Zahlen. */
+export function Streifen({ felder }: { felder: { titel: string; betrag: number; onPress?: () => void }[] }) {
+  return (
+    <View style={s.streifen}>
+      {felder.map((f, i) => (
+        <Pressable
+          key={f.titel}
+          onPress={f.onPress}
+          disabled={!f.onPress}
+          accessibilityRole={f.onPress ? 'button' : undefined}
+          style={({ pressed }) => [s.feld, i > 0 && s.feldTrenner, pressed && { opacity: 0.7 }]}
+        >
+          <Text style={s.feldTitel} numberOfLines={2}>{f.titel}</Text>
+          <Text style={[s.feldBetrag, f.betrag < 0 && { color: farben.gefahr }]} numberOfLines={1} adjustsFontSizeToFit>
+            {/* Ganze Franken, ohne "CHF": drei Betraege muessen nebeneinander passen. */}
+            {formatChf(Math.round(f.betrag)).replace(/^CHF\s*/u, '').replace(/\.00$/, '')}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  )
+}
+
 export function Hinweis({ children }: { children: string }) {
   return <Text style={s.hinweis}>{children}</Text>
 }
@@ -124,5 +182,13 @@ const s = StyleSheet.create({
   betrag: { fontSize: 15, color: farben.text, fontVariant: ['tabular-nums'] },
   stark: { fontWeight: '700' },
   marke: { fontSize: 12, fontWeight: '600', color: farben.hinweisTinte, backgroundColor: farben.hinweisWeich, paddingHorizontal: 6, paddingVertical: 2, borderRadius: radius.klein, overflow: 'hidden' },
+  haken: { width: 26, height: 26, borderRadius: 6, borderWidth: 2, borderColor: farben.randStark, alignItems: 'center', justifyContent: 'center', backgroundColor: farben.flaeche },
+  hakenAn: { backgroundColor: farben.marke, borderColor: farben.marke },
+  hakenZeichen: { color: farben.aufMarke, fontWeight: '700', fontSize: 16 },
+  streifen: { flexDirection: 'row', backgroundColor: farben.flaeche, borderWidth: 1, borderColor: farben.rand, borderRadius: radius.gross },
+  feld: { flex: 1, paddingVertical: 10, paddingHorizontal: 10, gap: 2, minHeight: TIPPFLAECHE + 12, justifyContent: 'center' },
+  feldTrenner: { borderLeftWidth: 1, borderLeftColor: farben.linie },
+  feldTitel: { fontSize: 12, fontWeight: '600', color: farben.textLeise },
+  feldBetrag: { fontSize: 18, fontWeight: '700', color: farben.marke, fontVariant: ['tabular-nums'] },
   hinweis: { fontSize: 13, color: farben.textLeise, lineHeight: 19, marginHorizontal: 4 },
 })

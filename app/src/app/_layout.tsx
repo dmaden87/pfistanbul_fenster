@@ -2,6 +2,7 @@ import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { AnmeldungProvider, useAnmeldung } from '@/lib/anmeldung'
+import '@/lib/rueckfragenImBrowser'
 import { SpracheProvider } from '@/lib/sprache'
 import { farben } from '@/theme'
 

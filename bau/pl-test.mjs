@@ -13,7 +13,7 @@ import {
   abrechnungZahlen, offeneEinnahmen, naechsteAbrechnungsnummer,
   abrechnungEntwurf, postenSchluessel, postenSummeFuer,
   ausgeglicheneSchulden, abrechnungJePosten, freiePosten, abgerechneteAuslagen, istErledigt,
-  ausbezahltePosten, kostenNachAbrechnung, sendungen,
+  ausbezahltePosten, kostenNachAbrechnung, sendungen, abschlussSchritte,
 } from '../src/lib/pl.ts'
 import { herstellungChf } from '../src/lib/kosten.ts'
 /*
@@ -1383,6 +1383,27 @@ pruefe('Sendungen: je Paket summiert, Marge je Netz, ohne Paket und Abgesagtes n
   assert.equal(p.kostenChf, za.kostenChf + zb.kostenChf)
   assert.equal(p.margeChf, Math.round((p.erloesChf - p.kostenChf) * 100) / 100)
   assert.equal(p.jeNetzChf, Math.round((p.margeChf / 3) * 100) / 100)
+})
+
+/* --- Abschluss einer Abrechnung ---------------------------------------------- */
+
+pruefe('Abschluss: Auslagen bezahlt, Kosten EIN Schreiben je Auftrag mit allen Posten', () => {
+  const b = best({ id: 'b1', kosten: [
+    { id: 'k1', art: 'herstellung', betragChf: 50, traeger: 'bora' },
+    { id: 'k2', art: 'kargo', betragChf: 20, traeger: 'bora' },
+    { id: 'k3', art: 'weiteres', betragChf: 5, traeger: 'deniz', bezeichnung: 'Schrauben' },
+  ] })
+  const a = { id: 'r1', nummer: 'A-1', erstelltAm: '2026-11-01', auftraege: [], posten: [
+    { bestellungId: 'b1', postenId: 'k1', art: 'herstellung', betragChf: 50, traeger: 'bora' },
+    { bestellungId: 'b1', postenId: 'k2', art: 'kargo', betragChf: 20, traeger: 'bora' },
+    { auslageId: 'a7', postenId: 'a7', art: 'auslage', betragChf: 40, traeger: 'deniz' },
+    { bestellungId: 'weg', postenId: 'x', art: 'herstellung', betragChf: 1, traeger: 'bora' },
+  ] }
+  const s = abschlussSchritte(a, [b], '2026-11-06T10:00:00Z')
+  assert.deepEqual(s.auslagen, ['a7'])
+  assert.equal(s.kosten.length, 1, 'ein Schreiben fuer b1, keins fuer den geloeschten Auftrag')
+  const k = s.kosten[0].kosten
+  assert.deepEqual(k.map((x) => [x.id, x.bezahlt === true]), [['k1', true], ['k2', true], ['k3', false]])
 })
 
 console.log(`\n${bestanden}/${bestanden + fehler.length} bestanden`)
