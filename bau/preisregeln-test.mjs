@@ -26,8 +26,8 @@ function pruefe(name, lauf) {
   }
 }
 
-const vorschlag = gerechneterPreis(120, 140, '1.5', 'normal')
-const netz = (extra = {}) => ({ id: 'n1', menge: 1, bezeichnung: 'Sondermass', detail: '', preisChf: 0, breiteCm: 120, hoeheCm: 140, rahmendicke: '1.5', netzart: 'normal', ...extra })
+const vorschlag = gerechneterPreis(120, 140, 'normal')
+const netz = (extra = {}) => ({ id: 'n1', menge: 1, bezeichnung: 'Sondermass', detail: '', preisChf: 0, breiteCm: 120, hoeheCm: 140, rahmendicke: '1.8', netzart: 'normal', ...extra })
 const bestellung = (positionen, extra = {}) => ({ id: 'b', status: 'offerte', positionen, montage: false, summeChf: 0, kunde: {}, ...extra })
 
 /* --- Netze ---------------------------------------------------------------- */
@@ -53,7 +53,7 @@ pruefe('Festgelegter Preis bleibt, wenn nur die Bezeichnung aendert', () => {
 pruefe('Andere Masse: neu gerechnet, der alte Preis gehoerte zu einem anderen Fenster', () => {
   const alt = netz({ preisChf: 185 })
   const e = { ...zuEntwurf(alt), breiteCm: '90' }
-  assert.equal(netzeMitPreis([e], [alt], false)[0].preisChf, gerechneterPreis(90, 140, '1.5', 'normal'))
+  assert.equal(netzeMitPreis([e], [alt], false)[0].preisChf, gerechneterPreis(90, 140, 'normal'))
 })
 
 pruefe('Katalogware: Preis aus dem Katalog, unangetastet', () => {

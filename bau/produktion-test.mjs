@@ -1,12 +1,14 @@
 /**
  * Prueft die Merkmale eines Netzes: Rahmendicke, Gewebe, Rahmenfarbe.
  *
- * SIE SIND KEINE BESCHRIFTUNG MEHR, SONDERN TEIL DES PREISES. Seit Bora den
- * schmalen 1.5er Rahmen teurer rechnet als den 2.8er und engmaschiges
- * Gewebe teurer als gewoehnliches, entscheidet die Auswahl mit, was ein
- * Netz kostet. Was in den Preis eingeht, darf kein Freitext sein - und
- * dieser Test haelt fest, dass die Tabellen vollstaendig sind und die
- * Vorbelegung zu ihnen passt.
+ * DAS GEWEBE IST KEINE BESCHRIFTUNG, SONDERN TEIL DES PREISES: engmaschig
+ * kostet bei Bora mehr als gewoehnlich. Was in den Preis eingeht, darf
+ * kein Freitext sein - dieser Test haelt fest, dass die Tabellen
+ * vollstaendig sind und die Vorbelegung zu ihnen passt.
+ *
+ * DIE RAHMENDICKE WAR EINE WEILE AUCH DABEI (der schmale Rahmen kostete
+ * mehr) und ist es seit November 2026 nicht mehr. Die Wahl bleibt
+ * trotzdem: Bora muss wissen, welchen Rahmen er baut.
  */
 import assert from 'node:assert/strict'
 import {
@@ -21,7 +23,17 @@ function pruefe(name, lauf) {
 }
 
 pruefe('Es gibt genau die zwei Rahmendicken', () => {
-  assert.deepEqual(Object.keys(RAHMENDICKEN), ['1.5', '2.8'])
+  assert.deepEqual(Object.keys(RAHMENDICKEN), ['1.8', '2.8'])
+})
+
+/*
+ * DER ABGELOESTE 1.5er STEHT NICHT MEHR ZUR WAHL, aber in Auftraegen, die
+ * vorher erfasst wurden. Der Editor zeigt ihn als Altwert an - wie
+ * "3-4 cm" aus der Zeit vor der Auswahl -, und genau deshalb darf er NICHT
+ * wieder in die Tabelle: dort stuende er als heutiges Angebot da.
+ */
+pruefe('Der alte 1.5er steht nicht mehr zur Wahl', () => {
+  assert.ok(!('1.5' in RAHMENDICKEN))
 })
 
 pruefe('Es gibt genau die zwei Gewebe', () => {

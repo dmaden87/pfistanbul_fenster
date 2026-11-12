@@ -37,7 +37,7 @@
  * Ziel faellt sonst erst auf, wenn hundert Karten gedruckt sind.
  */
 import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -45,7 +45,10 @@ import jsQR from 'jsqr'
 import QRCode from 'qrcode'
 import sharp from 'sharp'
 
-const CHROMIUM = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
+const CHROMIUM = process.env.CHROMIUM
+  ?? ['/opt/pw-browsers/chromium', '/opt/pw-browsers/chromium-1194/chrome-linux/chrome']
+    .find((pfad) => existsSync(pfad))
+  ?? '/opt/pw-browsers/chromium'
 const ZIEL = 'drucksachen'
 
 // A6 (105 x 148 mm) bei 300 dpi.

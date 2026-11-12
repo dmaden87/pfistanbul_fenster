@@ -22,7 +22,7 @@ function pruefe(name, lauf) {
   }
 }
 
-const netz = { menge: 1, bezeichnung: 'Sondermass', detail: '', preisChf: 150, breiteCm: 100, hoeheCm: 120, rahmendicke: '1.5', netzart: 'normal', rahmenfarbe: 'weiss', netzfarbe: 'grau', mechanismus: 'plissee', oeffnung: 'nach-links' }
+const netz = { menge: 1, bezeichnung: 'Sondermass', detail: '', preisChf: 150, breiteCm: 100, hoeheCm: 120, rahmendicke: '1.8', netzart: 'normal', rahmenfarbe: 'weiss', netzfarbe: 'grau', mechanismus: 'plissee', oeffnung: 'nach-links' }
 const auftrag = (status, extra = {}) => ({
   id: 'x', referenz: 'P-1', art: 'anfrage', status, quelle: 'whatsapp', eingang: '2026-11-01', geaendert: '2026-11-02',
   kunde: { name: 'Test', email: '', telefon: '079 000 00 00', strasse: '', plz: '', ort: '', bemerkung: '' },

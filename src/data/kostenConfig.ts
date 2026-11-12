@@ -20,23 +20,22 @@ import type { Beteiligter } from '../types'
  * Eine Formel, die alte Angebote genau trifft, beschreibt damit eine
  * Preisliste, die es nicht mehr gibt.
  *
- *   1.5er Rahmen (schmal)    35 EUR/m2
- *   2.8er Rahmen (normal)    28 EUR/m2
+ *   normales Gewebe      21 EUR/m2
+ *   engmaschiges Gewebe  25 EUR/m2
  *
- * DER NORMALE RAHMEN STAND ZUERST BEI 30 - Bora hat ihn Ende Oktober 2026
- * auf 28 gesenkt, der schmale bleibt bei 35. Wer diese Zahl aendert,
- * aendert damit auch den Richtpreis; wie der gleich bleiben kann, steht in
- * src/lib/estimate.ts beim Warenfaktor.
+ * UND DIE RAHMENDICKE KOSTET NICHTS MEHR. Bis November 2026 rechnete Bora
+ * den schmalen Rahmen teurer als den gewoehnlichen (zuletzt 35 gegen 28);
+ * seit den endgueltigen Preisen kosten beide dasselbe, und aus dem 1.5er
+ * ist ein 1.8er geworden. Was den Satz bewegt, ist seither das Gewebe.
+ *
+ * Die Zahlen davor, der Reihe nach: 30 und 35 im Oktober, dann 28 und 35,
+ * jetzt 21 und 25 - nicht nach Rahmen, sondern nach Gewebe.
  *
  * DIE SIEBEN MESSPUNKTE STEHEN NICHT MEHR IM TEST. Sie zu behalten hiesse,
  * die Formel gegen eine Vereinbarung zu pruefen, die abgeloest wurde - der
  * Test waere rot, obwohl alles stimmt. Was jetzt geprueft wird, ist die
- * Vereinbarung selbst: Flaeche mal Satz, und der Aufschlag fuer den
- * schmalen Rahmen.
- *
- * WAS NOCH FEHLT: der Aufschlag fuer engmaschiges Gewebe. Bora nennt ihn
- * naechste Woche; bis dahin rechnen beide Gewebe gleich, und das steht
- * unten als eigene Zahl, damit es eine Zeile ist und keine Suche.
+ * Vereinbarung selbst: Flaeche mal Satz, und der Aufschlag fuer das
+ * engmaschige Gewebe.
  *
  * DIESE ZAHLEN BEWEGEN AUCH DEN VERKAUFSPREIS. src/lib/estimate.ts rechnet
  * den Richtpreis aus diesen Kosten; wird der Einkauf teurer, steigt er mit,
@@ -45,27 +44,21 @@ import type { Beteiligter } from '../types'
  */
 export const kostenConfig = {
   /**
-   * Was Bora je Quadratmeter verlangt, nach Rahmendicke.
+   * Was Bora je Quadratmeter verlangt, NACH GEWEBE.
    *
-   * Der schmale 1.5er ist aufwendiger zu fertigen und kostet entsprechend
-   * mehr. Die Schluessel sind dieselben wie in RAHMENDICKEN - wer dort
-   * einen hinzufuegt, muss hier einen Preis nennen, sonst rechnet das
-   * Netz mit dem Normalsatz weiter, als waere nichts gewesen.
-   */
-  proM2Eur: { '1.5': 35, '2.8': 28 } as Record<string, number>,
-
-  /** Der Satz, wenn eine Rahmendicke nicht in der Tabelle steht – Alteintraege. */
-  proM2StandardEur: 28,
-
-  /**
-   * Aufschlag auf den m2-Preis fuer engmaschiges Gewebe, als Faktor.
+   * NICHT MEHR NACH RAHMENDICKE, und das ist die Aenderung vom November
+   * 2026: Der schmale Rahmen (jetzt 1.8 statt 1.5 cm) und der gewoehnliche
+   * 2.8er kosten dasselbe. Was den Preis bewegt, ist das Gewebe - das
+   * dickere, engmaschige kostet mehr.
    *
-   * NOCH UNBEKANNT, deshalb 1: Bora nennt den Betrag naechste Woche. Bis
-   * dahin rechnen beide Gewebe gleich, und das ist ehrlicher als eine
-   * geratene Zahl - eine Schaetzung, die sich als Preis ausgibt, ist in
-   * einer Marge das Schlimmste.
+   * Die Schluessel sind dieselben wie in NETZARTEN. Wer dort einen
+   * hinzufuegt, muss hier einen Preis nennen, sonst rechnet das Netz mit
+   * dem Normalsatz weiter, als waere nichts gewesen.
    */
-  engmaschigFaktor: 1,
+  proM2Eur: { normal: 21, engmaschig: 25 } as Record<string, number>,
+
+  /** Der Satz, wenn keine Netzart dasteht – Alteintraege tragen keine. */
+  proM2StandardEur: 21,
 
   /**
    * Umrechnung Euro in Franken. EINE ZAHL, VON HAND GEPFLEGT.

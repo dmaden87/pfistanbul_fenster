@@ -1,20 +1,22 @@
 /**
- * Die Referenzpreise als Liste, je Rahmendicke ein eigenes PDF.
+ * Die Referenzpreise als Liste, je Gewebe ein eigenes PDF.
  *
  * Aufruf: npm run referenzliste
  *
- * Heraus kommen drucksachen/referenzliste-2.8.pdf und -1.5.pdf: A4 hoch,
- * je Breite ein Block, darin eine Zeile fuer jede Hoehe mit Flaeche,
- * Selbstkosten, Richtpreis und der Marge in Franken und Prozent.
+ * Heraus kommen drucksachen/referenzliste-normal.pdf und
+ * -engmaschig.pdf: A4 hoch, je Breite ein Block, darin eine Zeile fuer
+ * jede Hoehe mit Flaeche, Selbstkosten, Richtpreis und der Marge in
+ * Franken und Prozent.
  *
  * WARUM NEBEN DEM RASTER: Das Raster (bau/referenzpreise.mjs) beantwortet
  * eine Frage - was kostet das? - und passt dafuer auf eine Seite. Diese
  * Liste beantwortet die zweite: was bleibt uns davon? Beides in eine Zelle
  * zu schreiben macht das Raster unlesbar, und genau dafuer ist es da.
  *
- * WARUM JE RAHMENDICKE EINE DATEI: Man misst mit einer Rahmendicke im Kopf,
- * nicht mit beiden. Eine Datei, die man ganz ausdruckt, ist einfacher als
- * eine, aus der man die richtige Haelfte heraussuchen muss.
+ * WARUM JE GEWEBE EINE DATEI: Man misst fuer ein Gewebe, nicht fuer
+ * beide. Eine Datei, die man ganz ausdruckt, ist einfacher als eine, aus
+ * der man die richtige Haelfte heraussuchen muss. Bis November 2026 war
+ * die Trennung die Rahmendicke - seither kosten beide Rahmen gleich.
  *
  * DIE MARGE IST VOR DER MONTAGE. Was an Montage und Anfahrt verdient wird,
  * steht hier nicht - das ist ein eigener Posten im Angebot und geht nach
@@ -27,9 +29,9 @@
  */
 import { estimateNetChf, margeProzent, preisFormel, selbstkostenChf } from '../src/lib/estimate.ts'
 import { kostenConfig } from '../src/data/kostenConfig.ts'
-import { RAHMENDICKEN } from '../src/data/produktion.ts'
+import { NETZARTEN } from '../src/data/produktion.ts'
 import { shopConfig } from '../src/data/shopConfig.ts'
-import { BREITEN, DICKEN, HOEHEN, alsPdf, chf, flaecheM2, monat, schriften } from './drucksache.mjs'
+import { BREITEN, GEWEBE, HOEHEN, alsPdf, chf, flaecheM2, monat, schriften } from './drucksache.mjs'
 
 /*
  * DREI BLOECKE JE SPALTE, ZWEI SPALTEN JE SEITE. Bei 21 Hoehen je Block
@@ -43,10 +45,10 @@ const SPALTEN = 2
 const BLOECKE_JE_SEITE = BLOECKE_JE_SPALTE * SPALTEN
 const SEITEN = Math.ceil(BREITEN.length / BLOECKE_JE_SEITE)
 
-const block = (breite, dicke) => {
+const block = (breite, art) => {
   const zeilen = HOEHEN.map((h) => {
-    const kosten = selbstkostenChf(breite, h, dicke)
-    const preis = estimateNetChf(breite, h, dicke)
+    const kosten = selbstkostenChf(breite, h, art)
+    const preis = estimateNetChf(breite, h, art)
     const marge = Math.round((preis - kosten) * 100) / 100
     /* Wo der Mindestpreis greift, haengt die Marge nicht mehr an der
        Flaeche - das soll man sehen und nicht nachrechnen muessen. */
@@ -57,7 +59,7 @@ const block = (breite, dicke) => {
       <td>${chf(kosten)}</td>
       <td class="preis">${preis}</td>
       <td class="marge">${chf(marge)}</td>
-      <td class="prozent">${margeProzent(breite, h, dicke)}%</td>
+      <td class="prozent">${margeProzent(breite, h, art)}%</td>
     </tr>`
   }).join('')
 
@@ -79,9 +81,9 @@ const block = (breite, dicke) => {
   </div>`
 }
 
-const blatt = (dicke, breiten, nummer, fuss = '') => `<section class="blatt">
+const blatt = (art, breiten, nummer, fuss = '') => `<section class="blatt">
   <div class="kopf">
-    <h1>Referenzpreise · ${RAHMENDICKEN[dicke]?.deutsch ?? `${dicke} cm`}</h1>
+    <h1>Referenzpreise · ${NETZARTEN[art]?.deutsch ?? art}es Gewebe</h1>
     <span class="marke">Pfistanbul Fenster · ${monat()} · Seite ${nummer} von ${SEITEN}</span>
   </div>
   <p class="lead">
@@ -89,12 +91,12 @@ const blatt = (dicke, breiten, nummer, fuss = '') => `<section class="blatt">
     Einfuhrsteuer – <strong>ohne Montage</strong>, die kostet CHF ${shopConfig.montageChf} je Netz zusätzlich.
     Zwischenmasse aufrunden. Grau hinterlegt: Mindestpreis CHF ${preisFormel.mindestpreisChf}.
   </p>
-  <div class="spalten">${breiten.map((b) => block(b, dicke)).join('')}</div>
+  <div class="spalten">${breiten.map((b) => block(b, art)).join('')}</div>
   ${fuss}
 </section>`
 
-const dokument = (dicke) => {
-  const satzEur = kostenConfig.proM2Eur[dicke] ?? kostenConfig.proM2StandardEur
+const dokument = (art) => {
+  const satzEur = kostenConfig.proM2Eur[art] ?? kostenConfig.proM2StandardEur
   /*
    * DER FUSS GEHOERT IN DIE LETZTE SEITE HINEIN, nicht dahinter: Ein Block
    * nach dem letzten <section> steht hinter dessen Seitenumbruch und
@@ -111,7 +113,7 @@ const dokument = (dicke) => {
   const seiten = []
   for (let i = 0; i < BREITEN.length; i += BLOECKE_JE_SEITE) {
     const letzte = i + BLOECKE_JE_SEITE >= BREITEN.length
-    seiten.push(blatt(dicke, BREITEN.slice(i, i + BLOECKE_JE_SEITE), seiten.length + 1, letzte ? fuss : ''))
+    seiten.push(blatt(art, BREITEN.slice(i, i + BLOECKE_JE_SEITE), seiten.length + 1, letzte ? fuss : ''))
   }
 
   return `<!doctype html>
@@ -176,17 +178,17 @@ ${seiten.join('\n')}
 </body></html>`
 }
 
-for (const dicke of DICKEN) {
-  const { pdf, groesse, seiten } = alsPdf({
-    html: dokument(dicke),
-    name: `referenzliste-${dicke}`,
+for (const art of GEWEBE) {
+  const { pdf, groesse, seiten } = await alsPdf({
+    html: dokument(art),
+    name: `referenzliste-${art}`,
     seiten: SEITEN,
   })
-  const preise = BREITEN.flatMap((b) => HOEHEN.map((h) => estimateNetChf(b, h, dicke)))
+  const preise = BREITEN.flatMap((b) => HOEHEN.map((h) => estimateNetChf(b, h, art)))
   const margen = BREITEN.flatMap((b) => HOEHEN.map((h) =>
-    Math.round((estimateNetChf(b, h, dicke) - selbstkostenChf(b, h, dicke)) * 100) / 100))
+    Math.round((estimateNetChf(b, h, art) - selbstkostenChf(b, h, art)) * 100) / 100))
   console.log(`${pdf} geschrieben – ${(groesse / 1024).toFixed(0)} kB, ${seiten} Seiten`)
-  console.log(`  ${RAHMENDICKEN[dicke].deutsch} · ${preise.length} Masse`)
+  console.log(`  ${NETZARTEN[art].deutsch}es Gewebe · ${preise.length} Masse`)
   console.log(`  Preise ${Math.min(...preise)} bis ${Math.max(...preise)} CHF`)
   console.log(`  Marge ${chf(Math.min(...margen))} bis ${chf(Math.max(...margen))} CHF`)
 }

@@ -9,12 +9,16 @@
  * wird, das ein Chat auch ueber Mobilfunk laedt.
  */
 import { execFileSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { mkdtemp, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import sharp from 'sharp'
 
-const CHROMIUM = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
+const CHROMIUM = process.env.CHROMIUM
+  ?? ['/opt/pw-browsers/chromium', '/opt/pw-browsers/chromium-1194/chrome-linux/chrome']
+    .find((pfad) => existsSync(pfad))
+  ?? '/opt/pw-browsers/chromium'
 const BREITE = 1200
 const HOEHE = 630
 const ZIEL = 'public/vorschau.jpg'

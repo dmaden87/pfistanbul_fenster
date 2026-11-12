@@ -38,44 +38,43 @@ export function umfangM(breiteCm: number, hoeheCm: number): number {
   return 2 * (breiteCm / 100 + hoeheCm / 100)
 }
 
-/** Der m2-Satz fuer eine Rahmendicke, in Euro. */
-export function satzEur(rahmendicke?: string): number {
-  if (rahmendicke && rahmendicke in kostenConfig.proM2Eur) return kostenConfig.proM2Eur[rahmendicke]
-  /*
-   * ALTEINTRAEGE TRAGEN FREIEN TEXT ("3-4 cm", "60 mm"). Sie mit dem
-   * Normalsatz zu rechnen ist richtig: Es gab nur einen Rahmen, und das war
-   * der gewoehnliche. Ein Fehler waere es, daraus null zu machen - dann
-   * stuende ein Auftrag ohne Warenkosten in der Marge.
-   */
+/**
+ * Der m2-Satz fuer ein Gewebe, in Euro.
+ *
+ * ER HING FRUEHER AN DER RAHMENDICKE. Seit November 2026 kosten beide
+ * Rahmen gleich viel und das Gewebe macht den Unterschied - die
+ * Begruendung steht in src/data/kostenConfig.ts.
+ *
+ * ALTEINTRAEGE TRAGEN KEINE NETZART. Sie mit dem Normalsatz zu rechnen ist
+ * richtig: Es gab nur ein Gewebe, und das war das gewoehnliche. Ein Fehler
+ * waere es, daraus null zu machen - dann stuende ein Auftrag ohne
+ * Warenkosten in der Marge.
+ */
+export function satzEur(netzart?: string): number {
+  if (netzart && netzart in kostenConfig.proM2Eur) return kostenConfig.proM2Eur[netzart]
   return kostenConfig.proM2StandardEur
 }
 
 /**
  * Was Bora fuer ein Netz dieser Groesse verlangt, in Euro.
  *
- * Flaeche mal Satz. Der Satz haengt an der Rahmendicke, das Gewebe kommt
- * als Faktor darauf - beides steht in src/data/kostenConfig.ts, samt der
- * Begruendung, warum hier nicht mehr der Umfang steht.
+ * Flaeche mal Satz, und der Satz haengt am Gewebe - in
+ * src/data/kostenConfig.ts steht, warum hier weder der Umfang noch die
+ * Rahmendicke mehr eingeht.
+ *
+ * DIE RAHMENDICKE IST AUS DER LISTE GEFALLEN, und das mit Absicht: Ein
+ * Argument, das nichts mehr bewegt, sieht aus, als bewegte es etwas. Sie
+ * steht weiter am Netz und auf dem Bestellblatt - sie geht nur nicht mehr
+ * in den Preis ein.
  */
-export function herstellungEur(
-  breiteCm: number,
-  hoeheCm: number,
-  rahmendicke?: string,
-  netzart?: string,
-): number {
+export function herstellungEur(breiteCm: number, hoeheCm: number, netzart?: string): number {
   if (!(breiteCm > 0) || !(hoeheCm > 0)) return 0
-  const faktor = netzart === 'engmaschig' ? kostenConfig.engmaschigFaktor : 1
-  return runde2(flaecheM2(breiteCm, hoeheCm) * satzEur(rahmendicke) * faktor)
+  return runde2(flaecheM2(breiteCm, hoeheCm) * satzEur(netzart))
 }
 
 /** Dasselbe in Franken, zum hinterlegten Kurs. */
-export function herstellungChf(
-  breiteCm: number,
-  hoeheCm: number,
-  rahmendicke?: string,
-  netzart?: string,
-): number {
-  return runde2(herstellungEur(breiteCm, hoeheCm, rahmendicke, netzart) * kostenConfig.eurChf)
+export function herstellungChf(breiteCm: number, hoeheCm: number, netzart?: string): number {
+  return runde2(herstellungEur(breiteCm, hoeheCm, netzart) * kostenConfig.eurChf)
 }
 
 /**
@@ -93,7 +92,7 @@ export function herstellungFuer(positionen: BestellPosition[]): number {
   let summe = 0
   for (const p of positionen) {
     if (p.breiteCm === undefined || p.hoeheCm === undefined) continue
-    summe += herstellungChf(p.breiteCm, p.hoeheCm, p.rahmendicke, p.netzart) * p.menge
+    summe += herstellungChf(p.breiteCm, p.hoeheCm, p.netzart) * p.menge
   }
   return runde2(summe)
 }

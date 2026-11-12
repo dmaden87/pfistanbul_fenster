@@ -9,15 +9,18 @@ import { einfuhrsteuerChf, frachtChf, herstellungChf } from './kosten'
  *
  * ER RECHNET VORWÄRTS AUS DEN KOSTEN, nicht rückwärts aus Preisen:
  *
- *   Selbstkosten = Ware (Fläche × Boras m2-Satz) + Fracht + Einfuhrsteuer
+ *   Selbstkosten = Ware (Fläche × Boras m2-Satz fürs Gewebe)
+ *                  + Fracht + Einfuhrsteuer
  *   Richtpreis   = Sockel + Warenfaktor × Selbstkosten, aufgerundet auf
  *                  fünf Franken, mindestens der Mindestpreis
  *
  * So bleibt der Rechner richtig, wenn sich der Einkauf ändert: Es gibt
  * keine zweite, von Hand gepflegte Preisliste. Senkt Bora seinen Satz,
- * sinkt der Richtpreis mit – das ist gewollt und war Ende Oktober 2026 die
- * ausdrückliche Entscheidung, als der normale Rahmen von 30 auf 28 EUR/m²
- * fiel: Der Vorteil geht an die Kundschaft, nicht in die Marge.
+ * sinkt der Richtpreis mit – es sei denn, jemand hebt bewusst den Faktor.
+ * Beides ist schon vorgekommen, und beides war eine Entscheidung, keine
+ * Nebenwirkung: Im Oktober 2026 ging die Senkung von 30 auf 28 EUR/m² ganz
+ * an die Kundschaft; im November, bei den endgültigen 21 EUR/m², zur
+ * Hälfte (Faktor 1.6 → 1.8).
  *
  * HIER STAND EINMAL EINE GERADE ÜBER DEN UMFANG, zurückgerechnet aus den
  * Katalogpreisen und sieben Angeboten von Bora. Sie war richtig, solange
@@ -38,18 +41,13 @@ import { einfuhrsteuerChf, frachtChf, herstellungChf } from './kosten'
  * Fenster macht davon genauso viel Arbeit wie ein grosses.
  *
  * Deniz' Anker, an denen diese Zahl haengt: 1 m² = 140, 1.5 = 160, 2 = 185,
- * 3 = 235 - gesetzt, als der normale Rahmen noch 30 EUR/m² kostete. Mit
- * Sockel 65 und Warenfaktor 1.6 traf die Rechnung damals alle vier auf den
- * Franken.
+ * 3 = 235 - gesetzt, als der Satz noch 30 EUR/m² war. Mit Sockel 65 und
+ * Warenfaktor 1.6 traf die Rechnung damals alle vier auf den Franken.
  *
- * SEIT BORAS SATZ AUF 28 LIEGT, TRIFFT SIE FUENF BIS ZEHN FRANKEN TIEFER:
- * 135 / 155 / 180 / 225. Der Faktor haette sich auf 1.68 heben lassen, dann
- * staenden die alten Preise wieder da und der guenstigere Einkauf bliebe
- * bei uns. Deniz hat anders entschieden: Er geht an die Kundschaft.
- *
- * Die Anker stehen hier trotzdem weiter, denn sie halten die FORM der
- * Geraden fest - ihr Abstand zueinander ist derselbe geblieben, die ganze
- * Linie ist nur um die ersparten zwei Euro je Quadratmeter gesunken.
+ * SIE HALTEN DIE FORM DER GERADEN, NICHT IHRE HOEHE. Jede Preisaenderung
+ * seither hat die ganze Linie verschoben, ihren Abstand zueinander aber
+ * nicht: 135/155/180/225 bei 28 EUR/m², und 130/150/170/205 bei 21 mit
+ * Faktor 1.8. Der Sockel bleibt dabei, was er war.
  */
 const SOCKEL_CHF = 65
 
@@ -63,18 +61,24 @@ const SOCKEL_CHF = 65
  * und ein Netz von 6 m² kostete nur das Doppelte von einem mit 1 m² -
  * obwohl sechsmal so viel Material drin steckt.
  *
- * Sockel plus Faktor ergibt stattdessen eine Gerade: rund 45 Franken je
+ * Sockel plus Faktor ergibt stattdessen eine Gerade: rund 38 Franken je
  * Quadratmeter, ohne Knick und ohne Deckel. Die Marge faellt dabei von
- * selbst mit der Groesse (71 Prozent bei 0.8 m², 51 bei 5 m²), weil der
- * Sockel sich ueber mehr Flaeche verteilt. Das ist die
- * gewuenschte Richtung: Eine grosse Tuere soll bezahlbar bleiben, und sie
- * macht uns nicht sechsmal so viel Arbeit.
+ * selbst mit der Groesse (76 Prozent bei 0.8 m², 58 bei 5 m²), weil der
+ * Sockel sich ueber mehr Flaeche verteilt. Das ist die gewuenschte
+ * Richtung: Eine grosse Tuere soll bezahlbar bleiben, und sie macht uns
+ * nicht sechsmal so viel Arbeit.
+ *
+ * VON 1.6 AUF 1.8 IM NOVEMBER 2026, als Boras Satz von 28 auf 21 EUR/m²
+ * fiel. Bei 1.6 waere der Richtpreis um 10 bis 35 Franken gesunken; Deniz
+ * wollte den Vorteil halbieren - ein Teil an die Kundschaft, ein Teil in
+ * die Marge. Mit 1.8 liegt der Preis rund fuenf Prozent unter dem alten
+ * und die Marge je Netz fuenf bis fuenfzehn Franken darueber.
  *
  * KEIN DECKEL MEHR. Er war die Ursache des flachen oberen Endes. Wer eine
  * Obergrenze will, baut sie hier wieder ein - sie fehlt nicht aus
  * Versehen.
  */
-const WARENFAKTOR = 1.6
+const WARENFAKTOR = 1.8
 
 /**
  * Auf diesen Betrag wird aufgerundet – nie ab, damit die Offerte nicht
@@ -155,13 +159,8 @@ function roundUpTo(value: number, step: number): number {
  * Was ein Netz dieser Masse uns kostet, bis es vor Ort liegt: Ware, Fracht
  * und Einfuhrsteuer. Ohne Montage - die steht im Angebot als eigener Posten.
  */
-export function selbstkostenChf(
-  breiteCm: number,
-  hoeheCm: number,
-  rahmendicke?: string,
-  netzart?: string,
-): number {
-  const ware = herstellungChf(breiteCm, hoeheCm, rahmendicke, netzart)
+export function selbstkostenChf(breiteCm: number, hoeheCm: number, netzart?: string): number {
+  const ware = herstellungChf(breiteCm, hoeheCm, netzart)
   if (ware <= 0) return 0
   return runde2(ware + frachtChf(1) + einfuhrsteuerChf(ware))
 }
@@ -172,13 +171,8 @@ export function selbstkostenChf(
  * Aufgerundet und nie ab: Die Offerte soll nicht teurer ausfallen als der
  * Richtpreis, den die Kundschaft auf der Seite gesehen hat.
  */
-export function estimateNetChf(
-  breiteCm: number,
-  hoeheCm: number,
-  rahmendicke?: string,
-  netzart?: string,
-): number {
-  const kosten = selbstkostenChf(breiteCm, hoeheCm, rahmendicke, netzart)
+export function estimateNetChf(breiteCm: number, hoeheCm: number, netzart?: string): number {
+  const kosten = selbstkostenChf(breiteCm, hoeheCm, netzart)
   if (kosten <= 0) return 0
   const gerechnet = SOCKEL_CHF + runde2(WARENFAKTOR * kosten)
   return roundUpTo(Math.max(gerechnet, MINDESTPREIS_CHF), ROUND_TO_CHF)
@@ -203,9 +197,9 @@ export function aufschlagChf(kostenChf: number): number {
  * Nur zum Hinsehen - gerechnet wird mit den Betraegen. Sie faellt mit der
  * Groesse, sobald der Deckel greift, und das soll man sehen koennen.
  */
-export function margeProzent(breiteCm: number, hoeheCm: number, rahmendicke?: string, netzart?: string): number | null {
-  const kosten = selbstkostenChf(breiteCm, hoeheCm, rahmendicke, netzart)
-  const preis = estimateNetChf(breiteCm, hoeheCm, rahmendicke, netzart)
+export function margeProzent(breiteCm: number, hoeheCm: number, netzart?: string): number | null {
+  const kosten = selbstkostenChf(breiteCm, hoeheCm, netzart)
+  const preis = estimateNetChf(breiteCm, hoeheCm, netzart)
   if (!(preis > 0)) return null
   return Math.round((100 * (preis - kosten)) / preis)
 }

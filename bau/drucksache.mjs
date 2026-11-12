@@ -13,11 +13,23 @@
  * WhatsApp und schneidet sich selbst zu; es teilt mit diesen beiden nur die
  * Schriften, und dafuer lohnt kein gemeinsamer Unterbau.
  */
-import { execFileSync } from 'node:child_process'
-import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { spawn } from 'node:child_process'
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 
-export const CHROMIUM = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
+/*
+ * Der Pfad wechselt mit jeder Playwright-Fassung - /opt/pw-browsers/chromium
+ * ist ein Verweis, der immer auf die installierte zeigt. Hier stand die
+ * Fassung 1194 ausgeschrieben, und als der Container auf 1243 wechselte,
+ * fand kein Blatt mehr einen Browser. Dieselbe Suche wie in
+ * bau/vorrendern.mjs; mit CHROMIUM=... laesst sich ein anderer angeben.
+ */
+export const CHROMIUM = process.env.CHROMIUM
+  ?? [
+    '/opt/pw-browsers/chromium',
+    '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  ].find((pfad) => existsSync(pfad))
+  ?? '/opt/pw-browsers/chromium'
 export const ZIEL = 'drucksachen'
 
 /*
@@ -31,10 +43,16 @@ export const BREITEN = [50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 1
 export const HOEHEN = [50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250]
 
 /*
- * Der gewoehnliche Rahmen kommt zuerst - er ist der Normalfall, und wer ein
- * Blatt aus dem Rucksack zieht, soll ihn oben haben und nicht blaettern.
+ * JE GEWEBE EIN BLATT, nicht mehr je Rahmendicke: Seit November 2026
+ * kosten der schmale und der gewoehnliche Rahmen dasselbe, und was den
+ * Preis bewegt, ist das Gewebe. Zwei Blaetter fuer zwei Rahmen zeigten
+ * zweimal dieselben Zahlen.
+ *
+ * Das gewoehnliche Gewebe kommt zuerst - es ist der Normalfall, und wer
+ * ein Blatt aus dem Rucksack zieht, soll es oben haben und nicht
+ * blaettern.
  */
-export const DICKEN = ['2.8', '1.5']
+export const GEWEBE = ['normal', 'engmaschig']
 
 /** Die Formate, an denen sich Kosten und Marge im Ueberblick ablesen lassen. */
 export const ECKPUNKTE = [[100, 100], [100, 150], [100, 200], [150, 200], [200, 250]]
@@ -68,10 +86,113 @@ export function seitenZahl(pdf) {
 }
 
 /**
+ * Chromium aufmachen, eine Seite laden und daran arbeiten.
+ *
+ * UEBER DAS DEVTOOLS-PROTOKOLL, NICHT UEBER --print-to-pdf oder
+ * --screenshot. Beide Schalter haben jahrelang gereicht; seit Chromium 1243
+ * kehren sie bei jeder echten Seite nicht mehr zurueck - auch nicht bei
+ * einer Datei mit drei Zeilen. Das sah aus wie ein haengender Seitenaufbau
+ * und war keiner: Der Browser rendert, er gibt nur nichts mehr aus.
+ *
+ * Dieselbe Umstellung wie in bau/vorrendern.mjs, und aus demselben Grund:
+ * Was ueber das Protokoll laeuft, haengt nicht an einem Schalter, der sich
+ * mit der naechsten Fassung wieder anders verhaelt.
+ */
+const schlafen = (ms) => new Promise((fertig) => setTimeout(fertig, ms))
+
+async function verbinde(url) {
+  const draht = new WebSocket(url)
+  await new Promise((fertig, scheitern) => {
+    draht.onopen = fertig
+    draht.onerror = () => scheitern(new Error(`Keine Verbindung zu ${url}.`))
+  })
+  let nummer = 0
+  const offen = new Map()
+  draht.onmessage = (nachricht) => {
+    const antwort = JSON.parse(nachricht.data)
+    const warter = antwort.id && offen.get(antwort.id)
+    if (!warter) return
+    offen.delete(antwort.id)
+    if (antwort.error) warter.scheitern(new Error(antwort.error.message))
+    else warter.fertig(antwort.result)
+  }
+  return {
+    ruf(methode, parameter = {}) {
+      const id = ++nummer
+      return new Promise((fertig, scheitern) => {
+        offen.set(id, { fertig, scheitern })
+        draht.send(JSON.stringify({ id, method: methode, params: parameter }))
+      })
+    },
+    zu: () => draht.close(),
+  }
+}
+
+/**
+ * Laedt `quelle` in einem frischen Browser und gibt `arbeit(blatt)` zurueck.
+ * `blatt.ruf` spricht das Protokoll; aufgeraeumt wird in jedem Fall.
+ */
+export async function imBrowser(quelle, arbeit, { breite, hoehe, massstab } = {}) {
+  mkdirSync(ZIEL, { recursive: true })
+  const profil = join(ZIEL, `profil-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
+  rmSync(profil, { recursive: true, force: true })
+  mkdirSync(profil, { recursive: true })
+
+  const browser = spawn(CHROMIUM, [
+    '--headless', '--disable-gpu', '--no-sandbox', '--hide-scrollbars',
+    '--no-first-run', '--remote-debugging-port=0', `--user-data-dir=${profil}`,
+    'about:blank',
+  ], { stdio: ['ignore', 'ignore', 'ignore'] })
+
+  try {
+    let port
+    for (let versuch = 0; versuch < 400 && !port; versuch += 1) {
+      try {
+        port = Number(readFileSync(join(profil, 'DevToolsActivePort'), 'utf8').split('\n')[0])
+      } catch {
+        await schlafen(50)
+      }
+    }
+    if (!port) throw new Error('Chromium meldet keinen Port.')
+
+    const fassung = await fetch(`http://127.0.0.1:${port}/json/version`).then((a) => a.json())
+    const leitung = await verbinde(fassung.webSocketDebuggerUrl)
+    const { targetId } = await leitung.ruf('Target.createTarget', { url: 'about:blank' })
+    const blatt = await verbinde(`ws://127.0.0.1:${port}/devtools/page/${targetId}`)
+
+    await blatt.ruf('Page.enable')
+    if (breite && hoehe) {
+      await blatt.ruf('Emulation.setDeviceMetricsOverride', {
+        width: breite, height: hoehe, deviceScaleFactor: massstab ?? 1, mobile: false,
+      })
+    }
+    await blatt.ruf('Page.navigate', { url: `file://${resolve(quelle)}` })
+    /* Die Schriften stecken als Daten-URL im Dokument; kurz reicht. */
+    await schlafen(1500)
+    const ergebnis = await arbeit(blatt)
+    blatt.zu()
+    leitung.zu()
+    return ergebnis
+  } finally {
+    browser.kill()
+    /*
+     * ERST WARTEN, DANN WEGRAEUMEN, und wenn es nicht klappt, stehen
+     * lassen. Chromium schreibt beim Beenden noch in sein Profil; ein
+     * sofortiges Loeschen scheitert mit ENOTEMPTY und riss den ganzen Lauf
+     * mit - wegen eines Ordners, den niemand vermisst. Er liegt unter
+     * drucksachen/ und damit ausserhalb der Versionsverwaltung.
+     */
+    await schlafen(300)
+    try { rmSync(profil, { recursive: true, force: true }) } catch { /* bleibt liegen */ }
+  }
+}
+
+/**
  * HTML zu PDF, mit zwei Gegenproben.
  *
- * DIE ERSTE: Chromium meldet auch dann Erfolg, wenn es eine leere Datei
- * schreibt - etwa wenn eine Schrift fehlt und das Rendern stehenbleibt.
+ * DIE ERSTE: Ein PDF unter zwanzig Kilobyte hat keine Tabelle drin - so
+ * sieht es aus, wenn das Rendern stehenbleibt, etwa weil eine Schrift
+ * fehlt.
  *
  * DIE ZWEITE UND WICHTIGERE: die Seitenzahl. Laeuft eine Tabelle ueber,
  * schiebt der Druck die letzten Zeilen auf ein weiteres Blatt, und das
@@ -79,22 +200,18 @@ export function seitenZahl(pdf) {
  * Beim ersten Anlauf des Rasters war genau das der Fall: vier Seiten statt
  * zwei. Wer das Blatt umbaut, soll es hier erfahren und nicht dort.
  */
-export function alsPdf({ html, name, seiten }) {
+export async function alsPdf({ html, name, seiten }) {
   mkdirSync(ZIEL, { recursive: true })
-  const profil = join(ZIEL, `profil-${name}`)
-  rmSync(profil, { recursive: true, force: true })
-  mkdirSync(profil, { recursive: true })
-
   const quelle = join(ZIEL, `${name}.html`)
   const pdf = join(ZIEL, `${name}.pdf`)
   writeFileSync(quelle, html)
 
-  execFileSync(CHROMIUM, [
-    '--headless=new', '--disable-gpu', '--no-sandbox',
-    `--user-data-dir=${profil}`, '--no-first-run',
-    '--no-pdf-header-footer', `--print-to-pdf=${pdf}`,
-    quelle,
-  ], { stdio: ['ignore', 'ignore', 'pipe'] })
+  /* preferCSSPageSize: Format und Rand stehen im Blatt als @page. */
+  const { data } = await imBrowser(quelle, (blatt) => blatt.ruf('Page.printToPDF', {
+    printBackground: true,
+    preferCSSPageSize: true,
+  }))
+  writeFileSync(pdf, Buffer.from(data, 'base64'))
 
   const groesse = statSync(pdf).size
   if (groesse < 20_000) {
@@ -110,7 +227,30 @@ export function alsPdf({ html, name, seiten }) {
 
   /* HTML_BEHALTEN=1 laesst die Quelle stehen, um am Satz zu arbeiten. */
   if (!process.env.HTML_BEHALTEN) rmSync(quelle)
-  rmSync(profil, { recursive: true, force: true })
 
   return { pdf, groesse, seiten: gezaehlt }
+}
+
+/**
+ * HTML zu PNG, in einem Fenster fester Groesse.
+ *
+ * `captureBeyondViewport` nimmt auch mit, was unter der Fensterkante liegt -
+ * wer ein zu knappes Fenster setzt, bekommt sonst ein beschnittenes Bild
+ * statt eines zu langen, und das faellt niemandem auf.
+ */
+export async function alsBild({ html, name, breite, hoehe, massstab = 2 }) {
+  mkdirSync(ZIEL, { recursive: true })
+  const quelle = join(ZIEL, `${name}.html`)
+  const bild = join(ZIEL, `${name}.png`)
+  writeFileSync(quelle, html)
+
+  const { data } = await imBrowser(
+    quelle,
+    (blatt) => blatt.ruf('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true }),
+    { breite, hoehe, massstab },
+  )
+  writeFileSync(bild, Buffer.from(data, 'base64'))
+
+  if (!process.env.HTML_BEHALTEN) rmSync(quelle)
+  return { bild }
 }

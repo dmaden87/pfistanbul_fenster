@@ -34,43 +34,47 @@ function pruefe(name, bedingung, hinweis = '') {
  * ging der Test rot, weil Bora den normalen Rahmen von 30 auf 28 senkte:
  * rot auf eine Vereinbarung, die sich geaendert hatte, und nicht auf einen
  * Fehler. Genau so ist schon die Fracht von 12 auf 13 rot geworden.
+ *
+ * DER SATZ HAENGT SEIT NOVEMBER 2026 AM GEWEBE, nicht mehr am Rahmen.
  */
 const SATZ = kostenConfig.proM2Eur
 
 pruefe('Flaeche: 100 x 50 sind ein halber Quadratmeter', flaecheM2(100, 50) === 0.5)
 
-for (const [dicke, satz] of Object.entries(SATZ)) {
-  pruefe(`${dicke}er Rahmen: ein Quadratmeter kostet ${satz} EUR`,
-    herstellungEur(100, 100, dicke) === satz, String(herstellungEur(100, 100, dicke)))
-  pruefe(`${dicke}er Rahmen: zwei Quadratmeter kosten doppelt`,
-    herstellungEur(200, 100, dicke) === satz * 2, String(herstellungEur(200, 100, dicke)))
+for (const [art, satz] of Object.entries(SATZ)) {
+  pruefe(`Gewebe ${art}: ein Quadratmeter kostet ${satz} EUR`,
+    herstellungEur(100, 100, art) === satz, String(herstellungEur(100, 100, art)))
+  pruefe(`Gewebe ${art}: zwei Quadratmeter kosten doppelt`,
+    herstellungEur(200, 100, art) === satz * 2, String(herstellungEur(200, 100, art)))
 }
 
-pruefe('Der schmale Rahmen ist teurer als der normale',
-  herstellungEur(100, 150, '1.5') > herstellungEur(100, 150, '2.8'))
+pruefe('Das engmaschige Gewebe ist teurer als das normale',
+  herstellungEur(100, 150, 'engmaschig') > herstellungEur(100, 150, 'normal'))
 
 /*
- * DER RUECKFALL IST KEIN SCHOENHEITSFEHLER. Alteintraege tragen im Feld
- * Rahmendicke freien Text ("3-4 cm", "60 mm"), und es gab damals nur einen
- * Rahmen: den gewoehnlichen. Wer daraus null machte, stellte einen Auftrag
- * ohne Warenkosten in die Marge.
+ * DIE RAHMENDICKE BEWEGT NICHTS MEHR, und das ist eine Aussage und kein
+ * Versehen: Bora rechnete den schmalen Rahmen eine Weile teurer, seit
+ * November 2026 kosten beide gleich. Sie steht deshalb nicht einmal mehr
+ * in der Argumentliste - wer sie wieder einbaut, soll hier nachlesen,
+ * warum sie draussen war.
  */
-pruefe('Ein Altwert rechnet mit dem Normalsatz',
-  herstellungEur(100, 100, '3-4 cm') === SATZ['2.8'])
-pruefe('Fehlt die Angabe ganz, ebenso',
-  herstellungEur(100, 100) === SATZ['2.8'])
+pruefe('Ein Netz kostet dasselbe, welcher Rahmen auch immer',
+  herstellungEur(100, 150, 'normal') === herstellungEur(100, 150, 'normal'))
+pruefe('herstellungEur nimmt drei Argumente, nicht vier',
+  herstellungEur.length === 3, `nimmt ${herstellungEur.length}`)
+
+/*
+ * DER RUECKFALL IST KEIN SCHOENHEITSFEHLER. Alteintraege tragen keine
+ * Netzart - es gab damals nur ein Gewebe, und das war das gewoehnliche.
+ * Wer daraus null machte, stellte einen Auftrag ohne Warenkosten in die
+ * Marge.
+ */
+pruefe('Fehlt die Angabe ganz, gilt der Normalsatz',
+  herstellungEur(100, 100) === SATZ['normal'])
+pruefe('Ein Altwert rechnet ebenso mit dem Normalsatz',
+  herstellungEur(100, 100, 'gewoehnlich') === SATZ['normal'])
 pruefe('Der Satz zu einem unbekannten Wert ist der Normalsatz',
   satzEur('irgendwas') === kostenConfig.proM2StandardEur)
-
-/*
- * ENGMASCHIG KOSTET NOCH NICHT MEHR, weil Bora den Aufschlag erst nennt.
- * Eine geratene Zahl waere schlimmer als Gleichstand: Sie saehe aus wie ein
- * Preis. Wird der Faktor gesetzt, faellt dieser Test auf - und dann gehoert
- * er umgeschrieben, nicht geloescht.
- */
-pruefe('Engmaschig rechnet vorerst gleich wie normal',
-  herstellungEur(100, 150, '2.8', 'engmaschig') === herstellungEur(100, 150, '2.8', 'normal'),
-  `Faktor steht auf ${kostenConfig.engmaschigFaktor}`)
 
 pruefe('Ein Netz ohne Groesse kostet nichts', herstellungEur(0, 0) === 0)
 pruefe('negative Masse ergeben nichts', herstellungEur(-100, 50) === 0)

@@ -75,23 +75,28 @@ export const RAHMENFARBEN_WAHL: Rahmenfarbe[] = ['weiss', 'anthrazit', 'schwarz'
 /* --- Rahmendicke ------------------------------------------------------------ */
 
 /**
- * DIE DICKE DES PLISSEE-RAHMENS, und sie kostet Geld: Bora rechnet den
- * schmalen 1.5er teurer als den gewoehnlichen 2.8er. Deshalb ist aus dem
- * freien Textfeld eine Wahl geworden - ein Mass, das in den Preis eingeht,
- * darf nicht als "ca. 2-3" im Datensatz stehen.
+ * DIE DICKE DES PLISSEE-RAHMENS - eine Produktwahl, keine Preisfrage mehr.
+ *
+ * SIE KOSTETE EINE WEILE GELD: Bora rechnete den schmalen Rahmen teurer
+ * als den gewoehnlichen, und deshalb ist aus dem freien Textfeld eine Wahl
+ * geworden. Seit den endgueltigen Preisen vom November 2026 kosten beide
+ * dasselbe; was den Einkauf bewegt, ist das Gewebe (src/data/kostenConfig.ts).
+ * Die Wahl bleibt trotzdem: Bora muss wissen, welchen Rahmen er baut.
+ *
+ * AUS DEM 1.5er IST EIN 1.8er GEWORDEN - dieselbe Rolle, anderes Mass.
+ * Der alte Wert steht noch in Auftraegen, die vorher erfasst wurden; das
+ * Feld ist ein String, und was nicht in dieser Tabelle steht, zeigt der
+ * Editor als Altwert an und laesst es sich auf einen der beiden heutigen
+ * Werte setzen. Bestehende Auftraege bleiben dabei, wie sie sind.
  *
  * NICHT ZU VERWECHSELN mit shopConfig.rahmendicke: Das ist die Dicke der
  * FENSTERrahmen in der Siedlung ("3-4 cm"), eine Angabe ueber die Haeuser.
  * Diese hier beschreibt unser Produkt.
- *
- * ALTE EINTRAEGE TRAGEN FREIEN TEXT. Das Feld bleibt deshalb ein String;
- * was nicht in dieser Tabelle steht, wird angezeigt, wie es dasteht, und
- * laesst sich im Editor auf einen der beiden Werte setzen.
  */
-export type Rahmendicke = '1.5' | '2.8'
+export type Rahmendicke = '1.8' | '2.8'
 
 export const RAHMENDICKEN: Record<Rahmendicke, Beschriftung> = {
-  '1.5': { deutsch: '1.5 cm, schmal', tuerkisch: '1.5 cm, ince' },
+  '1.8': { deutsch: '1.8 cm, schmal', tuerkisch: '1.8 cm, ince' },
   '2.8': { deutsch: '2.8 cm, normal', tuerkisch: '2.8 cm, normal' },
 }
 
@@ -99,12 +104,12 @@ export const RAHMENDICKEN: Record<Rahmendicke, Beschriftung> = {
 
 /**
  * Gewoehnliches oder engmaschiges Gewebe. Engmaschig haelt auch kleine
- * Muecken und Pollen ab und kostet bei Bora mehr - wie viel, steht noch
- * nicht fest (Stand Oktober 2026 angekuendigt fuer die naechste Woche).
+ * Muecken und Pollen ab; es ist das dickere und kostet bei Bora mehr -
+ * seit November 2026 25 statt 21 EUR je Quadratmeter.
  *
- * Die Wahl steht trotzdem schon da: Sie gehoert auf das Bestellblatt, damit
- * Bora das richtige Gewebe einzieht. Bis der Aufschlag bekannt ist, rechnet
- * der Kostenrechner beide gleich - und das steht so in kostenConfig.ts.
+ * DAMIT IST DIESES FELD DAS, WAS DEN EINKAUFSPREIS BEWEGT. Vorher war es
+ * die Rahmendicke; die Saetze stehen in src/data/kostenConfig.ts, und wer
+ * hier eine Art hinzufuegt, muss dort einen Preis nennen.
  */
 export type Netzart = 'normal' | 'engmaschig'
 
@@ -171,9 +176,7 @@ export const STANDARD = {
    *
    * HIER STAND "3-4 cm", und das war die Dicke der FENSTERrahmen im
    * Pfisterhoelzli - eine Angabe ueber die Haeuser, die versehentlich zur
-   * Vorbelegung eines Produktmerkmals geworden war. Seit Bora den schmalen
-   * 1.5er teurer rechnet als den 2.8er, geht dieses Feld in den Preis ein;
-   * eine Toleranzangabe laesst sich nicht multiplizieren.
+   * Vorbelegung eines Produktmerkmals geworden war.
    *
    * Der 2.8er ist der gewoehnliche und deshalb die Vorbelegung.
    */

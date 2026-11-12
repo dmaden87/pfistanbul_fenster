@@ -62,7 +62,7 @@ export function angebotStart(b: Bestellung): AngebotEntwurf {
 /** Wie viele gestempelte Richtpreise von dem abweichen, was der Rechner heute sagt. */
 export function abweichendeStempel(b: Bestellung): number {
   return b.positionen.filter((p) => {
-    const gerechnet = gerechneterPreis(p.breiteCm, p.hoeheCm, p.rahmendicke, p.netzart)
+    const gerechnet = gerechneterPreis(p.breiteCm, p.hoeheCm, p.netzart)
     return gerechnet !== null && typeof p.richtpreisChf === 'number' && p.richtpreisChf !== gerechnet
   }).length
 }
@@ -89,7 +89,7 @@ export function angebotRechnung(b: Bestellung, e: AngebotEntwurf) {
 export function preiseNeuGerechnet(b: Bestellung, preise: Record<string, string>): Record<string, string> {
   return Object.fromEntries(
     b.positionen.map((p, i) => {
-      const gerechnet = gerechneterPreis(p.breiteCm, p.hoeheCm, p.rahmendicke, p.netzart)
+      const gerechnet = gerechneterPreis(p.breiteCm, p.hoeheCm, p.netzart)
       return [schluesselFuer(p, i), gerechnet ? String(gerechnet) : (preise[schluesselFuer(p, i)] ?? '')]
     }),
   )
@@ -116,7 +116,7 @@ export function angebotAenderung(b: Bestellung, e: AngebotEntwurf, stempelErsetz
   return {
     positionen: b.positionen.map((p, i) => {
       const zeile: BestellPosition = { ...p, preisChf: r.verkauf(p, i) }
-      const gerechnet = gerechneterPreis(p.breiteCm, p.hoeheCm, p.rahmendicke, p.netzart)
+      const gerechnet = gerechneterPreis(p.breiteCm, p.hoeheCm, p.netzart)
       if (stempelErsetzen) {
         if (gerechnet !== null) zeile.richtpreisChf = gerechnet
       } else {

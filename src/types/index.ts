@@ -261,12 +261,13 @@ export interface BestellPosition {
    * Meldung als eine Lieferung aus der Tuerkei, die nicht passt.
    */
   /**
-   * Die Dicke des Plissee-Rahmens: '1.5' oder '2.8'.
+   * Die Dicke des Plissee-Rahmens: '1.8' oder '2.8'.
    *
-   * BLEIBT EIN STRING, obwohl es jetzt eine Wahl ist. Alteintraege tragen
-   * freien Text ("ca. 3 cm", "2-3"), und den zu verwerfen hiesse, eine
-   * Angabe zu loeschen, die jemand aufgenommen hat. Die Oberflaeche bietet
-   * die zwei Werte an und zeigt einen abweichenden Altwert, wie er dasteht.
+   * BLEIBT EIN STRING, obwohl es eine Wahl ist. Alteintraege tragen freien
+   * Text ("ca. 3 cm", "2-3") oder den abgeloesten '1.5', und den zu
+   * verwerfen hiesse, eine Angabe zu loeschen, die jemand aufgenommen hat.
+   * Die Oberflaeche bietet die zwei heutigen Werte an und zeigt einen
+   * abweichenden Altwert, wie er dasteht.
    */
   rahmendicke?: string
   /** Gewoehnliches oder engmaschiges Gewebe. Fehlt bei Alteintraegen – dort ist es normal. */

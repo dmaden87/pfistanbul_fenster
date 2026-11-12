@@ -25,15 +25,14 @@
  * priceRange und shopConfig - dieselben Zahlen wie auf der Seite. Ein Flyer
  * mit einem Preis, den die Seite nicht kennt, ist schlimmer als keiner.
  */
-import { execFileSync } from 'node:child_process'
-import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { readFileSync, rmSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import sharp from 'sharp'
 import { priceRange } from '../src/data/catalog.ts'
 import { shopConfig } from '../src/data/shopConfig.ts'
 import { operator } from '../src/data/operator.ts'
 import { site } from '../src/data/site.ts'
-import { CHROMIUM, ZIEL, schriften } from './drucksache.mjs'
+import { ZIEL, alsBild, schriften } from './drucksache.mjs'
 
 const BREITE = 1080
 const HOEHE = 1350
@@ -180,32 +179,17 @@ const html = `<!doctype html>
   </div>
 </body></html>`
 
-mkdirSync(ZIEL, { recursive: true })
-const profil = join(ZIEL, 'profil-flyer')
-rmSync(profil, { recursive: true, force: true })
-mkdirSync(profil, { recursive: true })
-const quelle = join(ZIEL, 'flyer.html')
-const bild = join(ZIEL, 'flyer.jpg')
-writeFileSync(quelle, html)
-
-/*
- * KEIN ZUSCHNITT HINTERHER. Anders als das Preisblatt hat der Flyer ein
- * festes Format - das Fenster IST das Bild. Passt der Inhalt nicht hinein,
- * soll das auffallen und nicht weggeschnitten werden.
- */
 /*
  * ABSICHTLICH ZU HOCH AUFGENOMMEN. Was unter der Kante des Flyers liegt,
  * soll sichtbar sein und nicht verschwinden - nur so laesst sich pruefen,
  * ob der Inhalt hineinpasst. Zugeschnitten wird danach.
+ *
+ * Der Weg ueber das Protokoll steht in bau/drucksache.mjs, samt Begruendung.
  */
-const roh = join(ZIEL, 'flyer-roh.png')
-execFileSync(CHROMIUM, [
-  '--headless=new', '--disable-gpu', '--no-sandbox', '--hide-scrollbars',
-  `--user-data-dir=${profil}`, '--no-first-run',
-  `--window-size=${BREITE},${HOEHE + LUFT}`, `--force-device-scale-factor=${MASSSTAB}`,
-  `--screenshot=${roh}`,
-  quelle,
-], { stdio: ['ignore', 'ignore', 'pipe'] })
+const { bild: roh } = await alsBild({
+  html, name: 'flyer-roh', breite: BREITE, hoehe: HOEHE + LUFT, massstab: MASSSTAB,
+})
+const bild = join(ZIEL, 'flyer.jpg')
 
 const breit = BREITE * MASSSTAB
 const hoch = HOEHE * MASSSTAB
@@ -284,8 +268,6 @@ if (amRand > 300) {
 }
 
 rmSync(roh)
-if (!process.env.HTML_BEHALTEN) rmSync(quelle)
-rmSync(profil, { recursive: true, force: true })
 
 console.log(`${bild} geschrieben – ${width} x ${height} Pixel, ${(statSync(bild).size / 1024).toFixed(0)} kB`)
 console.log(`Spanne CHF ${priceRange.minChf}–${priceRange.maxChf} · Montage CHF ${shopConfig.montageChf} · ${shopConfig.serviceArea}`)

@@ -168,7 +168,7 @@ export function netzeMitPreis(entwuerfe: Entwurf[], vorher: BestellPosition[], k
   return entwuerfe.map((e) => {
     const position = ausEntwurf(e)
     if (katalog) return position
-    const vorschlag = gerechneterPreis(position.breiteCm, position.hoeheCm, position.rahmendicke, position.netzart)
+    const vorschlag = gerechneterPreis(position.breiteCm, position.hoeheCm, position.netzart)
     return {
       ...position,
       preisChf: verkaufspreisFuer(e.id ? alt.get(e.id) : undefined, position, vorschlag),

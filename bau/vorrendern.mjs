@@ -21,7 +21,7 @@
  * bau/vorgerendert.ts, das auch prueft, ob die Kopie noch zum Build passt.
  */
 import { execFileSync, spawn } from 'node:child_process'
-import { closeSync, existsSync, openSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -125,7 +125,17 @@ function aufraeumen(html) {
  * Ruft eine Adresse im Browser auf und schreibt den fertigen Baum in eine
  * Datei.
  *
- * ZWEI FALLEN STECKEN HIER DRIN, beide haben Zeit gekostet:
+ * UEBER DAS DEVTOOLS-PROTOKOLL, NICHT UEBER --dump-dom. Der Schalter hat
+ * jahrelang gereicht; mit Chromium 1243 kehrt er bei jeder echten Seite
+ * nicht mehr zurueck - auch nicht bei einer Datei mit drei Zeilen, waehrend
+ * about:blank weiter geht. Das sah aus wie ein haengender Seitenaufbau und
+ * war keiner: Der Browser rendert, er gibt nur nichts mehr aus.
+ *
+ * Ueber das Protokoll fragen wir den Baum selbst ab. Das ist ein paar
+ * Zeilen mehr, haengt aber nicht an einem Schalter, der sich mit der
+ * naechsten Fassung wieder anders verhaelt.
+ *
+ * DREI FALLEN STECKEN HIER DRIN, alle haben Zeit gekostet:
  *
  * 1. NICHT synchron ausfuehren. Der kleine Server oben laeuft im selben
  *    Node-Prozess; ein execFileSync blockiert die Ereignisschleife, der
@@ -133,50 +143,97 @@ function aufraeumen(html) {
  *    Dateien, die nie kommen. Eine Verklemmung, die wie ein haengender
  *    Browser aussieht.
  *
- * 2. Die Ausgabe geht in eine DATEI, nicht in eine Pipe. Chromium startet
- *    Kindprozesse (Zygote, Absturzbehandlung), die den Ausgabekanal erben und
- *    offen halten - bei einer Pipe wartet Node danach auf ein Ende des
- *    Stroms, das nie kommt.
+ * 2. Der Port steht in DevToolsActivePort im Profilordner, nicht auf der
+ *    Standardausgabe. Mit Port 0 sucht sich Chromium einen freien - zwei
+ *    Laeufe nebeneinander stolpern sonst uebereinander.
  *
- * Kein --virtual-time-budget: Der Schalter haengt sich an der Endlos-
- * Animation im Hero auf. Ohne ihn gibt Chromium den Baum aus, sobald das
- * Ladeereignis durch ist - ob wirklich alles da ist, prueft danach die Probe.
+ * 3. Kein --virtual-time-budget: Der Schalter haengt sich an der Endlos-
+ *    Animation im Hero auf. Gewartet wird stattdessen auf das Ladeereignis
+ *    und danach eine kurze Weile auf React - ob wirklich alles da ist,
+ *    prueft die Probe weiter unten.
  */
-function starteBrowser(adresse, zieldatei) {
-  return new Promise((fertig, scheitern) => {
-    const kanal = openSync(zieldatei, 'w')
-    const browser = spawn(
-      CHROMIUM,
-      [
-        '--headless',
-        '--disable-gpu',
-        '--no-sandbox',
-        '--no-first-run',
-        `--user-data-dir=${join(arbeitsordner, 'profil')}`,
-        '--dump-dom',
-        adresse,
-      ],
-      { stdio: ['ignore', kanal, 'ignore'] },
-    )
-    const wecker = setTimeout(() => browser.kill('SIGKILL'), 180000)
-    // 'error' und 'close' koennen beide kommen - der Kanal darf nur einmal zu.
-    let zu = false
-    const schliessen = () => {
-      clearTimeout(wecker)
-      if (zu) return
-      zu = true
-      closeSync(kanal)
-    }
-    browser.on('error', (fehler) => {
-      schliessen()
-      scheitern(fehler)
-    })
-    browser.on('close', (code) => {
-      schliessen()
-      if (code === 0) fertig()
-      else scheitern(new Error(`Chromium endete mit ${code} bei ${adresse}.`))
-    })
+const schlafen = (ms) => new Promise((fertig) => setTimeout(fertig, ms))
+
+/** Eine Verbindung zum Protokoll, mit Aufrufen, die auf ihre Antwort warten. */
+async function verbinde(url) {
+  const draht = new WebSocket(url)
+  await new Promise((fertig, scheitern) => {
+    draht.onopen = fertig
+    draht.onerror = () => scheitern(new Error(`Keine Verbindung zu ${url}.`))
   })
+  let nummer = 0
+  const offen = new Map()
+  draht.onmessage = (nachricht) => {
+    const antwort = JSON.parse(nachricht.data)
+    const warter = antwort.id && offen.get(antwort.id)
+    if (!warter) return
+    offen.delete(antwort.id)
+    if (antwort.error) warter.scheitern(new Error(antwort.error.message))
+    else warter.fertig(antwort.result)
+  }
+  return {
+    ruf(methode, parameter = {}) {
+      const id = ++nummer
+      return new Promise((fertig, scheitern) => {
+        offen.set(id, { fertig, scheitern })
+        draht.send(JSON.stringify({ id, method: methode, params: parameter }))
+      })
+    },
+    zu: () => draht.close(),
+  }
+}
+
+async function starteBrowser(adresse, zieldatei) {
+  const profil = join(arbeitsordner, `profil-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
+  const browser = spawn(
+    CHROMIUM,
+    [
+      '--headless',
+      '--disable-gpu',
+      '--no-sandbox',
+      '--no-first-run',
+      '--remote-debugging-port=0',
+      `--user-data-dir=${profil}`,
+      'about:blank',
+    ],
+    { stdio: ['ignore', 'ignore', 'ignore'] },
+  )
+  const wecker = setTimeout(() => browser.kill('SIGKILL'), 180000)
+
+  try {
+    let port
+    for (let versuch = 0; versuch < 400 && !port; versuch += 1) {
+      try {
+        port = Number(readFileSync(join(profil, 'DevToolsActivePort'), 'utf8').split('\n')[0])
+      } catch {
+        await schlafen(50)
+      }
+    }
+    if (!port) throw new Error(`Chromium meldet keinen Port fuer ${adresse}.`)
+
+    const fassung = await fetch(`http://127.0.0.1:${port}/json/version`).then((a) => a.json())
+    const leitung = await verbinde(fassung.webSocketDebuggerUrl)
+    const { targetId } = await leitung.ruf('Target.createTarget', { url: 'about:blank' })
+    const blatt = await verbinde(`ws://127.0.0.1:${port}/devtools/page/${targetId}`)
+
+    await blatt.ruf('Page.enable')
+    await blatt.ruf('Page.navigate', { url: adresse })
+    /* React haengt seinen Baum erst nach dem Ladeereignis ein. */
+    await schlafen(2500)
+    const { result } = await blatt.ruf('Runtime.evaluate', {
+      returnByValue: true,
+      expression: 'document.documentElement.outerHTML',
+    })
+    blatt.zu()
+    leitung.zu()
+    if (typeof result?.value !== 'string' || result.value.length < 500) {
+      throw new Error(`Chromium liefert keinen Baum fuer ${adresse}.`)
+    }
+    await writeFile(zieldatei, `<!doctype html>\n${result.value}`, 'utf8')
+  } finally {
+    clearTimeout(wecker)
+    browser.kill()
+  }
 }
 
 // Frische Huelle bauen. Die Umgebungsvariable haelt bau/vorgerendert.ts davon

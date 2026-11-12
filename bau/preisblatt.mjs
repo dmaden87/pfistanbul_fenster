@@ -1,10 +1,13 @@
 /**
  * Das Preisblatt fuer Bora und Ufuk, auf Tuerkisch, als Bild.
  *
- * Aufruf: npm run preisblatt            (2.8er Rahmen, der gewoehnliche)
- *         npm run preisblatt -- 1.5     (der schmale)
+ * Aufruf: npm run preisblatt                   (normales Gewebe)
+ *         npm run preisblatt -- engmaschig    (das dickere)
  *
- * Heraus kommt drucksachen/preisblatt-<dicke>.png: eine Tabelle mit Massen,
+ * JE GEWEBE EIN BLATT, nicht mehr je Rahmendicke: Seit November 2026
+ * kosten der schmale und der gewoehnliche Rahmen dasselbe.
+ *
+ * Heraus kommt drucksachen/preisblatt-<gewebe>.png: eine Tabelle mit Massen,
  * Kosten, Verkaufspreis und Marge in Franken und Prozent, dazu die Formel im
  * Klartext und die Frage an die beiden.
  *
@@ -25,21 +28,19 @@
  * und auf dem Telefon gelesen. Eine dunkle Tabelle frisst eine halbe
  * Patrone und wird auf Normalpapier grau.
  */
-import { execFileSync } from 'node:child_process'
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { readFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import sharp from 'sharp'
 import { estimateNetChf, margeProzent, preisFormel, selbstkostenChf } from '../src/lib/estimate.ts'
 import { einfuhrsteuerChf, herstellungChf } from '../src/lib/kosten.ts'
 import { kostenConfig } from '../src/data/kostenConfig.ts'
-import { RAHMENDICKEN } from '../src/data/produktion.ts'
+import { ZIEL, alsBild } from './drucksache.mjs'
+import { NETZARTEN } from '../src/data/produktion.ts'
 
-const CHROMIUM = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
-const ZIEL = 'drucksachen'
 
-const dicke = process.argv[2] ?? '2.8'
-if (!(dicke in RAHMENDICKEN)) {
-  console.error(`Unbekannte Rahmendicke "${dicke}". Moeglich: ${Object.keys(RAHMENDICKEN).join(', ')}`)
+const art = process.argv[2] ?? 'normal'
+if (!(art in NETZARTEN)) {
+  console.error(`Unbekanntes Gewebe "${art}". Moeglich: ${Object.keys(NETZARTEN).join(', ')}`)
   process.exit(1)
 }
 
@@ -57,9 +58,9 @@ const chf = (x) => x.toLocaleString('de-CH', { minimumFractionDigits: 2, maximum
 const ganz = (x) => x.toLocaleString('de-CH', { maximumFractionDigits: 0 })
 
 const zeilen = MASSE.map(([b, h]) => {
-  const ware = herstellungChf(b, h, dicke)
-  const kosten = selbstkostenChf(b, h, dicke)
-  const preis = estimateNetChf(b, h, dicke)
+  const ware = herstellungChf(b, h, art)
+  const kosten = selbstkostenChf(b, h, art)
+  const preis = estimateNetChf(b, h, art)
   return {
     mass: `${b} × ${h}`,
     flaeche: ((b / 100) * (h / 100)).toFixed(2),
@@ -69,7 +70,7 @@ const zeilen = MASSE.map(([b, h]) => {
     kosten,
     preis,
     karChf: Math.round((preis - kosten) * 100) / 100,
-    kar: margeProzent(b, h, dicke),
+    kar: margeProzent(b, h, art),
   }
 })
 
@@ -77,8 +78,8 @@ const zeilen = MASSE.map(([b, h]) => {
 const schrift = (datei) =>
   `url(data:font/woff2;base64,${readFileSync(`public/fonts/${datei}`).toString('base64')}) format('woff2')`
 
-const satzEur = kostenConfig.proM2Eur[dicke] ?? kostenConfig.proM2StandardEur
-const kasa = dicke === '1.5' ? '1.5 cm ince kasa' : '2.8 cm normal kasa'
+const satzEur = kostenConfig.proM2Eur[art] ?? kostenConfig.proM2StandardEur
+const kasa = art === 'engmaschig' ? 'sık dokulu tül' : 'normal tül'
 
 const html = `<!doctype html>
 <html lang="tr"><head><meta charset="utf-8">
@@ -136,7 +137,7 @@ const html = `<!doctype html>
     <span class="marke">Pfistanbul Fenster · ${new Date().toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}</span>
   </div>
   <p class="lead">
-    ${kasa}, normal dokuma. Tüm tutarlar İsviçre frangı (CHF).
+    ${kasa}, 1.8 veya 2.8 cm kasa (fiyatı değiştirmez). Tüm tutarlar İsviçre frangı (CHF).
     Mal bedeli: ${satzEur} €/m², kur 1 € = ${kostenConfig.eurChf} CHF.
   </p>
 
@@ -193,15 +194,6 @@ const html = `<!doctype html>
   </div>
 </body></html>`
 
-mkdirSync(ZIEL, { recursive: true })
-const profil = join(ZIEL, `profil-${dicke}`)
-rmSync(profil, { recursive: true, force: true })
-mkdirSync(profil, { recursive: true })
-const quelle = join(ZIEL, `preisblatt-${dicke}.html`)
-const roh = join(ZIEL, `roh-${dicke}.png`)
-const bild = join(ZIEL, `preisblatt-${dicke}.png`)
-writeFileSync(quelle, html)
-
 /*
  * Das Fenster ist absichtlich zu hoch: Ein zu knappes schneidet lieber die
  * letzte Zeile ab, als den Rest zu zeigen. Zugeschnitten wird danach.
@@ -210,13 +202,11 @@ const FENSTERHOEHE = 1600
 const BREITE = 1080
 const MASSSTAB = 2
 
-execFileSync(CHROMIUM, [
-  '--headless=new', '--disable-gpu', '--no-sandbox', '--hide-scrollbars',
-  `--user-data-dir=${profil}`, '--no-first-run',
-  `--window-size=${BREITE},${FENSTERHOEHE}`, `--force-device-scale-factor=${MASSSTAB}`,
-  `--screenshot=${roh}`,
-  quelle,
-], { stdio: ['ignore', 'ignore', 'pipe'] })
+/* Der Weg ueber das Protokoll steht in bau/drucksache.mjs, samt Begruendung. */
+const { bild: roh } = await alsBild({
+  html, name: `roh-${art}`, breite: BREITE, hoehe: FENSTERHOEHE, massstab: MASSSTAB,
+})
+const bild = join(ZIEL, `preisblatt-${art}.png`)
 
 /*
  * sharp sucht den Rand in Weiss und nimmt ihn weg; der Innenabstand kommt
@@ -249,8 +239,6 @@ if (dunkel > 50) {
  * beim naechsten Mal niemand mehr, welche davon zum Bild gehoert.
  */
 rmSync(roh)
-rmSync(quelle)
-rmSync(profil, { recursive: true, force: true })
 
 const preise = zeilen.map((z) => z.preis)
 const margen = zeilen.map((z) => z.kar)

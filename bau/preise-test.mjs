@@ -164,7 +164,7 @@ pruefe('Der Richtpreis ist Sockel plus Faktor mal Selbstkosten', () => {
    */
   for (const [b, h] of [[100, 150], [160, 122], [150, 250], [250, 250]]) {
     const k = selbstkostenChf(b, h)
-    const erwartet = Math.ceil(Math.max(65 + Math.round(1.6 * k * 100) / 100, 125) / 5 - 1e-9) * 5
+    const erwartet = Math.ceil(Math.max(65 + Math.round(1.8 * k * 100) / 100, 125) / 5 - 1e-9) * 5
     assert.equal(estimateNetChf(b, h), erwartet, `${b} x ${h}`)
   }
 })
@@ -174,22 +174,21 @@ pruefe('Die Preisgerade steht, wo sie nach Boras Satz stehen muss', () => {
    * DIE ANKER SIND DIE VEREINBARUNG, nicht die Formel: 1 m² = 140,
    * 1.5 = 160, 2 = 185, 3 = 235. Sockel und Faktor sind daraus gerechnet.
    *
-   * GETROFFEN HABEN SIE BEI 30 EUR/m². Seit Bora den normalen Rahmen auf
-   * 28 gesenkt hat, liegt die ganze Gerade tiefer - fuenf bis zehn Franken,
-   * je nach Groesse. Das ist kein Fehler, sondern die Entscheidung: Der
-   * guenstigere Einkauf geht an die Kundschaft. Wer die alten Preise
-   * zurueckwollte, muesste den Warenfaktor von 1.6 auf 1.68 heben.
+   * GETROFFEN HABEN SIE BEI 30 EUR/m². Jede Preisaenderung seither hat die
+   * ganze Gerade verschoben: 135/155/180/225 bei 28, und 130/150/170/205
+   * bei 21 mit Faktor 1.8. Das ist kein Fehler, sondern jedes Mal eine
+   * Entscheidung gewesen - erst ganz an die Kundschaft, dann zur Haelfte.
    *
    * ZWEI AUSSAGEN STEHEN DESHALB HIER. Die erste haelt die heutigen Zahlen
    * fest, damit eine unbeabsichtigte Aenderung an der Formel auffaellt. Die
    * zweite ist die dauerhafte: Die Gerade darf sich vom Anker loesen, aber
-   * nicht weit - hoechstens fuenfzehn Franken darunter und nie darueber.
+   * nicht weit - hoechstens dreissig Franken darunter und nie darueber.
    * Wandert sie weiter, ist das eine Preisentscheidung und keine Rechnung,
    * und dann gehoeren hier neue Zahlen hin statt eines groesseren
    * Spielraums.
    */
   const anker = [[1.0, 140], [1.5, 160], [2.0, 185], [3.0, 235]]
-  const heute = [135, 155, 180, 225]
+  const heute = [130, 150, 170, 205]
 
   anker.forEach(([flaeche], i) => {
     assert.equal(estimateNetChf(100, (flaeche * 10000) / 100), heute[i], `${flaeche} m²`)
@@ -197,7 +196,7 @@ pruefe('Die Preisgerade steht, wo sie nach Boras Satz stehen muss', () => {
 
   for (const [flaeche, ziel] of anker) {
     const preis = estimateNetChf(100, (flaeche * 10000) / 100)
-    assert.ok(preis <= ziel && preis >= ziel - 15,
+    assert.ok(preis <= ziel && preis >= ziel - 30,
       `${flaeche} m²: ${preis} liegt nicht mehr beim Anker ${ziel}`)
   }
 })
@@ -242,10 +241,10 @@ pruefe('Die Marge faellt mit der Groesse, weil der Sockel sich verteilt', () => 
    * KEIN DECKEL MEHR, und er fehlt nicht aus Versehen: Die Marge faellt von
    * selbst, weil der Sockel von 65 Franken sich ueber mehr Flaeche
    * verteilt. Beim kleinsten Netz traegt der Preis ueber 75 Prozent, beim
-   * groessten unter 55 - aber nie unter 40, sonst waere die Gerade zu flach.
+   * groessten unter 65 - aber nie unter 40, sonst waere die Gerade zu flach.
    */
   assert.ok(margeProzent(60, 80) >= 75, `60 x 80 traegt ${margeProzent(60, 80)} Prozent`)
-  assert.ok(margeProzent(250, 250) < 55, `250 x 250 traegt ${margeProzent(250, 250)} Prozent`)
+  assert.ok(margeProzent(250, 250) < 65, `250 x 250 traegt ${margeProzent(250, 250)} Prozent`)
   assert.ok(margeProzent(250, 250) > 40)
 
   let vorher = 101
@@ -256,18 +255,23 @@ pruefe('Die Marge faellt mit der Groesse, weil der Sockel sich verteilt', () => 
   }
 })
 
-pruefe('Der schmale Rahmen kostet die Kundschaft mehr', () => {
+/*
+ * HIER STAND "Der schmale Rahmen kostet die Kundschaft mehr". Das galt,
+ * solange Bora ihn teurer rechnete; seit November 2026 kosten beide Rahmen
+ * dasselbe, und was durchschlaegt, ist das Gewebe.
+ */
+pruefe('Das engmaschige Gewebe kostet die Kundschaft mehr', () => {
   for (const [b, h] of [[60, 100], [100, 150], [150, 250]]) {
-    assert.ok(estimateNetChf(b, h, '1.5') >= estimateNetChf(b, h, '2.8'),
-      `${b} x ${h}: schmal ${estimateNetChf(b, h, '1.5')}, normal ${estimateNetChf(b, h, '2.8')}`)
+    assert.ok(estimateNetChf(b, h, 'engmaschig') >= estimateNetChf(b, h, 'normal'),
+      `${b} x ${h}: engmaschig ${estimateNetChf(b, h, 'engmaschig')}, normal ${estimateNetChf(b, h, 'normal')}`)
   }
-  assert.ok(estimateNetChf(100, 150, '1.5') > estimateNetChf(100, 150, '2.8'),
+  assert.ok(estimateNetChf(100, 150, 'engmaschig') > estimateNetChf(100, 150, 'normal'),
     'bei mittleren Formaten muss der Unterschied durchschlagen')
 })
 
-pruefe('Ein Altwert in der Rahmendicke rechnet wie der normale Rahmen', () => {
-  assert.equal(estimateNetChf(100, 150, '3-4 cm'), estimateNetChf(100, 150, '2.8'))
-  assert.equal(estimateNetChf(100, 150, undefined), estimateNetChf(100, 150, '2.8'))
+pruefe('Ohne Netzart rechnet der Preis wie beim normalen Gewebe', () => {
+  assert.equal(estimateNetChf(100, 150, undefined), estimateNetChf(100, 150, 'normal'))
+  assert.equal(estimateNetChf(100, 150, 'irgendwas'), estimateNetChf(100, 150, 'normal'))
 })
 
 pruefe('Ohne Masse gibt es keinen Preis statt eines erfundenen', () => {

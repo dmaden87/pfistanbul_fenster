@@ -3,7 +3,7 @@
  *
  * Aufruf: npm run referenzpreise
  *
- * Heraus kommt drucksachen/referenzpreise.pdf: je Rahmendicke eine Seite
+ * Heraus kommt drucksachen/referenzpreise.pdf: je Gewebe eine Seite
  * mit einer Tabelle Breite x Hoehe, in jeder Zelle der Richtpreis fuer ein
  * Netz dieser Masse.
  *
@@ -32,19 +32,19 @@
  */
 import { estimateNetChf, margeProzent, preisFormel, selbstkostenChf } from '../src/lib/estimate.ts'
 import { kostenConfig } from '../src/data/kostenConfig.ts'
-import { RAHMENDICKEN } from '../src/data/produktion.ts'
+import { NETZARTEN } from '../src/data/produktion.ts'
 import { shopConfig } from '../src/data/shopConfig.ts'
 import {
-  BREITEN, DICKEN, ECKPUNKTE, HOEHEN, alsPdf, chf, flaecheM2, monat, schriften,
+  BREITEN, ECKPUNKTE, GEWEBE, HOEHEN, alsPdf, chf, flaecheM2, monat, schriften,
 } from './drucksache.mjs'
 
-const seite = (dicke) => {
-  const satzEur = kostenConfig.proM2Eur[dicke] ?? kostenConfig.proM2StandardEur
-  const name = RAHMENDICKEN[dicke]?.deutsch ?? `${dicke} cm`
+const seite = (art) => {
+  const satzEur = kostenConfig.proM2Eur[art] ?? kostenConfig.proM2StandardEur
+  const name = `${NETZARTEN[art]?.deutsch ?? art}es Gewebe`
 
   const zeilen = HOEHEN.map((h) => {
     const zellen = BREITEN.map((b) => {
-      const preis = estimateNetChf(b, h, dicke)
+      const preis = estimateNetChf(b, h, art)
       const m2 = flaecheM2(b, h)
       /* Wo der Mindestpreis greift, traegt das Netz seine Marge nicht mehr
          aus der Flaeche - das soll man sehen, nicht nachrechnen muessen. */
@@ -55,15 +55,15 @@ const seite = (dicke) => {
   }).join('')
 
   const eck = ECKPUNKTE.map(([b, h]) => {
-    const kosten = selbstkostenChf(b, h, dicke)
-    const preis = estimateNetChf(b, h, dicke)
+    const kosten = selbstkostenChf(b, h, art)
+    const preis = estimateNetChf(b, h, art)
     return `<tr>
       <td class="links">${b} × ${h}</td>
       <td>${flaecheM2(b, h).toFixed(2)} m²</td>
       <td>${chf(kosten)}</td>
       <td class="preis">${preis}</td>
       <td>${chf(Math.round((preis - kosten) * 100) / 100)}</td>
-      <td class="prozent">${margeProzent(b, h, dicke)}%</td>
+      <td class="prozent">${margeProzent(b, h, art)}%</td>
     </tr>`
   }).join('')
 
@@ -174,13 +174,13 @@ const html = `<!doctype html>
 
   .formel { font-family: ui-monospace, monospace; font-size: 8pt; color: #8a4b00; }
 </style></head><body>
-${DICKEN.map(seite).join('\n')}
+${GEWEBE.map(seite).join('\n')}
 </body></html>`
 
-const { pdf, groesse, seiten } = alsPdf({ html, name: 'referenzpreise', seiten: DICKEN.length })
+const { pdf, groesse, seiten } = await alsPdf({ html, name: 'referenzpreise', seiten: GEWEBE.length })
 
-const alle = DICKEN.flatMap((d) =>
-  HOEHEN.flatMap((h) => BREITEN.map((b) => estimateNetChf(b, h, d))))
+const alle = GEWEBE.flatMap((a) =>
+  HOEHEN.flatMap((h) => BREITEN.map((b) => estimateNetChf(b, h, a))))
 console.log(`${pdf} geschrieben – ${(groesse / 1024).toFixed(0)} kB, ${seiten} Seiten`)
 console.log(`${BREITEN.length} Breiten x ${HOEHEN.length} Hoehen · Preise ${Math.min(...alle)} bis ${Math.max(...alle)} CHF`)
 console.log(`Formel: ${preisFormel.sockelChf} + ${preisFormel.warenfaktor} x Selbstkosten, mindestens ${preisFormel.mindestpreisChf}`)
